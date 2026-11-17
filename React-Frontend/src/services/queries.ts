@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   MOCK_AGENT_ACTIVITY,
   MOCK_AGENT_DIRECTORY,
+  MOCK_AI_ACCESS_MATRIX,
   MOCK_AI_CAMPAIGNS,
   MOCK_AI_INSIGHTS,
   MOCK_AI_JOURNEY_READINGS,
@@ -10,21 +11,49 @@ import {
   MOCK_CORRECTIVE_RATIONALES,
   MOCK_DETRACTOR_CALL_ITEMS,
   MOCK_EFFORT_SUMMARIES,
+  MOCK_GLOSSARY_TERMS,
   MOCK_HANDOFFS,
+  MOCK_HR_POOL,
   MOCK_INTERACTIONS,
   MOCK_INVESTIGATIONS,
+  MOCK_LD_REQUESTS,
   MOCK_LEAD_FUNNEL,
+  MOCK_MS_ASSIGNMENTS,
+  MOCK_MS_CHECKLISTS,
+  MOCK_MS_SCENARIOS,
+  MOCK_MS_SHOPPERS,
   MOCK_PATTERNS,
   MOCK_PERSONAS,
   MOCK_PERSONS,
   MOCK_PRODUCT_SURVEY_MOMENTS,
+  MOCK_RULES_CONFIG,
   MOCK_SHOPPER_CASES,
   MOCK_SIGNALS,
+  MOCK_STANDARDS,
   MOCK_SURVEY_TRIGGERS,
+  MOCK_VOC_COMMENTS,
+  MOCK_VOC_ROWS,
 } from './mockData'
 import { sleep } from '../utils/random'
 import { isRecovered } from '../utils/closeTheLoop'
-import type { AiInterviewCampaign, Bi, CorrectiveAction, CorrectiveActionKind, InterviewOutcome, Investigation, Pattern, ReasonCode, ShopperCase } from '../types'
+import { scoreChecklist } from '../utils/mysteryShopper'
+import { PRODUCTS } from '../data/products'
+import type {
+  Access,
+  AiInterviewCampaign,
+  Bi,
+  CorrectiveAction,
+  CorrectiveActionKind,
+  InterviewOutcome,
+  Investigation,
+  MsAssignment,
+  Pattern,
+  ProductId,
+  ReasonCode,
+  RoleId,
+  ShopperCase,
+  StandardStatus,
+} from '../types'
 
 /**
  * Repository-style fetch functions — each one is the exact seam a real API
@@ -157,6 +186,73 @@ async function fetchAgentActivity() {
   return MOCK_AGENT_ACTIVITY
 }
 
+// --- Settings and reference fetchers --------------------------------------
+
+async function fetchStandards() {
+  await sleep(LATENCY_MS)
+  return MOCK_STANDARDS
+}
+
+async function fetchMsChecklists() {
+  await sleep(LATENCY_MS)
+  return MOCK_MS_CHECKLISTS
+}
+
+async function fetchMsScenarios() {
+  await sleep(LATENCY_MS)
+  return MOCK_MS_SCENARIOS
+}
+
+async function fetchMsShoppers() {
+  await sleep(LATENCY_MS)
+  return MOCK_MS_SHOPPERS
+}
+
+async function fetchMsAssignments() {
+  await sleep(LATENCY_MS)
+  return MOCK_MS_ASSIGNMENTS
+}
+
+async function fetchVocRows() {
+  await sleep(LATENCY_MS)
+  return MOCK_VOC_ROWS
+}
+
+async function fetchVocComments() {
+  await sleep(LATENCY_MS)
+  return MOCK_VOC_COMMENTS
+}
+
+async function fetchRulesConfig() {
+  await sleep(LATENCY_MS)
+  return MOCK_RULES_CONFIG
+}
+
+async function fetchAiAccessMatrix() {
+  await sleep(LATENCY_MS)
+  return MOCK_AI_ACCESS_MATRIX
+}
+
+async function fetchLdRequests() {
+  await sleep(LATENCY_MS)
+  return MOCK_LD_REQUESTS
+}
+
+async function fetchHrPool() {
+  await sleep(LATENCY_MS)
+  return MOCK_HR_POOL
+}
+
+async function fetchGlossaryTerms() {
+  await sleep(LATENCY_MS)
+  return MOCK_GLOSSARY_TERMS
+}
+
+async function fetchProducts() {
+  await sleep(LATENCY_MS)
+  return PRODUCTS
+}
+
 // --- Mutations -----------------------------------------------------------
 // In-memory only (no backend yet, IMPLEMENTATION_PLAN.md §4): each mutation
 // edits the mock array in place, by id, then the caller invalidates the
@@ -284,6 +380,88 @@ async function decidePersona(input: { id: string; decision: 'approved' | 'modifi
   return persona
 }
 
+// --- Settings and reference mutations ---------------------------------
+
+/** NFR-4 — the CX manager grows the register's status as each document is
+ * written and scored; CX only, per `canEditStandardsRegister` upstream. */
+async function updateStandardStatus(input: { id: string; status: StandardStatus }) {
+  await sleep(LATENCY_MS)
+  const std = MOCK_STANDARDS.find((s) => s.id === input.id)
+  if (!std) throw new Error('Standard not found')
+  std.status = input.status
+  return std
+}
+
+/** FR "Distribution" — sends a new checklist+scenario to each selected
+ * shopper, 3 days out, same shape as the old scaffold's send(). */
+async function sendMsAssignments(input: { checklistId: string; scenarioId: string; shopperIds: string[]; via: MsAssignment['via'] }) {
+  await sleep(LATENCY_MS)
+  const now = new Date().toISOString()
+  const due = new Date(Date.now() + 3 * 86_400_000).toISOString()
+  const created = input.shopperIds.map((shopperId, i) => ({
+    id: `asg-new-${Date.now()}-${i}`,
+    checklistId: input.checklistId,
+    scenarioId: input.scenarioId,
+    shopperId,
+    via: input.via,
+    sentAt: now,
+    dueAt: due,
+    status: 'sent' as const,
+  }))
+  MOCK_MS_ASSIGNMENTS.unshift(...created)
+  return created
+}
+
+/** FR-4.14 — scores the checklist and files the submission for CX review;
+ * the severity-floor rule (<60% ⇒ at least medium) is read off this score by
+ * the page, not stored again here. */
+async function submitMsAssignment(input: { id: string; checklistId: string; answers: Record<string, number | 'na' | null> }) {
+  await sleep(LATENCY_MS)
+  const assignment = MOCK_MS_ASSIGNMENTS.find((a) => a.id === input.id)
+  const checklist = MOCK_MS_CHECKLISTS.find((c) => c.id === input.checklistId)
+  if (!assignment || !checklist) throw new Error('Assignment or checklist not found')
+  const result = scoreChecklist(checklist, input.answers)
+  assignment.status = 'submitted'
+  assignment.score = result.score ?? undefined
+  assignment.criticalFails = result.criticalFails
+  return assignment
+}
+
+async function decideMsAssignment(input: { id: string; approve: boolean }) {
+  await sleep(LATENCY_MS)
+  const assignment = MOCK_MS_ASSIGNMENTS.find((a) => a.id === input.id)
+  if (!assignment) throw new Error('Assignment not found')
+  assignment.status = input.approve ? 'approved' : 'returned'
+  return assignment
+}
+
+async function updateRuleConfig(input: { id: string; value: number }) {
+  await sleep(LATENCY_MS)
+  const rule = MOCK_RULES_CONFIG.find((r) => r.id === input.id)
+  if (!rule) throw new Error('Rule not found')
+  rule.value = input.value
+  return rule
+}
+
+/** The CX manager's "AI Insights access matrix" — cycles one cell through
+ * the five-level access vocabulary; changes apply at once (USER_ROLES_AND_
+ * PERMISSIONS.md). */
+async function updateAiAccessCell(input: { group: string; label: string; roleId: RoleId; value: Access }) {
+  await sleep(LATENCY_MS)
+  const row = MOCK_AI_ACCESS_MATRIX.find((r) => r.group.en === input.group && r.label.en === input.label)
+  if (!row) throw new Error('Access row not found')
+  row.values[input.roleId] = input.value
+  return row
+}
+
+async function toggleProductLaunch(input: { id: ProductId }) {
+  await sleep(LATENCY_MS)
+  const product = PRODUCTS.find((p) => p.id === input.id)
+  if (!product) throw new Error('Product not found')
+  product.live = !product.live
+  return product
+}
+
 async function fetchHomeSummary() {
   await sleep(LATENCY_MS)
   const runawayCount = MOCK_EFFORT_SUMMARIES.filter((e) => e.daysSinceLastContact > 30).length
@@ -328,6 +506,21 @@ export const useAiInsights = () => useQuery({ queryKey: ['ai-insights'], queryFn
 export const useCorrectiveRationale = (actionId: string) =>
   useQuery({ queryKey: ['corrective-rationale', actionId], queryFn: () => fetchCorrectiveRationale(actionId), enabled: !!actionId })
 export const useAgentActivity = () => useQuery({ queryKey: ['agent-activity'], queryFn: fetchAgentActivity })
+
+// --- Settings and reference hooks -----------------------------------------
+export const useStandards = () => useQuery({ queryKey: ['standards'], queryFn: fetchStandards })
+export const useMsChecklists = () => useQuery({ queryKey: ['ms-checklists'], queryFn: fetchMsChecklists })
+export const useMsScenarios = () => useQuery({ queryKey: ['ms-scenarios'], queryFn: fetchMsScenarios })
+export const useMsShoppers = () => useQuery({ queryKey: ['ms-shoppers'], queryFn: fetchMsShoppers })
+export const useMsAssignments = () => useQuery({ queryKey: ['ms-assignments'], queryFn: fetchMsAssignments })
+export const useVocRows = () => useQuery({ queryKey: ['voc-rows'], queryFn: fetchVocRows })
+export const useVocComments = () => useQuery({ queryKey: ['voc-comments'], queryFn: fetchVocComments })
+export const useRulesConfig = () => useQuery({ queryKey: ['rules-config'], queryFn: fetchRulesConfig })
+export const useAiAccessMatrix = () => useQuery({ queryKey: ['ai-access-matrix'], queryFn: fetchAiAccessMatrix })
+export const useLdRequests = () => useQuery({ queryKey: ['ld-requests'], queryFn: fetchLdRequests })
+export const useHrPool = () => useQuery({ queryKey: ['hr-pool'], queryFn: fetchHrPool })
+export const useGlossaryTerms = () => useQuery({ queryKey: ['glossary-terms'], queryFn: fetchGlossaryTerms })
+export const useProducts = () => useQuery({ queryKey: ['products'], queryFn: fetchProducts })
 
 // --- Mutation hooks --------------------------------------------------------
 
@@ -411,5 +604,63 @@ export function useCreateAiCampaign() {
   return useMutation({
     mutationFn: createAiCampaign,
     onSuccess: () => qc.invalidateQueries({ queryKey: ['ai-campaigns'] }),
+  })
+}
+
+// --- Settings and reference mutation hooks ---------------------------------
+
+export function useUpdateStandardStatus() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: updateStandardStatus,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['standards'] }),
+  })
+}
+
+export function useSendMsAssignments() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: sendMsAssignments,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['ms-assignments'] }),
+  })
+}
+
+export function useSubmitMsAssignment() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: submitMsAssignment,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['ms-assignments'] }),
+  })
+}
+
+export function useDecideMsAssignment() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: decideMsAssignment,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['ms-assignments'] }),
+  })
+}
+
+export function useUpdateRuleConfig() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: updateRuleConfig,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['rules-config'] }),
+  })
+}
+
+export function useUpdateAiAccessCell() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: updateAiAccessCell,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['ai-access-matrix'] }),
+  })
+}
+
+export function useToggleProductLaunch() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: toggleProductLaunch,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['products'] }),
   })
 }
