@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom'
 import { useI18n } from '@/i18n'
 import { PageHeader } from '@/components/common/PageHeader'
 import { LoadingState } from '@/components/common/LoadingState'
+import { RouteTransition } from '@/components/layout/RouteTransition'
 import { RouteTabs } from '@/components/common/Tabs'
 import { ACTIONS_TABS } from '@/data/nav'
 
@@ -13,7 +14,9 @@ export default function ActionsLayout() {
       <PageHeader title={t('Actions', 'الإجراءات')} description={t('What is being fixed, why, and did it work.', 'ما الذي يتم إصلاحه، ولماذا، وهل نجح؟')} />
       <RouteTabs items={ACTIONS_TABS} label={t('Actions sections', 'أقسام الإجراءات')} />
       <Suspense fallback={<LoadingState rows={5} />}>
-        <Outlet />
+        <RouteTransition scope="section">
+          <Outlet />
+        </RouteTransition>
       </Suspense>
     </div>
   )

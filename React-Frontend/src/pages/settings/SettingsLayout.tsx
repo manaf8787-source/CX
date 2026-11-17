@@ -2,8 +2,11 @@ import { Suspense } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useI18n } from '@/i18n'
 import { SETTINGS_NAV } from '@/data/nav'
+import { useRole } from '@/auth/RoleContext'
+import { canOpenPage } from '@/auth/access'
 import { PageHeader } from '@/components/common/PageHeader'
 import { LoadingState } from '@/components/common/LoadingState'
+import { RouteTransition } from '@/components/layout/RouteTransition'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 
@@ -17,7 +20,9 @@ export default function SettingsLayout() {
   const { t, L } = useI18n()
   const { pathname } = useLocation()
   const navigate = useNavigate()
-  const current = SETTINGS_NAV.find((i) => pathname === i.path || pathname.startsWith(`${i.path}/`))?.path
+  const { role } = useRole()
+  const items = SETTINGS_NAV.filter((i) => canOpenPage(role.id, i.path))
+  const current = items.find((i) => pathname === i.path || pathname.startsWith(`${i.path}/`))?.path
   const navLabel = t('Settings and reference', 'الإعدادات والمرجع')
 
   return (
@@ -37,7 +42,7 @@ export default function SettingsLayout() {
             <SelectValue placeholder={t('Choose a section', 'اختر قسماً')} />
           </SelectTrigger>
           <SelectContent>
-            {SETTINGS_NAV.map((item) => (
+            {items.map((item) => (
               <SelectItem key={item.path} value={item.path}>
                 {L(item.label)}
               </SelectItem>
@@ -49,7 +54,7 @@ export default function SettingsLayout() {
       <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[232px_minmax(0,1fr)]">
         <nav aria-label={navLabel} className="sticky top-20 hidden rounded-xl border bg-card p-2 shadow-xs lg:block">
           <ul className="flex flex-col gap-0.5">
-            {SETTINGS_NAV.map((item) => (
+            {items.map((item) => (
               <li key={item.path}>
                 <NavLink
                   to={item.path}
@@ -71,7 +76,9 @@ export default function SettingsLayout() {
         </nav>
         <div className="flex min-w-0 flex-col gap-6">
           <Suspense fallback={<LoadingState rows={5} />}>
-            <Outlet />
+            <RouteTransition scope="section">
+              <Outlet />
+            </RouteTransition>
           </Suspense>
         </div>
       </div>

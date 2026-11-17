@@ -11,6 +11,7 @@ import { LoadingState } from '@/components/common/LoadingState'
 import { ErrorState } from '@/components/common/ErrorState'
 import { PercentagesExplainer } from './components/PercentagesExplainer'
 import { ScoresVsSignalsNotice } from './components/ScoresVsSignalsNotice'
+import { useChartMotion } from '@/hooks/useChartMotion'
 
 const MINIMUM_SAMPLE = 10
 
@@ -20,6 +21,7 @@ const SERIES_LABEL: Record<string, { en: string; ar: string }> = {
 }
 
 export default function AiInsights() {
+  const chartMotion = useChartMotion()
   const { t, L, lang } = useI18n()
   const navigate = useNavigate()
   const { data: insights, isLoading, error, refetch } = useAiInsights()
@@ -72,7 +74,7 @@ export default function AiInsights() {
                             formatter={(v) => [v, t('Cases', 'حالات')]}
                             contentStyle={{ background: 'var(--popover)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--popover-foreground)', fontSize: 12 }}
                           />
-                          <Bar dataKey="value" radius={[4, 4, 0, 0]} maxBarSize={56}>
+                          <Bar dataKey="value" radius={[4, 4, 0, 0]} maxBarSize={56} {...chartMotion}>
                             {(lang === 'ar' ? [...series].reverse() : series).map((entry) => (
                               <Cell key={entry.label} fill={entry.i === 0 ? 'var(--destructive)' : 'var(--success)'} />
                             ))}

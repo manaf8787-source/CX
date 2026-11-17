@@ -177,6 +177,8 @@ export interface CorrectiveAction {
    * (utils/effectiveness.ts), and the month index the action started in. */
   monthlySignalSeries?: number[]
   startedMonthIndex?: number
+  /** KB §6: the manager asked for an investigation before deciding. */
+  sentToInvestigation?: boolean
 }
 
 /** FR-4.2 — "How the AI found this", one per corrective action: sources,
@@ -238,6 +240,8 @@ export interface Investigation {
   requestedCount?: number // for customer_interviews
   environment?: string
   scenario?: Bi // for mystery_shopper_check
+  /** KB §6 "investigate-form": what the shopper should look for. */
+  lookFor?: Bi
   status: 'requested' | 'in_progress' | 'returned'
   resultSummary?: Bi
 }

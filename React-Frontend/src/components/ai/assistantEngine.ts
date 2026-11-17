@@ -1,6 +1,8 @@
 import { canViewAgentNames, canViewConversationText, resolveAgentDisplay } from '../../auth/permissions'
+import { answerIntent, type AssistantPerson, type CampaignBriefDraft, type PlanLine } from './assistantIntents'
 import type {
   AgentDirectoryEntry,
+  EffortSummary,
   Bi,
   CorrectiveAction,
   DetractorCallItem,
@@ -36,6 +38,7 @@ export interface AssistantDataset {
   personas: Persona[]
   detractorCallItems: DetractorCallItem[]
   agentDirectory: AgentDirectoryEntry[]
+  effortSummaries: EffortSummary[]
   /** Same object Home's tiles read (`useHomeSummary`) — reused here, not
    * recomputed, so the assistant's answer can never disagree with Home's
    * own number for the same figure. */
@@ -47,6 +50,12 @@ export interface AssistantAnswer {
   /** Set when the query resolved to one person — the panel offers a
    * "View their journey" action, mirroring FR-1.1's Home-search hand-off. */
   matchedPersonId?: string
+  /** KB §13: people with the reason beside each and the source to reach them on. */
+  people?: AssistantPerson[]
+  /** KB §13: one action per repeated fault, created as proposed actions on request. */
+  plan?: PlanLine[]
+  /** KB §13: a campaign brief, saved for Marketing on request. */
+  brief?: CampaignBriefDraft
 }
 
 function normalize(s: string): string {
@@ -69,6 +78,13 @@ export function answerQuestion(rawQuery: string, role: RoleId, data: AssistantDa
         ar: 'اسأل عن شخص بالاسم أو رقم الجوال، أو اطرح سؤالاً حراً — الإجراءات المفتوحة، عدد الهاربين، الشخصيات، الإشارات، قائمة الاتصال.',
       },
     }
+  }
+
+  const intentData = { persons: data.persons, interactions: data.interactions, effortSummaries: data.effortSummaries }
+  // Plan, campaign, "why" and "similar" requests are KB §13 intents and win over the count answers below.
+  if (/\bplan\b|خطة|campaign|حملة|\bwhy\b|لماذا|similar|مشابه/.test(query)) {
+    const intent = answerIntent(query, intentData)
+    if (intent) return intent
   }
 
   // --- "Who handled / who owns" — agent-name resolution, role-gated -------
@@ -199,6 +215,10 @@ export function answerQuestion(rawQuery: string, role: RoleId, data: AssistantDa
     }
   }
 
+  // --- People filtered by type, channel, fault or environment (KB §13) ---
+  const filtered = answerIntent(query, intentData)
+  if (filtered) return filtered
+
   // --- Person lookup (name or mobile), tried last so keyword intents win first ---
   const match = findPerson(query, data.persons)
   if (match) {
@@ -222,6 +242,9 @@ export function answerQuestion(rawQuery: string, role: RoleId, data: AssistantDa
 /** Suggestion chips shown above the input — each is a real, answerable
  * query against the dataset above, not a decorative placeholder. */
 export const SUGGESTED_QUERIES: Bi[] = [
+  { en: 'People on WhatsApp we replied to late who left', ar: 'من تواصلوا عبر واتساب ورددنا متأخرين ثم غادروا' },
+  { en: 'Silent leads in Abu Dhabi: corrective action plan', ar: 'العملاء المحتملون الصامتون في أبوظبي: خطة إجراءات تصحيحية' },
+  { en: 'Create a campaign for tenants who did not renew', ar: 'أنشئ حملة للمستأجرين الذين لم يجددوا' },
   { en: 'Open actions', ar: 'الإجراءات المفتوحة' },
   { en: 'Critical shopper cases', ar: 'حالات التسوق الحرجة' },
   { en: 'Personas', ar: 'الشخصيات' },

@@ -1,7 +1,9 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { Outlet } from 'react-router-dom'
 import { Search, Sparkles } from 'lucide-react'
 import { AppSidebar } from './Sidebar'
+import { RouteTransition } from './RouteTransition'
+import { UserMenu } from './UserMenu'
 import { LangSwitch } from '../common/LangSwitch'
 import { ThemeSwitch } from '../common/ThemeSwitch'
 import { LoadingState } from '../common/LoadingState'
@@ -12,6 +14,10 @@ import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { usePersonSearch } from '@/hooks/usePersonSearch'
 import { useI18n } from '@/i18n'
+import { useRole } from '@/auth/RoleContext'
+import { canUseAssistant } from '@/auth/access'
+import { AssistantContext } from '../ai/AssistantContext'
+import { AccessGuard } from './AccessGuard'
 
 const AssistantPanel = lazy(() => import('../ai/AssistantPanel').then((m) => ({ default: m.AssistantPanel })))
 
@@ -61,9 +67,24 @@ function HeaderSearch() {
 
 export function Shell() {
   const { t } = useI18n()
+  const { role } = useRole()
   const [assistantOpen, setAssistantOpen] = useState(false)
+  const [question, setQuestion] = useState<{ text: string; key: number } | null>(null)
+  const available = canUseAssistant(role.id)
+  const controls = useMemo(
+    () => ({
+      available,
+      open: (q?: string) => {
+        if (!available) return
+        setQuestion(q?.trim() ? { text: q.trim(), key: Date.now() } : null)
+        setAssistantOpen(true)
+      },
+    }),
+    [available],
+  )
 
   return (
+    <AssistantContext.Provider value={controls}>
     <SidebarProvider>
       <a
         href="#main"
@@ -80,26 +101,34 @@ export function Shell() {
           <div className="ms-auto flex shrink-0 items-center gap-1">
             <LangSwitch />
             <ThemeSwitch />
-            <Button variant="gold" className="ms-1 h-9 gap-1.5 px-2.5 sm:px-3" onClick={() => setAssistantOpen(true)} aria-label={t('Ask the assistant', 'اسأل المساعد')}>
-              <Sparkles aria-hidden />
-              <span className="hidden sm:inline">{t('Ask the assistant', 'اسأل المساعد')}</span>
-            </Button>
+            {available && (
+              <Button variant="gold" className="ms-1 h-9 gap-1.5 px-2.5 sm:px-3" onClick={() => controls.open()} aria-label={t('Ask the assistant', 'اسأل المساعد')}>
+                <Sparkles aria-hidden />
+                <span className="hidden sm:inline">{t('Ask the assistant', 'اسأل المساعد')}</span>
+              </Button>
+            )}
+            <UserMenu />
           </div>
         </header>
-        <main id="main" tabIndex={-1} className="mx-auto flex w-full max-w-[1440px] flex-1 flex-col gap-4 p-4 outline-none md:p-6">
+        <div id="main" tabIndex={-1} className="mx-auto flex w-full max-w-[1440px] flex-1 flex-col gap-4 overflow-x-clip p-4 outline-none md:p-6">
           <Suspense fallback={<LoadingState rows={6} />}>
-            <Outlet />
+            <RouteTransition>
+              <AccessGuard>
+                <Outlet />
+              </AccessGuard>
+            </RouteTransition>
           </Suspense>
-        </main>
+        </div>
       </SidebarInset>
 
-      <Sheet open={assistantOpen} onOpenChange={setAssistantOpen}>
+      <Sheet open={assistantOpen && available} onOpenChange={setAssistantOpen}>
         <SheetContent side="right" showCloseButton={false} aria-describedby={undefined} className="w-full gap-0 p-0 sm:max-w-md">
           <Suspense fallback={<LoadingState rows={3} className="p-4" />}>
-            <AssistantPanel onClose={() => setAssistantOpen(false)} />
+            <AssistantPanel key={question?.key ?? 'empty'} initialQuestion={question?.text} onClose={() => setAssistantOpen(false)} />
           </Suspense>
         </SheetContent>
       </Sheet>
     </SidebarProvider>
+    </AssistantContext.Provider>
   )
 }

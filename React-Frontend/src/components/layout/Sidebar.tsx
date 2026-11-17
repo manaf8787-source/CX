@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom'
-import { BrainCircuit, ClipboardList, Home, ListChecks, PhoneCall, Settings2, Target, Users, UserX } from 'lucide-react'
+import { BrainCircuit, Building2, ClipboardList, Home, ListChecks, PhoneCall, Settings2, Target, Users, UserX } from 'lucide-react'
 import {
   Sidebar,
   SidebarContent,
@@ -16,7 +16,10 @@ import {
 } from '@/components/ui/sidebar'
 import { RoleSwitch } from '@/components/common/RoleSwitch'
 import { useI18n } from '@/i18n'
-import { PRIMARY_NAV } from '@/data/nav'
+import { PRIMARY_NAV, SETTINGS_NAV, type NavGroup } from '@/data/nav'
+import { useRole } from '@/auth/RoleContext'
+import { canAccessPath, canOpenPage } from '@/auth/access'
+import { useProducts } from '@/services/queries'
 
 const ICONS: Record<string, typeof Home> = {
   '/home': Home,
@@ -38,7 +41,23 @@ export function AppSidebar() {
   const { L, t } = useI18n()
   const { pathname } = useLocation()
   const { isMobile, setOpenMobile } = useSidebar()
+  const { role } = useRole()
+  const { data: products } = useProducts()
   const isActive = (path: string) => pathname === path || pathname.startsWith(`${path}/`)
+
+  // KB §2: each role sees only its own pages; KB §16: not-launched products stay out of the menu.
+  const productGroup: NavGroup = {
+    label: { en: 'Products', ar: 'المنتجات' },
+    items: (products ?? []).filter((p) => p.live).map((p) => ({ path: `/products/${p.id}`, label: p.name, dotVar: p.colorVar })),
+  }
+  const groups = [...PRIMARY_NAV.slice(0, 2), productGroup, ...PRIMARY_NAV.slice(2)]
+    .map((g) => ({
+      ...g,
+      items: g.items.filter((i) =>
+        i.path === '/settings' ? SETTINGS_NAV.some((s) => canOpenPage(role.id, s.path) && !s.path.endsWith('/glossary')) : canAccessPath(role.id, i.path),
+      ),
+    }))
+    .filter((g) => g.items.length > 0)
 
   return (
     // The RTL build of this component maps side="left" to the logical start edge.
@@ -62,7 +81,7 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        {PRIMARY_NAV.map((group) => (
+        {groups.map((group) => (
           <SidebarGroup key={group.label.en}>
             <SidebarGroupLabel className="text-xs font-semibold tracking-wide text-sidebar-muted-foreground uppercase">
               {L(group.label)}
@@ -70,7 +89,7 @@ export function AppSidebar() {
             <SidebarGroupContent>
               <SidebarMenu>
                 {group.items.map((item) => {
-                  const Icon = ICONS[item.path] ?? Home
+                  const Icon = ICONS[item.path] ?? (item.path.startsWith('/products/') ? Building2 : Home)
                   const active = isActive(item.path)
                   return (
                     <SidebarMenuItem key={item.path}>

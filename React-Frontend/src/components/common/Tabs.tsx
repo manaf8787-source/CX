@@ -16,7 +16,7 @@ export function RouteTabs({ items, label }: { items: NavLeaf[]; label?: string }
             end
             className={({ isActive }) =>
               cn(
-                'inline-flex h-8 items-center rounded-md px-3 text-sm font-medium whitespace-nowrap outline-none transition-colors duration-150',
+                'inline-flex h-8 items-center rounded-md px-3 text-sm font-medium whitespace-nowrap outline-none transition-[color,background-color,box-shadow] duration-200 ease-out',
                 'focus-visible:ring-[3px] focus-visible:ring-ring/50',
                 isActive ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
               )

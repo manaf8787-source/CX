@@ -5,6 +5,10 @@ import { ArrowRight, BrainCircuit, ListChecks, PhoneCall, Search, ShieldAlert, T
 import { useI18n } from '@/i18n'
 import { useNow } from '@/hooks/useNow'
 import { usePersonSearch } from '@/hooks/usePersonSearch'
+import { useAssistant } from '@/components/ai/AssistantContext'
+import { useRole } from '@/auth/RoleContext'
+import { canAccessPath } from '@/auth/access'
+import { SUGGESTED_QUERIES } from '@/components/ai/assistantEngine'
 import {
   useAgentActivity,
   useCorrectiveActions,
@@ -28,8 +32,12 @@ import { StatusBadge } from '@/components/common/StatusBadge'
 import { ProductTag } from '@/components/common/Chip'
 import { EmptyState } from '@/components/common/EmptyState'
 import { LoadingState } from '@/components/common/LoadingState'
+import { useChartMotion } from '@/hooks/useChartMotion'
 
 function SeeAll({ to, label }: { to: string; label: string }) {
+  const { role } = useRole()
+  // KB §2: a role only gets links to its own pages.
+  if (!canAccessPath(role.id, to)) return null
   return (
     <Button variant="ghost" size="sm" asChild className="text-primary">
       <Link to={to}>
@@ -42,9 +50,14 @@ function SeeAll({ to, label }: { to: string; label: string }) {
 
 /** FR-1.1–1.5: one search box, then the day's picture built only from the mock repository. */
 export default function Home() {
+  const chartMotion = useChartMotion()
   const { t, L, lang } = useI18n()
   const now = useNow()
   const search = usePersonSearch()
+  const assistant = useAssistant()
+  const { role } = useRole()
+  const linkIf = (path: string) => (canAccessPath(role.id, path) ? path : undefined)
+  const seesActions = canAccessPath(role.id, '/actions')
   const [query, setQuery] = useState('')
 
   const { data: summary, isLoading: summaryLoading } = useHomeSummary()
@@ -118,8 +131,19 @@ export default function Home() {
             </Button>
           </form>
           <p className="mt-2 text-sm text-muted-foreground">
-            {t('A match opens the person’s journey; anything else lists matching customers.', 'المطابقة تفتح رحلة الشخص؛ وغير ذلك يعرض العملاء المطابقين.')}
+            {assistant.available
+              ? t('A name, mobile, ID or unit opens the person; a question in your own words goes to the assistant.', 'الاسم أو الجوال أو الهوية أو الوحدة يفتح ملف الشخص؛ والسؤال بكلماتك يذهب إلى المساعد.')
+              : t('A match opens the person’s journey; anything else lists matching customers.', 'المطابقة تفتح رحلة الشخص؛ وغير ذلك يعرض العملاء المطابقين.')}
           </p>
+          {assistant.available && (
+            <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label={t('Example requests', 'أمثلة على الطلبات')}>
+              {SUGGESTED_QUERIES.slice(0, 3).map((q) => (
+                <Button key={q.en} type="button" variant="outline" size="sm" className="h-auto min-h-8 rounded-full py-1 text-start font-normal whitespace-normal" onClick={() => assistant.open(L(q))}>
+                  {L(q)}
+                </Button>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -130,7 +154,7 @@ export default function Home() {
           sub={t('No contact for 30+ days', 'لا تواصل منذ أكثر من 30 يوماً')}
           accent="var(--destructive)"
           icon={<UserX />}
-          to="/runaway"
+          to={linkIf('/runaway')}
           loading={summaryLoading}
         />
         <KpiTile
@@ -139,7 +163,7 @@ export default function Home() {
           sub={t('Not yet verified', 'لم يتم التحقق بعد')}
           accent="var(--warning)"
           icon={<ListChecks />}
-          to="/actions/corrective"
+          to={linkIf('/actions/corrective')}
           loading={summaryLoading}
         />
         <KpiTile
@@ -148,7 +172,7 @@ export default function Home() {
           sub={t('Close-the-loop list', 'قائمة إغلاق الحلقة')}
           accent="var(--success)"
           icon={<PhoneCall />}
-          to="/close-the-loop"
+          to={linkIf('/close-the-loop')}
           loading={summaryLoading}
         />
         <KpiTile
@@ -157,7 +181,7 @@ export default function Home() {
           sub={t('One journey each', 'رحلة واحدة لكل شخص')}
           accent="var(--chart-4)"
           icon={<Users />}
-          to="/customers"
+          to={linkIf('/customers')}
           loading={summaryLoading}
         />
         <KpiTile
@@ -166,7 +190,7 @@ export default function Home() {
           sub={t('Rule-built segments', 'شرائح مبنية بالقواعد')}
           accent="var(--chart-1)"
           icon={<Target />}
-          to="/personas"
+          to={linkIf('/personas')}
           loading={summaryLoading}
           className="col-span-2 md:col-span-1"
         />
@@ -261,6 +285,7 @@ export default function Home() {
                       fill={`var(${p.colorVar})`}
                       radius={i === live.length - 1 ? [4, 4, 0, 0] : 0}
                       maxBarSize={36}
+                      {...chartMotion}
                     />
                   ))}
                 </BarChart>

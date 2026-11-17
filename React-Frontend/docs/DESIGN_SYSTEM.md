@@ -1,29 +1,17 @@
 # Design system: Tailwind CSS v4 + shadcn/ui
 
-These conventions are binding for every page. Read this before you migrate or build a page. The decision to use Tailwind and shadcn/ui was the user's, on 17 Nov 2026. It reversed the earlier choice of hand-written CSS only.
+These conventions are binding for every page. Read this before you build or change a page. The decision to use Tailwind and shadcn/ui was Manaf's, on 17 Nov 2026. It reversed the earlier choice of hand-written CSS only.
 
-Design direction (from the `ui-ux-pro-max` skill, adjusted for this product): a calm, token-based enterprise style similar to Fluent 2, with bento grids for dashboard tiles and a dense dashboard spacing scale. Motion is subtle and CSS-only. Arabic and English are both supported, with full right-to-left layout.
+Design direction (from the `ui-ux-pro-max` skill, adjusted for this product): a calm, token-based enterprise style similar to Fluent 2, with bento grids for dashboard tiles and a dense dashboard spacing scale. Motion is subtle: CSS for hover, press, stagger and loops, and `motion` (`motion/react`) for enter/exit choreography (section 8). Arabic and English are both supported, with full right-to-left layout.
 
-## 1. Migration status
+## 1. Files
 
-| Area | Status |
-|---|---|
-| Theme, tokens, fonts, providers (`index.css`, `styles/theme.css`, `UiProviders`) | Done (pass A) |
-| App shell: sidebar, header, search, language/theme/role switches | Done (pass A) |
-| `components/common/*` | Done (pass A). The legacy APIs `Chip`, `Tile`, `RouteTabs` and `EmptyState` still work and now render the new components. |
-| Home | Done (pass A) |
-| AI assistant | Hosted in a shadcn `Sheet` (pass A). Its internals still use legacy classes; they move in pass C. |
-| Actions (5 tabs), Customers, Runaway, Close the loop, Personas, Surveys | Pass B |
-| Intelligent CX Team, Settings and reference (12 sub-pages), AI assistant internals | Pass C |
+The whole app runs on Tailwind + shadcn/ui. The migration finished on 17 Nov 2026; there is no legacy stylesheet left.
 
-**How the old and new styles coexist.** `src/index.css` declares the layer order `theme, base, legacy, components, utilities`. The old `styles/base.css` loads in the `legacy` layer. That puts it above Tailwind's reset, so old pages keep their element styles, and below the utilities layer, so any Tailwind class wins over it. Its element rules (`h1`–`h3`, `a`, `table`/`th`/`td`, inputs, `:focus-visible`) skip anything inside `[data-ui-v2]`.
-
-When the last page is migrated:
-
-1. Delete the `@import './styles/base.css' layer(legacy)` line.
-2. Delete `styles/base.css`.
-3. Delete the legacy-only variables in `styles/tokens.css`. Keep the product hues `--p-*` (Tailwind's `product-*` colours read them) or move them into `theme.css`.
-4. Remove the `data-ui-v2` attributes.
+- `src/index.css` imports Tailwind, `tw-animate-css` and `styles/theme.css`, nothing else.
+- `src/styles/theme.css` holds every token (light in `:root`, dark in `.dark`), the `@theme` mapping and the global base rules (fonts, pointer cursor, reduced motion).
+- `src/components/ui/*` are the shadcn components; `src/components/common/*` are the shared building blocks built on them.
+- `ThemeContext` toggles the `.dark` class on `<html>`.
 
 ## 2. Tokens
 
@@ -41,12 +29,10 @@ The source of truth is `src/styles/theme.css`, with light values in `:root` and 
 | `success-text`, `warning-text`, `danger-text`, `info-text` | Text on a 10–15% tint of the same hue (badges, callouts) | darker shades, ≥ 5:1 |
 | `border` / `input` / `ring` | Dividers / input outlines (≥ 3:1) / focus ring | |
 | `chart-1` … `chart-5` | Chart series that aren't per-product | navy, gold, teal, blue, pink |
-| `product-re`, `-af`, `-cl`, `-to`, `-ev`, `-wl` | One fixed hue per product, read from `--p-*` in `tokens.css`. **Dots, bars and fills only, never text** (several are below 4.5:1). `-wl` (PSI Wallet) is `[Proposed]`. | |
+| `product-re`, `-af`, `-cl`, `-to`, `-ev`, `-wl` | One fixed hue per product, read from `--p-*` in `theme.css`. **Dots, bars and fills only, never text** (several are below 4.5:1). `-wl` (PSI Wallet) is `[Proposed]`. | |
 | `sidebar*` | The navy sidebar | |
 
 The brand pair (navy `#12385B`, gold `#C8963E`) is still a **[Proposed]** placeholder until PSI's real brand colours arrive. Changing it is an edit to `theme.css` only.
-
-Naming gotcha: the old CSS already owns the variables `--muted` (a text colour) and `--ring` (a box-shadow). shadcn's versions are therefore stored as `--surface-muted` and `--focus-ring`. The Tailwind classes are still `bg-muted` and `ring-ring`. Do not add raw variables named `--muted` or `--ring`.
 
 Every text/background pair in `theme.css` was checked at ≥ 4.5:1 in both themes. If you add a colour, check its contrast too.
 
@@ -67,7 +53,7 @@ Every text/background pair in `theme.css` was checked at ≥ 4.5:1 in both theme
 - **Spacing:** 8–32px rhythm. Page sections use `gap-6`, grids `gap-4`, cards `p-4`/`p-5`, and inline groups `gap-2`.
 - **Radius:** `rounded-md` for controls, `rounded-lg` for small panels, `rounded-xl` for cards and tiles, `rounded-full` for badges.
 - **Elevation:** cards use `shadow-xs` with a border. `shadow-md` is for hover on interactive tiles only. No glassmorphism, no `backdrop-blur`, no decorative gradients, no emoji as icons (use Lucide only).
-- **Motion:** 150–300ms, `ease-out`, and exits faster than entrances. Animate only `transform`, `opacity`, colours and shadows, never width or height. `prefers-reduced-motion` turns all motion off globally (`theme.css`). Use `motion-reduce:` for anything that moves on hover.
+- **Motion:** see section 8.
 - **Touch targets:** interactive controls are at least 36px high (`h-9`), with 40–48px for primary actions. Use `size-9` for icon buttons.
 
 ## 4. Right-to-left (hard requirement)
@@ -84,11 +70,11 @@ Every text/background pair in `theme.css` was checked at ≥ 4.5:1 in both theme
 
 | Pattern | Use |
 |---|---|
-| Page root | `<div data-ui-v2 className="flex flex-col gap-6">` |
+| Page root | `<div className="flex flex-col gap-6">` (pages are lazy-loaded in `App.tsx`; the shell's `Suspense` shows `LoadingState` while a page chunk loads) |
 | Page title, lede and the sample-data badge (NFR-3) | `PageHeader` (`common/PageHeader`). `sample` is on by default; add page buttons through `actions`. |
 | A titled panel | `SectionCard`, with `title`, `description`, `actions` and `children` |
 | KPI or dashboard tile | `KpiTile`, with `label`, `value`, `sub`, `accent` (any CSS colour), `icon`, `to` or `onClick`, and `loading`. In a bento grid, size it with `className="md:col-span-2"`. |
-| Status pill | `StatusBadge tone=…`. Map domain values through `lib/status.ts` (`SEVERITY_TONE`, `CORRECTIVE_STATUS_TONE`, `CORRECTIVE_STATUS_LABEL`, `SHOPPER_CASE_STATUS_TONE`, `INVESTIGATION_STATUS_TONE`, `AGENT_VERDICT_TONE`, `LEVEL_TONE`). Add new maps there rather than inside pages. |
+| Status pill | `StatusBadge tone=…`. Map domain values through `lib/status.ts` (`SEVERITY_TONE`, `CORRECTIVE_STATUS_*`, `SHOPPER_CASE_STATUS_TONE`, `INVESTIGATION_STATUS_TONE`, `AGENT_VERDICT_TONE`, `STANDARD_STATUS_*`, `LD_REQUEST_STATUS_*`, `MS_ASSIGNMENT_STATUS_*`, `CHECKLIST_STATUS_LABEL`, `LEVEL_TONE`). Never render a raw enum value; add a bilingual label map there rather than inside pages. |
 | Product label | `ProductTag` (coloured dot plus foreground text) |
 | Sortable, searchable or paginated table | `DataTable` (`common/DataTable`, TanStack Table v8). Columns are `ColumnDef[]`. Use `SortableHeader` for sortable headers. `meta: { align: 'end' }` right-aligns numbers and turns on tabular figures. Props include `searchPlaceholder`, a `toolbar` slot for filters, `pageSize` (0 turns pagination off) and `onRowClick`. |
 | Small static table | shadcn `Table` directly |
@@ -98,8 +84,9 @@ Every text/background pair in `theme.css` was checked at ≥ 4.5:1 in both theme
 | Empty / loading / error | `EmptyState` / `LoadingState` (skeleton rows) / `ErrorState` (with `onRetry`). Every query-backed block shows one of the three, never a blank space. |
 | Dialog with a form | shadcn `Dialog` + `Field` (`ui/field`) with React Hook Form + Zod (`@hookform/resolvers/zod`). Labels stay visible (a placeholder is never the label), errors appear under the field, and the primary action goes in the dialog footer. |
 | Side panel | shadcn `Sheet` (as the AI assistant uses) |
+| A page or section that should stagger in | Nothing to do inside routed pages: `RouteTransition` staggers the page root's children. Elsewhere, add `cx-stagger` to the parent. |
 | Confirmation or result notice | `toast()` from `sonner` (`Toaster` is already mounted, and its position mirrors in RTL) |
-| Meter or progress toward a threshold | shadcn `Progress`. Recolour it with `[&>[data-slot=progress-indicator]]:bg-warning`. |
+| Meter or progress toward a threshold | shadcn `Progress` (fills from the inline-start edge in both directions; no per-page RTL fix needed). Recolour it with `[&>[data-slot=progress-indicator]]:bg-warning`. |
 | Help text on an icon-only button | shadcn `Tooltip` (`TooltipProvider` is already mounted) plus an `aria-label` |
 | Buttons | shadcn `Button`: `default` for the primary action, `outline`/`secondary` otherwise, `ghost` in toolbars, `destructive`. `variant="gold"` is reserved for the AI assistant entry point. |
 
@@ -127,44 +114,52 @@ The `cn` helper is shadcn's own package `cn` (from the `shadcn-ui/cn` repo), not
 - [ ] Arabic/RTL is checked for mirrored layout, flipped directional icons, charts and mixed-direction numbers.
 - [ ] Role-gating from `auth/permissions.ts` is unchanged.
 
-## 7. How to migrate a page
+## 7. Adding or changing a page
 
-1. Set the page root to `<div data-ui-v2 className="flex flex-col gap-6">`. Replace the old `topbar`/`page-head`/`SampleBanner` block with `PageHeader`.
-2. Replace old classes using this table:
+1. Create the page in `src/pages/`, add a `lazy(() => import(...))` route in `App.tsx`, and a nav entry in `data/nav.ts` if it is top-level.
+2. Root it with `<div className="flex flex-col gap-6">` and start with `PageHeader`.
+3. Build from `components/common/*` and `components/ui/*` (section 5). Use tokens only (section 2), never raw hex or inline colour styles; keep `style` for runtime values such as `--c`.
+4. Every string through `t()`/`L()`; every status through a map in `lib/status.ts`; role-gating through `auth/permissions.ts`.
+5. Verify with `npx tsc -b --noEmit && npm run lint && npm run build`, then a Playwright click-through in English/LTR and Arabic/RTL, light and dark, at 1440px and 375px, and run the checklist in section 6.
 
-   | Old class | New |
-   |---|---|
-   | `card` | `SectionCard`, or `Card` |
-   | `card tint` | `bg-muted/50` |
-   | `row` | `flex flex-wrap items-center gap-2` |
-   | `row between` | add `justify-between` |
-   | `col` | `flex flex-col gap-2` |
-   | `grid grid-N` | `grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-N` |
-   | `muted` | `text-muted-foreground` |
-   | `text-sm` | `text-sm` (same name, now 13px) |
-   | `chip` | `StatusBadge` |
-   | `tile` | `KpiTile` |
-   | `btn` | `Button` |
-   | `btn primary` | `Button`, default variant |
-   | `btn sm` | `size="sm"` |
-   | `tabs` + buttons | shadcn `Tabs` |
-   | `table-wrap` + `table` | `DataTable` or `Table` |
-   | `meter` | `Progress` |
-   | `modal-backdrop`/`modal` | `Dialog` |
-   | `empty-state` | `EmptyState` |
-   | `eyebrow` | `text-xs font-semibold tracking-wide text-gold-text uppercase` |
-   | `mono` | `font-mono` |
-   | `num` | `text-end tabular-nums` |
-   | inline `style={{…}}` | utility classes. Keep `style` only for runtime values such as `--c`. |
-   | `var(--brand)` | `primary` |
-   | `var(--good)` | `success` |
-   | `var(--warn)` | `warning` |
-   | `var(--crit)` | `destructive` |
-   | `var(--ink)` | `foreground` |
-   | `var(--muted)` | `muted-foreground` |
-   | `var(--line)` | `border` |
-   | `var(--surface-2)` | `muted` |
+## 8. Motion
 
-3. Leave data, hooks, business logic, i18n strings and role-gating exactly as they are. This is a visual migration.
-4. When no file uses a page-specific old class any more, delete it from `styles/base.css` and update the status table in §1.
-5. Verify with `npm run typecheck && npm run lint && npm run build`, then a Playwright click-through in English/LTR and Arabic/RTL, light and dark, at 1440px and 375px.
+Added 17 Nov 2026 (pass E), at Manaf's request for animation across the portal. Keep it calm: this is a working dashboard, not a landing page.
+
+**Rules**
+
+- 150–400ms. Enters use `ease-out` (`EASE_OUT` in `lib/motion.ts`); exits are faster than enters (`EXIT`, 150ms), or instant.
+- Animate `transform` and `opacity` only (plus colours and shadows on hover). Never width, height, top or left.
+- Horizontal slides mirror in Arabic: multiply x offsets by `dirSign(dir)`.
+- **Reduced motion is respected everywhere.** `MotionProvider` sets `<MotionConfig reducedMotion="user">` (transform animations off, opacity kept). The `prefers-reduced-motion` block in `theme.css` cuts CSS durations and switches off the stagger, shimmer, typing dots and the login motif entirely. `useCountUp` returns the final value at once and `useChartMotion` returns `isAnimationActive: false`.
+- No layout shift and no horizontal scroll: `#main` uses `overflow-x-clip`; entrance offsets are 6–12px.
+
+**Engine.** `motion@14.9.0` (pinned). `LazyMotion` with `domAnimation` and `strict`, features loaded on demand (`lib/motionFeatures.ts`, about 18 KB gzipped, not in the first download). Because of `strict`, use `import * as m from 'motion/react-m'` and `<m.div>`, never `motion.div`. `AnimatePresence`, `MotionConfig` and hooks come from `motion/react`.
+
+**Inventory**
+
+| Where | What | How |
+|---|---|---|
+| Route change | Page content fades in and slides 12px from the reading end; the shell and sidebar stay still. Enter-only (the old page leaves instantly), which keeps lazy-route `Suspense` simple. | `components/layout/RouteTransition.tsx` in `Shell`. `scope="section"` inside `ActionsLayout` and `SettingsLayout`, so a tab change animates only the tab content (8px). |
+| Page sections | Direct children of the page root rise in one after another (40ms apart, capped at 280ms). Runs on mount only, not on data refetch. | `.cx-page > * > *` in `theme.css`; `.cx-stagger` for any other container. `backwards` fill, so hover transforms are never overridden afterwards. |
+| KPI values | Numbers count up from 0 (700ms, ease-out cubic); later changes count from the last value; unchanged values don't replay. Numeric strings such as `62%` keep their suffix. | `AnimatedValue` in `KpiTile`, `hooks/useCountUp.ts` |
+| Charts | Recharts draw-in, 600ms ease-out; off under reduced motion. | Spread `useChartMotion()` onto each series (`Bar`, `Area`, …) |
+| Buttons | Press scales to 0.97; colour and shadow transitions 150ms. | `ui/button.tsx` base classes |
+| Interactive tiles and cards | Hover lifts 1px with a shadow; `motion-reduce:` cancels the lift. | `KpiTile`, login role cards |
+| Tabs | Active pill and text colour transition 200ms; in-page `TabsContent` fades in. | `ui/tabs.tsx`, `common/Tabs.tsx` |
+| Collapsible sections | Content fades and drops 4px in, fades out faster. No height animation. | `ui/collapsible.tsx` |
+| Dialogs, sheets, menus, toasts | shadcn/tw-animate and sonner defaults (fade + zoom/slide, about 200ms), left as shipped. | — |
+| Sidebar | shadcn's collapse transition, unchanged. | `ui/sidebar.tsx` |
+| Loading | Skeletons show a highlight sweeping from the reading-start edge (mirrored in Arabic). | `.cx-shimmer` on `ui/skeleton.tsx` |
+| AI assistant | Messages rise 8px into place; a three-dot typing indicator shows for 550ms before each scripted answer (the answer is already computed). | `components/ai/AssistantPanel.tsx`, `.cx-typing-dot` |
+| Login | Brand panel staggers in; a faint line pattern drifts (40s) and gold rings turn (120s); the card slides in from the reading end; role cards lift on hover and the check mark pops in on select; the button shows a spinner, then the card fades out and the app's route transition takes over. | `pages/Login.tsx`, `.cx-drift`, `.cx-orbit` |
+
+## 9. Sign-in (sample authentication)
+
+There is no backend, so sign-in is a **sample**: the person picks one of the 12 roles (titles, never people's names) and optionally types a display name. No password is asked for or stored, and the page says so in both languages.
+
+- `auth/session.ts` holds `AuthContext`, `useAuth()` and the `localStorage` session (`psicx.session`: display name and sign-in time only, read and written inside `try/catch`). `auth/AuthContext.tsx` holds `AuthProvider` and `RequireAuth`.
+- The role itself stays in `RoleContext`; signing in calls `setRole`, so the demo role switch in the sidebar stays consistent with the session.
+- Every route except `/login` sits behind `RequireAuth`, which redirects to `/login` with the intended path in `state.from`. After sign-in the person returns there, or to the role's home page (`roles.ts` `home`).
+- Sign out is in the header user menu (initials avatar, display name, role). It navigates and clears the session in one `startTransition`, so the next person is never sent to the previous person's page.
+- When a real identity provider exists, replace the body of `signIn` and the check in `RequireAuth`; the rest of the app reads only `useRole()` and `useAuth()`.

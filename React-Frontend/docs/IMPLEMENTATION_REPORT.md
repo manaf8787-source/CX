@@ -23,6 +23,8 @@ Roughly 40% of the app's logic was ported from the old pre-omnichannel scaffold 
 
 ## 3. Stack deviation (by explicit user decision)
 
+> **Superseded on 17 Nov 2026:** Manaf moved the UI to Tailwind CSS v4 + shadcn/ui; see section 8. State still uses plain React Context (no Zustand). The paragraph below records the earlier decision.
+
 The original build brief specified Tailwind + Zustand. The user's instruction was: no CSS/component library, keep (and extend) the working CSS-custom-properties + Context system already proven in the old scaffold, but design the new pages with a genuinely fresh, premium look rather than reusing the old visual style. This was followed throughout: `src/styles/tokens.css` + `src/styles/base.css` hold the design system, `src/theme`/`src/i18n`/`src/auth` hold plain React Context state (no Zustand). TypeScript, Vite, React Router, Lucide, TanStack Query, Recharts, React Hook Form, and Zod were all kept as specified.
 
 ## 4. `[Proposed]` placeholders and approximations left in the app
@@ -66,6 +68,76 @@ None of these block the prototype — they're exactly why the app is mock-data-o
 - **Role-gating re-verification**: confirmed end-to-end on the Mystery shopper sub-page — a `shopper` role sees only "Signed in as a mystery shopper. You see only your own tasks," with just their own open task; a `cxmgr` role sees the full console (all shoppers, checklists, scores, case links). This matches the rule as documented in `FUNCTIONAL_REQUIREMENTS.md` and confirms the gating built by earlier passes still holds at the end of the full build.
 - **Glossary wiring (NFR-6)**: deferred, not wired into every page's headings. The data hook (`useGlossaryTerms`) and a dedicated reference page exist and work; wiring a sitewide "?" affordance into every page header is a broad, mechanical edit across every page component rather than a defect fix, so it's documented here as a deferred item rather than attempted inside a QA-only pass.
 - No regressions found. No defects required fixing during this pass.
+
+## 8. UI migration to shadcn/ui + Tailwind (17 Nov 2026)
+
+**Decision:** Manaf decided on 17 Nov 2026 to replace the hand-written CSS with Tailwind CSS v4 + shadcn/ui, reversing the earlier "no library" choice recorded in section 3. Design guidance came from the `ui-ux-pro-max` skill (installed project-level after review), filtered for a bilingual enterprise dashboard: PSI navy/gold kept (still `[Proposed]`) on neutral slate surfaces, a calm Fluent-like token style with bento KPI grids, IBM Plex Sans + IBM Plex Sans Arabic, dense spacing, CSS-only motion at 150–300ms. Glassmorphism, decorative gradients and emoji icons were rejected.
+
+**What changed (four passes):**
+- **A:** Tailwind v4, shadcn/ui (26 components, RTL mode), theme tokens with ≥ 4.5:1 text contrast in both themes, shared building blocks (`PageHeader`, `KpiTile`, `DataTable`, `StatusBadge`, `SectionCard`, empty/loading/error states), new shell (collapsible navy sidebar, header search with Ctrl+K, assistant in a sheet), Home as a bento dashboard. Conventions in `docs/DESIGN_SYSTEM.md`.
+- **B:** Actions (5 tabs), Customers (timeline kept as a true chronological timeline), Runaway, Close the loop; all dialogs on shadcn `Dialog` with React Hook Form + Zod; status labels localized.
+- **C:** Personas, Surveys, Intelligent CX Team, the assistant's internals, Settings and reference (12 sub-pages, side list on desktop, select on mobile, shared `AccessMatrix`).
+- **D (cleanup):** removed `styles/base.css`, `styles/tokens.css` (product hues moved into `theme.css`), all `data-ui-v2` transition guards and the dead `Tile`/`PageStub` components; restored shadcn's standard `--muted`/`--ring` names; made `ui/progress` RTL-aware centrally (removed per-page workarounds); localized the remaining raw status values (L&D requests, standards, mystery-shopper assignments and checklists, survey batches, VoC channels) via `lib/status.ts`; stopped shopper-case clocks on responded/closed cases (new optional `respondedAt`/`closedAt`, set in mock data and by the advance mutation); fixed nested `<main>` landmarks in the shell; pointer cursor on all clickables (Tailwind v4's reset removes it); route-level code splitting.
+
+**Mock-data fixes (pass B, `services/mockData.ts`; the seeded random sequence was kept stable):**
+- Signal categories are weighted instead of uniform, and the problem rate went from 28% to 32%, so some patterns genuinely reach the 10-signal minimum sample. Corrective actions had been empty; there are now 4 (proposed, in progress, 60-day check, partial), from 37 signals and 12 threshold-crossing patterns.
+- 60-day effectiveness verdicts now agree with each action's status (one action had shown "Partial" with a "Failed" verdict).
+- A third of detractors are now uncalled, so the Close-the-loop call button and interview dialog can appear (every detractor previously had an outcome).
+
+**Bundle (gzipped JS):** before 435.8 KB in one chunk (1,469 KB raw); after about 194 KB loaded up front (entry 98 KB + React vendor 81 KB + small shared chunks), with each page, recharts (~100 KB), the forms stack (~39 KB) and the assistant loaded only when needed. No chunk-size warning.
+
+**QA (pass D, production build via `vite preview`, Playwright):** 919 of 920 automated checks passed.
+- Every route (7 primary pages, 5 Actions tabs, Intelligent CX Team, 12 Settings sub-pages = 24 routes) in 6 combinations: EN and AR × light and dark at 1440px, plus AR light and EN dark at 375px. Each checked for zero console/page errors, correct `dir`, correct theme, no page-level horizontal scroll, a page heading, and no raw `undefined`/`NaN`.
+- Assistant opened from Home (EN) and Signals (AR), 3 questions each, all answered; the sheet opens on the inline-end side in both directions.
+- One dialog per page that has one (7), opened and validated with no errors.
+- Role gating: CX manager sees "Decide" on Personas, Marketing does not; Exec sees "Informed only" on shopper cases, CX manager sees the owner; the shopper role sees only its own tasks; conversation text on a journey is visible to CX manager and hidden from Exec.
+- Pre-delivery checklist (ui-ux-pro-max, adapted for web): visible focus ring, pointer cursor, no emoji, reduced motion respected, text contrast ≥ 4.5:1 on four pages in both themes. The one remaining "failure" is the sidebar rail, which intentionally shows a resize cursor.
+- Screenshots of Home, Signals, a customer journey and the access matrix in EN light and AR dark, plus Home at 375px in Arabic, reviewed by eye: clean, correctly mirrored, readable.
+
+**Known issues remaining:**
+- `oxlint` reports 3 `react/only-export-components` warnings (i18n, RoleContext, ThemeContext export a provider and its hook from one file). They affect dev fast-refresh only; fixing them means renaming modules that dozens of files import.
+- Environment names (Dubai, Abu Dhabi) stay in English in the Arabic UI because they are sample data values, not labels.
+- The sitewide glossary "?" affordance (NFR-6) is still deferred (section 7).
+
+## 9. Sample sign-in and animation (17 Nov 2026)
+
+Requested by Manaf: "add animation in my website and login screen". Details and rules are in `docs/DESIGN_SYSTEM.md` §8 (motion) and §9 (sign-in).
+
+**Sign-in.** A new `/login` page with two parts:
+- a navy brand panel: a placeholder logo (marked `[Proposed]`, because the real PSI logo is not confirmed), a tagline and three product points;
+- a sign-in card: a bilingual "Sample sign-in — no real authentication" notice, the 12 roles as selectable cards with the selected role's full description underneath, an optional display name, and React Hook Form + Zod validation (role required, name ≤ 40 characters). There is no password field.
+
+The session persists in `localStorage`. Every other route redirects to `/login`, then returns to the page the person wanted (or the role's home page). The header gains a user menu with initials and Sign out. The login page has its own language and theme switches, and on phones the brand panel collapses into a compact header.
+
+**Animation.** `motion@14.9.0`, pinned, with LazyMotion so its features load on demand. Across the app:
+- route transitions (direction-aware, entrance only) and staggered page sections;
+- count-up KPI numbers and chart draw-in;
+- button press, card hover lift, and tab and collapsible transitions;
+- a shimmer on loading skeletons;
+- the assistant's message rise and typing indicator.
+
+The login page adds an intro stagger, a slow line pattern, and the card's entrance and exit. All of it is off or instant under `prefers-reduced-motion`.
+
+**Bug found and fixed during QA.** Signing out and then signing in as a different role sent the new person back to the previous person's page, because the route guard stored that page as the return target before the move to `/login` happened. Sign-out now moves to `/login` and clears the session in one step.
+
+**Bundle (gzipped JS, measured with `gzip -c` on the production build).** The first download is about 206 KB, up from about 194 KB; the extra is the `m` components, the route guard and the header menu. The animation engine (17.5 KB) and the login page (6.6 KB) load only when needed.
+
+**QA (production build via `vite preview`, Playwright): all 614 checks passed.**
+- **Sign-in flow:**
+  - a signed-out visit to a deep link goes to `/login`, and choosing a role is required;
+  - signing in as CX manager returns to `/actions/signals`, a reload keeps the session, and Sign out returns to `/login`, after which protected routes redirect;
+  - the Exec lands on Home and sees no conversation text on a journey (the CX manager does); the shopper lands on their own tasks;
+  - a signed-in visit to `/login` goes into the app, and no password field exists.
+- **All 24 routes:** checked in EN light 1440, AR dark 1440, AR light 375 and EN dark 375. Each stays on its route with the right text direction and theme, a heading, no sideways scroll and no console errors.
+- **Login page:** four combinations, with no sideways scroll and no console errors.
+- **Motion:**
+  - the route transition is moving 90 ms after a click and then comes to rest;
+  - the KPI count-up stops on the final number;
+  - with reduced motion turned on, there is no page slide, stagger or shimmer, the KPIs show their final value at once, and the login background stays still.
+- **Assistant:** the typing indicator appears, then clears as the answer arrives.
+- **Screenshots reviewed:** the login page (EN light, AR dark, EN and AR at 375 px, and with a role selected) and a frame caught mid-transition. In the first version the role list scrolled inside its own box, which hid four roles and cut a card in half on phones. It now shows all 12 roles as compact cards, with the selected role's full description below.
+
+**Known issues.** The same 3 `only-export-components` lint warnings as before (i18n, RoleContext, ThemeContext). On a 1440×900 screen the sign-in card is slightly taller than the window, so the button needs a short scroll.
 
 ## Final status
 

@@ -240,6 +240,111 @@
   * {
     @apply border-border outline-ring/50;
   }
+  /* Tailwind v4 preflight resets buttons to cursor: default. */
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']),
+  [role='tab'],
+  [role='option'],
+  [role='menuitem'],
+  [role='switch'],
+  [role='checkbox'],
+  summary,
+  label[for] {
+    cursor: pointer;
+  }
+}
+
+/* ---- Motion (docs/DESIGN_SYSTEM.md §8) ---------------------------------- */
+
+@keyframes cx-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes cx-drift {
+  to {
+    transform: translate3d(-44px, -22px, 0);
+  }
+}
+
+@keyframes cx-orbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes cx-shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes cx-shimmer-rtl {
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes cx-dot {
+  0%,
+  80%,
+  100% {
+    opacity: 0.3;
+    transform: translateY(0);
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
+
+@layer components {
+  /* Direct children rise in one after another; capped at 280ms total so a page never waits on its own animation.
+     `backwards` fill only holds the start frame during the delay, so nothing overrides hover transforms afterwards. */
+  /* `.cx-stagger` staggers its own children; `.cx-page` (RouteTransition) staggers the sections of the page it wraps. */
+  :is(.cx-stagger, .cx-page > *) > :not(.cx-page) {
+    animation: cx-rise 320ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  }
+  :is(.cx-stagger, .cx-page > *) > :nth-child(2) { animation-delay: 40ms; }
+  :is(.cx-stagger, .cx-page > *) > :nth-child(3) { animation-delay: 80ms; }
+  :is(.cx-stagger, .cx-page > *) > :nth-child(4) { animation-delay: 120ms; }
+  :is(.cx-stagger, .cx-page > *) > :nth-child(5) { animation-delay: 160ms; }
+  :is(.cx-stagger, .cx-page > *) > :nth-child(6) { animation-delay: 200ms; }
+  :is(.cx-stagger, .cx-page > *) > :nth-child(7) { animation-delay: 240ms; }
+  :is(.cx-stagger, .cx-page > *) > :nth-child(n + 8) { animation-delay: 280ms; }
+
+  .cx-drift {
+    animation: cx-drift 40s linear infinite alternate;
+  }
+  .cx-orbit {
+    animation: cx-orbit 120s linear infinite;
+  }
+
+  /* Skeleton shimmer: a highlight sweeps from the reading-start edge. */
+  .cx-shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+  .cx-shimmer::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--card) 65%, transparent), transparent);
+    animation: cx-shimmer 1.4s ease-in-out infinite;
+  }
+  [dir='rtl'] .cx-shimmer::after {
+    transform: translateX(100%);
+    animation-name: cx-shimmer-rtl;
+  }
+
+  .cx-typing-dot {
+    animation: cx-dot 1.1s ease-in-out infinite;
+  }
+  .cx-typing-dot:nth-child(2) { animation-delay: 0.15s; }
+  .cx-typing-dot:nth-child(3) { animation-delay: 0.3s; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -250,5 +355,16 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+  /* Delays would otherwise still hide content briefly, and loops would freeze mid-frame. */
+  :is(.cx-stagger, .cx-page > *) > :not(.cx-page),
+  .cx-drift,
+  .cx-orbit,
+  .cx-typing-dot,
+  .cx-shimmer::after {
+    animation: none !important;
+  }
+  .cx-shimmer::after {
+    display: none;
   }
 }

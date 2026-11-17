@@ -27,6 +27,7 @@ import { LoadingState } from '@/components/common/LoadingState'
 import { PatternThresholdMeter } from './components/PatternThresholdMeter'
 import { ScoresVsSignalsNotice } from './components/ScoresVsSignalsNotice'
 import { signalCategoryLabel } from './components/labels'
+import { useChartMotion } from '@/hooks/useChartMotion'
 
 const CORRECTIVE_KINDS: CorrectiveActionKind[] = ['employee', 'service_behaviour', 'training_gap', 'product_app', 'process', 'environment', 'legal_privacy', 'marketing']
 
@@ -43,6 +44,7 @@ const KIND_LABEL: Record<CorrectiveActionKind, { en: string; ar: string }> = {
 
 
 export default function Signals() {
+  const chartMotion = useChartMotion()
   const { t, L, lang } = useI18n()
   const { role } = useRole()
   const now = useNow()
@@ -143,7 +145,7 @@ export default function Signals() {
                   formatter={(v) => [v, t('Signals', 'الإشارات')]}
                   contentStyle={{ background: 'var(--popover)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--popover-foreground)', fontSize: 12 }}
                 />
-                <Area type="monotone" dataKey="count" stroke="var(--chart-1)" fill="var(--chart-1)" fillOpacity={0.12} strokeWidth={2} />
+                <Area type="monotone" dataKey="count" stroke="var(--chart-1)" fill="var(--chart-1)" fillOpacity={0.12} strokeWidth={2} {...chartMotion} />
               </AreaChart>
             </ResponsiveContainer>
           </div>

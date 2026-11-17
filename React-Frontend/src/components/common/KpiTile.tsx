@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { ArrowUpRight } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
+import { AnimatedValue } from './AnimatedValue'
 
 interface KpiTileProps {
   label: ReactNode
@@ -51,7 +52,9 @@ export function KpiTile({ label, value, sub, accent = 'var(--chart-1)', icon, to
       {loading ? (
         <Skeleton className="h-8 w-16" />
       ) : (
-        <span className="text-3xl font-semibold tracking-tight tabular-nums">{value}</span>
+        <span className="text-3xl font-semibold tracking-tight tabular-nums">
+          <AnimatedValue value={value} />
+        </span>
       )}
       {sub && <span className="text-sm text-muted-foreground">{sub}</span>}
       {children}

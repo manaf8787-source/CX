@@ -19,15 +19,21 @@ No environment variables are needed — there is nothing to configure yet, since
 
 ## Stack
 
-React 19 + TypeScript + Vite, **Tailwind CSS v4 + shadcn/ui** (Radix primitives, components copied into `src/components/ui/`), React Router, TanStack Query, TanStack Table, Recharts, React Hook Form + Zod, Lucide icons. Theming, i18n/RTL and roles use React Context (no Zustand).
+React 19 + TypeScript + Vite, **Tailwind CSS v4 + shadcn/ui** (Radix primitives, components copied into `src/components/ui/`), `motion` for animation, React Router, TanStack Query, TanStack Table, Recharts, React Hook Form + Zod, Lucide icons. Theming, i18n/RTL and roles use React Context (no Zustand).
 
-The UI moved from hand-written CSS to Tailwind + shadcn/ui by the user's decision on 17 Nov 2026. The migration runs page by page; until it finishes, the old stylesheet (`src/styles/base.css`) is loaded in a lower cascade layer for pages not yet migrated. **All UI conventions are in [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md)**, including the migration status and how to add shadcn components.
+The UI moved from hand-written CSS to Tailwind CSS v4 + shadcn/ui by Manaf's decision on 17 Nov 2026; the migration is complete and no legacy stylesheet remains. Design direction (palette use, type, density, motion, accessibility checks) was guided by the [`ui-ux-pro-max`](../.claude/skills/ui-ux-pro-max/) skill installed in this repo, adjusted for a bilingual enterprise dashboard. Every page is lazy-loaded per route. **All UI conventions are in [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md)**, including how to add shadcn components and pages.
+
+## Sign-in and motion
+
+The app opens on a **sample sign-in** at `/login`: choose one of the 12 roles (and optionally a display name) to see the portal as that role sees it. There is no backend and no password; the session lives in `localStorage`, and Sign out is in the header user menu. See `docs/DESIGN_SYSTEM.md` §9.
+
+Animation uses `motion` (pinned, features lazy-loaded) plus CSS. It covers direction-aware route transitions, staggered sections, count-up KPIs, chart draw-in, hover and press feedback, skeleton shimmer, the assistant's typing indicator, and the login intro. Everything respects `prefers-reduced-motion`. See `docs/DESIGN_SYSTEM.md` §8.
 
 ## Folder structure
 
 ```
 src/
-  auth/        role context + permission gates (conversation-text / agent-name / informed-only rules)
+  auth/        sample sign-in session + route guard, role context, permission gates (conversation-text / agent-name / informed-only rules)
   components/  ui/ (shadcn primitives), common/ (shared building blocks), layout/ (shell, sidebar), plus page-local groups
   data/        static reference data (roles, nav, products, agent registry, glossary, legacy reference)
   hooks/       small shared hooks (useNow, usePersonSearch, use-mobile)
@@ -35,7 +41,7 @@ src/
   i18n/        EN/AR language + RTL context
   pages/       one file/folder per route — actions/ and settings/ are themselves sub-routed
   services/    the mock-data layer + TanStack Query hooks (the future API seam)
-  styles/      theme.css (shadcn/Tailwind tokens), tokens.css + base.css (legacy, removed when migration ends)
+  styles/      theme.css (all tokens, light + dark, product hues, global base rules)
   theme/       light/dark theme context
   types/       domain types, AI-agent output envelope, settings/reference types
   utils/       ported business logic (SLA clocks, effectiveness scoring, runaway classification, journey rules)

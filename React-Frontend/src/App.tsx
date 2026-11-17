@@ -1,11 +1,13 @@
-import { lazy } from 'react'
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { I18nProvider } from './i18n'
 import { ThemeProvider } from './theme/ThemeContext'
 import { RoleProvider } from './auth/RoleContext'
+import { AuthProvider, RequireAuth } from './auth/AuthContext'
 import { Shell } from './components/layout/Shell'
 import { UiProviders } from './components/layout/UiProviders'
 
+const Login = lazy(() => import('./pages/Login'))
 const Home = lazy(() => import('./pages/Home'))
 const Customers = lazy(() => import('./pages/Customers'))
 const Runaway = lazy(() => import('./pages/Runaway'))
@@ -35,6 +37,10 @@ const Rules = lazy(() => import('./pages/settings/Rules'))
 const AiInsightsAccess = lazy(() => import('./pages/settings/AiInsightsAccess'))
 const SettingsGlossary = lazy(() => import('./pages/settings/Glossary'))
 
+function FullPageLoading() {
+  return <div role="status" aria-busy="true" className="min-h-svh bg-background" />
+}
+
 export default function App() {
   return (
     <I18nProvider>
@@ -42,8 +48,23 @@ export default function App() {
         <UiProviders>
           <RoleProvider>
             <BrowserRouter>
+              <AuthProvider>
               <Routes>
-                <Route element={<Shell />}>
+                <Route
+                  path="/login"
+                  element={
+                    <Suspense fallback={<FullPageLoading />}>
+                      <Login />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  element={
+                    <RequireAuth>
+                      <Shell />
+                    </RequireAuth>
+                  }
+                >
                   <Route path="/" element={<Navigate to="/home" replace />} />
                   <Route path="/home" element={<Home />} />
                   <Route path="/customers" element={<Customers />} />
@@ -83,6 +104,7 @@ export default function App() {
                   <Route path="*" element={<Navigate to="/home" replace />} />
                 </Route>
               </Routes>
+              </AuthProvider>
             </BrowserRouter>
           </RoleProvider>
         </UiProviders>

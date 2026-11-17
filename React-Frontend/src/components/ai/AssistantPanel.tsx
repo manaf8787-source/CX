@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import * as m from 'motion/react-m'
 import { useNavigate } from 'react-router-dom'
 import { ArrowRight, Mic, MicOff, Send, Sparkles, X } from 'lucide-react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
@@ -11,6 +13,7 @@ import {
   useAllInteractions,
   useCorrectiveActions,
   useDetractorCallItems,
+  useEffortSummaries,
   useHomeSummary,
   usePatterns,
   usePersonas,
@@ -19,7 +22,8 @@ import {
   useSignals,
 } from '../../services/queries'
 import { SheetTitle } from '@/components/ui/sheet'
-import { answerQuestion, SUGGESTED_QUERIES, type AssistantDataset } from './assistantEngine'
+import { answerQuestion, SUGGESTED_QUERIES, type AssistantAnswer, type AssistantDataset } from './assistantEngine'
+import { AssistantResult } from './AssistantResult'
 import type { Bi } from '../../types'
 
 interface Message {
@@ -27,6 +31,7 @@ interface Message {
   from: 'user' | 'assistant'
   text: Bi
   matchedPersonId?: string
+  answer?: AssistantAnswer
 }
 
 /** Minimal surface of the Web Speech API this component uses — not in
@@ -59,7 +64,7 @@ function getSpeechRecognitionCtor(): SpeechRecognitionCtor | null {
  * describes as the fallback/acceptance-test engine — real Claude wiring is
  * an explicit later decision, not assumed here (APPLICATION_MODULES.md §B).
  */
-export function AssistantPanel({ onClose }: { onClose: () => void }) {
+export function AssistantPanel({ onClose, initialQuestion }: { onClose: () => void; initialQuestion?: string }) {
   const { lang, t, L } = useI18n()
   const { role } = useRole()
   const navigate = useNavigate()
@@ -74,6 +79,7 @@ export function AssistantPanel({ onClose }: { onClose: () => void }) {
   const { data: detractorCallItems } = useDetractorCallItems()
   const { data: agentDirectory } = useAgentDirectory()
   const { data: homeSummary } = useHomeSummary()
+  const { data: effortSummaries } = useEffortSummaries()
 
   const dataset: AssistantDataset = useMemo(
     () => ({
@@ -86,12 +92,13 @@ export function AssistantPanel({ onClose }: { onClose: () => void }) {
       personas: personas ?? [],
       detractorCallItems: detractorCallItems ?? [],
       agentDirectory: agentDirectory ?? [],
+      effortSummaries: effortSummaries ?? [],
       homeSummary,
     }),
-    [persons, interactions, signals, patterns, correctiveActions, shopperCases, personas, detractorCallItems, agentDirectory, homeSummary],
+    [persons, interactions, signals, patterns, correctiveActions, shopperCases, personas, detractorCallItems, agentDirectory, effortSummaries, homeSummary],
   )
   // Answering before every query has resolved would report zeros as facts.
-  const ready = [persons, interactions, signals, patterns, correctiveActions, shopperCases, personas, detractorCallItems, agentDirectory, homeSummary].every(
+  const ready = [persons, interactions, signals, patterns, correctiveActions, shopperCases, personas, detractorCallItems, agentDirectory, effortSummaries, homeSummary].every(
     (d) => d !== undefined,
   )
 
@@ -100,14 +107,34 @@ export function AssistantPanel({ onClose }: { onClose: () => void }) {
   ])
   const [draft, setDraft] = useState('')
   const [listening, setListening] = useState(false)
+  const [thinking, setThinking] = useState(false)
+  const replyTimer = useRef<number | undefined>(undefined)
   const scrollRef = useRef<HTMLDivElement>(null)
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
 
   const RecognitionCtor = useMemo(() => getSpeechRecognitionCtor(), [])
+  const [voiceQuestion, setVoiceQuestion] = useState<string | null>(null)
+  const askedInitial = useRef(false)
+
+  // KB §13: "speak, and the request runs when you stop"; a question typed in
+  // the Home or header search runs as soon as the sample data has loaded.
+  useEffect(() => {
+    if (!ready) return
+    if (voiceQuestion) {
+      send(voiceQuestion)
+      setVoiceQuestion(null)
+    } else if (initialQuestion && !askedInitial.current) {
+      askedInitial.current = true
+      send(initialQuestion)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, voiceQuestion, initialQuestion])
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight })
-  }, [messages])
+  }, [messages, thinking])
+
+  useEffect(() => () => window.clearTimeout(replyTimer.current), [])
 
   useEffect(() => {
     return () => recognitionRef.current?.stop()
@@ -115,12 +142,18 @@ export function AssistantPanel({ onClose }: { onClose: () => void }) {
 
   function send(text: string) {
     const value = text.trim()
-    if (!value || !ready) return
+    if (!value || !ready || thinking) return
     const userMsg: Message = { id: Date.now(), from: 'user', text: { en: value, ar: value } }
     const reply = answerQuestion(value, role.id, dataset)
-    const replyMsg: Message = { id: Date.now() + 1, from: 'assistant', text: reply.text, matchedPersonId: reply.matchedPersonId }
-    setMessages((m) => [...m, userMsg, replyMsg])
+    const replyMsg: Message = { id: Date.now() + 1, from: 'assistant', text: reply.text, matchedPersonId: reply.matchedPersonId, answer: reply }
+    setMessages((list) => [...list, userMsg])
     setDraft('')
+    // A short pause with a typing indicator; the answer itself is already computed.
+    setThinking(true)
+    replyTimer.current = window.setTimeout(() => {
+      setMessages((list) => [...list, replyMsg])
+      setThinking(false)
+    }, 550)
   }
 
   function toggleVoice() {
@@ -136,7 +169,7 @@ export function AssistantPanel({ onClose }: { onClose: () => void }) {
     recognition.continuous = false
     recognition.onresult = (event) => {
       const transcript = event.results[0]?.[0]?.transcript
-      if (transcript) setDraft(transcript)
+      if (transcript) setVoiceQuestion(transcript)
     }
     recognition.onend = () => setListening(false)
     recognition.onerror = () => setListening(false)
@@ -154,7 +187,7 @@ export function AssistantPanel({ onClose }: { onClose: () => void }) {
         <div className="flex min-w-0 flex-1 flex-col">
           <SheetTitle className="text-lg leading-tight font-semibold">{t('AI assistant', 'المساعد الذكي')}</SheetTitle>
           <span className="truncate text-xs text-muted-foreground">
-            {t('Answers from the sample data, within your role', 'إجابات من البيانات النموذجية، ضمن صلاحيات دورك')}
+            {t('Built-in parser (no connection) · sample data, within your role', 'المحلّل المدمج (دون اتصال) · بيانات نموذجية ضمن صلاحيات دورك')}
           </span>
         </div>
         <Button variant="ghost" size="icon" onClick={onClose} aria-label={t('Close', 'إغلاق')}>
@@ -169,23 +202,38 @@ export function AssistantPanel({ onClose }: { onClose: () => void }) {
         aria-label={t('Conversation', 'المحادثة')}
         className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-4"
       >
-        {messages.map((m) => {
-          const mine = m.from === 'user'
+        {messages.map((msg) => {
+          const mine = msg.from === 'user'
           return (
-            <div key={m.id} className={cn('flex max-w-[88%] flex-col gap-1.5', mine ? 'items-end self-end' : 'items-start self-start')}>
+            <m.div
+              key={msg.id}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={cn('flex max-w-[88%] flex-col gap-1.5', mine ? 'items-end self-end' : 'items-start self-start')}
+            >
               <div
                 className={cn(
                   'rounded-2xl px-3.5 py-2.5 text-base leading-relaxed whitespace-pre-line shadow-xs',
                   mine ? 'rounded-ee-sm bg-primary text-primary-foreground' : 'rounded-es-sm border bg-card text-card-foreground',
                 )}
               >
-                {L(m.text)}
+                {L(msg.text)}
               </div>
-              {m.matchedPersonId && (
+              {msg.answer && (msg.answer.people || msg.answer.plan || msg.answer.brief) && (
+                <AssistantResult
+                  answer={msg.answer}
+                  onOpenPerson={(id) => {
+                    navigate(`/customers/${id}`)
+                    onClose()
+                  }}
+                  onDone={(message) => toast.success(message)}
+                />
+              )}
+              {msg.matchedPersonId && (
                 <Button
                   size="sm"
                   onClick={() => {
-                    navigate(`/customers/${m.matchedPersonId}`)
+                    navigate(`/customers/${msg.matchedPersonId}`)
                     onClose()
                   }}
                 >
@@ -193,9 +241,21 @@ export function AssistantPanel({ onClose }: { onClose: () => void }) {
                   <ArrowRight aria-hidden className="rtl:rotate-180" />
                 </Button>
               )}
-            </div>
+            </m.div>
           )
         })}
+        {thinking && (
+          <m.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-center gap-1 self-start rounded-2xl rounded-es-sm border bg-card px-3.5 py-3 shadow-xs"
+          >
+            <span className="sr-only">{t('The assistant is answering…', 'المساعد يجيب…')}</span>
+            {[0, 1, 2].map((i) => (
+              <span key={i} aria-hidden className="cx-typing-dot size-1.5 rounded-full bg-muted-foreground" />
+            ))}
+          </m.div>
+        )}
       </div>
 
       <div className="border-t bg-card">
@@ -207,7 +267,7 @@ export function AssistantPanel({ onClose }: { onClose: () => void }) {
               variant="outline"
               size="sm"
               className="shrink-0 rounded-full font-normal"
-              disabled={!ready}
+              disabled={!ready || thinking}
               onClick={() => send(t(q.en, q.ar))}
             >
               {t(q.en, q.ar)}
@@ -250,7 +310,7 @@ export function AssistantPanel({ onClose }: { onClose: () => void }) {
             }
             className="h-10 min-w-0 flex-1"
           />
-          <Button type="submit" size="icon-lg" className="shrink-0" disabled={!draft.trim() || !ready} aria-label={t('Send', 'إرسال')}>
+          <Button type="submit" size="icon-lg" className="shrink-0" disabled={!draft.trim() || !ready || thinking} aria-label={t('Send', 'إرسال')}>
             <Send aria-hidden className="rtl:-scale-x-100" />
           </Button>
         </form>
