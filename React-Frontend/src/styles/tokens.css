@@ -1,0 +1,141 @@
+/* Design tokens — foundation pass (see docs/analysis/UI_UX_SPECIFICATION.md).
+ *
+ * Color values below are ported VERBATIM from the v38 prototype's own CSS
+ * custom properties (not the pre-omnichannel `frontend/` scaffold's drifted
+ * copy — that used a teal `--brand` and no `--gold`; this corrects it per
+ * UI_UX_SPECIFICATION.md §1.1's "drift to fix"). They are PSI's placeholder
+ * brand pair (navy #12385B / gold #C8963E) until real brand colors/fonts/logo
+ * arrive (Programme KB §43.8) — a token-file edit then, not a component
+ * rewrite. `--p-wl` (PSI Wallet) is [Proposed]: the prototype never defined a
+ * sixth product color, so this is a new value chosen to sit between the
+ * existing five hues without colliding on either theme.
+ *
+ * Spacing, radius, shadow and the type scale are new for this rebuild — the
+ * user asked for a fresh, premium visual design, not a re-skin — but every
+ * component still uses the same CSS-custom-property + logical-property
+ * discipline the prototype and scaffold both proved out (no Tailwind, no
+ * CSS-in-JS). Structural choices (RTL mirroring, logical properties) are
+ * confirmed; exact pixel values below are a starting point for later pages
+ * to refine, not frozen.
+ */
+
+:root {
+  /* --- Brand / surfaces (light) — confirmed placeholder, see note above --- */
+  --bg: #EAF0F5;
+  --surface: #FFFFFF;
+  --surface-2: #F3F7FA;
+  --surface-3: #E8EEF4;
+  --line: #DAE2EA;
+  --line-strong: #C3CEDA;
+  --ink: #0F1F2E;
+  --muted: #566879;
+  --muted-2: #7C8CA0;
+
+  --brand: #12385B;
+  --brand-ink: #FFFFFF;
+  --brand-tint: #E7EEF5;
+  --gold: #C8963E;
+  --gold-ink: #2A1C06;
+
+  /* --- Product hues — one fixed color per product, used for nav dots, tags,
+     chart series and heatmap cells (UI_UX_SPECIFICATION.md §1.4) --- */
+  --p-re: #0E8F8A; /* PSI Real Estate */
+  --p-af: #3563D8; /* After-Sales */
+  --p-cl: #DE8514; /* PSI Club */
+  --p-to: #8A4BD2; /* Tour Estate */
+  --p-ev: #DB406F; /* PSI Events */
+  --p-wl: #2E9E5B; /* [Proposed] PSI Wallet — not in the prototype's root tokens */
+
+  /* --- Status --- */
+  --good: #17995C;
+  --warn: #D08A00;
+  --crit: #D3342C;
+  --neutral: #AEB9C4;
+
+  /* --- Sidebar (navy gradient, not flat) --- */
+  --side-0: #0C2540;
+  --side-1: #12385B;
+  --side-ink: #E8F0F7;
+  --side-muted: #8CA5BB;
+  --side-line: rgba(255, 255, 255, 0.12);
+  --side-hover: rgba(255, 255, 255, 0.08);
+  --side-active: rgba(255, 255, 255, 0.16);
+
+  /* --- Typography --- */
+  --font: 'IBM Plex Sans Arabic', 'Segoe UI', Tahoma, system-ui, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+  --fs-body: 13px;
+  --fs-sm: 11.5px;
+  --fs-xs: 10.5px;
+  --fs-h1: 20px;
+  --fs-h2: 15px;
+  --fs-h3: 12.5px;
+  --fs-stat: 26px;
+  --lh-body: 1.5;
+
+  /* --- Spacing scale --- */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+
+  /* --- Radius / elevation --- */
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-pill: 999px;
+
+  --shadow-xs: 0 1px 2px rgba(15, 31, 46, 0.05);
+  --shadow-sm: 0 2px 8px rgba(15, 31, 46, 0.06);
+  --shadow-md: 0 8px 24px rgba(15, 31, 46, 0.10);
+  --shadow-lg: 0 16px 40px rgba(15, 31, 46, 0.16);
+  --ring: 0 0 0 2px color-mix(in srgb, var(--brand) 35%, transparent);
+
+  --ease: cubic-bezier(0.2, 0.7, 0.3, 1);
+  --shell-max: 1440px;
+  --sidebar-w: 248px;
+}
+
+/* --- Dark mode — both system-driven and user-toggleable, per
+   UI_UX_SPECIFICATION.md §1.1 ("both paths must exist") --- */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0A121A;
+    --surface: #111C27;
+    --surface-2: #172433;
+    --surface-3: #1C2B3C;
+    --line: #243649;
+    --line-strong: #2E4258;
+    --ink: #E7EEF4;
+    --muted: #8DA0B2;
+    --muted-2: #6E8296;
+
+    --brand: #7FB0E0;
+    --brand-ink: #08203A;
+    --brand-tint: #16293D;
+    --gold: #E0B15C;
+    --gold-ink: #241804;
+
+    --p-re: #3FC4BD; --p-af: #7399F6; --p-cl: #F2AB4C; --p-to: #B488EF; --p-ev: #F2809F; --p-wl: #5FC98A;
+    --good: #45CB8C; --warn: #F0B53D; --crit: #F4786F; --neutral: #4B5B6B;
+
+    --side-0: #060F19; --side-1: #0C2238; --side-line: rgba(255, 255, 255, 0.08); --side-hover: rgba(255, 255, 255, 0.06); --side-active: rgba(255, 255, 255, 0.12);
+
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.35);
+    --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.45);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0A121A; --surface: #111C27; --surface-2: #172433; --surface-3: #1C2B3C; --line: #243649; --line-strong: #2E4258; --ink: #E7EEF4; --muted: #8DA0B2; --muted-2: #6E8296;
+  --brand: #7FB0E0; --brand-ink: #08203A; --brand-tint: #16293D; --gold: #E0B15C; --gold-ink: #241804;
+  --p-re: #3FC4BD; --p-af: #7399F6; --p-cl: #F2AB4C; --p-to: #B488EF; --p-ev: #F2809F; --p-wl: #5FC98A;
+  --good: #45CB8C; --warn: #F0B53D; --crit: #F4786F; --neutral: #4B5B6B;
+  --side-0: #060F19; --side-1: #0C2238; --side-line: rgba(255, 255, 255, 0.08); --side-hover: rgba(255, 255, 255, 0.06); --side-active: rgba(255, 255, 255, 0.12);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3); --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.35); --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.45);
+  color-scheme: dark;
+}

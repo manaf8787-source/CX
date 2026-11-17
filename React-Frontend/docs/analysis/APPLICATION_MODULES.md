@@ -1,0 +1,47 @@
+# Application Modules
+
+Full module/page inventory for v38, each mapped to what already exists in `frontend/src` (reuse/upgrade candidate) or marked net-new. Source: Modules KB (all 19 sections), Programme KB §32-§41.
+
+**Reading this table:** "Existing scaffold" cites the exact file(s) in `frontend/src`. "Net-new" means no counterpart exists there at all — the v38 omnichannel rebuild (Programme KB §32-§35) replaced the scaffold's whole primary navigation with a different page set, and moved the scaffold's entire page list under one "Settings and reference" entry.
+
+## A. The seven primary v38 pages
+
+| # | Page | Purpose | Key data entities | Existing scaffold | Verdict |
+|---|---|---|---|---|---|
+| 1 | **Home** | One search box: a name/mobile/ID/unit opens a person; a free-text question goes to the assistant. Five live tiles (runaway, open actions, personas, journeys, to-call) | Person index, search index | `pages/Landing.tsx` is only the role-switch landing page, not a search home | **Net-new** |
+| 2 | **Customers** (the journey) | One record per person: CRM profile, 4 effort tiles, 4-part AI reading, timeline with source badges and highlighted problem events, journey rules | `Person`, `TimelineEvent`, journey rules (repeat contact, forced channel switch, promise not kept, slow reply, wrong language, hand-off, IVR complaint not logged, unapproved discount, silence) | None | **Net-new** — this is the centerpiece of the whole rebuild |
+| 3 | **Runaway customers** | Six types as counters + "what we keep doing wrong" cross-type fault list | Six runaway-type classifiers, per-person detail | None | **Net-new** |
+| 4 | **Actions** (5 tabs: Corrective actions, Signals & patterns, AI Insights, Shopper cases, Investigations) | What's being fixed, why, did it work | `Signal`, `Pattern`, `CorrectiveAction` (8-kind classification), `ShopperCase`, `Investigation` | `pages/Incidents.tsx` + `lib/incidentWorkflow.ts` + `lib/sla.ts` cover the **incident/case lifecycle logic** (SLA clocks, root-cause/corrective/preventive gating, escalation ladder) extremely well — this is the single best piece of reusable logic in the scaffold, even though it predates the Signals/Actions split. `pages/Insights.tsx` and `data/insights.ts` cover the old "AI Insights" concept. `pages/MysteryShopper.tsx` covers shopper-case intake. | **Port the SLA/workflow engine and rebuild the UI** around the new 5-tab shape and the Signal→Pattern→Action data flow (Decision 1 of the Rules doc), reusing `incidentWorkflow.ts`/`sla.ts` almost as-is for the Action lifecycle clocks |
+| 5 | **Close the loop** | Monthly detractor call list with capacity math, 4-question interview, reason codes, re-survey + recovery delta, AI interview campaigns | `DetractorCallItem`, `Interview`, capacity formula (people × hours/day × 4 × working days) | None directly, but `lib/sla.ts`'s working-hours engine is directly reusable for capacity math | **Net-new UI, reuse the working-hours/capacity math pattern** |
+| 6 | **Personas and campaigns** | Six personas built from CRM rules + behaviour, each with a Marketing recommendation; ranked next campaign | `Persona`, `CampaignRecommendation` | None | **Net-new** |
+| 7 | **Surveys and triggers** | Where/when/what is asked per product, the lead funnel, instrument definitions and caps | `SurveyTrigger`, `LeadFunnelStage`, the 5 instruments (NPS, CSAT+CES, "what stopped you", re-survey, relationship NPS) | `pages/SurveyEngine.tsx`, `data/surveys.ts`, `types.ts`'s `Survey`/`SurveyQuestion`/`Batch`/`Campaign` cover the **old** builder/campaign/batch model (campaigns contain batches, branching questions) | **Largely net-new** — v38 reframes surveys around *triggers and caps*, not a builder UI; the old question/branching data model is reusable as the *question type* vocabulary (NPS 0-10, rating 1-5, choice, yes/no, open text) but the page itself is different |
+
+## B. Cross-cutting: the AI assistant
+
+Not a page — a button on every page for CX/Marketing/executives/environment managers, plus the Home search box. Voice (browser speech recognition, Chrome/Edge) or text, Arabic or English. Two engines: Claude (inside claude.ai, with viewer permission) or a built-in bilingual keyword parser as fallback — **the parser is the acceptance test**: "anything it answers, the live assistant must answer the same" (Integration Plan). No scaffold counterpart. **Net-new**, and because of the two-engine requirement, the frontend must define the assistant's *filter/output contract* independently of which engine answers it (a thin adapter layer), not couple the UI to one implementation.
+
+## C. "Settings and reference" — the folded legacy menu (v38 §15)
+
+This is where the *existing scaffold's whole page set lands*, almost one-to-one:
+
+| Sub-module | Modules KB coverage | Existing scaffold | Verdict |
+|---|---|---|---|
+| Overview + Monthly CX pack | §15 ("Overview and Monthly CX pack") | `pages/Overview.tsx`, `pages/Report.tsx` | **Reuse and upgrade** — add the lead funnel, public reputation index, per-product-no-group-NPS framing described in v38 |
+| Mystery shopper + Standards register | §15, §6 (Programme KB) | `pages/MysteryShopper.tsx`, `pages/Standards.tsx`, `data/checklists.ts`, `data/shoppers.ts`, `data/standards.ts`, `lib/metrics.ts`'s `scoreChecklist()` | **Reuse heavily** — `scoreChecklist()` (weighted score, critical-fail-independent-of-score logic) matches Decision 2's severity model closely; standards register needs to grow from the scaffold's flat list to the 26-standard (M-01…M-26) register with observe/draft/approved-and-scored status |
+| Surveys and triggers (reference copy), Voice of Customer | §15, §9 | `pages/VoiceOfCustomer.tsx`, `pages/SurveyEngine.tsx`, `data/voc.ts`, `data/vocComments.ts` | **Reuse VoC results view; rebuild survey page as described in A.7** |
+| L&D: training, materials, standards | §15 | None dedicated (HR pages don't cover L&D) | **Net-new page**, but reuses the Standards data model |
+| Intelligent CX team, Teams and structure, Settings, AI Insights access | §15, §11 | `pages/Structure.tsx` (old "Structure and access" — explicitly noted in Programme KB §26 as *removed* from the real portal, kept only as a Knowledge Base document), `pages/Settings.tsx`, `data/roles.ts`'s `AUTHORITY_MATRIX` | **The Intelligent CX Team page and AI Insights access matrix are net-new; `Settings.tsx` (launch list) and the authority-matrix pattern are reusable building blocks** |
+
+Also explicitly removed from the v38 menu (code kept, not deleted, per Programme KB §33): the After-Sales call desk, the call center desk and IVR simulation, the survey engine (as a standalone builder), the suggestions log, the demo walkthrough, the build specification. The scaffold's `pages/AfterSalesDesk.tsx`, `pages/CallCenter.tsx`, `pages/SurveyEngine.tsx`, `pages/Suggestions.tsx`, `pages/Structure.tsx` are exactly this discontinued set — **do not surface them in Phase 2's primary nav**; at most keep their business logic (the After-Sales call-queue retry rules, the AI-call evaluation rubric) as reference since Decision text still describes an AI call center and After-Sales desk workflow that a real backend will eventually need, even though the *portal UI* no longer shows it as a menu item.
+
+## D. Products (6, same shape, different nav visibility)
+
+`frontend/src/data/products.ts` + `data/otherProducts.ts` + `pages/RealEstate.tsx`/`AfterSales.tsx`/`ProductPage.tsx` already implement 5 of the 6 products (re, af, cl, to, ev) with the live/hidden distinction (`Product.live: boolean`) and per-product colour tokens. **PSI Wallet (`wl`) is entirely new** — added 9 Nov 2026, built like PSI Club: pilot numbers, 4 complaint types, draft investor survey, Wallet events as a timeline source. Each product needs its "When this product asks" survey-moments block (v38 §16) — not present in the scaffold's product pages today.
+
+## E. The intelligent CX team (10 agents + supervisor)
+
+Not a frontend module to *build* so much as a **contract the frontend must consume**: every agent's output follows one envelope (`agent_id`, `run_id`, `subject_type/id`, `payload`, `evidence[]`, `confidence`, `rules_applied[]`, `model`, `lang`, `supervisor_verdict`, `created_at` — full schema in the AI Agents Specification). The "how the AI found this" panel that appears on every corrective action, pattern, and AI Insight card reads directly from this envelope's `evidence` and `rules_applied` fields. **Net-new**, but because the full output contract is already specified field-by-field in the AI Agents Specification doc, Phase 2's mock-data layer should mirror that exact shape rather than inventing a simpler one — it is also the shape a real API will eventually return, which keeps the swap-in painless (see `IMPLEMENTATION_PLAN.md`).
+
+## F. Summary verdict
+
+Roughly **40% of the UI surface is a straight port/upgrade** (Overview, VoC, Mystery Shopper + standards, SLA/incident workflow engine, settings/launch list, product pages, role/authority-matrix pattern, i18n/RTL/theme infrastructure) and **60% is net-new** (Home search, Customers journey, Runaway, the 5-tab Actions page's Signals/Patterns/Investigations tabs, Close the loop, Personas and campaigns, the AI assistant, Intelligent CX team page, L&D page, PSI Wallet). The reusable 40% is concentrated in **business logic** (`lib/*.ts`) more than in UI components — which is good news, since logic is the expensive part to get right and the part that most directly encodes the Rules and Definitions document.
