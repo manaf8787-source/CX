@@ -2,7 +2,7 @@
 
 Owner: Manaf Obeidat, Delivery and CX Manager, PSI Real Estate (Amman)
 Audience: the chairman's review, the CX team, and the developers who will build the real platform
-Status: prototype v37 with sample data, last updated 11 November 2026 (sections 28 to 38 added: the omnichannel rebuild; the module-by-module Knowledge Base with screenshots is `PSI-CX-Portal-Knowledge-Base-Modules.md` and the illustrated Word and PDF document)
+Status: prototype v38 with sample data, last updated 17 November 2026 (sections 28 to 43: the omnichannel rebuild, the rules layer and the intelligent CX team; the module-by-module Knowledge Base with screenshots is `PSI-CX-Portal-Knowledge-Base-Modules.md` and the illustrated Word and PDF document)
 
 Everything in this document is either something Manaf decided or said, or something Claude proposed and built into the prototype. Anything proposed but not yet confirmed is marked **[Proposed]** or listed in the open questions at the end.
 
@@ -479,25 +479,64 @@ A "?" beside every metric and heading and a "What the terms mean" button on ever
 
 Document: *Standards Documentation List for L&D* (Claude doc, also in the CX folder). The standards serve the whole platform, read by five instruments (shopper checklist, signal rules, survey questions, journey analysis, corrective-action owners), not only the shopper. L&D leads the creation with George as head of the unit and a champion from each environment; one group standard with environment variants only where the business differs, PSI Assets (rental) carrying most. Twenty-eight documents in six groups, each with what it must include, who writes it, which instruments read it and the Assets variant; a template every document follows; priority order (nine documents before the second shopper wave and the first live signals, by the end of November). Shared with George, Said Abu Laila and Ali Mhanna (AI call center) on Teams; Dhrumil Mehta, who is building a campaigns platform with overlap, was sent the portal, the phase one plan and the standards list, and asked for his platform's documentation for an overlap analysis.
 
-## 37. Files and links (11 Nov 2026)
+## 37. Strategic planning: the base before the platform (11 to 12 Nov 2026)
+
+Agreed: the platform is only as good as its inputs, so three foundations come first: the omnichannel integration (section 34), the L&D standards (section 36) and a **rules layer** (section 38). Five phases: Decide (11 to 28 Nov), Base (1 Dec to 29 Jan), Build and pilot (1 Feb to 26 Mar), Scale (29 Mar to 7 May), Run. A Jira project "CX Portal" (key CXP) will carry the backlog; it does not exist yet, Manaf creates it, and every backlog draft is shown for approval before anything is posted.
+
+Mr. Karam, **Internal Audit and Marketing Lead** (UAE), is the key person on the ground: he validates the data feeds and the standards, audits the commercial team, the campaigns and the personas, and is Manaf's contact point. The portal gives him a role with aggregates and audit views: no cases, no conversation text, no agent names.
+
+## 38. The rules layer: five decisions (12 to 16 Nov 2026)
+
+Decided with Manaf, written up in "CX Portal: Rules and Definitions" and reflected in the prototype as configuration (Settings, "Rules as configuration").
+
+1. **Signals.** A pattern needs 5 of the same issue, or 3 on the same agent, or 50% concentration in one environment, within 30 days, on a sample of at least 10. Legal, privacy and safety: one occurrence is enough.
+2. **Mystery shopper.** Critical, medium, low. Critical opens a case the same day (respond 1 working day, resolve 5). Medium is a signal. Low is an L&D statistic. A visit under 60% is medium. The severity placing is phase two.
+3. **Recovered and worked.** Approve within 5 working days; verify at 60 days; effective when the signals drop by 50% or more and do not return for 90 days; partial; failed reopens. Recovered within 60 days: a 4 or 5, a promoter or passive, a transaction, renewal or new lead, or a new contact without a complaint. Detractor interviews are human by default; the CX team may create AI interview campaigns (segment, script in both languages, hand-off rules: hang-up or no answer twice → human; asks for a person or anything critical → human the same day; declined → no retry; critical never in a campaign). Capacity = people × hours × 4 × working days. Re-survey 7 to 14 days after resolution, exempt from the caps, reporting the recovery delta.
+4. **Escalation matrix.** One template and one set of principles; the product owners fill the cells with Mr. Karam by 28 November.
+5. **Feedback coverage.** NPS only after a completed milestone, plus a relationship NPS yearly. CSAT + CES after a meaningful interaction only (call over 2 minutes, viewing, offer). "What stopped you?" once, 14 days after silence. CES on an abandoned digital step (identified users only) and after a closed maintenance or complaint ticket. Caps: NPS 90 days, CSAT/CES 30 days; inside the window the portal keeps the most important touchpoint (viewing > offer > call). Public channels (Facebook, Instagram, LinkedIn, Google) are never surveyed: unidentified pool, signals, public reply within 48 hours, a public reputation index. Each product its own line, no group NPS. PSI Website and PSI Real Estate app are two named sources on every record, not products. Any click or expression of interest is answered in minutes or hours.
+
+Manaf's NPS/CSAT/CES best-practice document (uploaded 15 Nov) is consistent with these rules and is the reference for the instruments.
+
+## 39. Per-product survey moments (15 to 16 Nov 2026)
+
+PSI Real Estate: CSAT + CES after the call, the viewing and the offer; NPS after the signed deal. After-Sales: NPS after handover and renewal; CES after a closed ticket. PSI Club: leads ride the Real Estate journey with a VIP tag; member NPS at the end of a nomination cycle. Tour Estate: end-of-tour survey only after a completed tour (driver, guide, ride, car, cleanliness, NPS); the stop survey goes to the commercial team. PSI Events: no NPS; external QR rating at the booth and an internal staff evaluation. The lead funnel (sample: 9,000 leads → 7,400 contacted → 2,100 viewings → 640 offers → 150 signed) frames who is asked what; the journey stages per service are marked [Proposed] until Marketing confirms them from the Customer Journey Template.
+
+## 40. The intelligent CX team: ten agents and a supervisor (13 to 17 Nov 2026)
+
+The company is moving to one AI team per function, each agent single-task with a supervisor. The CX portal's part: ten agents (intake and matching; classification; signals and patterns; mystery shopper severity, phase two; corrective action and routing; verification; journey, runaway and personas; close the loop; reporting; survey triggers and delivery) and one supervisor with six checks (schema, recompute, access, evidence by a different model, bilingual, risk gate). Other teams are receivers: they get a fix or a signal and handle it their own way; the portal takes back a status. Rollout: shadow → limited (one environment) → live, with a weekly sample of 50 outputs read by the CX team and Mr. Karam. A fix is only ever suggested; the responsible manager approves, changes, rejects or asks for an investigation first.
+
+Corrective actions are classified into eight kinds (employee, service and behaviour, training gap, product and app, process, environment, legal and privacy, marketing) and the kind decides the receiver; an employee kind is a management note to the direct manager only, never a case, never HR. When the evidence is thin, the portal requests five interviews or a mystery shopper check instead of guessing a fix.
+
+Written up for developers in "CX Portal AI Agents: Specification" and for the AI team meeting in the deck "CX Portal AI Agents" (nine slides, business language, one example per agent).
+
+## 41. Prototype v38 (13 to 17 Nov 2026)
+
+Source badges on every event (PSI Website, PSI Real Estate app, WhatsApp, Facebook, Instagram, LinkedIn, Google, and the rest); public mentions as signals with a 48-hour reply clock; the public reputation index; indicators per product with "Group NPS: none, by design"; the lead funnel with source split and reasons; Close the loop (list, interview with brief and four questions, reason codes, re-survey, AI campaigns); the Intelligent CX team page (path, roster, job descriptions, supervisor); action classification and routing; Investigate tab; rules as configuration; the Internal Audit and Marketing Lead role; Surveys and triggers page; "When this product asks" on each product page; VIP tag on Club customers; Agent 10. Fix in v38: the Voice of Customer page tolerated the new sources.
+
+## 42. Files and links (17 Nov 2026)
 
 | Item | Where |
 |---|---|
-| CX Portal prototype v37 (private, shared with specific people) | https://claude.ai/artifact/Y27QrDZiBLL5jJMb5bw2VB |
+| CX Portal prototype v38 (private, shared with specific people) | https://claude.ai/artifact/Y27QrDZiBLL5jJMb5bw2VB |
+| CX Portal AI Agents deck (for the AI team) | https://claude.ai/artifact/7cXc9j5Uq3RABQftieu96E |
+| Survey Journeys deck | https://claude.ai/artifact/1ZRpqtQUbk7dJT3AZQ62T7 |
+| CX Portal: Rules and Definitions (document) | https://claude.ai/artifact/NxhqoSy8WkVqTW9PTMc42g |
+| CX Portal AI Agents: Specification (document, for developers) | https://claude.ai/artifact/Sdvd2cAXkHDAJ3GELy85gR |
+| Customer Journey Template (document, for the Marketing meeting) | https://claude.ai/artifact/WHs77JqLCyZyrFXYB4fr2z |
 | Intro deck (4 slides, with links to the demo and the video) | https://claude.ai/artifact/QjDwbKr8TZgJPMduVYmUKj |
 | Walkthrough video page | https://claude.ai/artifact/L7ovEmwgZ7j3seLhiHgGTJ |
 | Phase One Omnichannel Integration Plan | https://claude.ai/artifact/PbaA7h5U3AGaZMygGkmUS6 |
 | Standards Documentation List for L&D | https://claude.ai/artifact/HojC8au21GvcgbkVtDK3E3 |
-| Local folder | C:\Users\xele\Desktop\CX (Documents: this file, the Modules KB, the Word and PDF knowledge base, the portal HTML v37) |
+| Local folder | C:\Users\xele\Desktop\CX (Documents: this file, the Modules KB, the Word and PDF knowledge base, the portal HTML v38, the Rules, Agents specification and Journey template as Word files, the two decks as PDF) |
 
-## 38. Open questions (11 Nov 2026)
+## 43. Open questions (17 Nov 2026)
 
-1. Which items are critical, medium and low for the mystery shopper, with more scenario examples (to define with the team).
-2. The definition of "recovered" in the AI recovery figures [Proposed: within 30 days of closing, not reopened or escalated, and a better rating or a positive reply].
-3. The thresholds that turn signals into an action [Proposed: 3 per agent, 5 per issue, 50% concentration, 30 days].
+1. The escalation matrix cells per product (product owners with Mr. Karam, by 28 Nov).
+2. The journey stages per service (buying, renting, investing, listing) from Marketing; the funnel stages stay [Proposed] until then.
+3. Mystery shopper scenario examples per severity, with the team.
 4. PSI Club member recovery for a detractor VIP member: Club admin queue item or CX call (with Abu Omar).
-5. Whether the CRM exposes a read API or only database access; the WhatsApp partner; where the AI caller and IVR logs live; which app chats exist and their backends.
-6. The CRM field list and a 200-contact anonymised sample for the persona rules.
-7. PSI brand colours, fonts and logo files.
-8. Real HR pool members and environment names; real SLA targets; call recording as a policy decision; retention periods with Legal.
+5. Whether the CRM exposes a read API or only database access; the WhatsApp partner; where the AI caller and IVR logs live; which public channels have an export; the CRM field list and a 200-contact anonymised sample.
+6. For the AI team: which models for the agents and the supervisor and their Arabic; whether the AI caller can run the four-question script with hand-off; how to read the CRM and the transcripts; cost per thousand messages.
+7. The Jira CXP project: Manaf creates it, then the backlog draft is reviewed before posting.
+8. PSI brand colours, fonts and logo files; real HR pool members and environment names; real SLA targets; call recording as a policy decision; retention periods with Legal.
 9. Earlier open questions in section 14 that are still open: After-Sales real call script, calling hours and consent rules, data residency, the real mailboxes.
