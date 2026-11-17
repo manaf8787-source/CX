@@ -52,3 +52,10 @@ See `PSI-CX-Programme-Knowledge-Base.md` section 43.
 
 - Don't invent or confirm decisions on Manaf's behalf; flag open items rather than resolving them silently.
 - The Programme KB is a chronological log (append dated sections); the Modules KB is a structural reference (edit in place by section).
+
+## Git: auto-push rule (set by Manaf, 17 Nov 2026)
+
+- All work is committed and pushed to `origin/main` (github.com/manaf8787-source/CX) every hour by the Windows scheduled task **CX-AutoPush**, which runs `.claude/auto-push.ps1`. Log: `%LOCALAPPDATA%\cx-auto-push.log`.
+- Claude may commit and push to `main` without asking. Never force-push; never commit secrets (`.env`, keys); files over 95 MB are left out automatically.
+- To stop it: `Unregister-ScheduledTask -TaskName CX-AutoPush -Confirm:$false`.
+- `React-Frontend/` is the current React build (shadcn/ui + Tailwind, decided 17 Nov 2026); `frontend/` is the older scaffold, reference only.
