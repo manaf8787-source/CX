@@ -165,13 +165,13 @@ export default function Login() {
     <div className="grid min-h-svh bg-background lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
       <BrandPanel />
 
-      <main className="flex min-w-0 flex-col px-4 pt-4 pb-10 sm:px-8 lg:px-12">
+      <main className="flex min-w-0 flex-col px-4 pt-4 pb-10 sm:px-8 lg:px-10 lg:pb-4">
         <div className="flex items-center justify-end gap-1">
           <LangSwitch />
           <ThemeSwitch />
         </div>
 
-        <div className="flex flex-1 items-center justify-center py-4">
+        <div className="flex flex-1 items-center justify-center py-4 lg:py-2">
           <AnimatePresence onExitComplete={finish}>
             {phase !== 'leaving' && (
               <m.div
@@ -179,12 +179,12 @@ export default function Login() {
                 initial={{ opacity: 0, x: 24 * sign }}
                 animate={{ opacity: 1, x: 0, transition: { duration: DURATION.slow, ease: EASE_OUT, delay: 0.1 } }}
                 exit={{ opacity: 0, scale: 0.98, transition: EXIT }}
-                className="w-full max-w-xl"
+                className="w-full max-w-xl xl:max-w-2xl"
               >
                 <form
                   noValidate
                   onSubmit={handleSubmit(onValid)}
-                  className="flex flex-col gap-5 rounded-2xl border bg-card p-5 text-card-foreground shadow-sm sm:p-7"
+                  className="flex flex-col gap-5 rounded-2xl border bg-card p-5 text-card-foreground shadow-sm sm:p-7 lg:gap-4 lg:p-6"
                   aria-busy={phase !== 'idle'}
                 >
                   <div className="flex flex-col gap-1.5">
@@ -204,15 +204,15 @@ export default function Login() {
                   </div>
 
                   <fieldset className="flex min-w-0 flex-col gap-3" aria-invalid={!!errors.role} aria-describedby={errors.role ? 'role-error' : undefined}>
-                    <legend className="mb-3 text-sm font-medium">{t('Sign in as', 'تسجيل الدخول بصفة')}</legend>
-                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <legend className="mb-3 text-sm font-medium lg:mb-2">{t('Sign in as', 'تسجيل الدخول بصفة')}</legend>
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
                       {ROLE_DEFS.map((r) => {
                         const isSelected = selected === r.id
                         return (
                           <label
                             key={r.id}
                             className={cn(
-                              'group relative flex min-h-14 cursor-pointer flex-col justify-center gap-0.5 rounded-xl border bg-card px-3 py-2.5 pe-9 text-start',
+                              'group relative flex min-h-14 cursor-pointer flex-col justify-center gap-0.5 rounded-xl border bg-card px-3 py-2.5 pe-9 text-start lg:min-h-12 lg:py-2',
                               'transition-[border-color,background-color,box-shadow,translate,scale] duration-200 ease-out',
                               'hover:-translate-y-px hover:border-primary/40 hover:shadow-sm active:scale-[0.99]',
                               'motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100',

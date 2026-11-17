@@ -1,6 +1,15 @@
 import { useMemo, useState } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
-import { Bot, ChevronDown, FileJson, ShieldCheck } from 'lucide-react'
+import { Bot, ChevronDown, ChevronRight, FileJson, ShieldCheck, UserCheck } from 'lucide-react'
+import {
+  AGENT_JDS,
+  AGENT_STAGE_LABEL,
+  SUPERVISOR_CALIBRATION,
+  SUPERVISOR_VERDICTS,
+  SWITCH_ON_STAGES,
+  WHAT_STAYS_WITH_PEOPLE,
+  type AgentStage,
+} from '@/data/v38Reference'
 import { useI18n } from '@/i18n'
 import { useRole } from '@/auth/RoleContext'
 import { canViewAgentNames } from '@/auth/permissions'
@@ -33,6 +42,8 @@ const VERDICT_LABEL: Record<AgentActivityEntry['supervisorVerdict'], { en: strin
   returned: { en: 'Returned', ar: 'مُعاد' },
   escalated: { en: 'Escalated', ar: 'مُصعَّد' },
 }
+
+const STAGE_TONE: Record<AgentStage, 'warning' | 'info' | 'success' | 'neutral'> = { shadow: 'warning', limited: 'info', live: 'success', phase2: 'neutral' }
 
 function rateTone(pct: number) {
   return pct >= 90 ? 'success' : pct >= 75 ? 'warning' : 'danger'
@@ -123,6 +134,52 @@ export default function IntelligentCxTeam() {
       />
 
       <SectionCard
+        title={t('The path every event walks', 'المسار الذي يسلكه كل حدث')}
+        description={t(
+          'Top row is the main path; the bottom row feeds it (4, 8) or reads it (7, 9). Agent 10 sits beside Agent 1, reading the same events. A person approves before anything leaves; the supervisor checks every arrow.',
+          'الصف العلوي هو المسار الرئيسي؛ والصف السفلي يغذّيه (4، 8) أو يقرؤه (7، 9). الوكيل 10 بجانب الوكيل 1 يقرأ نفس الأحداث. شخص يعتمد قبل أن يخرج أي شيء؛ والمشرف يفحص كل سهم.',
+        )}
+        contentClassName="flex flex-col gap-3"
+      >
+        {[
+          [1, 2, 3, 5, 'approve', 6],
+          [4, 8, 7, 'case', 'receivers', 9],
+        ].map((row, r) => (
+          <ol key={r} className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
+            {row.map((step, k) => {
+              const agent = typeof step === 'number' ? AGENT_REGISTRY.find((a) => a.id === step) : undefined
+              const special: Record<string, { title: string; body: string; tone: string }> = {
+                approve: { title: t('Approve', 'اعتماد'), body: t('Direct manager · 5 working days · always a person', 'المدير المباشر · 5 أيام عمل · شخص دائماً'), tone: 'border-gold/50 bg-gold/10' },
+                case: { title: t('Case', 'حالة'), body: t('Only a critical shopper finding or a legal and privacy event', 'فقط نتيجة تسوق حرجة أو حدث قانوني وخصوصية'), tone: 'border-dashed bg-muted/40' },
+                receivers: { title: t('Receivers', 'المستلمون'), body: t('Managers, L&D, Marketing, IT, HR, Legal; a status comes back', 'المدراء، التعلم والتطوير، التسويق، تقنية المعلومات، الموارد البشرية، القانونية؛ تعود الحالة'), tone: 'border-success/40 bg-success/8' },
+              }
+              const box = agent
+                ? { title: t(`Agent ${agent.id}`, `الوكيل ${agent.id}`), body: L(agent.name), tone: 'border-primary/30 bg-primary/5' }
+                : special[step as string]
+              return (
+                <li key={String(step)} className={cn('relative flex min-h-20 min-w-0 flex-col gap-0.5 rounded-lg border p-3', box.tone)}>
+                  <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">{box.title}</span>
+                  <span className="text-sm leading-snug">{box.body}</span>
+                  {k < row.length - 1 && (
+                    <ChevronRight aria-hidden className="absolute end-[-0.85rem] top-1/2 z-10 hidden size-4 -translate-y-1/2 text-muted-foreground xl:block rtl:rotate-180" />
+                  )}
+                </li>
+              )
+            })}
+          </ol>
+        ))}
+        <div className="rounded-lg border border-gold/40 bg-gold/8 p-3 text-sm">
+          <span className="font-semibold">{t('Agent 10 · beside Agent 1, reading the same events', 'الوكيل 10 · بجانب الوكيل 1، يقرأ نفس الأحداث')}</span>
+          {' — '}
+          {L(AGENT_REGISTRY.find((a) => a.id === 10)?.name ?? { en: '', ar: '' })}
+        </div>
+        <div className="rounded-lg border-2 border-dashed border-primary/40 p-3 text-sm">
+          <span className="font-semibold">{t('CX Supervisor', 'المشرف الذكي')}</span>{' '}
+          {t('checks every output before it moves to the next box.', 'يفحص كل مخرج قبل أن ينتقل إلى الصندوق التالي.')}
+        </div>
+      </SectionCard>
+
+      <SectionCard
         title={
           <span className="flex flex-col gap-1">
             <span className="text-xs font-semibold tracking-wide text-gold-text uppercase">{t('The shape', 'الشكل')}</span>
@@ -199,11 +256,12 @@ export default function IntelligentCxTeam() {
             </ol>
           </div>
           <div className="flex flex-col gap-3">
-            <h3 className="text-sm font-semibold">{t('Approval rate per agent (sample)', 'معدل الاعتماد لكل وكيل (عينة)')}</h3>
+            <h3 className="text-sm font-semibold">{t('Approved first time, per agent (sample)', 'المعتمد من أول مرة لكل وكيل (عينة)')}</h3>
             <ul className="flex flex-col gap-2.5">
               {AGENT_REGISTRY.filter((a) => a.key !== 'supervisor').map((a) => {
                 const r = approvalRate.get(a.key)
-                const pct = r && r.total > 0 ? Math.round((r.approved / r.total) * 100) : null
+                const jdPct = AGENT_JDS.find((j) => j.id === a.id)?.approvalPct
+                const pct = jdPct !== undefined ? jdPct : r && r.total > 0 ? Math.round((r.approved / r.total) * 100) : null
                 const tone = pct === null ? null : rateTone(pct)
                 return (
                   <li key={a.key} className="grid grid-cols-[minmax(0,9rem)_1fr_2.75rem] items-center gap-3 sm:grid-cols-[minmax(0,12rem)_1fr_2.75rem]">
@@ -235,13 +293,48 @@ export default function IntelligentCxTeam() {
             </ul>
             <p className="text-xs text-muted-foreground">
               {t(
-                'From this prototype’s own sample run log below — a real calibration sample is 50 outputs reviewed weekly.',
-                'من سجل التشغيل التجريبي أدناه — العينة الفعلية للمعايرة هي 50 مخرجاً تُراجَع أسبوعياً.',
+                'Share of each agent’s outputs approved first time (sample figures). Every week 50 passed outputs are read by eye.',
+                'نسبة مخرجات كل وكيل المعتمدة من أول مرة (أرقام تجريبية). كل أسبوع تُقرأ 50 مخرجاً معتمداً بالعين.',
               )}
             </p>
           </div>
         </div>
+        <dl className="grid grid-cols-1 gap-3 border-t pt-4 text-sm md:grid-cols-2">
+          <KeyValue label={t('Verdicts', 'الأحكام')} value={L(SUPERVISOR_VERDICTS)} />
+          <KeyValue label={t('Calibration', 'المعايرة')} value={L(SUPERVISOR_CALIBRATION)} />
+        </dl>
       </SectionCard>
+
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        <SectionCard
+          title={
+            <span className="flex items-center gap-2">
+              <UserCheck aria-hidden className="size-5 text-gold-text" />
+              {t('What stays with people', 'ما يبقى مع الناس')}
+            </span>
+          }
+        >
+          <p className="text-sm">{L(WHAT_STAYS_WITH_PEOPLE)}</p>
+        </SectionCard>
+        <SectionCard title={t('How it is switched on', 'كيف يُفعَّل')}>
+          <ol className="flex flex-col gap-3">
+            {SWITCH_ON_STAGES.map((st, i) => (
+              <li key={st.stage.en} className="flex gap-3 text-sm">
+                <span aria-hidden className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary tabular-nums">
+                  {i + 1}
+                </span>
+                <div className="flex min-w-0 flex-col gap-0.5">
+                  <span className="font-semibold">{L(st.stage)}</span>
+                  <span>{L(st.what)}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {t('Exit', 'الخروج')}: {L(st.exit)}
+                  </span>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </SectionCard>
+      </div>
 
       <SectionCard
         title={t('Routing of corrective actions by classification', 'توجيه الإجراءات التصحيحية حسب التصنيف')}
@@ -318,8 +411,10 @@ function AgentCard({
 }) {
   const { t, L, lang } = useI18n()
   const latest = recent[0]
-  const pct = rate && rate.total > 0 ? Math.round((rate.approved / rate.total) * 100) : null
   const notBuilt = !!agent.phaseNote
+  const jd = AGENT_JDS.find((j) => j.id === agent.id)
+  // KB §11 roster: the pass rate at the supervisor (prototype figure); the run log is only a sample.
+  const pct = jd ? jd.approvalPct : rate && rate.total > 0 ? Math.round((rate.approved / rate.total) * 100) : null
 
   return (
     <Collapsible
@@ -348,11 +443,14 @@ function AgentCard({
             <span className="text-base leading-snug font-semibold">{L(agent.name)}</span>
           </div>
         </div>
-        {pct !== null && (
-          <StatusBadge tone={rateTone(pct)}>
-            <bdi dir="ltr">{pct}%</bdi>
-          </StatusBadge>
-        )}
+        <div className="flex shrink-0 flex-col items-end gap-1">
+          {jd && <StatusBadge tone={STAGE_TONE[jd.stage]}>{L(AGENT_STAGE_LABEL[jd.stage])}</StatusBadge>}
+          {pct !== null && (
+            <StatusBadge tone={rateTone(pct)}>
+              <bdi dir="ltr">{pct}%</bdi>
+            </StatusBadge>
+          )}
+        </div>
       </div>
 
       <p className="text-sm">{L(agent.task)}</p>
@@ -366,14 +464,27 @@ function AgentCard({
       )}
 
       <CollapsibleTrigger className="-mx-2 -mb-1 mt-auto flex h-9 cursor-pointer items-center justify-between rounded-md px-2 text-sm font-semibold text-primary outline-none transition-colors hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50">
-        {t('Details', 'التفاصيل')}
+        {t('Job description', 'الوصف الوظيفي')}
         <ChevronDown aria-hidden className={cn('size-4 transition-transform duration-200 motion-reduce:transition-none', expanded && 'rotate-180')} />
       </CollapsibleTrigger>
       <CollapsibleContent>
         <dl className="flex flex-col gap-3 border-t pt-3 text-sm">
           <KeyValue label={t('Trigger', 'المحفّز')} value={L(agent.trigger)} />
           <KeyValue label={t('Runs on', 'يعمل وفق')} value={L(agent.runsOn)} />
+          {jd && (
+            <>
+              <KeyValue label={t('Inputs', 'المدخلات')} value={L(jd.inputs)} />
+              <KeyValue label={t('Rules in code (read from Settings, never invented)', 'القواعد بالكود (تُقرأ من الإعدادات ولا تُخترع)')} value={L(jd.rules)} />
+              <KeyValue label={t('Model step', 'خطوة النموذج')} value={L(jd.model)} />
+              <KeyValue label={t('Output', 'المخرج')} value={L(jd.output)} />
+              <KeyValue label={t('Supervisor checks', 'فحوصات المشرف')} value={L(jd.supervisorChecks)} />
+              {jd.approvalPct !== null && (
+                <KeyValue label={t('Approved first time (sample)', 'يُعتمد من أول مرة (عينة)')} value={`${jd.approvalPct}%`} />
+              )}
+            </>
+          )}
           <KeyValue label={t('Escalates to', 'يصعّد إلى')} value={L(agent.escalatesTo)} />
+          {jd && <KeyValue label={t('Shows on the portal as', 'يظهر على البوابة في')} value={L(jd.showsOn)} />}
           <KeyValue label={t('Must not', 'يُمنع من')} value={L(agent.mustNot)} danger />
         </dl>
       </CollapsibleContent>

@@ -149,7 +149,7 @@ export function answerQuestion(rawQuery: string, role: RoleId, data: AssistantDa
   }
 
   // --- Open actions ----------------------------------------------------------
-  if (/open action/.test(query) || /action.*open/.test(query) || /إجراء.*مفتوح|الإجراءات المفتوحة/.test(query)) {
+  if (/open (corrective )?action/.test(query) || /action.*open/.test(query) || /إجراء.*مفتوح|الإجراءات المفتوحة/.test(query)) {
     const proposed = data.correctiveActions.filter((a) => a.status === 'proposed').length
     const count = data.homeSummary?.openActions ?? data.correctiveActions.filter((a) => a.status !== 'effective' && a.status !== 'failed').length
     return {

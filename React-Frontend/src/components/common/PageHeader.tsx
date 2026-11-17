@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 import { SampleBanner } from './SampleBanner'
+import { TermsButton } from './TermHelp'
 
 interface PageHeaderProps {
   title: ReactNode
@@ -20,12 +21,12 @@ export function PageHeader({ title, description, eyebrow, actions, sample = true
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">{title}</h1>
         {description && <p className="max-w-[72ch] text-base text-muted-foreground">{description}</p>}
       </div>
-      {(sample || actions) && (
-        <div className="flex shrink-0 flex-wrap items-center gap-2">
-          {sample && <SampleBanner />}
-          {actions}
-        </div>
-      )}
+      <div className="flex shrink-0 flex-wrap items-center gap-2">
+        {sample && <SampleBanner />}
+        {/* KB §14: a "What the terms mean" button on every page. */}
+        <TermsButton />
+        {actions}
+      </div>
     </header>
   )
 }

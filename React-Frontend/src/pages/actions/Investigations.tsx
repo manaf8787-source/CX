@@ -11,7 +11,8 @@ import type { Pattern } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Field, FieldError, FieldLabel } from '@/components/ui/field'
+import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { SectionCard } from '@/components/common/SectionCard'
@@ -85,6 +86,11 @@ export default function Investigations() {
                             {inv.requestedCount ? ` · ${inv.requestedCount} ${t('interviews', 'مقابلات')}` : ''}
                             {inv.scenario ? ` · ${L(inv.scenario)}` : ''}
                           </span>
+                          {inv.lookFor && (
+                            <span className="text-sm">
+                              <span className="text-muted-foreground">{t('Look for', 'ما يُبحث عنه')}:</span> {L(inv.lookFor)}
+                            </span>
+                          )}
                         </div>
                       </div>
                       <StatusBadge tone={INVESTIGATION_STATUS_TONE[inv.status]} dot>
@@ -126,6 +132,7 @@ function RequestRow({ pattern }: { pattern: Pattern }) {
   const { t, L } = useI18n()
   const request = useRequestInvestigation()
   const [kind, setKind] = useState<'customer_interviews' | 'mystery_shopper_check'>('customer_interviews')
+  const [formOpen, setFormOpen] = useState(false)
   const selectId = `inv-kind-${pattern.id}`
   return (
     <li className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between">
@@ -152,20 +159,30 @@ function RequestRow({ pattern }: { pattern: Pattern }) {
           size="sm"
           className="h-9"
           onClick={() => {
-            request.mutate({
-              patternId: pattern.id,
-              kind,
-              requestedCount: kind === 'customer_interviews' ? 5 : undefined,
-              environment: pattern.team,
-              scenario: kind === 'mystery_shopper_check' ? `${signalCategoryLabel(pattern.category).en} scenario, ${pattern.team}` : undefined,
-            })
-            toast.success(t('Evidence requested', 'تم طلب الأدلة'))
+            // KB §6: a shopper check is requested with environment, scenario and what to look for.
+            if (kind === 'mystery_shopper_check') {
+              setFormOpen(true)
+              return
+            }
+            request.mutate({ patternId: pattern.id, kind, requestedCount: 5, environment: pattern.team })
+            toast.success(t('Five customer interviews requested — Close the loop picks the people', 'طُلبت خمس مقابلات مع العملاء — صفحة إغلاق الحلقة تختار الأشخاص'))
           }}
         >
           <Send aria-hidden className="rtl:-scale-x-100" />
           {t('Request', 'طلب')}
         </Button>
       </div>
+      {formOpen && (
+        <ShopperCheckDialog
+          pattern={pattern}
+          onCancel={() => setFormOpen(false)}
+          onSubmit={(v) => {
+            request.mutate({ patternId: pattern.id, kind: 'mystery_shopper_check', environment: v.environment, scenario: v.scenario, lookFor: v.lookFor })
+            setFormOpen(false)
+            toast.success(t('Mystery shopper check requested', 'طُلب فحص تسوق سري'))
+          }}
+        />
+      )}
     </li>
   )
 }
@@ -202,6 +219,59 @@ function ReturnDialog({ onCancel, onSubmit }: { onCancel: () => void; onSubmit: 
               {t('Cancel', 'إلغاء')}
             </Button>
             <Button type="submit">{t('Save', 'حفظ')}</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+const checkSchema = z.object({
+  environment: z.string().trim().min(2, 'environment'),
+  scenario: z.string().trim().min(5, 'scenario'),
+  lookFor: z.string().trim().min(5, 'lookFor'),
+})
+type CheckValues = z.infer<typeof checkSchema>
+
+/** KB §6 [investigate-form]: requesting a mystery shopper check — environment, scenario and what to look for. */
+function ShopperCheckDialog({ pattern, onCancel, onSubmit }: { pattern: Pattern; onCancel: () => void; onSubmit: (v: CheckValues) => void }) {
+  const { t, L } = useI18n()
+  const { register, handleSubmit, formState: { errors } } = useForm<CheckValues>({
+    resolver: zodResolver(checkSchema),
+    defaultValues: { environment: pattern.team, scenario: '', lookFor: '' },
+  })
+  return (
+    <Dialog open onOpenChange={(open) => !open && onCancel()}>
+      <DialogContent className="sm:max-w-lg">
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
+          <DialogHeader>
+            <DialogTitle>{t('Request a mystery shopper check', 'طلب فحص تسوق سري')}</DialogTitle>
+            <DialogDescription>
+              {L(signalCategoryLabel(pattern.category))} — {pattern.team}. {t('The result comes back as evidence on the pattern; only then is a fix proposed.', 'تعود النتيجة كدليل على النمط؛ وعندها فقط يُقترح إصلاح.')}
+            </DialogDescription>
+          </DialogHeader>
+          <FieldGroup>
+            <Field data-invalid={!!errors.environment}>
+              <FieldLabel htmlFor="chk-env">{t('Environment', 'البيئة')}</FieldLabel>
+              <Input id="chk-env" aria-invalid={!!errors.environment} {...register('environment')} />
+              {errors.environment && <FieldError>{t('Name the environment.', 'حدّد البيئة.')}</FieldError>}
+            </Field>
+            <Field data-invalid={!!errors.scenario}>
+              <FieldLabel htmlFor="chk-scenario">{t('Scenario', 'السيناريو')}</FieldLabel>
+              <Input id="chk-scenario" aria-invalid={!!errors.scenario} placeholder={t('e.g. walk-in with no lead', 'مثال: زيارة دون عميل محتمل')} {...register('scenario')} />
+              {errors.scenario && <FieldError>{t('Describe the scenario (at least 5 characters).', 'صف السيناريو (5 أحرف على الأقل).')}</FieldError>}
+            </Field>
+            <Field data-invalid={!!errors.lookFor}>
+              <FieldLabel htmlFor="chk-look">{t('What to look for', 'ما يُبحث عنه')}</FieldLabel>
+              <Textarea id="chk-look" rows={3} aria-invalid={!!errors.lookFor} {...register('lookFor')} />
+              {errors.lookFor && <FieldError>{t('Say what the shopper should look for.', 'وضّح ما يجب أن يبحث عنه المتسوق.')}</FieldError>}
+            </Field>
+          </FieldGroup>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onCancel}>
+              {t('Cancel', 'إلغاء')}
+            </Button>
+            <Button type="submit">{t('Request the check', 'طلب الفحص')}</Button>
           </DialogFooter>
         </form>
       </DialogContent>

@@ -22,6 +22,17 @@
       "rules": {
         "react/only-export-components": "off"
       }
+    },
+    {
+      "files": [
+        "src/test/**",
+        "src/**/*.test.ts",
+        "src/**/*.test.tsx",
+        "e2e/**"
+      ],
+      "rules": {
+        "react/only-export-components": "off"
+      }
     }
   ]
 }

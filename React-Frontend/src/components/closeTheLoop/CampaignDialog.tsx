@@ -85,6 +85,13 @@ export function CampaignDialog({
               </Field>
             </div>
 
+            <div className="flex flex-col gap-1 rounded-lg border bg-muted/40 p-3 text-sm">
+              <span className="font-semibold">{t('Hand-off rules (always on)', 'قواعد التحويل (مفعّلة دائماً)')}</span>
+              <span>{t('Hangs up or does not answer twice → needs a human', 'أغلق الخط أو لم يرد مرتين ← يحتاج شخصاً')}</span>
+              <span>{t('Asks for a person or says anything critical → a human the same day', 'طلب شخصاً أو قال أمراً حرجاً ← شخص في نفس اليوم')}</span>
+              <span>{t('Declines → no retry', 'رفض ← دون إعادة محاولة')}</span>
+            </div>
+
             <FieldSet data-invalid={!!errors.memberIds} className="gap-2">
               <FieldLegend variant="label">{t('Members (non-critical, not yet called)', 'الأعضاء (غير حرجين، لم يُتصل بهم بعد)')}</FieldLegend>
               <div className="flex max-h-48 flex-col overflow-y-auto rounded-lg border">

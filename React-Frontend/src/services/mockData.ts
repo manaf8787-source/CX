@@ -27,7 +27,6 @@ import type {
   MsScenario,
   MsShopper,
   Pattern,
-  PatternThresholdKind,
   Person,
   PersonaKey,
   Persona,
@@ -44,6 +43,7 @@ import type {
   VocRow,
 } from '../types'
 import { daysAgoIso, intBetween, pick, seededRandom } from '../utils/random'
+import { PATTERN_RULES, detectPatterns } from '../utils/patterns'
 import { classifyRunaway } from '../utils/runaway'
 import { GLOSSARY_TERMS } from '../data/glossary'
 
@@ -54,6 +54,23 @@ const SEED = 20261117
 const rng = seededRandom(SEED)
 
 const ENVIRONMENTS = ['Dubai', 'Abu Dhabi', 'Amman', 'Sharjah']
+// Sample people are not spread evenly: the largest market holds the most customers.
+// One rng() draw, same as a uniform pick.
+const ENVIRONMENT_WEIGHTS: [string, number][] = [
+  ['Dubai', 0.42],
+  ['Abu Dhabi', 0.24],
+  ['Amman', 0.18],
+  ['Sharjah', 0.16],
+]
+
+function pickPersonEnvironment(): string {
+  let r = rng()
+  for (const [environment, weight] of ENVIRONMENT_WEIGHTS) {
+    if (r < weight) return environment
+    r -= weight
+  }
+  return ENVIRONMENT_WEIGHTS[0][0]
+}
 const CHANNELS: ChannelId[] = ['website', 'app', 'whatsapp', 'call', 'branch', 'email']
 const FIRST_NAMES = ['Sara', 'Omar', 'Lina', 'Khaled', 'Maya', 'Yousef', 'Rana', 'Tariq', 'Dana', 'Fadi', 'Noura', 'Hassan', 'Aisha', 'Zaid', 'Lara']
 const LAST_NAMES = ['Haddad', 'Khoury', 'Saleh', 'Nasser', 'Qasim', 'Hamad', 'Farouk', 'Aziz']
@@ -70,7 +87,7 @@ function buildPersons(count: number): Person[] {
       },
       type: rng() > 0.35 ? 'customer' : 'lead',
       name: `${pick(rng, FIRST_NAMES)} ${pick(rng, LAST_NAMES)}`,
-      environment: pick(rng, ENVIRONMENTS),
+      environment: pickPersonEnvironment(),
       products,
       unitsOrDeals: intBetween(rng, 0, 3),
       preferredChannel: pick(rng, CHANNELS),
@@ -100,6 +117,22 @@ function buildAgentDirectory(): AgentDirectoryEntry[] {
 
 const PROBLEM_FLAGS: ProblemFlag[] = ['promise_not_kept', 'forced_channel_switch', 'repeat_contact', 'slow_reply', 'wrong_language', 'hand_off', 'silence', 'detractor']
 
+// Patterns are counted in a rolling 30-day window (Rules Decision 1), so most problem
+// contacts sit in the last month; the rest, and every other contact, keep the older
+// history that timelines and trends need. One rng() draw, same as daysAgoIso.
+const RECENT_PROBLEM_SHARE = 0.9
+
+function problemOccurredAt(): string {
+  const u = rng()
+  const days =
+    u < RECENT_PROBLEM_SHARE
+      ? Math.floor((u / RECENT_PROBLEM_SHARE) * 29)
+      : 30 + Math.floor(((u - RECENT_PROBLEM_SHARE) / (1 - RECENT_PROBLEM_SHARE)) * 151)
+  const d = new Date()
+  d.setDate(d.getDate() - days)
+  return d.toISOString()
+}
+
 function buildInteractions(persons: Person[], total: number): Interaction[] {
   const out: Interaction[] = []
   for (let i = 0; i < total; i++) {
@@ -112,7 +145,7 @@ function buildInteractions(persons: Person[], total: number): Interaction[] {
       sourceRef: `src-${1000 + i}`,
       channel,
       direction: rng() > 0.5 ? 'inbound' : 'outbound',
-      occurredAt: daysAgoIso(rng, 180),
+      occurredAt: hasProblem ? problemOccurredAt() : daysAgoIso(rng, 180),
       product: person.products[0],
       environment: person.environment,
       agentRef: `agent-${intBetween(rng, 1, 12)}`,
@@ -124,6 +157,9 @@ function buildInteractions(persons: Person[], total: number): Interaction[] {
       promiseKept: hasProblem ? rng() > 0.6 : undefined,
       problemFlags: hasProblem ? [pick(rng, PROBLEM_FLAGS)] : [],
     })
+    // A promise carries its due time (KB §4); derived, so the seeded sequence is unchanged.
+    const last = out[out.length - 1]
+    if (last.promiseKept !== undefined) last.promiseDueAt = new Date(Date.parse(last.occurredAt) + 24 * 3_600_000).toISOString()
   }
   return out
 }
@@ -153,9 +189,29 @@ const SIGNAL_CATEGORY_WEIGHTS: [string, number][] = [
   ['unapproved_discount', 0.08],
 ]
 
-function pickSignalCategory(): string {
+// Local process issues concentrate in one place (the environment-concentration rule exists
+// for exactly this): Dubai's sample skews to slow replies, Sharjah's to repeat contacts.
+const ENVIRONMENT_CATEGORY_WEIGHTS: Record<string, [string, number][]> = {
+  Dubai: [
+    ['slow_response', 0.6],
+    ['repeat_contact', 0.2],
+    ['wrong_language', 0.08],
+    ['promise_not_kept', 0.07],
+    ['unapproved_discount', 0.05],
+  ],
+  Sharjah: [
+    ['repeat_contact', 0.6],
+    ['slow_response', 0.15],
+    ['wrong_language', 0.1],
+    ['promise_not_kept', 0.1],
+    ['unapproved_discount', 0.05],
+  ],
+}
+
+function pickSignalCategory(environment: string): string {
+  const weights = ENVIRONMENT_CATEGORY_WEIGHTS[environment] ?? SIGNAL_CATEGORY_WEIGHTS
   let r = rng()
-  for (const [category, weight] of SIGNAL_CATEGORY_WEIGHTS) {
+  for (const [category, weight] of weights) {
     if (r < weight) return category
     r -= weight
   }
@@ -171,7 +227,7 @@ function buildSignals(interactions: Interaction[]): Signal[] {
       personId: rng() > 0.1 ? i.personKey : undefined,
       product: i.product,
       environment: i.environment,
-      category: pickSignalCategory(),
+      category: pickSignalCategory(i.environment),
       occurredAt: i.occurredAt,
       agentRef: i.agentRef,
       isPublic: rng() > 0.85,
@@ -188,100 +244,6 @@ function recoverySentence(tried: number, recovered: number): { en: string; ar: s
     en: `Tried in ${tried} similar closed cases, recovered in ${recovered}, ${recovered} of ${tried} is ${pct}%.`,
     ar: `جُرّب في ${tried} حالة مشابهة مغلقة، وتعافت ${recovered} منها، أي ${pct}%.`,
   }
-}
-
-/** FR-4.6 — three independent threshold rules, each producing its own
- * patterns: same agent x3+, same issue x5+ (30-day window), or a single
- * environment carrying >=50% of a category's signals with sample >=10. */
-function buildPatterns(signals: Signal[]): Pattern[] {
-  const patterns: Pattern[] = []
-  let n = 0
-
-  const byCategory = new Map<string, Signal[]>()
-  for (const s of signals) {
-    const list = byCategory.get(s.category) ?? []
-    list.push(s)
-    byCategory.set(s.category, list)
-  }
-  for (const [category, list] of byCategory) {
-    if (list.length < 5) continue
-    n += 1
-    patterns.push({
-      id: `pat-${n}`,
-      signalIds: list.map((s) => s.id),
-      team: `${list[0].environment} team`,
-      category,
-      windowDays: 30,
-      sampleSize: list.length,
-      thresholdKind: 'same_issue' as PatternThresholdKind,
-      thresholdTarget: 5,
-      currentValue: list.length,
-      hasMinimumSample: list.length >= MINIMUM_SAMPLE,
-      aiSuggestion: { en: `Review ${category.replace(/_/g, ' ')} handling for this team.`, ar: 'مراجعة طريقة التعامل مع هذا النمط لهذا الفريق.' },
-      recoveryFigure: recoverySentence(list.length + 4, list.length),
-    })
-  }
-
-  const byAgent = new Map<string, Signal[]>()
-  for (const s of signals) {
-    if (!s.agentRef) continue
-    const list = byAgent.get(s.agentRef) ?? []
-    list.push(s)
-    byAgent.set(s.agentRef, list)
-  }
-  for (const [agentRef, list] of byAgent) {
-    if (list.length < 3) continue
-    n += 1
-    patterns.push({
-      id: `pat-${n}`,
-      signalIds: list.map((s) => s.id),
-      team: `${list[0].environment} team`,
-      category: list[0].category,
-      windowDays: 30,
-      sampleSize: list.length,
-      thresholdKind: 'same_agent' as PatternThresholdKind,
-      thresholdTarget: 3,
-      currentValue: list.length,
-      agentRef,
-      hasMinimumSample: list.length >= MINIMUM_SAMPLE,
-      aiSuggestion: { en: 'Coach this agent on the repeated issue before it becomes a team-wide pattern.', ar: 'تدريب هذا الوكيل على المشكلة المتكررة قبل أن تتحول لنمط عام للفريق.' },
-      recoveryFigure: recoverySentence(list.length + 6, Math.max(1, list.length - 1)),
-    })
-  }
-
-  const byEnvironmentWithinCategory = new Map<string, Map<string, Signal[]>>()
-  for (const s of signals) {
-    const byEnv = byEnvironmentWithinCategory.get(s.category) ?? new Map<string, Signal[]>()
-    const list = byEnv.get(s.environment) ?? []
-    list.push(s)
-    byEnv.set(s.environment, list)
-    byEnvironmentWithinCategory.set(s.category, byEnv)
-  }
-  for (const [category, byEnv] of byEnvironmentWithinCategory) {
-    const totalForCategory = [...byEnv.values()].reduce((sum, l) => sum + l.length, 0)
-    if (totalForCategory < MINIMUM_SAMPLE) continue
-    for (const [environment, list] of byEnv) {
-      const pct = (list.length / totalForCategory) * 100
-      if (pct < 50) continue
-      n += 1
-      patterns.push({
-        id: `pat-${n}`,
-        signalIds: list.map((s) => s.id),
-        team: `${environment} team`,
-        category,
-        windowDays: 30,
-        sampleSize: totalForCategory,
-        thresholdKind: 'environment_concentration' as PatternThresholdKind,
-        thresholdTarget: 50,
-        currentValue: Math.round(pct),
-        hasMinimumSample: true,
-        aiSuggestion: { en: `${environment} carries most of this category's signals — look at local process or environment causes first.`, ar: `بيئة ${environment} تحمل معظم إشارات هذه الفئة — راجع العملية المحلية أو أسباب البيئة أولاً.` },
-        recoveryFigure: recoverySentence(totalForCategory + 3, list.length),
-      })
-    }
-  }
-
-  return patterns
 }
 
 function buildCorrectiveActions(patterns: Pattern[]): CorrectiveAction[] {
@@ -309,13 +271,25 @@ function buildCorrectiveActions(patterns: Pattern[]): CorrectiveAction[] {
       return Math.floor(afterTotal / afterMonths) + (k < afterTotal % afterMonths ? 1 : 0)
     })
     const decisionRoll = rng()
-    const decision = decisionRoll > 0.75 ? 'modified' : decisionRoll > 0.65 ? 'rejected' : undefined
+    // A proposed action has no decision yet; a rejected one never moves on (KB §6).
+    const rolled = decisionRoll > 0.75 ? 'modified' : decisionRoll > 0.65 ? 'rejected' : undefined
+    const decision = status === 'proposed' ? undefined : rolled === 'rejected' ? 'modified' : rolled
+    const kind = p.thresholdKind === 'same_agent' ? pick(rng, ['employee', 'training_gap'] as const) : pick(rng, CORRECTIVE_KINDS)
+    const envManager = p.team.includes('team') ? `${p.team.replace(' team', '')} environment manager` : 'Environment manager'
+    // The receiver follows the kind (KB §6 classification table), by title.
+    const owner: Record<string, string> = {
+      employee: `Direct manager (${envManager})`,
+      training_gap: 'L&D manager with the environment champion',
+      product_app: 'Product owner and IT',
+      legal_privacy: 'Legal',
+      marketing: 'Internal Audit and Marketing Lead',
+    }
     return {
       id: `ca-${idx + 1}`,
-      kind: p.thresholdKind === 'same_agent' ? pick(rng, ['employee', 'training_gap'] as const) : pick(rng, CORRECTIVE_KINDS),
+      kind,
       patternId: p.id,
       title: { en: `Address ${p.category.replace(/_/g, ' ')} in ${p.team}`, ar: 'معالجة النمط المرصود لهذا الفريق' },
-      owner: p.team.includes('team') ? `${p.team.replace(' team', '')} environment manager` : 'Environment manager',
+      owner: owner[kind] ?? envManager,
       dueDate: daysAgoIso(rng, -14),
       status,
       ...(decision ? { decision, decisionReason: { en: 'Scope narrowed to the current quarter.', ar: 'تم تضييق النطاق للربع الحالي.' } } : {}),
@@ -503,13 +477,15 @@ function buildDetractorCallItems(persons: Person[]): DetractorCallItem[] {
   })
 }
 
+// KB §8 table (who, main pain, channels) and the prototype's recommendation to
+// Marketing for each persona (v38 export, PERSONAS) — transcribed, not invented.
 const PERSONA_SEED: Omit<Persona, 'runawayCount' | 'segmentSize'>[] = [
-  { id: 'overseas_investor', name: { en: 'Overseas investor', ar: 'مستثمر مغترب' }, who: { en: 'Buys remotely, rarely visits.', ar: 'يشتري عن بعد ونادراً ما يزور.' }, mainPain: { en: 'Slow document turnaround.', ar: 'بطء إنجاز المستندات.' }, channelsUsed: ['whatsapp', 'email'], recommendation: { targetWho: { en: 'Active overseas leads', ar: 'عملاء محتملون نشطون في الخارج' }, channelAndWhen: { en: 'WhatsApp, business hours in their timezone', ar: 'واتساب، ضمن ساعات العمل بتوقيتهم' }, campaignType: { en: 'Document-progress nudge', ar: 'تذكير بتقدم المستندات' }, whatNotToDo: { en: 'Do not call unannounced.', ar: 'تجنب الاتصال دون سابق إشعار.' } }, approvedByCxManager: true },
-  { id: 'first_time_expat_buyer', name: { en: 'First-time expat buyer', ar: 'مشترٍ مغترب لأول مرة' }, who: { en: 'New resident, first property purchase.', ar: 'مقيم جديد يشتري عقاره الأول.' }, mainPain: { en: 'Confused by the process.', ar: 'الارتباك من خطوات العملية.' }, channelsUsed: ['app', 'call'], recommendation: { targetWho: { en: 'New leads under 90 days', ar: 'عملاء محتملون جدد منذ أقل من 90 يوماً' }, channelAndWhen: { en: 'In-app guide at enquiry stage', ar: 'دليل داخل التطبيق عند مرحلة الاستفسار' }, campaignType: { en: 'Process walkthrough', ar: 'شرح خطوات العملية' }, whatNotToDo: { en: 'Do not skip the viewing step.', ar: 'لا تتخطَّ خطوة المعاينة.' } }, approvedByCxManager: true },
-  { id: 'local_family_renter', name: { en: 'Local family renter', ar: 'عائلة مستأجرة محلية' }, who: { en: 'Renews yearly, price-sensitive.', ar: 'يجدد سنوياً وحساس تجاه السعر.' }, mainPain: { en: 'Renewal terms unclear.', ar: 'غموض شروط التجديد.' }, channelsUsed: ['call', 'branch'], recommendation: { targetWho: { en: 'Leases expiring in 60 days', ar: 'عقود تنتهي خلال 60 يوماً' }, channelAndWhen: { en: 'Call 60 days before expiry', ar: 'اتصال قبل 60 يوماً من الانتهاء' }, campaignType: { en: 'Renewal offer', ar: 'عرض تجديد' }, whatNotToDo: { en: 'Do not wait until expiry week.', ar: 'لا تنتظر أسبوع الانتهاء.' } }, approvedByCxManager: true },
-  { id: 'portfolio_owner', name: { en: 'Portfolio owner', ar: 'مالك محفظة عقارية' }, who: { en: 'Owns multiple units, wants aggregated reporting.', ar: 'يملك عدة وحدات ويريد تقريراً مجمعاً.' }, mainPain: { en: 'No single view across units.', ar: 'لا توجد رؤية موحدة لجميع الوحدات.' }, channelsUsed: ['email', 'wallet'], recommendation: { targetWho: { en: 'Owners with 3+ units', ar: 'مالكون لديهم 3 وحدات أو أكثر' }, channelAndWhen: { en: 'Quarterly portfolio email', ar: 'بريد ربع سنوي عن المحفظة' }, campaignType: { en: 'Portfolio summary', ar: 'ملخص المحفظة' }, whatNotToDo: { en: 'Do not mix unit statuses in one message.', ar: 'لا تدمج حالات الوحدات في رسالة واحدة.' } }, approvedByCxManager: false, auditNote: { en: 'Segment criteria rely on PSI Wallet data that is still pilot-only — recheck segment size once Wallet exits pilot.', ar: 'معايير الشريحة تعتمد على بيانات محفظة PSI التي ما زالت تجريبية — يُعاد التحقق من حجم الشريحة بعد خروج المحفظة من مرحلة التجربة.' } },
-  { id: 'comparison_shopper', name: { en: 'Comparison shopper', ar: 'متسوق مقارن' }, who: { en: 'Compares multiple developers before deciding.', ar: 'يقارن بين عدة مطورين قبل القرار.' }, mainPain: { en: 'Slow first response loses them.', ar: 'بطء الرد الأول يفقدهم.' }, channelsUsed: ['website', 'whatsapp'], recommendation: { targetWho: { en: 'New enquiries, first 24 hours', ar: 'استفسارات جديدة خلال أول 24 ساعة' }, channelAndWhen: { en: 'WhatsApp within the hour', ar: 'واتساب خلال ساعة واحدة' }, campaignType: { en: 'Fast-response offer', ar: 'عرض الرد السريع' }, whatNotToDo: { en: 'Do not let the first reply wait a day.', ar: 'لا تترك الرد الأول ليوم كامل.' } }, approvedByCxManager: true, auditNote: { en: 'Criteria checked against the lead funnel’s "why they stopped" reasons — consistent for two reviews running.', ar: 'جرى فحص المعايير مقابل أسباب "لماذا توقفوا" في قمع العملاء المحتملين — متسقة لمراجعتين متتاليتين.' } },
-  { id: 'referral_driven_member', name: { en: 'Referral-driven member', ar: 'عضو عبر الإحالة' }, who: { en: 'PSI Club member who refers others.', ar: 'عضو في النادي يحيل عملاء آخرين.' }, mainPain: { en: 'Referral status is not visible to them.', ar: 'حالة الإحالة غير واضحة له.' }, channelsUsed: ['club', 'whatsapp'], recommendation: { targetWho: { en: 'Club members with 1+ referral', ar: 'أعضاء النادي الذين لديهم إحالة واحدة أو أكثر' }, channelAndWhen: { en: 'Club app notification on status change', ar: 'إشعار داخل تطبيق النادي عند تغيّر الحالة' }, campaignType: { en: 'Referral status update', ar: 'تحديث حالة الإحالة' }, whatNotToDo: { en: 'Do not go silent after the referral is made.', ar: 'لا تنقطع المتابعة بعد تقديم الإحالة.' } }, approvedByCxManager: true },
+  { id: 'overseas_investor', name: { en: 'Overseas investor', ar: 'مستثمر من الخارج' }, who: { en: 'Lives abroad, business owner, buys off-plan for yield. Few contacts, each one matters. Wants construction updates and payment plan clarity, in writing.', ar: 'يعيش في الخارج، صاحب أعمال، يشتري على الخارطة للعائد. تواصل قليل لكن كل اتصال مهم. يريد تحديثات الإنشاء ووضوح خطة الدفع كتابةً.' }, mainPain: { en: 'Wrong payment plan details; silence between milestones', ar: 'تفاصيل خطة دفع خاطئة؛ صمت بين المراحل' }, channelsUsed: ['wallet', 'whatsapp', 'email'], recommendation: { targetWho: { en: 'Owners abroad with one unit and no second deal in 18 months', ar: 'مالكون في الخارج بوحدة واحدة ولا صفقة ثانية منذ 18 شهراً' }, channelAndWhen: { en: 'WhatsApp template plus email, Tuesday to Thursday 18:00 to 21:00 their time', ar: 'قالب واتساب مع بريد، الثلاثاء إلى الخميس 18:00 إلى 21:00 بتوقيتهم' }, campaignType: { en: 'Portfolio update with a named relationship manager and one new launch', ar: 'تحديث محفظة مع مدير علاقات بالاسم وإطلاق واحد جديد' }, whatNotToDo: { en: 'No discount pushes; no cold calls at their night', ar: 'لا ضغط بخصومات؛ لا مكالمات باردة في ليلهم' } }, approvedByCxManager: true },
+  { id: 'first_time_expat_buyer', name: { en: 'First-time expat buyer', ar: 'مشترٍ مغترب لأول مرة' }, who: { en: 'Salaried, works in the UAE, buying a home not an asset. Many questions, uses the app and calls, price and payment sensitive, needs handover guidance.', ar: 'موظف براتب، يعمل في الإمارات، يشتري منزلاً لا أصلاً. أسئلة كثيرة، يستخدم التطبيق والمكالمات، حساس للسعر والدفع، يحتاج إرشاداً عند التسليم.' }, mainPain: { en: 'Handover date slipped with no call; repeat questions unanswered', ar: 'تأخر موعد التسليم دون اتصال؛ أسئلة متكررة بلا إجابة' }, channelsUsed: ['app', 'call', 'whatsapp'], recommendation: { targetWho: { en: 'Salaried leads 28 to 40 who viewed twice and asked about payment plans', ar: 'عملاء محتملون براتب بين 28 و40 شاهدوا مرتين وسألوا عن خطط الدفع' }, channelAndWhen: { en: 'App notification plus WhatsApp, weekday evenings', ar: 'إشعار التطبيق مع واتساب، مساء أيام الأسبوع' }, campaignType: { en: 'Ready-to-move units with a clear payment plan calculator and a handover guarantee', ar: 'وحدات جاهزة مع حاسبة خطة دفع واضحة وضمان تسليم' }, whatNotToDo: { en: 'No off-plan launches; no jargon', ar: 'لا إطلاقات على الخارطة؛ لا مصطلحات' } }, approvedByCxManager: true },
+  { id: 'local_family_renter', name: { en: 'Local family renter', ar: 'عائلة مستأجرة محلية' }, who: { en: 'Tenant in PSI Assets, salaried, uses the app for maintenance. Renews when maintenance is fast; leaves when a request is lost.', ar: 'مستأجر في PSI للأصول، موظف براتب، يستخدم التطبيق للصيانة. يجدد عندما تكون الصيانة سريعة ويغادر عندما يضيع طلب.' }, mainPain: { en: 'Maintenance request lost between teams; app request not visible', ar: 'طلب صيانة ضاع بين الفرق؛ طلب التطبيق لا يظهر' }, channelsUsed: ['app', 'call'], recommendation: { targetWho: { en: 'Tenants with a lease ending in 90 days and at least one open maintenance request', ar: 'مستأجرون ينتهي عقدهم خلال 90 يوماً ولديهم طلب صيانة مفتوح واحد على الأقل' }, channelAndWhen: { en: 'App message first, then a call from the leasing manager', ar: 'رسالة التطبيق أولاً ثم مكالمة من مدير التأجير' }, campaignType: { en: 'Renewal offer tied to closing the open request, 60 days before the lease ends', ar: 'عرض تجديد مرتبط بإغلاق الطلب المفتوح قبل 60 يوماً من انتهاء العقد' }, whatNotToDo: { en: 'No renewal letter before the request is closed', ar: 'لا رسالة تجديد قبل إغلاق الطلب' } }, approvedByCxManager: true },
+  { id: 'portfolio_owner', name: { en: 'Portfolio owner', ar: 'مالك محفظة' }, who: { en: 'Several units, business owner, delegates to an assistant. Wants rental management and zero friction. Low tolerance for delays and for being passed between teams.', ar: 'عدة وحدات، صاحب أعمال، يفوّض مساعداً. يريد إدارة تأجير وبلا احتكاك. تحمّل منخفض للتأخير وللتنقل بين الفرق.' }, mainPain: { en: 'Passed between After-Sales and Assets; statement errors', ar: 'يُحوَّل بين ما بعد البيع والأصول؛ أخطاء في كشف الحساب' }, channelsUsed: ['wallet', 'email', 'call'], recommendation: { targetWho: { en: 'Owners with 3 or more units and no referral in 12 months', ar: 'مالكون بثلاث وحدات أو أكثر ولا إحالة منذ 12 شهراً' }, channelAndWhen: { en: 'Account manager call, then PSI Club invitation by email', ar: 'مكالمة مدير الحساب ثم دعوة نادي PSI بالبريد' }, campaignType: { en: 'PSI Club referral programme and a single point of contact', ar: 'برنامج إحالة نادي PSI ونقطة تواصل واحدة' }, whatNotToDo: { en: 'No generic launch mailers', ar: 'لا رسائل إطلاق عامة' } }, approvedByCxManager: false, auditNote: { en: 'Segment criteria rely on PSI Wallet data that is still pilot-only — recheck segment size once Wallet exits pilot.', ar: 'معايير الشريحة تعتمد على بيانات محفظة PSI التي ما زالت تجريبية — يُعاد التحقق من حجم الشريحة بعد خروج المحفظة من مرحلة التجربة.' } },
+  { id: 'comparison_shopper', name: { en: 'Comparison shopper', ar: 'مقارِن العروض' }, who: { en: 'Lead talking to several brokers at once, WhatsApp heavy, asks for the best price and a discount. Goes where the reply is fastest and clearest.', ar: 'عميل محتمل يتحدث مع عدة وسطاء في آن، يعتمد واتساب، يطلب أفضل سعر وخصماً. يذهب حيث الرد أسرع وأوضح.' }, mainPain: { en: 'Slow WhatsApp reply; reply in the wrong language; discount promised then withdrawn', ar: 'رد واتساب بطيء؛ رد بلغة غير مناسبة؛ خصم وُعد به ثم سُحب' }, channelsUsed: ['whatsapp', 'website'], recommendation: { targetWho: { en: 'Leads who asked for a price on WhatsApp and got no reply within 2 hours', ar: 'عملاء محتملون طلبوا سعراً على واتساب ولم يُردّ عليهم خلال ساعتين' }, channelAndWhen: { en: 'WhatsApp within the same hour, from the assigned agent', ar: 'واتساب خلال نفس الساعة من الموظف المعيّن' }, campaignType: { en: 'Transparent price sheet and viewing slot, no discount games', ar: 'ورقة أسعار شفافة وموعد معاينة، بلا ألعاب خصومات' }, whatNotToDo: { en: 'No "call me for the price"', ar: 'لا "اتصل بي لمعرفة السعر"' } }, approvedByCxManager: true, auditNote: { en: 'Criteria checked against the lead funnel’s "why they stopped" reasons — consistent for two reviews running.', ar: 'جرى فحص المعايير مقابل أسباب "لماذا توقفوا" في قمع العملاء المحتملين — متسقة لمراجعتين متتاليتين.' } },
+  { id: 'referral_driven_member', name: { en: 'Referral-driven member', ar: 'عضو يعتمد الإحالة' }, who: { en: 'PSI Club member, refers friends and family, wants to see progress and get paid on time. Talks about PSI to others; the loudest promoter or detractor.', ar: 'عضو نادي PSI، يحيل الأصدقاء والعائلة، يريد رؤية التقدم والدفع في موعده. يتحدث عن PSI للآخرين؛ أعلى مروّج أو منتقد.' }, mainPain: { en: 'No update on a nominated lead; commission late', ar: 'لا تحديث عن عميل مرشَّح؛ عمولة متأخرة' }, channelsUsed: ['club', 'whatsapp'], recommendation: { targetWho: { en: 'Members with one closed referral and none in 6 months', ar: 'أعضاء لهم إحالة واحدة مغلقة ولا شيء منذ 6 أشهر' }, channelAndWhen: { en: 'Club app milestone push plus a personal WhatsApp from the admin', ar: 'إشعار المراحل في تطبيق النادي مع واتساب شخصي من المسؤول' }, campaignType: { en: 'Referral season with visible tracking and a recognition moment', ar: 'موسم إحالات مع تتبع مرئي ولحظة تقدير' }, whatNotToDo: { en: 'No referral asks while a commission is unpaid', ar: 'لا طلب إحالات وعمولة غير مدفوعة' } }, approvedByCxManager: true },
 ]
 
 function buildPersonas(): Persona[] {
@@ -857,7 +833,7 @@ function buildStandards(): Standard[] {
 
   const ldDocuments: Standard[] = ldRows.map(([id, group, title, writer, readBy, environmentVariant, priorityTier, status], i) => ({
     id,
-    code: `M-${String(14 + i).padStart(2, '0')}`,
+    code: `LD-${String(i + 1).padStart(2, '0')}`,
     source: 'ld_document',
     group,
     title,
@@ -997,6 +973,12 @@ function buildRulesConfig(): RuleConfigItem[] {
     { id: 'rule_public_reply', area: bi('Signals & patterns', 'الإشارات والأنماط'), label: bi('Public-mention reply clock', 'ساعة الرد على الإشارة العامة'), value: 48, unit: bi('hours', 'ساعة'), source: 'FR-4.8' },
     { id: 'rule_survey_nps_cap', area: bi('Surveys and triggers', 'الاستبيانات والمحفزات'), label: bi('NPS cap', 'حد مؤشر NPS'), value: 90, unit: bi('days', 'يوم'), source: 'FR-7.2' },
     { id: 'rule_survey_csat_cap', area: bi('Surveys and triggers', 'الاستبيانات والمحفزات'), label: bi('CSAT+CES cap', 'حد CSAT+CES'), value: 30, unit: bi('days', 'يوم'), source: 'FR-7.2' },
+    // The remaining values of the five decisions (Modules KB §12).
+    { id: 'rule_legal_once', area: bi('Signals & patterns', 'الإشارات والأنماط'), label: bi('Legal, privacy and safety: occurrences before a case', 'القانوني والخصوصية والسلامة: عدد المرات قبل فتح حالة'), value: 1, unit: bi('occurrence', 'مرة'), source: 'KB §12 D1' },
+    { id: 'rule_effective_drop', area: bi('Corrective actions', 'الإجراءات التصحيحية'), label: bi('Effective when the signals drop by', 'فعّال عندما تنخفض الإشارات بنسبة'), value: 50, unit: bi('%', '%'), source: 'KB §12 D3' },
+    { id: 'rule_effective_hold', area: bi('Corrective actions', 'الإجراءات التصحيحية'), label: bi('… and do not return for', '… ولا تعود خلال'), value: 90, unit: bi('days', 'يوم'), source: 'KB §12 D3' },
+    { id: 'rule_calls_per_hour', area: bi('Close the loop', 'إغلاق الحلقة'), label: bi('Calls per hour in the capacity formula', 'المكالمات في الساعة في معادلة السعة'), value: 4, unit: bi('calls', 'مكالمات'), source: 'KB §12 D3' },
+    { id: 'rule_silence_why', area: bi('Surveys and triggers', 'الاستبيانات والمحفزات'), label: bi('"What stopped you?" after silence of', '"ما الذي أوقفك؟" بعد صمت لمدة'), value: 14, unit: bi('days', 'يوم'), source: 'KB §12 D5' },
   ]
 }
 
@@ -1050,7 +1032,7 @@ export const MOCK_AGENT_DIRECTORY = buildAgentDirectory()
 export const MOCK_INTERACTIONS = buildInteractions(MOCK_PERSONS, 120)
 export const MOCK_EFFORT_SUMMARIES = buildEffortSummaries(MOCK_PERSONS, MOCK_INTERACTIONS)
 export const MOCK_SIGNALS = buildSignals(MOCK_INTERACTIONS)
-export const MOCK_PATTERNS = buildPatterns(MOCK_SIGNALS)
+export const MOCK_PATTERNS = detectPatterns(MOCK_SIGNALS, { windowDays: PATTERN_RULES.windowDays })
 export const MOCK_CORRECTIVE_ACTIONS = buildCorrectiveActions(MOCK_PATTERNS)
 export const MOCK_CORRECTIVE_RATIONALES = buildCorrectiveRationales(MOCK_CORRECTIVE_ACTIONS, MOCK_PATTERNS)
 export const MOCK_SHOPPER_CASES = buildShopperCases()

@@ -112,6 +112,17 @@ export function Timeline({ interactions }: { interactions: Interaction[] }) {
                     {canSeeAgents && agent?.visible && <span className="text-muted-foreground">· {agent.label}</span>}
                   </div>
                   {i.reason && <p className="text-sm">{i.reason}</p>}
+                  {i.outcome && <p className="text-sm text-muted-foreground">{t('Outcome', 'النتيجة')}: {i.outcome}</p>}
+                  {i.promiseDueAt && (
+                    <p className={cn('text-sm', i.promiseKept === false ? 'text-danger-text' : 'text-muted-foreground')}>
+                      {t('Promise due', 'موعد الوعد')}{' '}
+                      <time dateTime={i.promiseDueAt} className="tabular-nums">
+                        {new Date(i.promiseDueAt).toLocaleString(lang, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                      </time>
+                      {' · '}
+                      {i.promiseKept ? t('kept', 'نُفِّذ') : t('not kept', 'لم يُنفَّذ')}
+                    </p>
+                  )}
                   {i.channel === 'call' ? (
                     <p className="inline-flex items-start gap-1.5 text-sm text-muted-foreground">
                       <PhoneOff aria-hidden className="mt-0.5 size-3.5 shrink-0" />

@@ -12,6 +12,8 @@ import {
   STANDARDS_REGISTER,
   SURVEY_DELIVERY_LAST_MONTH,
   SURVEY_INSTRUMENTS,
+  TRAINING_MATERIALS,
+  TRAINING_SESSIONS,
   type RegisterStatus,
 } from '../data/v38Reference'
 import type { CampaignBriefDraft, PlanLine } from '../components/ai/assistantIntents'
@@ -136,3 +138,6 @@ export function useSendToInvestigation() {
     },
   })
 }
+
+export const useTrainingMaterials = () => useQuery({ queryKey: ['training-materials'], queryFn: () => read(TRAINING_MATERIALS) })
+export const useTrainingSessions = () => useQuery({ queryKey: ['training-sessions'], queryFn: () => read(TRAINING_SESSIONS) })

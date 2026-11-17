@@ -1,4 +1,4 @@
-import type { Bi, DetractorCallItem, InterviewOutcome, ReasonCode, Severity } from '../types'
+import type { Bi, DetractorCallItem, Interaction, InterviewOutcome, ProblemFlag, ReasonCode, Severity } from '../types'
 
 /** FR-5.2 — monthly capacity = people x hours/day x 4 calls/hour x working
  * days. Defaults are a reasonable small-CX-team assumption for the demo and
@@ -62,22 +62,39 @@ export function isRecovered(item: DetractorCallItem): boolean {
 
 export const SEVERITY_ORDER: Record<Severity, number> = { critical: 0, medium: 1, low: 2 }
 
-/** The 10 values are `ReasonCode` as already defined in `types/domain.ts`
- * (foundation pass) — close to, but not verbatim, Modules KB §7's own
- * 10-item phrasing. Both are fixed 10-value lists serving FR-5.3; labels
- * below are written to match each key's actual meaning rather than force-
- * fitting the KB's informal wording onto a differently-named key. */
+/** The ten reason codes in Modules KB §7's own order and wording. */
 export const REASON_CODE_LABEL: Record<ReasonCode, Bi> = {
-  price: { en: 'Price or payment plan', ar: 'السعر أو خطة الدفع' },
-  process_delay: { en: 'Slow or no reply / process delay', ar: 'بطء أو انعدام الرد / تأخر العملية' },
-  staff_attitude: { en: 'Attitude', ar: 'السلوك' },
-  product_mismatch: { en: 'Nothing suitable for them', ar: 'لا يوجد ما يناسبهم' },
-  communication: { en: 'Wrong or missing information', ar: 'معلومات خاطئة أو ناقصة' },
-  competitor_offer: { en: 'Went with a competitor offer', ar: 'اختار عرض منافس' },
-  unit_availability: { en: 'Unit or paperwork availability', ar: 'توفر الوحدة أو الأوراق' },
-  after_sales_issue: { en: 'After-sales issue', ar: 'مشكلة ما بعد البيع' },
-  language_barrier: { en: 'Language barrier', ar: 'حاجز اللغة' },
+  slow_or_no_reply: { en: 'Slow or no reply', ar: 'رد بطيء أو لا رد' },
+  promise_not_kept: { en: 'Promise not kept', ar: 'وعد لم يُنفَّذ' },
+  wrong_information: { en: 'Wrong or missing information', ar: 'معلومات خاطئة أو ناقصة' },
+  attitude: { en: 'Attitude', ar: 'السلوك' },
+  paperwork_handoff: { en: 'Paperwork or hand-off', ar: 'الأوراق أو التسليم بين الفرق' },
+  app_website: { en: 'App or website', ar: 'التطبيق أو الموقع' },
+  price_payment: { en: 'Price or payment plan', ar: 'السعر أو خطة الدفع' },
+  nothing_suitable: { en: 'Nothing suitable', ar: 'لا شيء مناسب' },
+  switched_channels: { en: 'Had to switch channels', ar: 'اضطر لتبديل القناة' },
   other: { en: 'Other', ar: 'أخرى' },
+}
+
+/** KB §7: the reason code is "suggested from the timeline, chosen by the
+ * caller" — the most frequent journey-rule flag on the person's record. */
+const FLAG_TO_REASON: Partial<Record<ProblemFlag, ReasonCode>> = {
+  slow_reply: 'slow_or_no_reply',
+  silence: 'slow_or_no_reply',
+  promise_not_kept: 'promise_not_kept',
+  hand_off: 'paperwork_handoff',
+  forced_channel_switch: 'switched_channels',
+  unapproved_discount: 'price_payment',
+  ivr_complaint_not_logged: 'slow_or_no_reply',
+}
+
+export function suggestReasonCode(interactions: Interaction[]): ReasonCode {
+  const counts = new Map<ReasonCode, number>()
+  for (const i of interactions) for (const f of i.problemFlags) {
+    const code = FLAG_TO_REASON[f]
+    if (code) counts.set(code, (counts.get(code) ?? 0) + 1)
+  }
+  return [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'other'
 }
 
 export const INTERVIEW_OUTCOME_LABEL: Record<InterviewOutcome, Bi> = {

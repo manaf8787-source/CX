@@ -15,6 +15,7 @@ const CloseTheLoop = lazy(() => import('./pages/CloseTheLoop'))
 const Personas = lazy(() => import('./pages/Personas'))
 const Surveys = lazy(() => import('./pages/Surveys'))
 const IntelligentCxTeam = lazy(() => import('./pages/IntelligentCxTeam'))
+const ProductPage = lazy(() => import('./pages/ProductPage'))
 
 const ActionsLayout = lazy(() => import('./pages/actions/ActionsLayout'))
 const Corrective = lazy(() => import('./pages/actions/Corrective'))
@@ -27,7 +28,7 @@ const SettingsLayout = lazy(() => import('./pages/settings/SettingsLayout'))
 const SettingsOverview = lazy(() => import('./pages/settings/Overview'))
 const MonthlyPack = lazy(() => import('./pages/settings/MonthlyPack'))
 const MysteryShopper = lazy(() => import('./pages/settings/MysteryShopper'))
-const Standards = lazy(() => import('./pages/settings/Standards'))
+const Standards = lazy(() => import('./pages/settings/StandardsRegister'))
 const Voc = lazy(() => import('./pages/settings/Voc'))
 const SurveysReference = lazy(() => import('./pages/settings/SurveysReference'))
 const Ld = lazy(() => import('./pages/settings/Ld'))
@@ -84,6 +85,7 @@ export default function App() {
                   <Route path="/personas" element={<Personas />} />
                   <Route path="/surveys" element={<Surveys />} />
                   <Route path="/intelligent-cx-team" element={<IntelligentCxTeam />} />
+                  <Route path="/products/:productId" element={<ProductPage />} />
 
                   <Route path="/settings" element={<SettingsLayout />}>
                     <Route index element={<Navigate to="overview" replace />} />

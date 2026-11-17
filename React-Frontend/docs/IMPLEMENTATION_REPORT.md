@@ -139,6 +139,54 @@ The login page adds an intro stagger, a slow line pattern, and the card's entran
 
 **Known issues.** The same 3 `only-export-components` lint warnings as before (i18n, RoleContext, ThemeContext). On a 1440×900 screen the sign-in card is slightly taller than the window, so the button needs a short scroll.
 
+## 10. Fidelity review against the v38 sources (17 Nov 2026)
+
+Full table: `docs/FIDELITY_REVIEW.md`. Of 104 requirements, 52 were Done before this pass; after it, 93 are Done, 9 Partial, none Missing or Differs, and 2 moved to open items.
+
+Main additions:
+- **Role-scoped pages** (KB §2): `src/auth/access.ts`, sidebar and Settings sub-nav filtering, an `AccessGuard` that sends a role to its home; the assistant is shown only to CX, Marketing, executives and environment managers.
+- **Assistant** (KB §13): questions from the Home/header search, example requests, people lists with "reach via", "why did X go quiet", "similar to X", corrective action plans created as proposed actions, campaign briefs saved for Marketing (shown on Personas), engine label, voice runs when you stop.
+- **Actions**: register tiles, classification block (path, receiver, what comes back), "investigate first" decision, AI panel and existing action on pattern cards, L&D and environment scoping, mystery-shopper check request form.
+- **Close the loop**: the ten KB reason codes, Agent 8 brief, suggested code, notes, re-survey date, reason column, campaign results; interviews and re-surveys appear on the timeline; promises show their due time.
+- **Overview**: two strips, lead funnel, public reputation index, NPS by month and by channel, product-by-channel heatmap, why detractors are unhappy.
+- **Reference data** transcribed from the v38 prototype into `src/data/v38Reference.ts` (behind `src/services/referenceQueries.ts`): the 26-standard register, agent job descriptions and stages, public mentions, NPS trend, survey instruments and delivery log, per-product survey rules, routing, CRM fields, escalation template, L&D materials and plan.
+- **Pages rebuilt to match the sources**: Standards register (M-01–M-26, L&D documents as LD-xx), Teams and structure (roles, routing, CRM, HR pool, who is informed), Rules (five decisions + escalation template), Intelligent CX team (path, roster stages, nine-field job descriptions, switch-on stages), product pages `/products/:id`, glossary "?" and "What the terms mean" on every page.
+- **Sample data corrected**: personas now match KB §8; corrective-action owners follow their kind; a proposed action never carries a decision.
+- Login card fits a 1440×900 screen without scrolling.
+
+QA: typecheck and build clean, lint shows the 3 known fast-refresh warnings, initial JS 212 KB gzipped (was ~206 KB). Playwright: 465 of 465 checks — 16 changed pages × EN/AR × light/dark × 1440/375 (no console errors, no sideways scroll, direction and theme correct), login at 1440×900 and 375, role access for 7 roles, assistant plan/brief/people flows, investigate decision, interview brief, glossary popover and dialog, 26-standard register.
+
+## 11. Automated tests (17 Nov 2026)
+
+A permanent test suite, so the business rules and role rules are checked on every change instead of by one-off click-throughs.
+
+**Tools** (exact versions, dev dependencies): Vitest 5.1.0 with jsdom 31.0.1 and Testing Library (React 16.3.3, DOM 10.4.2, jest-dom 7.0.1, user-event 14.6.12); @vitest/coverage-v8 5.1.0; @playwright/test 1.65.1 (Chromium). Scripts: `test`, `test:watch`, `test:coverage`, `test:e2e`, `check`. Tests have their own `tsconfig.test.json`, so the app build keeps browser-only types.
+
+**Unit and component tests: 104 in 11 files.**
+
+| Area | File | What is checked (source) |
+|---|---|---|
+| Pattern thresholds | `utils/patterns.test.ts` | same issue 4 vs 5, same agent 2 vs 3, environment share 50% vs under 50%, minimum sample 9 vs 10, the "7 customers, 5 from one office, 2 by one agent" example, the rolling window (Rules and Definitions, Decision 1; FR-4.6, FR-4.16) |
+| Runaway types | `utils/runaway.test.ts` | each of the six types at its day boundaries, priority order, learning order, the fault summary (KB §5, FR-3.1, FR-3.5) |
+| Rules | `utils/rules.test.ts` | due-date clocks, including stopping on closed cases; 60-day effectiveness verdicts (effective, partial, failed, too early); mystery-shopper scoring (a critical fail overrides a high score, under 60% is at least medium); capacity (5 people × 1 hour × 20 days = 400, as in the Rules document); critical calls always included; bucketed sampling; the recovery approximation; reason codes |
+| Permissions | `auth/permissions.test.ts` | conversation text only for the CX team and CX manager; agent names only for CX and line management; informed-only roles never act; page access per role (KB §2); who may use the assistant (KB §13); every role can open its own home page |
+| Session | `auth/session.test.ts` | sample session round-trip, no password stored, corrupt data, storage blocked |
+| i18n | `i18n/completeness.test.ts` | every exported bilingual string and every inline `t('en', 'ar')` call (over 100 found) has Arabic |
+| Helpers | `lib/lib.test.ts` | relative time and month formatting in both languages; motion durations stay within 150–400 ms; RTL mirroring; status tone and label maps |
+| Assistant | `components/ai/assistantEngine.test.ts` | counts match the sample data; different phrasings are understood; it never reveals conversation text to Exec or Marketing; it answers honestly when nothing matches |
+| Components | `components/common/components.test.tsx`, `pages/Login.test.tsx`, `components/customers/Timeline.test.tsx` | KpiTile (value, link, button, loading); DataTable (sort, search, empty states, pages, row click); sign-in (role required, home page per role, deep link kept, Arabic); Timeline role gating (call transcripts never shown, even to the CX manager) |
+
+**Coverage** of `src/utils`, `src/lib`, `src/auth`: 97% of statements, 91% of branches, 99% of functions, 98% of lines.
+
+**End-to-end: 13 Playwright tests, about 15 s** against the production build.
+- **Sign-in:** a deep link sends you to the login page and back; the session survives a reload; sign-out works; no password field; a role is required; Executive and Mystery shopper land on their home pages; the shopper can't open Actions.
+- **Pages:** all 25 routes in English (left to right) and Arabic (right to left), with no console errors and no sideways scroll; live language switch; 375 px width.
+- **Behaviour:** the CX manager sees conversation text and the executive doesn't; the assistant answers a question and its button is hidden for team leads; with reduced motion on, nothing slides or scales.
+
+**Bugs found by the tests**
+1. **Fixed:** the assistant didn't understand "How many open corrective actions?", only "open actions", although its own help text tells people to ask about open actions. The pattern in `assistantEngine.ts` now accepts both, and there is a test for it.
+2. **Not fixed, needs a decision:** the sample data counts signals over all 180 days, but pattern cards say "in 30 days" and the Rules document sets a rolling 30-day window. Pattern detection now lives in `src/utils/patterns.ts`, with the same output and a tested `windowDays` option. Turning the window on today would drop the sample from 12 patterns to 3, none with the minimum sample of 10, which would leave Corrective actions empty. The sample data would need more signals inside the last 30 days first.
+
 ## Final status
 
 The app builds, type-checks, and lints clean; a full click-through across every route, both languages/directions, both themes, and all 12 roles found zero console errors and no visual defects. It is a complete, working, mock-data prototype of the v38 PSI CX Portal IA — ready to view and demo, not yet connected to a real backend.

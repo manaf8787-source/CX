@@ -1,10 +1,9 @@
-import { Link } from 'react-router-dom'
-import { ArrowRight, Ban, Globe2, ListChecks, Package, ShieldAlert, TrendingUp } from 'lucide-react'
+import { Ban, ListChecks, Package, ShieldAlert, UserX, Users, Activity } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { useRole } from '@/auth/RoleContext'
-import { useCorrectiveActions, useProducts, useShopperCases, useToggleProductLaunch, useVocRows } from '@/services/queries'
+import { useCorrectiveActions, useHomeSummary, usePatterns, useProducts, useShopperCases, useSignals, useToggleProductLaunch, useVocRows } from '@/services/queries'
+import { canAccessPath } from '@/auth/access'
 import type { ProductId, VocRow } from '@/types'
-import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { KpiTile } from '@/components/common/KpiTile'
@@ -13,6 +12,7 @@ import { StatusBadge } from '@/components/common/StatusBadge'
 import { ProductTag } from '@/components/common/Chip'
 import { LoadingState } from '@/components/common/LoadingState'
 import { SubPageHeader } from './SubPageHeader'
+import { FunnelSummary, OverviewCharts, ReputationIndex } from './OverviewInsights'
 
 function nps(rows: VocRow[]): number | null {
   const n = rows.reduce((s, r) => s + r.n, 0)
@@ -46,6 +46,10 @@ export default function SettingsOverview() {
   const { data: actions, isLoading: actionsLoading } = useCorrectiveActions()
   const { data: cases, isLoading: casesLoading } = useShopperCases()
   const toggleLaunch = useToggleProductLaunch()
+  const { data: summary, isLoading: summaryLoading } = useHomeSummary()
+  const { data: signals, isLoading: signalsLoading } = useSignals()
+  const { data: patterns, isLoading: patternsLoading } = usePatterns()
+  const linkIf = (path: string) => (canAccessPath(role.id, path) ? path : undefined)
 
   const launched = (products ?? []).filter((p) => p.live)
   const openActions = (actions ?? []).filter((a) => a.status !== 'effective' && a.status !== 'failed').length
@@ -63,40 +67,43 @@ export default function SettingsOverview() {
         description={t('Headline experience scores, per product — never one blended number (FR-7.4).', 'مؤشرات التجربة الرئيسية لكل منتج — دون رقم إجمالي واحد أبداً.')}
       />
 
-      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-        <KpiTile
-          label={t('Open corrective actions', 'الإجراءات التصحيحية المفتوحة')}
-          value={openActions}
-          icon={<ListChecks />}
-          accent="var(--warning)"
-          to="/actions/corrective"
-          loading={actionsLoading}
-        />
-        <KpiTile
-          label={t('Critical shopper cases open', 'حالات متسوق حرجة مفتوحة')}
-          value={criticalCases}
-          icon={<ShieldAlert />}
-          accent={criticalCases ? 'var(--destructive)' : 'var(--chart-1)'}
-          to="/actions/shopper-cases"
-          loading={casesLoading}
-        />
-        <KpiTile
-          label={t('Products live', 'المنتجات المفعّلة')}
-          value={<bdi dir="ltr">{`${launched.length} / ${products?.length ?? 6}`}</bdi>}
-          icon={<Package />}
-          accent="var(--chart-1)"
-          loading={productsLoading}
-        />
-        <KpiTile
-          label={t('Group NPS', 'مؤشر NPS الإجمالي')}
-          value={<span className="text-xl">{t('None, by design', 'لا يوجد، بالتصميم')}</span>}
-          icon={<Ban />}
-          accent="var(--muted-foreground)"
-        />
-      </div>
+      <section aria-labelledby="ov-cust" className="flex flex-col gap-2">
+        <h3 id="ov-cust" className="text-sm font-semibold text-muted-foreground">{t('Customers and runaways', 'العملاء والهاربون')}</h3>
+        <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+          <KpiTile label={t('People on record', 'الأشخاص المسجلون')} value={summary?.journeysViewed} icon={<Users />} accent="var(--chart-4)" to={linkIf('/customers')} loading={summaryLoading} />
+          <KpiTile term="Runaway" label={t('Runaway customers', 'العملاء الهاربون')} value={summary?.runawayCount} icon={<UserX />} accent="var(--destructive)" to={linkIf('/runaway')} loading={summaryLoading} />
+          <KpiTile label={t('Detractors to call', 'منتقدون للاتصال')} value={summary?.toCall} accent="var(--success)" to={linkIf('/close-the-loop')} loading={summaryLoading} />
+          <KpiTile label={t('Personas', 'الشخصيات')} value={summary?.personaCount} accent="var(--chart-1)" to={linkIf('/personas')} loading={summaryLoading} />
+        </div>
+      </section>
+
+      <section aria-labelledby="ov-sig" className="flex flex-col gap-2">
+        <h3 id="ov-sig" className="text-sm font-semibold text-muted-foreground">{t('Signals and actions', 'الإشارات والإجراءات')}</h3>
+        <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+          <KpiTile term="Signal" label={t('Signals, counted not worked', 'الإشارات، تُحتسب ولا تُعالج فردياً')} value={signals?.length} icon={<Activity />} accent="var(--info)" to={linkIf('/actions/signals')} loading={signalsLoading} />
+          <KpiTile term="Pattern" label={t('Patterns past threshold', 'أنماط تجاوزت الحد')} value={(patterns ?? []).filter((p) => p.currentValue >= p.thresholdTarget).length} accent="var(--warning)" to={linkIf('/actions/signals')} loading={patternsLoading} />
+          <KpiTile label={t('Open corrective actions', 'الإجراءات التصحيحية المفتوحة')} value={openActions} icon={<ListChecks />} accent="var(--warning)" to={linkIf('/actions/corrective')} loading={actionsLoading} />
+          <KpiTile
+            label={t('Critical shopper cases open', 'حالات متسوق حرجة مفتوحة')}
+            value={criticalCases}
+            icon={<ShieldAlert />}
+            accent={criticalCases ? 'var(--destructive)' : 'var(--chart-1)'}
+            to={linkIf('/actions/shopper-cases')}
+            loading={casesLoading}
+          />
+        </div>
+      </section>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
-        <SectionCard className="xl:col-span-3" title={t('Per-product experience', 'التجربة لكل منتج')}>
+        <SectionCard
+          className="xl:col-span-3"
+          title={t('Indicators per product', 'المؤشرات لكل منتج')}
+          actions={
+            <StatusBadge tone="neutral" icon={<Ban aria-hidden />}>
+              {t('Group NPS: none, by design', 'NPS الموحد: لا يوجد، بالتصميم')}
+            </StatusBadge>
+          }
+        >
           {productsLoading ? (
             <LoadingState rows={4} />
           ) : (
@@ -111,7 +118,7 @@ export default function SettingsOverview() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {(products ?? []).map((p) => {
+                  {(products ?? []).filter((p) => p.live || role.id === 'cxmgr' || role.id === 'cxteam').map((p) => {
                     const rows = rowsFor(p.id)
                     const c = csat(rows)
                     return (
@@ -140,7 +147,13 @@ export default function SettingsOverview() {
 
         <SectionCard
           className="xl:col-span-2"
-          title={t('Product launch', 'إطلاق المنتج')}
+          title={
+            <span className="inline-flex items-center gap-2">
+              <Package aria-hidden className="size-4 text-muted-foreground" />
+              {t('Product launch', 'إطلاق المنتج')}
+              <bdi dir="ltr" className="text-sm font-normal text-muted-foreground">{`${launched.length} / ${products?.length ?? 6}`}</bdi>
+            </span>
+          }
           description={t('Hidden products disappear from menus, cards and filters everywhere in the portal.', 'تختفي المنتجات المخفية من القوائم والبطاقات والفلاتر في كل أنحاء البوابة.')}
         >
           {productsLoading ? (
@@ -176,39 +189,9 @@ export default function SettingsOverview() {
         </SectionCard>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div className="flex flex-col items-start gap-2 rounded-xl border bg-muted/40 p-5">
-          <StatusBadge tone="info" icon={<TrendingUp aria-hidden />}>
-            {t('Lead funnel', 'مسار العملاء المحتملين')}
-          </StatusBadge>
-          <p className="text-sm">
-            {t('The enquiry-to-signed funnel and its source split live on Surveys and triggers.', 'يوجد مسار الاستفسار حتى التوقيع وتوزيع مصادره في صفحة الاستبيانات والمحفزات.')}
-          </p>
-          <Button variant="outline" size="sm" asChild className="mt-auto">
-            <Link to="/surveys">
-              {t('Open Surveys and triggers', 'فتح الاستبيانات والمحفزات')}
-              <ArrowRight aria-hidden className="rtl:rotate-180" />
-            </Link>
-          </Button>
-        </div>
-        <div className="flex flex-col items-start gap-2 rounded-xl border bg-muted/40 p-5">
-          <StatusBadge tone="warning" icon={<Globe2 aria-hidden />}>
-            {t('Public reputation index', 'مؤشر السمعة العامة')}
-          </StatusBadge>
-          <p className="text-sm">
-            {t(
-              'Facebook/Instagram/LinkedIn/Google mentions are never surveyed — replied to within 48 hours instead, tracked under Signals & patterns.',
-              'إشارات فيسبوك وإنستغرام ولينكدإن وجوجل لا تُستطلع أبداً — يُرد عليها خلال 48 ساعة، وتُتابع ضمن الإشارات والأنماط.',
-            )}
-          </p>
-          <Button variant="outline" size="sm" asChild className="mt-auto">
-            <Link to="/actions/signals">
-              {t('Open Signals & patterns', 'فتح الإشارات والأنماط')}
-              <ArrowRight aria-hidden className="rtl:rotate-180" />
-            </Link>
-          </Button>
-        </div>
-      </div>
+      <FunnelSummary />
+      <ReputationIndex />
+      <OverviewCharts products={launched} vocRows={vocRows ?? []} />
     </section>
   )
 }

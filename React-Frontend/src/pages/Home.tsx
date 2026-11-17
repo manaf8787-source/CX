@@ -33,6 +33,7 @@ import { ProductTag } from '@/components/common/Chip'
 import { EmptyState } from '@/components/common/EmptyState'
 import { LoadingState } from '@/components/common/LoadingState'
 import { useChartMotion } from '@/hooks/useChartMotion'
+import { signalCategoryLabel } from './actions/components/labels'
 
 function SeeAll({ to, label }: { to: string; label: string }) {
   const { role } = useRole()
@@ -138,7 +139,7 @@ export default function Home() {
           {assistant.available && (
             <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label={t('Example requests', 'أمثلة على الطلبات')}>
               {SUGGESTED_QUERIES.slice(0, 3).map((q) => (
-                <Button key={q.en} type="button" variant="outline" size="sm" className="h-auto min-h-8 rounded-full py-1 text-start font-normal whitespace-normal" onClick={() => assistant.open(L(q))}>
+                <Button key={q.en} type="button" variant="outline" size="sm" className="h-auto min-h-8 max-w-full rounded-full py-1 text-start font-normal whitespace-normal" onClick={() => assistant.open(L(q))}>
                   {L(q)}
                 </Button>
               ))}
@@ -150,6 +151,7 @@ export default function Home() {
       <section aria-label={t('Today at a glance', 'نظرة سريعة على اليوم')} className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5">
         <KpiTile
           label={t('Runaway customers', 'العملاء الهاربون')}
+          term="Runaway"
           value={summary?.runawayCount}
           sub={t('No contact for 30+ days', 'لا تواصل منذ أكثر من 30 يوماً')}
           accent="var(--destructive)"
@@ -159,6 +161,7 @@ export default function Home() {
         />
         <KpiTile
           label={t('Open corrective actions', 'الإجراءات التصحيحية المفتوحة')}
+          term="Corrective action"
           value={summary?.openActions}
           sub={t('Not yet verified', 'لم يتم التحقق بعد')}
           accent="var(--warning)"
@@ -168,6 +171,7 @@ export default function Home() {
         />
         <KpiTile
           label={t('Detractors to call', 'منتقدون للاتصال')}
+          term="Close the loop"
           value={summary?.toCall}
           sub={t('Close-the-loop list', 'قائمة إغلاق الحلقة')}
           accent="var(--success)"
@@ -186,6 +190,7 @@ export default function Home() {
         />
         <KpiTile
           label={t('Personas', 'الشخصيات')}
+          term="Persona"
           value={summary?.personaCount}
           sub={t('Rule-built segments', 'شرائح مبنية بالقواعد')}
           accent="var(--chart-1)"
@@ -197,6 +202,7 @@ export default function Home() {
       </section>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-6">
+        {seesActions && (
         <SectionCard
           className="lg:col-span-3"
           title={t('Needs attention', 'يحتاج إلى انتباه')}
@@ -245,10 +251,12 @@ export default function Home() {
             <SeeAll to="/actions/corrective" label={t('Corrective actions', 'الإجراءات التصحيحية')} />
           </div>
         </SectionCard>
+        )}
 
         <SectionCard
           className="lg:col-span-3"
           title={t('Signals by month', 'الإشارات حسب الشهر')}
+          term="Signal"
           description={t('Counted, not worked — live products, last six months.', 'تُحتسب ولا تُعالج فردياً — المنتجات الفعالة، آخر ستة أشهر.')}
         >
           {signalsLoading ? (
@@ -300,6 +308,7 @@ export default function Home() {
         <SectionCard
           className="lg:col-span-3"
           title={t('Patterns against threshold', 'الأنماط مقابل الحد')}
+          term="Pattern"
           description={t('A pattern past its threshold gets one corrective action with an owner.', 'النمط الذي يتجاوز حده يحصل على إجراء تصحيحي واحد بمالك.')}
         >
           {patternsLoading ? (
@@ -315,8 +324,8 @@ export default function Home() {
                 return (
                   <li key={p.id} className="flex flex-col gap-1.5">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="truncate text-sm font-medium capitalize">
-                        {p.category.replace(/_/g, ' ')} <span className="font-normal text-muted-foreground">· {p.team}</span>
+                      <span className="truncate text-sm font-medium">
+                        {L(signalCategoryLabel(p.category))} <span className="font-normal text-muted-foreground">· {p.team}</span>
                       </span>
                       <bdi dir="ltr" className="shrink-0 text-xs text-muted-foreground tabular-nums">
                         {p.currentValue}

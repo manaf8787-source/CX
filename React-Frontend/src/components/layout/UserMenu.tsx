@@ -31,8 +31,9 @@ export function UserMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="size-9 rounded-full" aria-label={t(`Account: ${display}`, `الحساب: ${display}`)}>
-          <Avatar className="size-8">
+        <Button variant="ghost" size="icon" className="size-9 rounded-full">
+          <span className="sr-only">{t(`Account: ${display}`, `الحساب: ${display}`)}</span>
+          <Avatar className="size-8" aria-hidden="true">
             <AvatarFallback className="bg-primary text-xs font-semibold text-primary-foreground">{initials(display)}</AvatarFallback>
           </Avatar>
         </Button>

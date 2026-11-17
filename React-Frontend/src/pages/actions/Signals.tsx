@@ -11,7 +11,9 @@ import { useI18n } from '@/i18n'
 import { useNow } from '@/hooks/useNow'
 import { useRole } from '@/auth/RoleContext'
 import { canActOnCorrectiveAction } from '@/auth/permissions'
-import { useCreateActionFromPattern, useHandoffs, usePatterns, useSignals } from '@/services/queries'
+import { useCorrectiveActions, useCreateActionFromPattern, useHandoffs, usePatterns, useSignals } from '@/services/queries'
+import { CORRECTIVE_STATUS_LABEL, CORRECTIVE_STATUS_TONE } from '@/lib/status'
+import { HowAiFoundThis } from './components/HowAiFoundThis'
 import type { CorrectiveActionKind, HandoffItem, Pattern } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -66,6 +68,7 @@ export default function Signals() {
 
   const publicMentions = signals?.filter((s) => s.isPublic) ?? []
   const canCreate = canActOnCorrectiveAction(role.id, 'process')
+  const { data: actions } = useCorrectiveActions()
 
   const handoffColumns: ColumnDef<HandoffItem>[] = [
     { id: 'owner', header: t('Owner system', 'النظام المالك'), accessorFn: (h) => L(h.ownerSystem) },
@@ -172,7 +175,22 @@ export default function Signals() {
                 <PatternThresholdMeter pattern={p} />
                 <p className="text-sm">{L(p.aiSuggestion)}</p>
                 <p className="text-xs text-muted-foreground">{L(p.recoveryFigure)}</p>
-                {canCreate && p.hasMinimumSample && (
+                {(() => {
+                  // KB §6: each pattern shows "the action it already has", and the same
+                  // "How the AI found this" panel as the action itself.
+                  const existing = actions?.find((a) => a.patternId === p.id)
+                  return existing ? (
+                    <div className="flex flex-wrap items-center gap-2 text-sm">
+                      <span className="text-muted-foreground">{t('Action', 'الإجراء')}:</span>
+                      <Link to="/actions/corrective" className="font-medium text-primary underline-offset-4 hover:underline">
+                        {L(existing.title)}
+                      </Link>
+                      <StatusBadge tone={CORRECTIVE_STATUS_TONE[existing.status]}>{L(CORRECTIVE_STATUS_LABEL[existing.status])}</StatusBadge>
+                    </div>
+                  ) : null
+                })()}
+                <HowAiFoundThis actionId={actions?.find((a) => a.patternId === p.id)?.id ?? ''} pattern={p} />
+                {canCreate && p.hasMinimumSample && !actions?.some((a) => a.patternId === p.id) && (
                   <Button size="sm" className="h-9 self-start" onClick={() => setCreatingFor(p)}>
                     <Plus aria-hidden />
                     {t('Create action', 'إنشاء إجراء')}

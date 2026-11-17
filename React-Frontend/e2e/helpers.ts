@@ -1,0 +1,75 @@
+import { expect, type Page } from '@playwright/test'
+
+export type RoleId = 'cxmgr' | 'cxteam' | 'envmgmt' | 'teamlead' | 'aslead' | 'ld' | 'hrspec' | 'hrmgr' | 'marketing' | 'auditmkt' | 'exec' | 'shopper'
+
+/** Starts the page already signed in (sample session), skipping the login screen. */
+export async function signInAs(page: Page, role: RoleId, lang: 'en' | 'ar' = 'en') {
+  await page.addInitScript(
+    ([r, l]) => {
+      if (sessionStorage.getItem('e2e-seeded')) return
+      sessionStorage.setItem('e2e-seeded', '1')
+      localStorage.setItem('psicx.session', JSON.stringify({ displayName: 'E2E', signedInAt: new Date().toISOString() }))
+      localStorage.setItem('psicx.role', r)
+      localStorage.setItem('psicx.lang', l)
+    },
+    [role, lang] as const,
+  )
+}
+
+/** Collects console errors and uncaught page errors for the life of the page. */
+export function collectErrors(page: Page): string[] {
+  const errors: string[] = []
+  page.on('console', (msg) => {
+    if (msg.type() === 'error') errors.push(msg.text())
+  })
+  page.on('pageerror', (err) => errors.push(err.message))
+  return errors
+}
+
+export async function expectPageReady(page: Page) {
+  await expect(page.locator('main h1').first(), `no page heading at ${page.url()}`).toBeVisible({ timeout: 15_000 })
+  await expect(page.locator('[aria-busy="true"]')).toHaveCount(0, { timeout: 10_000 })
+}
+
+export const ROUTES = [
+  '/home',
+  '/customers',
+  '/runaway',
+  '/actions/corrective',
+  '/actions/signals',
+  '/actions/ai-insights',
+  '/actions/shopper-cases',
+  '/actions/investigations',
+  '/close-the-loop',
+  '/personas',
+  '/surveys',
+  '/intelligent-cx-team',
+  '/products/re',
+  '/settings/overview',
+  '/settings/monthly-pack',
+  '/settings/mystery-shopper',
+  '/settings/standards',
+  '/settings/voc',
+  '/settings/surveys-reference',
+  '/settings/ld',
+  '/settings/teams-structure',
+  '/settings/hr-team',
+  '/settings/rules',
+  '/settings/ai-insights-access',
+  '/settings/glossary',
+]
+
+/** Waits until finite animations (route fades, staggers, count-ups) have settled, so
+ * checks such as colour contrast see the final state rather than a mid-fade frame. */
+export async function waitForAnimations(page: Page) {
+  await page.waitForFunction(
+    () =>
+      document.getAnimations().every((a) => {
+        const iterations = a.effect?.getTiming().iterations
+        return iterations === Infinity || a.playState !== 'running'
+      }),
+    undefined,
+    { timeout: 10_000 },
+  )
+  await page.waitForTimeout(150)
+}

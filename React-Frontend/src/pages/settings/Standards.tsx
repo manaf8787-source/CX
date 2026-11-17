@@ -9,7 +9,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DataTable, SortableHeader } from '@/components/common/DataTable'
 import { SectionCard } from '@/components/common/SectionCard'
 import { StatusBadge } from '@/components/common/StatusBadge'
-import { SubPageHeader } from './SubPageHeader'
 
 const STATUS_ORDER: StandardStatus[] = ['not_started', 'legal_review', 'drafted', 'approved_scored']
 
@@ -21,7 +20,7 @@ const STATUS_ORDER: StandardStatus[] = ['not_started', 'legal_review', 'drafted'
  * yielded 33 distinct titles — flagged here rather than silently dropped to
  * force the stated count; L&D should reconcile the two when the document is
  * finalised. */
-export default function Standards() {
+export function LdDocumentList() {
   const { t, L } = useI18n()
   const { role } = useRole()
   const canEdit = role.id === 'cxmgr'
@@ -32,10 +31,11 @@ export default function Standards() {
 
   const groups = useMemo(() => {
     const seen = new Map<string, Standard['group']>()
-    for (const s of standards ?? []) if (!seen.has(s.group.en)) seen.set(s.group.en, s.group)
+    for (const s of (standards ?? []).filter((x) => x.source === 'ld_document')) if (!seen.has(s.group.en)) seen.set(s.group.en, s.group)
     return [...seen.entries()]
   }, [standards])
-  const visible = (standards ?? []).filter(
+  const docs = (standards ?? []).filter((s) => s.source === 'ld_document')
+  const visible = docs.filter(
     (s) => (groupFilter === 'all' || s.group.en === groupFilter) && (statusFilter === 'all' || s.status === statusFilter),
   )
 
@@ -111,17 +111,19 @@ export default function Standards() {
 
   return (
     <section className="flex flex-col gap-4">
-      <SubPageHeader
-        title={t('Standards register', 'سجل المعايير')}
-        description={t(
-          'Every checklist item and signal rule points to a numbered standard, so there is one source of truth (NFR-4). M-14 onward are L&D’s documentation list; M-01–M-13 are platform rules CX already wrote.',
-          'يشير كل عنصر في القوائم وكل قاعدة إشارة إلى معيار مرقّم. M-14 فصاعداً من قائمة وثائق التعلم والتطوير؛ M-01 إلى M-13 قواعد المنصة.',
-        )}
-      />
+      <div className="flex flex-col gap-1">
+        <h3 className="text-lg font-semibold">{t('What L&D is writing', 'ما يكتبه التعلم والتطوير')}</h3>
+        <p className="max-w-[72ch] text-sm text-muted-foreground">
+          {t(
+            'The standards documents from the Standards Documentation List for L&D (KB §18): six groups, one template, priority order. Separate from the 26-standard scoring register above.',
+            'وثائق المعايير من قائمة توثيق المعايير للتعلم والتطوير: ست مجموعات، قالب واحد، ترتيب أولويات. منفصلة عن سجل التقييم ذي المعايير الـ26 أعلاه.',
+          )}
+        </p>
+      </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {STATUS_ORDER.map((st) => {
-          const n = (standards ?? []).filter((s) => s.status === st).length
+          const n = docs.filter((s) => s.status === st).length
           const active = statusFilter === st
           return (
             <button
@@ -179,7 +181,7 @@ export default function Standards() {
               </Select>
               <span className="text-sm text-muted-foreground tabular-nums">
                 <bdi dir="ltr">
-                  {visible.length} / {standards?.length ?? 0}
+                  {visible.length} / {docs.length}
                 </bdi>
               </span>
             </>

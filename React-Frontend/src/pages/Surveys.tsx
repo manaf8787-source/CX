@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import { ArrowRight, Ban, ChevronRight, EyeOff, MessageCircleOff, PieChart, SlidersHorizontal } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { useLeadFunnel, useProductSurveyMoments, useSurveyTriggers } from '@/services/queries'
+import { useSurveyDelivery, useSurveyInstruments } from '@/services/referenceQueries'
+import { KpiTile } from '@/components/common/KpiTile'
 import { PRODUCTS } from '@/data/products'
 import type { LeadFunnelStage } from '@/types'
 import { cn } from '@/lib/utils'
@@ -71,6 +73,8 @@ export default function Surveys() {
   const { t, L, lang } = useI18n()
   const { data: funnel, isLoading: funnelLoading } = useLeadFunnel()
   const { data: triggers, isLoading: triggersLoading } = useSurveyTriggers()
+  const { data: instruments, isLoading: instrumentsLoading } = useSurveyInstruments()
+  const { data: delivery } = useSurveyDelivery()
   const { data: productMoments } = useProductSurveyMoments()
   const [selectedStage, setSelectedStage] = useState<LeadFunnelStage>('contacted')
 
@@ -106,7 +110,10 @@ export default function Surveys() {
 
       <SectionCard
         title={t('The lead funnel: who completes, and why the rest do not', 'قمع العملاء المحتملين: من يكمل، ولماذا لا يكمل الباقون')}
-        description={t('PSI Real Estate · sample figures', 'العقارية · أرقام توضيحية')}
+        description={t(
+          'PSI Real Estate · sample figures · stages [Proposed] until Marketing confirms them from the Customer Journey Template. NPS is asked only of those who signed; the rest are asked at the stage they stopped.',
+          'العقارية · أرقام توضيحية · المراحل [مقترحة] حتى يؤكدها التسويق من نموذج رحلة العميل. يُسأل NPS فقط لمن وقّعوا؛ ويُسأل الباقون عند المرحلة التي توقفوا فيها.',
+        )}
         contentClassName="flex flex-col gap-4"
       >
         {funnelLoading ? (
@@ -173,6 +180,66 @@ export default function Surveys() {
       </SectionCard>
 
       <SectionCard
+        title={t('The instruments', 'الأدوات')}
+        term="Survey trigger"
+        description={t(
+          'Agent 10 watches every event for a trigger, applies the caps, sends on the channel of the interaction and logs sent, answered and skipped with the reason. Nothing is sent in the prototype.',
+          'يراقب الوكيل 10 كل حدث بحثاً عن محفّز، ويطبّق السقوف، ويرسل عبر قناة التفاعل، ويسجّل المرسَل والمجاب والمتخطّى مع السبب. لا يُرسل شيء في النموذج.',
+        )}
+        contentClassName="flex flex-col gap-4"
+      >
+        {delivery && (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <KpiTile label={t('Sent last month', 'أُرسل الشهر الماضي')} value={delivery.sent.toLocaleString(lang === 'ar' ? 'ar-AE' : 'en-US')} accent="var(--info)" />
+            <KpiTile label={t('Answered', 'أُجيب')} value={delivery.answered.toLocaleString(lang === 'ar' ? 'ar-AE' : 'en-US')} accent="var(--success)" />
+            <KpiTile
+              label={t('Skipped', 'تُخطّي')}
+              value={delivery.skipped.toLocaleString(lang === 'ar' ? 'ar-AE' : 'en-US')}
+              sub={delivery.skippedBy.map((x) => `${L(x.reason)} ${x.count.toLocaleString(lang === 'ar' ? 'ar-AE' : 'en-US')}`).join(' · ')}
+              accent="var(--warning)"
+            />
+          </div>
+        )}
+        {instrumentsLoading ? (
+          <LoadingState rows={4} />
+        ) : (
+          <div className="overflow-x-auto rounded-lg border">
+            <Table>
+              <TableHeader className="bg-muted/60">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className={th}>{t('Instrument', 'الأداة')}</TableHead>
+                  <TableHead className={th}>{t('Trigger', 'المحفّز')}</TableHead>
+                  <TableHead className={th}>{t('Cap', 'الحد')}</TableHead>
+                  <TableHead className={th}>{t('Never', 'أبداً')}</TableHead>
+                  <TableHead className={cn(th, 'text-end')}>{t('Sent / answered, last month', 'أُرسل / أُجيب، الشهر الماضي')}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(instruments ?? []).map((i) => (
+                  <TableRow key={i.id}>
+                    <TableCell className="min-w-44 px-3 align-top text-sm whitespace-normal">
+                      <span className="font-medium">{L(i.name)}</span>
+                      <div className="text-xs text-muted-foreground">{L(i.kind)}</div>
+                    </TableCell>
+                    <TableCell className="min-w-64 px-3 align-top text-sm whitespace-normal">
+                      {L(i.trigger)}
+                      <div className="text-xs text-muted-foreground">{L(i.channel)}</div>
+                    </TableCell>
+                    <TableCell className="min-w-40 px-3 align-top text-sm whitespace-normal">{L(i.cap)}</TableCell>
+                    <TableCell className="min-w-40 px-3 align-top text-sm whitespace-normal">{L(i.never)}</TableCell>
+                    <TableCell className="px-3 text-end align-top text-sm whitespace-nowrap tabular-nums">
+                      {i.sent.toLocaleString(lang === 'ar' ? 'ar-AE' : 'en-US')} / {i.answered.toLocaleString(lang === 'ar' ? 'ar-AE' : 'en-US')}
+                      <div className="text-xs text-muted-foreground">{Math.round((100 * i.answered) / i.sent)}%</div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </SectionCard>
+
+      <SectionCard
         title={t('When we ask, and when we never ask', 'متى نسأل، ومتى لا نسأل أبداً')}
         actions={
           <Button variant="outline" size="sm" asChild>
@@ -196,6 +263,18 @@ export default function Surveys() {
                 </TableRow>
               </TableHeader>
               <TableBody>
+                <TableRow>
+                  <TableCell className="px-3 align-top">
+                    <StatusBadge tone="neutral">{t('None', 'لا شيء')}</StatusBadge>
+                  </TableCell>
+                  <TableCell className="min-w-64 px-3 text-sm whitespace-normal">
+                    {t(
+                      'Enquiry on the website or app — no survey. Measured by the reach index (reply time, channels needed).',
+                      'استفسار على الموقع أو التطبيق — بلا استبيان. يُقاس بمؤشر الوصول (زمن الرد، عدد القنوات اللازمة).',
+                    )}
+                  </TableCell>
+                  <TableCell className="px-3 text-end text-sm text-muted-foreground">—</TableCell>
+                </TableRow>
                 {triggers.map((tr) => (
                   <TableRow key={tr.id}>
                     <TableCell className="px-3 align-top">

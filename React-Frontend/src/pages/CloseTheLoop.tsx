@@ -1,3 +1,4 @@
+import { REASON_CODE_LABEL } from '@/utils/closeTheLoop'
 import { useMemo, useState } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { toast } from 'sonner'
@@ -128,6 +129,13 @@ export default function CloseTheLoop() {
       accessorKey: 'firstScore',
       header: ({ column }) => <SortableHeader column={column}>{t('First score', 'النتيجة الأولى')}</SortableHeader>,
       meta: { align: 'end' },
+    },
+    {
+      id: 'reason',
+      accessorFn: (i) => (i.reasonCode ? L(REASON_CODE_LABEL[i.reasonCode]) : ''),
+      header: t('Reason', 'السبب'),
+      cell: ({ row }) =>
+        row.original.reasonCode ? L(REASON_CODE_LABEL[row.original.reasonCode]) : <span className="text-muted-foreground">—</span>,
     },
     {
       id: 'outcome',
@@ -285,6 +293,19 @@ export default function CloseTheLoop() {
                   <span className="text-sm text-muted-foreground">
                     {L(c.segmentDescription)} · <span className="tabular-nums">{c.memberIds.length}</span> {t('members', 'عضو')}
                   </span>
+                  {(() => {
+                    // KB §7: results come back as the same reason codes; people the
+                    // hand-off rules sent back are listed as "handed to a human".
+                    const members = (items ?? []).filter((i) => c.memberIds.includes(i.id))
+                    const coded = members.filter((i) => i.reasonCode).length
+                    const toHuman = members.filter((i) => i.outcome === 'callback_requested').length
+                    return (
+                      <span className="text-sm">
+                        {t('Coded results', 'نتائج مرمّزة')}: <span className="font-medium tabular-nums">{coded}</span> ·{' '}
+                        {t('Handed to a human', 'حُوّلوا إلى شخص')}: <span className="font-medium tabular-nums">{toHuman}</span>
+                      </span>
+                    )
+                  })()}
                 </li>
               )
             })}

@@ -1,13 +1,17 @@
 import { useMemo, useState } from 'react'
-import { CalendarClock, Gavel, UserRound } from 'lucide-react'
+import { CalendarClock, CheckCircle2, Clock4, FileSearch, Gavel, Inbox, ListChecks, Route, UserRound } from 'lucide-react'
 import { toast } from 'sonner'
 import { useI18n } from '@/i18n'
 import { useRole } from '@/auth/RoleContext'
 import { canActOnCorrectiveAction } from '@/auth/permissions'
 import { useCorrectiveActions, useDecideCorrectiveAction, usePatterns } from '@/services/queries'
+import { useSendToInvestigation } from '@/services/referenceQueries'
+import { ACTION_KIND } from '@/lib/actionKinds'
+import { useNow } from '@/hooks/useNow'
+import { KpiTile } from '@/components/common/KpiTile'
 import { evaluateEffectiveness, EFFECTIVENESS_LABEL } from '@/utils/effectiveness'
 import { CORRECTIVE_STATUS_LABEL } from '@/lib/status'
-import type { CorrectiveAction, CorrectiveActionKind } from '@/types'
+import type { CorrectiveAction } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -19,16 +23,6 @@ import { LifecycleStepper } from './components/LifecycleStepper'
 import { HowAiFoundThis } from './components/HowAiFoundThis'
 import { DecisionDialog } from './components/DecisionDialog'
 
-const KIND_LABEL: Record<CorrectiveActionKind, { en: string; ar: string }> = {
-  employee: { en: 'Employee (management note)', ar: 'موظف (ملاحظة إدارية)' },
-  service_behaviour: { en: 'Service & behaviour', ar: 'الخدمة والسلوك' },
-  training_gap: { en: 'Training gap', ar: 'فجوة تدريبية' },
-  product_app: { en: 'Product & app', ar: 'المنتج والتطبيق' },
-  process: { en: 'Process', ar: 'العملية' },
-  environment: { en: 'Environment', ar: 'البيئة' },
-  legal_privacy: { en: 'Legal & privacy', ar: 'قانوني وخصوصية' },
-  marketing: { en: 'Marketing', ar: 'تسويق' },
-}
 
 const DECISION_LABEL = {
   modified: { en: 'Modified', ar: 'معدّل' },
@@ -43,13 +37,30 @@ export default function Corrective() {
   const { data: actions, isLoading, error, refetch } = useCorrectiveActions()
   const { data: patterns } = usePatterns()
   const decide = useDecideCorrectiveAction()
+  const sendToInvestigation = useSendToInvestigation()
+  const now = useNow()
   const [statusFilter, setStatusFilter] = useState<(typeof STATUS_FILTERS)[number]>('all')
   const [decidingId, setDecidingId] = useState<string | null>(null)
 
-  const visible = useMemo(
-    () => (actions ?? []).filter((a) => statusFilter === 'all' || a.status === statusFilter),
-    [actions, statusFilter],
-  )
+  // KB §15: L&D sees only actions classified as training gap; KB §2: environment
+  // management sees only its own environment.
+  const scoped = useMemo(() => {
+    let list = actions ?? []
+    if (role.id === 'ld') list = list.filter((a) => a.kind === 'training_gap')
+    if (role.id === 'envmgmt' && role.environment) {
+      const env = role.environment
+      list = list.filter((a) => patterns?.find((p) => p.id === a.patternId)?.team.startsWith(env))
+    }
+    return list
+  }, [actions, patterns, role])
+  const visible = useMemo(() => scoped.filter((a) => statusFilter === 'all' || a.status === statusFilter), [scoped, statusFilter])
+  const closed = ['effective', 'partial', 'failed']
+  const tally = {
+    proposed: scoped.filter((a) => a.status === 'proposed').length,
+    open: scoped.filter((a) => !closed.includes(a.status)).length,
+    late: scoped.filter((a) => !closed.includes(a.status) && a.status !== 'verification' && new Date(a.dueDate).getTime() < now).length,
+    effective: scoped.filter((a) => a.status === 'effective').length,
+  }
 
   function patternFor(a: CorrectiveAction) {
     return patterns?.find((p) => p.id === a.patternId)
@@ -57,6 +68,15 @@ export default function Corrective() {
 
   return (
     <div className="flex flex-col gap-4">
+      <section aria-label={t('The register', 'السجل')} className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <KpiTile label={t('Proposed', 'مقترحة')} value={tally.proposed} sub={t('Waiting for a person’s yes', 'بانتظار موافقة شخص')} icon={<Inbox />} accent="var(--info)" loading={isLoading} onClick={() => setStatusFilter('proposed')} />
+        <KpiTile label={t('Open', 'مفتوحة')} value={tally.open} sub={t('Not yet verified', 'لم يُتحقق منها بعد')} icon={<ListChecks />} accent="var(--warning)" loading={isLoading} onClick={() => setStatusFilter('all')} />
+        <KpiTile label={t('Late', 'متأخرة')} value={tally.late} sub={t('Past the due date', 'تجاوزت تاريخ الاستحقاق')} icon={<Clock4 />} accent="var(--destructive)" loading={isLoading} />
+        <KpiTile term="60-day check" label={t('Effective', 'فعّالة')} value={tally.effective} sub={t('Signals halved, held 90 days', 'انخفضت الإشارات للنصف وثبتت 90 يوماً')} icon={<CheckCircle2 />} accent="var(--success)" loading={isLoading} onClick={() => setStatusFilter('effective')} />
+      </section>
+      {role.id === 'ld' && (
+        <p className="text-sm text-muted-foreground">{t('Showing the actions classified as training gap — the ones L&D receives.', 'عرض الإجراءات المصنفة كفجوة تدريبية — التي يستلمها التعلم والتطوير.')}</p>
+      )}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <label htmlFor="corrective-status" className="text-sm text-muted-foreground">
@@ -101,7 +121,7 @@ export default function Corrective() {
                       <div className="flex min-w-0 flex-col gap-1.5">
                         <div className="flex flex-wrap items-center gap-2">
                           <h2 className="text-lg font-semibold">{L(a.title)}</h2>
-                          <StatusBadge tone="info">{L(KIND_LABEL[a.kind])}</StatusBadge>
+                          <StatusBadge tone="info">{L(ACTION_KIND[a.kind].label)}</StatusBadge>
                         </div>
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
                           <span className="inline-flex items-center gap-1.5">
@@ -119,7 +139,7 @@ export default function Corrective() {
                           </p>
                         )}
                       </div>
-                      {canAct && a.status === 'proposed' && (
+                      {canAct && a.status === 'proposed' && !a.sentToInvestigation && (
                         <Button size="sm" className="h-9 shrink-0 self-start" onClick={() => setDecidingId(a.id)}>
                           <Gavel aria-hidden />
                           {t('Decide', 'اتخاذ قرار')}
@@ -148,6 +168,31 @@ export default function Corrective() {
                       </div>
                     )}
 
+                    {a.sentToInvestigation && (
+                      <div className="flex flex-wrap items-center gap-2 text-sm">
+                        <StatusBadge tone="info" icon={<FileSearch aria-hidden />}>
+                          {t('Sent to investigation first', 'أُحيل إلى التحقيق أولاً')}
+                        </StatusBadge>
+                        <span className="text-muted-foreground">{t('Five customer interviews requested; see Investigations.', 'طُلبت خمس مقابلات مع العملاء؛ انظر التحقيقات.')}</span>
+                      </div>
+                    )}
+                    <div className="grid gap-x-4 gap-y-2 rounded-lg border bg-muted/30 p-3 text-sm sm:grid-cols-3">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+                          <Route aria-hidden className="size-3.5" />
+                          {t('Kind and path', 'النوع والمسار')}
+                        </span>
+                        <span>{L(ACTION_KIND[a.kind].path)}</span>
+                      </div>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-xs font-semibold text-muted-foreground">{t('Who receives it', 'من يستلمه')}</span>
+                        <span>{a.owner}</span>
+                      </div>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-xs font-semibold text-muted-foreground">{t('What comes back', 'ما الذي يعود')}</span>
+                        <span>{L(ACTION_KIND[a.kind].comesBack)}</span>
+                      </div>
+                    </div>
                     <HowAiFoundThis actionId={a.id} pattern={pattern} />
                   </CardContent>
                 </Card>
@@ -161,9 +206,18 @@ export default function Corrective() {
         <DecisionDialog
           title={t('Decide this corrective action', 'اتخاذ قرار بشأن هذا الإجراء')}
           approveLabel="approved"
+          allowInvestigate
           onCancel={() => setDecidingId(null)}
           onSubmit={(v) => {
             if (v.decision === 'confirmed') return
+            if (v.decision === 'investigate') {
+              const action = actions?.find((x) => x.id === decidingId)
+              const pattern = action ? patternFor(action) : undefined
+              sendToInvestigation.mutate({ actionId: decidingId, patternId: pattern?.id, environment: pattern?.team, reason: v.reason })
+              setDecidingId(null)
+              toast.success(t('Sent to investigation — five interviews requested', 'أُحيل إلى التحقيق — طُلبت خمس مقابلات'))
+              return
+            }
             decide.mutate({ id: decidingId, decision: v.decision, reason: v.reason })
             setDecidingId(null)
             toast.success(t('Decision saved', 'تم حفظ القرار'))

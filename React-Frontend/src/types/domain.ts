@@ -90,6 +90,8 @@ export interface Interaction {
   reason?: string
   outcome?: string
   promiseKept?: boolean
+  /** KB §4: any promise with its due time. */
+  promiseDueAt?: string
   language: 'en' | 'ar'
   score?: number
   /** Conversation text. Readable by CX team + CX manager only (NFR-2) — the mock layer carries it so the access-gate itself is testable, never omit it to fake compliance. */
@@ -248,16 +250,17 @@ export interface Investigation {
 
 // --- Close the loop ----------------------------------------------------
 
+/** The ten reason codes, verbatim from Modules KB §7. */
 export type ReasonCode =
-  | 'price'
-  | 'process_delay'
-  | 'staff_attitude'
-  | 'product_mismatch'
-  | 'communication'
-  | 'competitor_offer'
-  | 'unit_availability'
-  | 'after_sales_issue'
-  | 'language_barrier'
+  | 'slow_or_no_reply'
+  | 'promise_not_kept'
+  | 'wrong_information'
+  | 'attitude'
+  | 'paperwork_handoff'
+  | 'app_website'
+  | 'price_payment'
+  | 'nothing_suitable'
+  | 'switched_channels'
   | 'other'
 
 export type InterviewOutcome = 'reached' | 'resolved_on_call' | 'declined' | 'callback_requested'
@@ -273,6 +276,10 @@ export interface DetractorCallItem {
   channel: 'human' | 'ai_campaign'
   outcome?: InterviewOutcome
   reasonCode?: ReasonCode
+  /** Caller's notes from the interview (KB §7 interview form). */
+  notes?: string
+  /** Re-survey date set at the interview, 7 to 14 days after resolution. */
+  resurveyOn?: string
   secondScore?: number // re-survey, FR-5.4
   recoveredAt?: string // set once FR-5.5's definition is met within 60 days
 }

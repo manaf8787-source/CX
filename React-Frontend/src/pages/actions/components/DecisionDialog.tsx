@@ -10,10 +10,10 @@ import { cn } from '@/lib/utils'
 
 const schema = z
   .object({
-    decision: z.enum(['approved', 'modified', 'rejected', 'confirmed']),
+    decision: z.enum(['approved', 'modified', 'rejected', 'confirmed', 'investigate']),
     reason: z.string().optional(),
   })
-  .refine((v) => v.decision === 'approved' || v.decision === 'confirmed' || (v.reason?.trim().length ?? 0) > 0, {
+  .refine((v) => v.decision === 'approved' || v.decision === 'confirmed' || v.decision === 'investigate' || (v.reason?.trim().length ?? 0) > 0, {
     message: 'reason_required',
     path: ['reason'],
   })
@@ -27,11 +27,14 @@ type Decision = FormValues['decision']
 export function DecisionDialog({
   title,
   approveLabel,
+  allowInvestigate = false,
   onCancel,
   onSubmit,
 }: {
   title: string
   approveLabel: 'approved' | 'confirmed'
+  /** KB §6: a proposed corrective action can be "sent to investigation first". */
+  allowInvestigate?: boolean
   onCancel: () => void
   onSubmit: (v: { decision: Decision; reason?: string }) => void
 }) {
@@ -46,6 +49,9 @@ export function DecisionDialog({
     { value: approveLabel, label: t('Approve', 'اعتماد'), note: t('Goes ahead as proposed.', 'يمضي كما اقتُرح.') },
     { value: 'modified', label: t('Modify', 'تعديل'), note: t('Changes the scope; needs a reason.', 'يغيّر النطاق؛ يتطلب سبباً.') },
     { value: 'rejected', label: t('Reject', 'رفض'), note: t('Does not go ahead; needs a reason.', 'لا يمضي؛ يتطلب سبباً.') },
+    ...(allowInvestigate
+      ? [{ value: 'investigate' as const, label: t('Investigate first', 'التحقيق أولاً'), note: t('Five customer interviews before any fix.', 'خمس مقابلات مع العملاء قبل أي إصلاح.') }]
+      : []),
   ]
 
   return (
@@ -63,7 +69,7 @@ export function DecisionDialog({
               control={control}
               name="decision"
               render={({ field }) => (
-                <div role="radiogroup" aria-label={t('Decision', 'القرار')} className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                <div role="radiogroup" aria-label={t('Decision', 'القرار')} className={cn('grid grid-cols-1 gap-2', options.length > 3 ? 'sm:grid-cols-2' : 'sm:grid-cols-3')}>
                   {options.map((o) => {
                     const checked = field.value === o.value
                     return (
@@ -93,7 +99,7 @@ export function DecisionDialog({
             />
           </FieldSet>
 
-          {decision !== approveLabel && (
+          {decision !== approveLabel && decision !== 'investigate' && (
             <Field data-invalid={!!errors.reason}>
               <FieldLabel htmlFor="decision-reason">{t('Reason (required)', 'السبب (مطلوب)')}</FieldLabel>
               <Textarea id="decision-reason" rows={3} aria-invalid={!!errors.reason} {...register('reason')} />

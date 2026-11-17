@@ -5,6 +5,8 @@ import { useI18n } from '@/i18n'
 import { useRole } from '@/auth/RoleContext'
 import { canApprovePersona, canViewPersonaAudit } from '@/auth/permissions'
 import { useCampaignRecommendations, useDecidePersona, usePersonas } from '@/services/queries'
+import { useCampaignBriefs } from '@/services/referenceQueries'
+import { CHANNEL_LABEL } from '@/components/customers/channels'
 import type { Persona } from '@/types'
 import { Button } from '@/components/ui/button'
 import { PageHeader } from '@/components/common/PageHeader'
@@ -122,6 +124,8 @@ export default function Personas() {
         />
       </SectionCard>
 
+      <SavedBriefs />
+
       {personasLoading ? (
         <LoadingState rows={6} />
       ) : personas?.length ? (
@@ -140,7 +144,7 @@ export default function Personas() {
           approveLabel="approved"
           onCancel={() => setDecidingId(null)}
           onSubmit={(v) => {
-            if (v.decision === 'confirmed') return
+            if (v.decision === 'confirmed' || v.decision === 'investigate') return
             decide.mutate({ id: decidingId, decision: v.decision, reason: v.reason })
             setDecidingId(null)
           }}
@@ -248,5 +252,39 @@ function PersonaCard({ persona, canApprove, canAudit, onDecide }: { persona: Per
         </div>
       )}
     </article>
+  )
+}
+
+/** KB §13: a campaign brief built by the assistant, saved for Marketing. */
+function SavedBriefs() {
+  const { t, L, lang } = useI18n()
+  const { data: briefs } = useCampaignBriefs()
+  if (!briefs?.length) return null
+  return (
+    <SectionCard
+      title={t('Campaign briefs saved for Marketing', 'ملخصات الحملات المحفوظة للتسويق')}
+      description={t('Built by the assistant from the sample records; Marketing writes the final campaign.', 'أعدها المساعد من السجلات التجريبية؛ ويكتب التسويق الحملة النهائية.')}
+    >
+      <ul className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+        {briefs.map((b) => (
+          <li key={b.id} className="flex min-w-0 flex-col gap-1.5 rounded-lg border bg-muted/30 p-4 text-sm">
+            <span className="inline-flex items-center gap-2 font-semibold">
+              <Megaphone aria-hidden className="size-4 text-gold-text" />
+              {L(b.title)}
+            </span>
+            <span>{L(b.who)}</span>
+            <span className="text-muted-foreground">
+              {b.channelSplit.map((c) => `${L(CHANNEL_LABEL[c.channel])} ${c.count}`).join(' · ')}
+            </span>
+            <span className="text-muted-foreground">
+              {t('What not to do', 'ما يجب تجنبه')}: {L(b.whatNotToDo)}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {t('Saved by', 'حفظه')} {L(b.savedBy)} · {new Date(b.savedAt).toLocaleString(lang === 'ar' ? 'ar' : 'en', { dateStyle: 'medium', timeStyle: 'short' })}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </SectionCard>
   )
 }

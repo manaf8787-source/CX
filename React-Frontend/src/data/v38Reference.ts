@@ -337,3 +337,110 @@ export const ESCALATION_PRINCIPLES: Bi[] = [
   b('Anything touching a customer’s contact goes through the CX team.', 'كل ما يمس تواصلاً مع عميل يمر عبر فريق تجربة العملاء.'),
   b('Every cell names a title, not a person; the CRM supplies who holds the title.', 'كل خلية تذكر مسمى وظيفياً لا شخصاً؛ ويحدد CRM من يشغله.'),
 ]
+
+// --- L&D: complaint types, materials and training plan (KB §15; prototype OD_TYPES, TRN, TSES) ---
+
+export type LdComplaintType = 'od_script' | 'od_dress' | 'od_comm' | 'od_know' | 'od_mat' | 'ai_fact' | 'discount' | 'lang'
+
+/** The first five are KB §15's own list; the last three are the prototype's
+ * additions to L&D's area (wrong information, unapproved discount, wrong language). */
+export const LD_COMPLAINT_TYPE: Record<LdComplaintType, Bi> = {
+  od_script: b('Script', 'النص'),
+  od_dress: b('Dress code', 'الزي الرسمي'),
+  od_comm: b('Communication skills', 'مهارات التواصل'),
+  od_know: b('Product knowledge', 'المعرفة بالمنتج'),
+  od_mat: b('Outdated materials', 'مواد قديمة'),
+  ai_fact: b('Wrong information', 'معلومات خاطئة'),
+  discount: b('Unapproved discount', 'خصم غير معتمد'),
+  lang: b('Wrong language', 'لغة خاطئة'),
+}
+
+export type MaterialStatus = 'idea' | 'plan' | 'dev' | 'ready'
+
+export const MATERIAL_STATUS: Record<MaterialStatus, Bi> = {
+  idea: b('Idea', 'فكرة'),
+  plan: b('Planned', 'مخطط'),
+  dev: b('In development', 'قيد الإعداد'),
+  ready: b('Published', 'منشورة'),
+}
+
+export interface TrainingMaterial {
+  id: string
+  name: Bi
+  standard?: string
+  status: MaterialStatus
+  due?: string
+  covers: LdComplaintType[]
+}
+
+export const TRAINING_MATERIALS: TrainingMaterial[] = [
+  { id: 'm1', name: b('Dress code and appearance guide for galleries (Arabic and English)', 'دليل الزي والمظهر للمعارض (عربي وإنجليزي)'), standard: 'M-10', status: 'dev', due: '2026-11-15', covers: ['od_dress'] },
+  { id: 'm2', name: b('Welcome and greeting standard card', 'بطاقة معيار الترحيب والاستقبال'), standard: 'M-12', status: 'plan', due: '2026-11-22', covers: ['od_script'] },
+  { id: 'm3', name: b('Needs discovery question guide', 'دليل أسئلة استكشاف الاحتياج'), standard: 'M-17', status: 'plan', due: '2026-11-30', covers: ['od_script'] },
+  { id: 'm4', name: b('Approved payment plans sheet for agents and the AI script', 'ورقة خطط الدفع المعتمدة للموظفين ونص الذكاء الاصطناعي'), status: 'dev', due: '2026-10-24', covers: ['ai_fact'] },
+  { id: 'm5', name: b('Price negotiation and discount approval rules', 'قواعد التفاوض على السعر واعتماد الخصومات'), standard: 'M-20', status: 'dev', due: '2026-11-10', covers: ['discount'] },
+  { id: 'm6', name: b('Language and tone guide (Arabic Gulf dialect and English)', 'دليل اللغة والنبرة (العربية الخليجية والإنجليزية)'), standard: 'M-15', status: 'ready', due: '2026-10-20', covers: ['lang', 'od_comm'] },
+  { id: 'm7', name: b('Follow-up playbook: WhatsApp and calls', 'دليل المتابعة: واتساب والاتصال'), standard: 'M-22', status: 'idea', covers: [] },
+]
+
+export interface TrainingSession {
+  id: string
+  name: Bi
+  audience: Bi
+  date: string
+  mode: Bi
+  covers: LdComplaintType[]
+  status: 'planned' | 'done'
+}
+
+export const TRAINING_SESSIONS: TrainingSession[] = [
+  { id: 's1', name: b('Dress code and appearance briefing', 'إحاطة الزي والمظهر'), audience: b('Gallery staff, Dubai and Abu Dhabi', 'موظفو المعارض، دبي وأبوظبي'), date: '2026-11-12', mode: b('In person', 'حضوري'), covers: ['od_dress'], status: 'planned' },
+  { id: 's2', name: b('Discount approval and objection handling', 'اعتماد الخصومات والتعامل مع الاعتراضات'), audience: b('All sales pools', 'كل مجموعات المبيعات'), date: '2026-11-18', mode: b('In person', 'حضوري'), covers: ['discount', 'od_script'], status: 'planned' },
+  { id: 's3', name: b('Listening and tone on calls and chat', 'الإصغاء والنبرة في المكالمات والمحادثات'), audience: b('Dubai pool', 'مجموعة دبي'), date: '2026-11-25', mode: b('Online', 'عن بُعد'), covers: ['od_comm', 'lang'], status: 'planned' },
+  { id: 's4', name: b('Product knowledge refresh: payment plans', 'تحديث المعرفة بالمنتج: خطط الدفع'), audience: b('All pools and After-Sales', 'كل المجموعات وما بعد البيع'), date: '2026-12-02', mode: b('Online', 'عن بُعد'), covers: ['ai_fact', 'od_know'], status: 'planned' },
+]
+
+// --- Who uses it and what each one sees (Modules KB §2, verbatim) ---
+
+export const ROLE_SCOPE: { role: import('../types').RoleId; pages: Bi; sees: Bi; can: Bi }[] = [
+  { role: 'cxmgr', pages: b('All pages, plus Settings and reference', 'كل الصفحات، والإعدادات والمرجع'), sees: b('Everything, all categories, all environments, agent names, conversation text', 'كل شيء، كل الفئات والبيئات، أسماء الموظفين، نص المحادثات'), can: b('Approve corrective actions, set thresholds, set who sees what, approve standards for scoring', 'اعتماد الإجراءات التصحيحية، ضبط الحدود، تحديد من يرى ماذا، اعتماد المعايير للتقييم') },
+  { role: 'cxteam', pages: b('All pages, plus Settings and reference', 'كل الصفحات، والإعدادات والمرجع'), sees: b('Everything, agent names, conversation text', 'كل شيء، أسماء الموظفين، نص المحادثات'), can: b('Create corrective actions, send AI suggestions to cases, triage shopper cases, run the assistant', 'إنشاء الإجراءات التصحيحية، إرسال اقتراحات الذكاء الاصطناعي إلى الحالات، فرز حالات التسوق، تشغيل المساعد') },
+  { role: 'envmgmt', pages: b('Home, Customers, Runaway, Actions, PSI Real Estate', 'الرئيسية، العملاء، الهاربون، الإجراءات، العقارية'), sees: b('Only its own environment, with agent names; no conversation text', 'بيئته فقط، مع أسماء الموظفين؛ دون نص المحادثات'), can: b('Own and run its corrective actions, decide on proposed actions on shopper cases', 'امتلاك إجراءاته التصحيحية وتنفيذها، والبت في الإجراءات المقترحة على حالات التسوق') },
+  { role: 'teamlead', pages: b('Home, Customers, Actions', 'الرئيسية، العملاء، الإجراءات'), sees: b('Its pool’s agents and cases', 'موظفو مجموعته وحالاتها'), can: b('Follow actions for its pool', 'متابعة إجراءات مجموعته') },
+  { role: 'aslead', pages: b('Home, Customers, Actions, Voice of Customer, After-Sales', 'الرئيسية، العملاء، الإجراءات، صوت العميل، ما بعد البيع'), sees: b('Process, speed and communication signals', 'إشارات العملية والسرعة والتواصل'), can: b('Own After-Sales actions', 'امتلاك إجراءات ما بعد البيع') },
+  { role: 'ld', pages: b('Actions, Standards register, Training', 'الإجراءات، سجل المعايير، التدريب'), sees: b('Communication, product knowledge and attitude signals; its own L&D requests', 'إشارات التواصل والمعرفة بالمنتج والسلوك؛ طلبات التعلم والتطوير الخاصة به'), can: b('Deliver training and materials, write the standards it owns (the CX manager approves them for scoring)', 'تقديم التدريب والمواد، كتابة المعايير التي يملكها (يعتمدها مدير تجربة العملاء للتقييم)') },
+  { role: 'hrspec', pages: b('Actions, HR team', 'الإجراءات، فريق الموارد البشرية'), sees: b('Attitude signals; cases assigned to the HR pool', 'إشارات السلوك؛ الحالات المعيّنة لمجموعة الموارد البشرية'), can: b('Write corrective actions on conduct; the agent’s direct manager reviews them', 'كتابة إجراءات تصحيحية على السلوك؛ يراجعها المدير المباشر للموظف') },
+  { role: 'hrmgr', pages: b('HR team performance', 'أداء فريق الموارد البشرية'), sees: b('Team numbers and late alerts only', 'أرقام الفريق وتنبيهات التأخير فقط'), can: b('Nothing on cases (informed only)', 'لا شيء على الحالات (للعلم فقط)') },
+  { role: 'marketing', pages: b('Home, Customers, Runaway, Personas', 'الرئيسية، العملاء، الهاربون، الشخصيات'), sees: b('Personas, campaign recommendations, runaway types; no conversation text, no agent names', 'الشخصيات، توصيات الحملات، أنواع الهروب؛ دون نص محادثات ولا أسماء موظفين'), can: b('Receive campaign briefs', 'استلام ملخصات الحملات') },
+  { role: 'auditmkt', pages: b('Overview, Intelligent CX team, Personas, Runaway, Standards, Monthly pack, Settings', 'النظرة العامة، فريق تجربة العملاء الذكي، الشخصيات، الهاربون، المعايير، الحزمة الشهرية، الإعدادات'), sees: b('Aggregates and audit views; no cases, no conversation text, no agent names', 'الإجماليات وعروض التدقيق؛ دون حالات أو نص محادثات أو أسماء موظفين'), can: b('Mark feeds and standards as trusted, audit personas and campaign criteria, fill the escalation matrix with the product owners, read the weekly supervisor sample', 'اعتماد موثوقية التغذيات والمعايير، تدقيق الشخصيات ومعايير الحملات، ملء مصفوفة التصعيد مع مالكي المنتجات، قراءة العينة الأسبوعية للمشرف') },
+  { role: 'exec', pages: b('Home, Customers, Runaway, Actions, Personas, Overview, Monthly pack', 'الرئيسية، العملاء، الهاربون، الإجراءات، الشخصيات، النظرة العامة، الحزمة الشهرية'), sees: b('Everything, read only, no agent names', 'كل شيء، قراءة فقط، دون أسماء موظفين'), can: b('Nothing (informed)', 'لا شيء (للعلم)') },
+  { role: 'shopper', pages: b('Own tasks only', 'مهامه فقط'), sees: b('Briefs, deadlines, forms', 'الملخصات، المواعيد، النماذج'), can: b('Fill the forms, ask questions', 'تعبئة النماذج، طرح الأسئلة') },
+]
+
+/** "Who is informed" (prototype Teams and structure). */
+export const INFORMED_RULE = b(
+  'Informed means a notice, never a task. Top management does not get one email per case: they get a digest, and an immediate alert only for a high-priority case past its SLA or for a repeating pattern.',
+  '"للعلم" تعني إشعاراً لا مهمة. لا تصل الإدارة العليا رسالة لكل حالة: تصلهم خلاصة دورية، وتنبيه فوري فقط لحالة عالية الأولوية تجاوزت مدتها أو لنمط متكرر.',
+)
+
+// --- Products (Modules KB §16) ---
+
+export const PRODUCT_COVERAGE: Record<ProductId, Bi> = {
+  re: b('Sales journey from enquiry to signed deal: leads, viewings, offers, bookings; sources PSI Website and PSI Real Estate app', 'رحلة البيع من الاستفسار إلى الصفقة الموقّعة: العملاء المحتملون، المعاينات، العروض، الحجوزات؛ المصادر موقع PSI وتطبيق PSI العقاري'),
+  af: b('Handover, snagging, finishing, payments, maintenance and renewals (PSI Assets rental)', 'التسليم، الملاحظات، التشطيب، الدفعات، الصيانة والتجديدات (تأجير PSI للأصول)'),
+  cl: b('VIP and influencer lead nominations; leads ride the Real Estate journey with a VIP tag; its own escalation matrix handles late steps, the portal reads the breach log as signals', 'ترشيحات العملاء من كبار الأعضاء والمؤثرين؛ يسير العملاء في رحلة العقارات بوسم VIP؛ مصفوفة تصعيده الخاصة تعالج التأخير، والبوابة تقرأ سجل الخروقات كإشارات'),
+  to: b('Tours, guides, drivers and cars; has its own CX team', 'الجولات والمرشدون والسائقون والسيارات؛ له فريق تجربة عملاء خاص'),
+  ev: b('Launches, investor evenings and VIP events', 'الإطلاقات وأمسيات المستثمرين وفعاليات كبار العملاء'),
+  wl: b('The investor’s portfolio in one place: properties across countries, documents, cash flow and AI suggestions', 'محفظة المستثمر في مكان واحد: عقارات عبر الدول، مستندات، تدفق نقدي واقتراحات ذكاء اصطناعي'),
+}
+
+/** KB §16: PSI Wallet's four complaint types with owners. */
+export const WALLET_COMPLAINT_TYPES: { type: Bi; owner: Bi }[] = [
+  { type: b('Upload and sync failures', 'فشل الرفع والمزامنة'), owner: b('Wallet product team', 'فريق منتج المحفظة') },
+  { type: b('Suggestion complaints', 'شكاوى الاقتراحات'), owner: b('Wallet product team', 'فريق منتج المحفظة') },
+  { type: b('Wrong value or cash flow', 'قيمة أو تدفق نقدي خاطئ'), owner: b('Account manager', 'مدير الحساب') },
+  { type: b('Privacy worries', 'مخاوف الخصوصية'), owner: b('Wallet team, with Legal as backup', 'فريق المحفظة، والقانونية كبديل') },
+]
+
+/** CES sample figure per product (prototype CES_DEMO); null = not asked yet. */
+export const CES_SAMPLE: Record<ProductId, number | null> = { re: 71, af: 66, cl: null, to: null, ev: null, wl: 74 }

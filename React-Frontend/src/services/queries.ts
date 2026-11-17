@@ -35,7 +35,7 @@ import {
   MOCK_VOC_ROWS,
 } from './mockData'
 import { sleep } from '../utils/random'
-import { isRecovered } from '../utils/closeTheLoop'
+import { INTERVIEW_OUTCOME_LABEL, isRecovered, REASON_CODE_LABEL } from '../utils/closeTheLoop'
 import { scoreChecklist } from '../utils/mysteryShopper'
 import { PRODUCTS } from '../data/products'
 import type {
@@ -305,7 +305,7 @@ async function advanceShopperCase(input: { caseId: string; status: ShopperCase['
   return c
 }
 
-async function requestInvestigation(input: { patternId: string; kind: Investigation['kind']; requestedCount?: number; environment?: string; scenario?: string }) {
+async function requestInvestigation(input: { patternId: string; kind: Investigation['kind']; requestedCount?: number; environment?: string; scenario?: string; lookFor?: string }) {
   await sleep(LATENCY_MS)
   const inv: Investigation = {
     id: `inv-${MOCK_INVESTIGATIONS.length + 1}`,
@@ -314,6 +314,7 @@ async function requestInvestigation(input: { patternId: string; kind: Investigat
     requestedCount: input.requestedCount,
     environment: input.environment,
     scenario: input.scenario ? { en: input.scenario, ar: input.scenario } : undefined,
+    lookFor: input.lookFor ? { en: input.lookFor, ar: input.lookFor } : undefined,
     status: 'requested',
   }
   MOCK_INVESTIGATIONS.push(inv)
@@ -332,12 +333,29 @@ async function returnInvestigation(input: { id: string; resultSummary: string })
 /** FR-5.3 — records the four-question interview's reason code + outcome
  * against the detractor list item. "Declined" is read as "no retry" at
  * display time (`outcome === 'declined'`), not a separate stored flag. */
-async function recordInterview(input: { id: string; reasonCode: ReasonCode; outcome: InterviewOutcome }) {
+async function recordInterview(input: { id: string; reasonCode: ReasonCode; outcome: InterviewOutcome; notes?: string; resurveyOn?: string }) {
   await sleep(LATENCY_MS)
   const item = MOCK_DETRACTOR_CALL_ITEMS.find((d) => d.id === input.id)
   if (!item) throw new Error('Detractor call item not found')
   item.reasonCode = input.reasonCode
+  item.notes = input.notes
+  item.resurveyOn = input.resurveyOn
   item.outcome = input.outcome
+  // KB §7: the interview sits on the person's timeline.
+  MOCK_INTERACTIONS.push({
+    id: `i-ctl-${item.id}-${MOCK_INTERACTIONS.length + 1}`,
+    personKey: item.personId,
+    sourceRef: `close-the-loop-${item.id}`,
+    channel: 'call',
+    direction: 'outbound',
+    occurredAt: new Date().toISOString(),
+    product: item.product,
+    environment: item.environment,
+    language: MOCK_PERSONS.find((p) => p.id === item.personId)?.language ?? 'en',
+    reason: 'Close the loop interview',
+    outcome: `${REASON_CODE_LABEL[input.reasonCode].en} · ${INTERVIEW_OUTCOME_LABEL[input.outcome].en}`,
+    problemFlags: [],
+  })
   return item
 }
 
@@ -350,6 +368,22 @@ async function recordResurvey(input: { id: string; secondScore: number }) {
   if (!item) throw new Error('Detractor call item not found')
   item.secondScore = input.secondScore
   if (isRecovered(item)) item.recoveredAt = new Date().toISOString()
+  // KB §7: the re-survey sits on the person's timeline too.
+  MOCK_INTERACTIONS.push({
+    id: `i-rs-${item.id}-${MOCK_INTERACTIONS.length + 1}`,
+    personKey: item.personId,
+    sourceRef: `re-survey-${item.id}`,
+    channel: 'survey',
+    direction: 'inbound',
+    occurredAt: new Date().toISOString(),
+    product: item.product,
+    environment: item.environment,
+    language: MOCK_PERSONS.find((p) => p.id === item.personId)?.language ?? 'en',
+    reason: 'Re-survey after resolution',
+    outcome: `${item.firstScore} → ${input.secondScore}`,
+    score: input.secondScore,
+    problemFlags: [],
+  })
   return item
 }
 
@@ -582,7 +616,11 @@ export function useRecordInterview() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: recordInterview,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['detractor-call-items'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['detractor-call-items'] })
+      qc.invalidateQueries({ queryKey: ['interactions'] })
+      qc.invalidateQueries({ queryKey: ['interactions-all'] })
+    },
   })
 }
 
@@ -590,7 +628,11 @@ export function useRecordResurvey() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: recordResurvey,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['detractor-call-items'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['detractor-call-items'] })
+      qc.invalidateQueries({ queryKey: ['interactions'] })
+      qc.invalidateQueries({ queryKey: ['interactions-all'] })
+    },
   })
 }
 

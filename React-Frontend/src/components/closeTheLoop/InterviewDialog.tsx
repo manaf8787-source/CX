@@ -1,8 +1,13 @@
+import { useEffect } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useI18n } from '@/i18n'
-import { INTERVIEW_OUTCOME_LABEL, REASON_CODE_LABEL } from '@/utils/closeTheLoop'
+import { INTERVIEW_OUTCOME_LABEL, REASON_CODE_LABEL, suggestReasonCode } from '@/utils/closeTheLoop'
+import { JOURNEY_RULES } from '@/utils/journeyRules'
+import { usePersonInteractions } from '@/services/queries'
+import { useNow } from '@/hooks/useNow'
+import { Input } from '@/components/ui/input'
 import { SEVERITY_TONE } from '@/lib/status'
 import type { DetractorCallItem, InterviewOutcome, ReasonCode } from '@/types'
 import { Button } from '@/components/ui/button'
@@ -28,6 +33,8 @@ const schema = z.object({
   mayComeBack: z.enum(['yes', 'no']),
   reasonCode: z.enum(REASON_CODES),
   outcome: z.enum(OUTCOMES),
+  notes: z.string().optional(),
+  resurveyOn: z.string().min(1, 'required'),
 })
 type FormValues = z.infer<typeof schema>
 
@@ -41,19 +48,35 @@ export function InterviewDialog({
 }: {
   item: DetractorCallItem
   onCancel: () => void
-  onSubmit: (v: { reasonCode: ReasonCode; outcome: InterviewOutcome }) => void
+  onSubmit: (v: { reasonCode: ReasonCode; outcome: InterviewOutcome; notes?: string; resurveyOn: string }) => void
 }) {
-  const { t, L } = useI18n()
-  const { register, handleSubmit, control, formState: { errors } } = useForm<FormValues>({
+  const { t, L, lang } = useI18n()
+  const { data: interactions } = usePersonInteractions(item.personId)
+  const suggested = suggestReasonCode(interactions ?? [])
+  const now = useNow()
+  const defaultResurvey = new Date(now + 10 * 86_400_000).toISOString().slice(0, 10)
+  const { register, handleSubmit, control, setValue, formState: { errors, dirtyFields } } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { q1: '', q2: '', q3: '', outcome: 'reached', mayComeBack: 'yes', reasonCode: REASON_CODES[0] },
+    defaultValues: { q1: '', q2: '', q3: '', outcome: 'reached', mayComeBack: 'yes', reasonCode: 'other', notes: '', resurveyOn: defaultResurvey },
   })
+  // Agent 8's suggestion arrives with the timeline; the caller can still change it.
+  useEffect(() => {
+    if (interactions && !dirtyFields.reasonCode && suggested !== 'other') setValue('reasonCode', suggested, { shouldDirty: true })
+  }, [interactions, suggested, dirtyFields.reasonCode, setValue])
+  // KB §7: the brief — what happened, in date order, from the timeline (facts only).
+  const brief = [...(interactions ?? [])]
+    .sort((a, b) => a.occurredAt.localeCompare(b.occurredAt))
+    .filter((i) => i.problemFlags.length || i.reason)
+    .slice(-6)
   const required = t('Required', 'مطلوب')
 
   return (
     <Dialog open onOpenChange={(open) => !open && onCancel()}>
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-2xl">
-        <form onSubmit={handleSubmit((v) => onSubmit({ reasonCode: v.reasonCode, outcome: v.outcome }))} className="flex flex-col gap-5">
+        <form
+          onSubmit={handleSubmit((v) => onSubmit({ reasonCode: v.reasonCode, outcome: v.outcome, notes: v.notes?.trim() || undefined, resurveyOn: v.resurveyOn }))}
+          className="flex flex-col gap-5"
+        >
           <DialogHeader>
             <DialogTitle>{t('Detractor interview — four questions', 'مقابلة المنتقد — أربعة أسئلة')}</DialogTitle>
             <DialogDescription asChild>
@@ -67,6 +90,32 @@ export function InterviewDialog({
               </div>
             </DialogDescription>
           </DialogHeader>
+
+          <section aria-label={t('Brief', 'الملخص')} className="flex flex-col gap-1.5 rounded-lg border bg-muted/40 p-3 text-sm">
+            <span className="font-semibold">{t('Brief from the timeline (Agent 8)', 'ملخص من الجدول الزمني (الوكيل 8)')}</span>
+            {brief.length === 0 ? (
+              <span className="text-muted-foreground">{t('No events on the record yet.', 'لا أحداث في السجل بعد.')}</span>
+            ) : (
+              <ol className="flex flex-col gap-1">
+                {brief.map((i) => (
+                  <li key={i.id} className="flex gap-2">
+                    <bdi dir="ltr" className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                      {new Date(i.occurredAt).toLocaleDateString(lang === 'ar' ? 'ar-AE' : 'en-GB')}
+                    </bdi>
+                    <span>
+                      {i.reason ?? ''}
+                      {i.problemFlags.length > 0 && (
+                        <span className="text-danger-text">
+                          {' '}
+                          · {i.problemFlags.map((f) => L(JOURNEY_RULES.find((r) => r.id === f)?.label ?? { en: 'Detractor', ar: 'منتقد' })).join(', ')}
+                        </span>
+                      )}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </section>
 
           <FieldGroup className="gap-4">
             <Field data-invalid={!!errors.q1}>
@@ -105,7 +154,10 @@ export function InterviewDialog({
                 />
               </Field>
               <Field>
-                <FieldLabel htmlFor="iv-reason">{t('Reason code', 'رمز السبب')}</FieldLabel>
+                <FieldLabel htmlFor="iv-reason">
+                  {t('Reason code', 'رمز السبب')}
+                  <span className="text-xs font-normal text-muted-foreground">{t(' (suggested from the timeline)', ' (مقترح من الجدول الزمني)')}</span>
+                </FieldLabel>
                 <Controller
                   control={control}
                   name="reasonCode"
@@ -145,6 +197,18 @@ export function InterviewDialog({
                     </Select>
                   )}
                 />
+              </Field>
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,1fr)_12rem]">
+              <Field>
+                <FieldLabel htmlFor="iv-notes">{t('Notes', 'ملاحظات')}</FieldLabel>
+                <Textarea id="iv-notes" rows={2} {...register('notes')} />
+              </Field>
+              <Field data-invalid={!!errors.resurveyOn}>
+                <FieldLabel htmlFor="iv-resurvey">{t('Re-survey date', 'تاريخ إعادة الاستبيان')}</FieldLabel>
+                <Input id="iv-resurvey" type="date" aria-invalid={!!errors.resurveyOn} {...register('resurveyOn')} />
+                <span className="text-xs text-muted-foreground">{t('7 to 14 days after resolution', 'بعد 7 إلى 14 يوماً من الحل')}</span>
+                {errors.resurveyOn && <FieldError>{required}</FieldError>}
               </Field>
             </div>
           </FieldGroup>

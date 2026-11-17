@@ -4,6 +4,7 @@ import { ArrowUpRight } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import { AnimatedValue } from './AnimatedValue'
+import { TermHelp } from './TermHelp'
 
 interface KpiTileProps {
   label: ReactNode
@@ -19,6 +20,8 @@ interface KpiTileProps {
   loading?: boolean
   className?: string
   children?: ReactNode
+  /** Glossary term for a "?" beside the metric (KB §14). */
+  term?: string
 }
 
 const BASE =
@@ -30,7 +33,7 @@ const INTERACTIVE =
   'motion-reduce:hover:translate-y-0'
 
 /** Bento-capable KPI tile: pass `className="md:col-span-2"` etc. to size it in a grid. */
-export function KpiTile({ label, value, sub, accent = 'var(--chart-1)', icon, to, onClick, loading, className, children }: KpiTileProps) {
+export function KpiTile({ label, value, sub, accent = 'var(--chart-1)', icon, to, onClick, loading, className, children, term }: KpiTileProps) {
   const style = { '--c': accent } as CSSProperties
   const body = (
     <>
@@ -61,21 +64,25 @@ export function KpiTile({ label, value, sub, accent = 'var(--chart-1)', icon, to
     </>
   )
 
-  if (to)
-    return (
-      <Link to={to} style={style} className={cn(BASE, INTERACTIVE, className)}>
-        {body}
-      </Link>
-    )
-  if (onClick)
-    return (
-      <button type="button" onClick={onClick} style={style} className={cn(BASE, INTERACTIVE, className)}>
-        {body}
-      </button>
-    )
-  return (
-    <div style={style} className={cn(BASE, className)}>
+  const tile = to ? (
+    <Link to={to} style={style} className={cn(BASE, INTERACTIVE, term ? 'h-full' : className)}>
       {body}
+    </Link>
+  ) : onClick ? (
+    <button type="button" onClick={onClick} style={style} className={cn(BASE, INTERACTIVE, term ? 'h-full w-full' : className)}>
+      {body}
+    </button>
+  ) : (
+    <div style={style} className={cn(BASE, term ? 'h-full' : className)}>
+      {body}
+    </div>
+  )
+  if (!term) return tile
+  // The "?" sits beside the tile, not inside it, so a link tile never nests a button.
+  return (
+    <div className={cn('relative min-w-0', className)}>
+      {tile}
+      <TermHelp term={term} className="absolute end-2 bottom-2" />
     </div>
   )
 }

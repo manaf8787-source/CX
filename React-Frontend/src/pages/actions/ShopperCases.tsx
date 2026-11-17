@@ -201,7 +201,7 @@ export default function ShopperCases() {
           approveLabel="confirmed"
           onCancel={() => setDecidingLine(null)}
           onSubmit={(v) => {
-            if (v.decision === 'approved') return
+            if (v.decision === 'approved' || v.decision === 'investigate') return
             decideLine.mutate({ caseId: decidingLine.caseId, n: decidingLine.n, decision: v.decision })
             setDecidingLine(null)
             toast.success(t('Decision saved', 'تم حفظ القرار'))
