@@ -1,6 +1,9 @@
 import { useMemo, useState } from 'react'
-import { useI18n } from '../i18n'
-import { useRole } from '../auth/RoleContext'
+import type { ColumnDef } from '@tanstack/react-table'
+import { toast } from 'sonner'
+import { Bot, Phone, Plus, TrendingUp } from 'lucide-react'
+import { useI18n } from '@/i18n'
+import { useRole } from '@/auth/RoleContext'
 import {
   useAiCampaigns,
   useCreateAiCampaign,
@@ -8,10 +11,7 @@ import {
   usePersons,
   useRecordInterview,
   useRecordResurvey,
-} from '../services/queries'
-import { SampleBanner } from '../components/common/SampleBanner'
-import { InterviewDialog } from '../components/closeTheLoop/InterviewDialog'
-import { CampaignDialog } from '../components/closeTheLoop/CampaignDialog'
+} from '@/services/queries'
 import {
   CLOSE_LOOP_DEFAULTS,
   INTERVIEW_OUTCOME_LABEL,
@@ -19,8 +19,33 @@ import {
   computeMonthlyCapacity,
   isRecovered,
   sampleToCapacity,
-} from '../utils/closeTheLoop'
-import type { DetractorCallItem } from '../types'
+} from '@/utils/closeTheLoop'
+import { SEVERITY_TONE } from '@/lib/status'
+import type { DetractorCallItem } from '@/types'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Progress } from '@/components/ui/progress'
+import { PageHeader } from '@/components/common/PageHeader'
+import { SectionCard } from '@/components/common/SectionCard'
+import { StatusBadge } from '@/components/common/StatusBadge'
+import { DataTable, SortableHeader } from '@/components/common/DataTable'
+import { EmptyState } from '@/components/common/EmptyState'
+import { LoadingState } from '@/components/common/LoadingState'
+import { InterviewDialog } from '@/components/closeTheLoop/InterviewDialog'
+import { CampaignDialog } from '@/components/closeTheLoop/CampaignDialog'
+
+const SEVERITY_LABEL = {
+  critical: { en: 'Critical', ar: 'حرجة' },
+  medium: { en: 'Medium', ar: 'متوسطة' },
+  low: { en: 'Low', ar: 'منخفضة' },
+} as const
+
+const CAMPAIGN_STATUS: Record<string, { label: { en: string; ar: string }; tone: 'success' | 'warning' | 'neutral' }> = {
+  running: { label: { en: 'Running', ar: 'جارية' }, tone: 'success' },
+  closed: { label: { en: 'Closed', ar: 'مغلقة' }, tone: 'neutral' },
+  draft: { label: { en: 'Draft', ar: 'مسودة' }, tone: 'warning' },
+}
 
 /** FR-5.1–5.6 — the monthly detractor call list with real capacity math,
  * the four-question interview, re-survey/recovery delta, and AI interview
@@ -28,9 +53,9 @@ import type { DetractorCallItem } from '../types'
 export default function CloseTheLoop() {
   const { t, L } = useI18n()
   const { role } = useRole()
-  const { data: items } = useDetractorCallItems()
+  const { data: items, isLoading: itemsLoading } = useDetractorCallItems()
   const { data: persons } = usePersons()
-  const { data: campaigns } = useAiCampaigns()
+  const { data: campaigns, isLoading: campaignsLoading } = useAiCampaigns()
   const recordInterview = useRecordInterview()
   const recordResurvey = useRecordResurvey()
   const createCampaign = useCreateAiCampaign()
@@ -52,139 +77,220 @@ export default function CloseTheLoop() {
     return persons?.find((p) => p.id === id)?.name ?? id
   }
 
-  return (
-    <div className="skeleton-page">
-      <div className="topbar">
-        <div className="page-head">
-          <h1>{t('Close the loop', 'إغلاق الحلقة')}</h1>
-          <p className="page-lede">{t('Every detractor gets a human call, a reason code and a re-survey. Critical cases first.', 'كل منتقد يحصل على مكالمة بشرية ورمز سبب وإعادة استبيان. الحالات الحرجة أولاً.')}</p>
-        </div>
-        <SampleBanner />
-      </div>
+  function saveResurvey(id: string) {
+    const raw = resurveyDraft[id]
+    const v = Number(raw)
+    if (raw === undefined || raw === '' || !Number.isFinite(v) || v < 0 || v > 10) {
+      toast.error(t('Enter a score from 0 to 10.', 'أدخل درجة من 0 إلى 10.'))
+      return
+    }
+    recordResurvey.mutate({ id, secondScore: v })
+    toast.success(t('Re-survey saved', 'تم حفظ إعادة الاستبيان'))
+  }
 
-      <div className="card">
-        <div className="card-head"><h2>{t('Monthly capacity', 'السعة الشهرية')}</h2></div>
-        <div className="row" style={{ gap: 20, flexWrap: 'wrap' }}>
-          <label className="col text-sm">{t('CX people', 'عدد موظفي تجربة العملاء')}
-            <input type="number" min={1} value={people} onChange={(e) => setPeople(Math.max(1, Number(e.target.value) || 1))} style={{ width: 80 }} />
-          </label>
-          <label className="col text-sm">{t('Hours/day', 'ساعات/يوم')}
-            <input type="number" min={1} max={12} value={hoursPerDay} onChange={(e) => setHoursPerDay(Math.max(1, Number(e.target.value) || 1))} style={{ width: 80 }} />
-          </label>
-          <label className="col text-sm">{t('Working days', 'أيام العمل')}
-            <input type="number" min={1} max={31} value={workingDays} onChange={(e) => setWorkingDays(Math.max(1, Number(e.target.value) || 1))} style={{ width: 80 }} />
-          </label>
-          <div className="col text-sm">
-            <span className="muted">{t('= capacity (4 calls/hour)', '= السعة (4 مكالمات/ساعة)')}</span>
-            <b className="mono" style={{ fontSize: 18 }}>{capacity}</b>
+  const columns: ColumnDef<DetractorCallItem>[] = [
+    {
+      id: 'severity',
+      accessorFn: (i) => SEVERITY_ORDER[i.severity],
+      header: ({ column }) => <SortableHeader column={column}>{t('Severity', 'الخطورة')}</SortableHeader>,
+      cell: ({ row }) => (
+        <StatusBadge tone={SEVERITY_TONE[row.original.severity]} dot>
+          {L(SEVERITY_LABEL[row.original.severity])}
+        </StatusBadge>
+      ),
+    },
+    {
+      id: 'person',
+      accessorFn: (i) => personName(i.personId),
+      header: ({ column }) => <SortableHeader column={column}>{t('Person', 'الشخص')}</SortableHeader>,
+      cell: ({ getValue }) => <span className="font-medium">{getValue<string>()}</span>,
+    },
+    { id: 'environment', accessorKey: 'environment', header: t('Environment', 'البيئة') },
+    {
+      id: 'channel',
+      accessorFn: (i) => i.channel,
+      header: t('Channel', 'القناة'),
+      cell: ({ row }) =>
+        row.original.channel === 'ai_campaign' ? (
+          <span className="inline-flex items-center gap-1.5">
+            <Bot aria-hidden className="size-4 text-muted-foreground" />
+            {t('AI campaign', 'حملة ذكاء اصطناعي')}
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1.5">
+            <Phone aria-hidden className="size-4 text-muted-foreground" />
+            {t('Human', 'بشري')}
+          </span>
+        ),
+    },
+    {
+      id: 'firstScore',
+      accessorKey: 'firstScore',
+      header: ({ column }) => <SortableHeader column={column}>{t('First score', 'النتيجة الأولى')}</SortableHeader>,
+      meta: { align: 'end' },
+    },
+    {
+      id: 'outcome',
+      accessorFn: (i) => (i.outcome ? L(INTERVIEW_OUTCOME_LABEL[i.outcome]) : ''),
+      header: t('Outcome', 'النتيجة'),
+      cell: ({ row }) =>
+        row.original.outcome ? (
+          L(INTERVIEW_OUTCOME_LABEL[row.original.outcome])
+        ) : (
+          <span className="text-muted-foreground">{t('Not called yet', 'لم يُتصل به بعد')}</span>
+        ),
+    },
+    {
+      id: 'recovery',
+      header: t('Re-survey / recovery', 'إعادة الاستبيان / التعافي'),
+      enableSorting: false,
+      cell: ({ row }) => {
+        const i = row.original
+        if (i.secondScore !== undefined) {
+          const recovered = isRecovered(i)
+          return (
+            <StatusBadge tone={recovered ? 'success' : 'neutral'} icon={recovered ? <TrendingUp aria-hidden /> : undefined}>
+              <bdi dir="ltr" className="tabular-nums">
+                {i.firstScore} → {i.secondScore}
+              </bdi>
+              {recovered && ` · ${t('Recovered', 'تعافى')}`}
+            </StatusBadge>
+          )
+        }
+        if (i.outcome === 'declined') return <span className="text-sm text-muted-foreground">{t('Declined — no retry', 'رفض — دون إعادة محاولة')}</span>
+        if (!i.outcome) return <span className="text-muted-foreground">—</span>
+        return (
+          <div className="flex items-center gap-1.5">
+            <Input
+              type="number"
+              inputMode="numeric"
+              min={0}
+              max={10}
+              placeholder="0–10"
+              aria-label={t('Second score (0 to 10)', 'النتيجة الثانية (0 إلى 10)')}
+              className="h-9 w-20"
+              value={resurveyDraft[i.id] ?? ''}
+              onChange={(e) => setResurveyDraft((d) => ({ ...d, [i.id]: e.target.value }))}
+            />
+            <Button variant="outline" size="sm" className="h-9" onClick={() => saveResurvey(i.id)}>
+              {t('Save', 'حفظ')}
+            </Button>
           </div>
-        </div>
-        <div className="meter" style={{ marginTop: 10 }}><i style={{ width: `${usedPct}%` }} /></div>
-        <p className="text-sm muted" style={{ marginTop: 6 }}>
-          {selected.length} / {sorted.length} {t('detractors called this month', 'منتقد سيُتصل بهم هذا الشهر')}
-          {excluded.length > 0 && (
-            <> — {excluded.length} {t('sampled out (critical always called at 100%, the rest spread across products/environments)', 'مستبعدون من العينة (الحرج دائماً 100%، والباقي موزَّع على المنتجات والبيئات)')}</>
-          )}
-        </p>
-      </div>
+        )
+      },
+    },
+    {
+      id: 'call',
+      header: () => <span className="sr-only">{t('Call', 'اتصال')}</span>,
+      enableSorting: false,
+      meta: { align: 'end' },
+      cell: ({ row }) =>
+        !row.original.outcome && (
+          <Button size="sm" className="h-9" onClick={() => setInterviewing(row.original)}>
+            <Phone aria-hidden />
+            {t('Call', 'اتصال')}
+          </Button>
+        ),
+    },
+  ]
 
-      <div className="card">
-        <div className="card-head">
-          <h2>{t("This month's call list", 'قائمة الاتصال لهذا الشهر')}</h2>
-          <span className="text-sm muted">{selected.length}</span>
-        </div>
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>{t('Severity', 'الخطورة')}</th>
-                <th>{t('Person', 'الشخص')}</th>
-                <th>{t('Environment', 'البيئة')}</th>
-                <th>{t('Channel', 'القناة')}</th>
-                <th className="num">{t('First score', 'النتيجة الأولى')}</th>
-                <th>{t('Outcome', 'النتيجة')}</th>
-                <th>{t('Re-survey / recovery', 'إعادة الاستبيان / التعافي')}</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {selected.map((i) => (
-                <tr key={i.id}>
-                  <td><span className={`chip ${i.severity === 'critical' ? 'crit' : i.severity === 'medium' ? 'warn' : ''}`}>{i.severity}</span></td>
-                  <td>{personName(i.personId)}</td>
-                  <td>{i.environment}</td>
-                  <td>{i.channel === 'ai_campaign' ? t('AI campaign', 'حملة ذكاء اصطناعي') : t('Human', 'بشري')}</td>
-                  <td className="num">{i.firstScore}</td>
-                  <td>
-                    {i.outcome ? L(INTERVIEW_OUTCOME_LABEL[i.outcome]) : <span className="muted">{t('Not called yet', 'لم يُتصل به بعد')}</span>}
-                  </td>
-                  <td>
-                    {i.secondScore !== undefined ? (
-                      <span className={`chip ${isRecovered(i) ? 'good' : ''}`}>
-                        {i.firstScore} → {i.secondScore}{isRecovered(i) ? ` · ${t('Recovered', 'تعافى')}` : ''}
-                      </span>
-                    ) : i.outcome && i.outcome !== 'declined' ? (
-                      <span className="row" style={{ gap: 4, flexWrap: 'nowrap' }}>
-                        <input
-                          type="number" min={0} max={10} placeholder="0-10" style={{ width: 60 }}
-                          value={resurveyDraft[i.id] ?? ''}
-                          onChange={(e) => setResurveyDraft((d) => ({ ...d, [i.id]: e.target.value }))}
-                        />
-                        <button
-                          type="button" className="btn sm"
-                          onClick={() => {
-                            const v = Number(resurveyDraft[i.id])
-                            if (Number.isFinite(v)) recordResurvey.mutate({ id: i.id, secondScore: v })
-                          }}
-                        >
-                          {t('Save', 'حفظ')}
-                        </button>
-                      </span>
-                    ) : i.outcome === 'declined' ? (
-                      <span className="text-sm muted">{t('Declined — no retry', 'رفض — دون إعادة محاولة')}</span>
-                    ) : (
-                      '—'
-                    )}
-                  </td>
-                  <td>
-                    {!i.outcome && <button type="button" className="btn sm primary" onClick={() => setInterviewing(i)}>{t('Call', 'اتصال')}</button>}
-                  </td>
-                </tr>
-              ))}
-              {!selected.length && (
-                <tr><td colSpan={8} className="muted">{t("Nobody on this month's list.", 'لا أحد في قائمة هذا الشهر.')}</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+  return (
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title={t('Close the loop', 'إغلاق الحلقة')}
+        description={t('Every detractor gets a human call, a reason code and a re-survey. Critical cases first.', 'كل منتقد يحصل على مكالمة بشرية ورمز سبب وإعادة استبيان. الحالات الحرجة أولاً.')}
+      />
 
-      <div className="card">
-        <div className="card-head">
-          <h2>{t('AI interview campaigns', 'حملات المقابلات بالذكاء الاصطناعي')}</h2>
-          {canCreateCampaign && (
-            <button type="button" className="btn sm" onClick={() => setCreatingCampaign(true)}>{t('Create campaign', 'إنشاء حملة')}</button>
-          )}
-        </div>
-        <p className="text-sm muted" style={{ marginBottom: 10 }}>
-          {t(
-            'Humans call by default. Hand-off rules: 2x no-answer/hang-up → human; asks for a person or says anything critical → human the same day; declines → no retry. Critical detractors are never in a campaign.',
-            'الاتصال بشري افتراضياً. قواعد التسليم: عدم الرد مرتين → بشري؛ طلب شخص أو قول أمر حرج → بشري بنفس اليوم؛ الرفض → دون إعادة محاولة. المنتقدون الحرجون لا يُدرجون في أي حملة أبداً.',
-          )}
-        </p>
-        <div className="col">
-          {campaigns?.map((c) => (
-            <div className="card tint" key={c.id}>
-              <div className="row between">
-                <b>{L(c.name)}</b>
-                <span className={`chip ${c.status === 'running' ? 'good' : c.status === 'closed' ? '' : 'warn'}`}>{c.status}</span>
-              </div>
-              <span className="text-sm muted">{L(c.segmentDescription)} · {c.memberIds.length} {t('members', 'عضو')}</span>
+      <SectionCard
+        title={t('Monthly capacity', 'السعة الشهرية')}
+        description={t('Critical detractors are always called; the rest are sampled to fit the team’s hours.', 'المنتقدون الحرجون يُتصل بهم دائماً؛ ويُختار الباقون بالعينة بما يتسع له وقت الفريق.')}
+      >
+        <div className="flex flex-col gap-4">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <NumberField id="ctl-people" label={t('CX people', 'عدد موظفي تجربة العملاء')} value={people} min={1} onChange={setPeople} />
+            <NumberField id="ctl-hours" label={t('Hours/day', 'ساعات/يوم')} value={hoursPerDay} min={1} max={12} onChange={setHoursPerDay} />
+            <NumberField id="ctl-days" label={t('Working days', 'أيام العمل')} value={workingDays} min={1} max={31} onChange={setWorkingDays} />
+            <div className="flex flex-col justify-end gap-1 rounded-lg bg-primary/5 px-3 py-2">
+              <span className="text-xs text-muted-foreground">{t('= capacity (4 calls/hour)', '= السعة (4 مكالمات/ساعة)')}</span>
+              <span className="text-2xl font-semibold text-primary tabular-nums" aria-live="polite">
+                {capacity}
+              </span>
             </div>
-          ))}
-          {!campaigns?.length && <div className="empty-state">{t('No campaigns yet.', 'لا توجد حملات بعد.')}</div>}
+          </div>
+          <Progress value={usedPct} aria-label={t('Share of detractors called', 'نسبة المنتقدين الذين سيُتصل بهم')} className="h-2 bg-muted" />
+          <p className="text-sm text-muted-foreground">
+            <bdi dir="ltr" className="font-medium text-foreground tabular-nums">
+              {selected.length} / {sorted.length}
+            </bdi>{' '}
+            {t('detractors called this month', 'منتقد سيُتصل بهم هذا الشهر')}
+            {excluded.length > 0 && (
+              <>
+                {' '}
+                — <span className="tabular-nums">{excluded.length}</span>{' '}
+                {t('sampled out (critical always called at 100%, the rest spread across products/environments)', 'مستبعدون من العينة (الحرج دائماً 100%، والباقي موزَّع على المنتجات والبيئات)')}
+              </>
+            )}
+          </p>
         </div>
-      </div>
+      </SectionCard>
+
+      <SectionCard
+        title={t("This month's call list", 'قائمة الاتصال لهذا الشهر')}
+        actions={<span className="text-sm text-muted-foreground tabular-nums">{selected.length}</span>}
+      >
+        <DataTable
+          columns={columns}
+          data={selected}
+          isLoading={itemsLoading}
+          getRowId={(i) => i.id}
+          pageSize={10}
+          emptyTitle={t("Nobody on this month's list.", 'لا أحد في قائمة هذا الشهر.')}
+        />
+      </SectionCard>
+
+      <SectionCard
+        title={t('AI interview campaigns', 'حملات المقابلات بالذكاء الاصطناعي')}
+        description={t(
+          'Humans call by default. Hand-off rules: 2x no-answer/hang-up → human; asks for a person or says anything critical → human the same day; declines → no retry. Critical detractors are never in a campaign.',
+          'الاتصال بشري افتراضياً. قواعد التسليم: عدم الرد مرتين → بشري؛ طلب شخص أو قول أمر حرج → بشري بنفس اليوم؛ الرفض → دون إعادة محاولة. المنتقدون الحرجون لا يُدرجون في أي حملة أبداً.',
+        )}
+        actions={
+          canCreateCampaign && (
+            <Button variant="outline" size="sm" className="h-9" onClick={() => setCreatingCampaign(true)}>
+              <Plus aria-hidden />
+              {t('Create campaign', 'إنشاء حملة')}
+            </Button>
+          )
+        }
+      >
+        {campaignsLoading ? (
+          <LoadingState rows={2} />
+        ) : !campaigns?.length ? (
+          <EmptyState title={t('No campaigns yet.', 'لا توجد حملات بعد.')} />
+        ) : (
+          <ul className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            {campaigns.map((c) => {
+              const status = CAMPAIGN_STATUS[c.status] ?? { label: { en: c.status, ar: c.status }, tone: 'neutral' as const }
+              return (
+                <li key={c.id} className="flex min-w-0 flex-col gap-1.5 rounded-lg border bg-muted/30 p-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="inline-flex items-center gap-2 text-sm font-semibold">
+                      <Bot aria-hidden className="size-4 text-primary" />
+                      {L(c.name)}
+                    </span>
+                    <StatusBadge tone={status.tone} dot>
+                      {L(status.label)}
+                    </StatusBadge>
+                  </div>
+                  <span className="text-sm text-muted-foreground">
+                    {L(c.segmentDescription)} · <span className="tabular-nums">{c.memberIds.length}</span> {t('members', 'عضو')}
+                  </span>
+                </li>
+              )
+            })}
+          </ul>
+        )}
+      </SectionCard>
 
       {interviewing && (
         <InterviewDialog
@@ -193,6 +299,7 @@ export default function CloseTheLoop() {
           onSubmit={(v) => {
             recordInterview.mutate({ id: interviewing.id, ...v })
             setInterviewing(null)
+            toast.success(t('Interview saved', 'تم حفظ المقابلة'))
           }}
         />
       )}
@@ -209,9 +316,30 @@ export default function CloseTheLoop() {
               memberIds: v.memberIds,
             })
             setCreatingCampaign(false)
+            toast.success(t('Campaign created', 'تم إنشاء الحملة'))
           }}
         />
       )}
+    </div>
+  )
+}
+
+function NumberField({ id, label, value, min, max, onChange }: { id: string; label: string; value: number; min: number; max?: number; onChange: (v: number) => void }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Label htmlFor={id} className="text-xs text-muted-foreground">
+        {label}
+      </Label>
+      <Input
+        id={id}
+        type="number"
+        inputMode="numeric"
+        min={min}
+        max={max}
+        value={value}
+        onChange={(e) => onChange(Math.max(min, Number(e.target.value) || min))}
+        className="h-9 tabular-nums"
+      />
     </div>
   )
 }

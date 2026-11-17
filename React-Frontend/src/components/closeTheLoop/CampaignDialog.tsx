@@ -1,16 +1,29 @@
 import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { useI18n } from '../../i18n'
-import type { DetractorCallItem } from '../../types'
+import { ShieldAlert } from 'lucide-react'
+import { useI18n } from '@/i18n'
+import type { DetractorCallItem } from '@/types'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Field, FieldError, FieldGroup, FieldLabel, FieldLegend, FieldSet } from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 
 const schema = z.object({
-  name: z.string().min(2, 'Required'),
-  segmentDescription: z.string().min(2, 'Required'),
-  scriptEn: z.string().min(2, 'Required'),
-  scriptAr: z.string().min(2, 'Required'),
-  memberIds: z.array(z.string()).min(1, 'Pick at least one member'),
+  name: z.string().trim().min(2, 'required'),
+  segmentDescription: z.string().trim().min(2, 'required'),
+  scriptEn: z.string().trim().min(2, 'required'),
+  scriptAr: z.string().trim().min(2, 'required'),
+  memberIds: z.array(z.string()).min(1, 'members'),
 })
 export type CampaignFormValues = z.infer<typeof schema>
+
+const SEVERITY_LABEL = {
+  critical: { en: 'Critical', ar: 'حرجة' },
+  medium: { en: 'Medium', ar: 'متوسطة' },
+  low: { en: 'Low', ar: 'منخفضة' },
+} as const
 
 /**
  * FR-5.6 — `eligibleItems` is filtered by the caller to exclude critical
@@ -27,46 +40,76 @@ export function CampaignDialog({
   onCancel: () => void
   onCreate: (v: CampaignFormValues) => void
 }) {
-  const { t } = useI18n()
-  const { register, handleSubmit, formState: { errors } } = useForm<CampaignFormValues>({ defaultValues: { memberIds: [] } })
-
-  function submit(values: CampaignFormValues) {
-    const parsed = schema.safeParse(values)
-    if (!parsed.success) return
-    onCreate(parsed.data)
-  }
+  const { t, L } = useI18n()
+  const { register, handleSubmit, formState: { errors } } = useForm<CampaignFormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: { name: '', segmentDescription: '', scriptEn: '', scriptAr: '', memberIds: [] },
+  })
+  const required = t('Required', 'مطلوب')
 
   return (
-    <div className="modal-backdrop" onClick={onCancel}>
-      <form className="modal wide" onClick={(e) => e.stopPropagation()} onSubmit={handleSubmit(submit)}>
-        <h2>{t('Create an AI interview campaign', 'إنشاء حملة مقابلات بالذكاء الاصطناعي')}</h2>
-        <p className="text-sm" style={{ color: 'var(--warn)' }}>
-          {t('Critical detractors are never offered here — human call only.', 'المنتقدون الحرجون لا يُعرضون هنا أبداً — مكالمة بشرية فقط.')}
-        </p>
-        <label className="col text-sm">{t('Name', 'الاسم')}
-          <input type="text" {...register('name')} />
-          {errors.name && <span style={{ color: 'var(--crit)' }}>{t('Required', 'مطلوب')}</span>}
-        </label>
-        <label className="col text-sm">{t('Segment', 'الشريحة')}<input type="text" {...register('segmentDescription')} /></label>
-        <label className="col text-sm">{t('Script (English)', 'النص (إنجليزي)')}<textarea {...register('scriptEn')} /></label>
-        <label className="col text-sm">{t('Script (Arabic)', 'النص (عربي)')}<textarea {...register('scriptAr')} dir="rtl" /></label>
-        <div className="col text-sm">
-          <span className="muted">{t('Members (non-critical, not yet called)', 'الأعضاء (غير حرجين، لم يُتصل بهم بعد)')}</span>
-          <div className="col" style={{ maxHeight: 160, overflowY: 'auto', border: '1px solid var(--line)', borderRadius: 8, padding: 8 }}>
-            {eligibleItems.map((i) => (
-              <label key={i.id} className="row">
-                <input type="checkbox" value={i.id} {...register('memberIds')} /> {i.id} — {i.severity} — {i.environment}
-              </label>
-            ))}
-            {!eligibleItems.length && <span className="muted">{t('No eligible members right now.', 'لا يوجد أعضاء مؤهلون حالياً.')}</span>}
-          </div>
-          {errors.memberIds && <span style={{ color: 'var(--crit)' }}>{t('Pick at least one member.', 'اختر عضواً واحداً على الأقل.')}</span>}
-        </div>
-        <div className="row" style={{ justifyContent: 'flex-end' }}>
-          <button type="button" className="btn" onClick={onCancel}>{t('Cancel', 'إلغاء')}</button>
-          <button type="submit" className="btn primary">{t('Create campaign', 'إنشاء الحملة')}</button>
-        </div>
-      </form>
-    </div>
+    <Dialog open onOpenChange={(open) => !open && onCancel()}>
+      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-2xl">
+        <form onSubmit={handleSubmit(onCreate)} className="flex flex-col gap-5">
+          <DialogHeader>
+            <DialogTitle>{t('Create an AI interview campaign', 'إنشاء حملة مقابلات بالذكاء الاصطناعي')}</DialogTitle>
+            <DialogDescription className="flex items-start gap-1.5 text-warning-text">
+              <ShieldAlert aria-hidden className="mt-0.5 size-4 shrink-0" />
+              {t('Critical detractors are never offered here — human call only.', 'المنتقدون الحرجون لا يُعرضون هنا أبداً — مكالمة بشرية فقط.')}
+            </DialogDescription>
+          </DialogHeader>
+
+          <FieldGroup className="gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field data-invalid={!!errors.name}>
+                <FieldLabel htmlFor="cmp-name">{t('Name', 'الاسم')}</FieldLabel>
+                <Input id="cmp-name" className="h-9" aria-invalid={!!errors.name} {...register('name')} />
+                {errors.name && <FieldError>{required}</FieldError>}
+              </Field>
+              <Field data-invalid={!!errors.segmentDescription}>
+                <FieldLabel htmlFor="cmp-segment">{t('Segment', 'الشريحة')}</FieldLabel>
+                <Input id="cmp-segment" className="h-9" aria-invalid={!!errors.segmentDescription} {...register('segmentDescription')} />
+                {errors.segmentDescription && <FieldError>{required}</FieldError>}
+              </Field>
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field data-invalid={!!errors.scriptEn}>
+                <FieldLabel htmlFor="cmp-en">{t('Script (English)', 'النص (إنجليزي)')}</FieldLabel>
+                <Textarea id="cmp-en" dir="ltr" rows={4} aria-invalid={!!errors.scriptEn} {...register('scriptEn')} />
+                {errors.scriptEn && <FieldError>{required}</FieldError>}
+              </Field>
+              <Field data-invalid={!!errors.scriptAr}>
+                <FieldLabel htmlFor="cmp-ar">{t('Script (Arabic)', 'النص (عربي)')}</FieldLabel>
+                <Textarea id="cmp-ar" dir="rtl" rows={4} aria-invalid={!!errors.scriptAr} {...register('scriptAr')} />
+                {errors.scriptAr && <FieldError>{required}</FieldError>}
+              </Field>
+            </div>
+
+            <FieldSet data-invalid={!!errors.memberIds} className="gap-2">
+              <FieldLegend variant="label">{t('Members (non-critical, not yet called)', 'الأعضاء (غير حرجين، لم يُتصل بهم بعد)')}</FieldLegend>
+              <div className="flex max-h-48 flex-col overflow-y-auto rounded-lg border">
+                {eligibleItems.map((i) => (
+                  <label key={i.id} className="flex min-h-10 cursor-pointer items-center gap-3 border-b px-3 py-2 text-sm transition-colors duration-150 last:border-b-0 hover:bg-muted/60">
+                    <input type="checkbox" value={i.id} className="size-4 shrink-0 cursor-pointer accent-primary" {...register('memberIds')} />
+                    <span className="font-mono text-xs text-muted-foreground">{i.id}</span>
+                    <span>{L(SEVERITY_LABEL[i.severity])}</span>
+                    <span className="text-muted-foreground">· {i.environment}</span>
+                  </label>
+                ))}
+                {!eligibleItems.length && <p className="p-3 text-sm text-muted-foreground">{t('No eligible members right now.', 'لا يوجد أعضاء مؤهلون حالياً.')}</p>}
+              </div>
+              {errors.memberIds && <FieldError>{t('Pick at least one member.', 'اختر عضواً واحداً على الأقل.')}</FieldError>}
+            </FieldSet>
+          </FieldGroup>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onCancel}>
+              {t('Cancel', 'إلغاء')}
+            </Button>
+            <Button type="submit">{t('Create campaign', 'إنشاء الحملة')}</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   )
 }

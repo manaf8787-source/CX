@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Mic, MicOff, Send, X } from 'lucide-react'
+import { ArrowRight, Mic, MicOff, Send, Sparkles, X } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { cn } from '@/lib/utils'
 import { useI18n } from '../../i18n'
 import { useRole } from '../../auth/RoleContext'
 import {
@@ -15,6 +18,7 @@ import {
   useShopperCases,
   useSignals,
 } from '../../services/queries'
+import { SheetTitle } from '@/components/ui/sheet'
 import { answerQuestion, SUGGESTED_QUERIES, type AssistantDataset } from './assistantEngine'
 import type { Bi } from '../../types'
 
@@ -86,6 +90,10 @@ export function AssistantPanel({ onClose }: { onClose: () => void }) {
     }),
     [persons, interactions, signals, patterns, correctiveActions, shopperCases, personas, detractorCallItems, agentDirectory, homeSummary],
   )
+  // Answering before every query has resolved would report zeros as facts.
+  const ready = [persons, interactions, signals, patterns, correctiveActions, shopperCases, personas, detractorCallItems, agentDirectory, homeSummary].every(
+    (d) => d !== undefined,
+  )
 
   const [messages, setMessages] = useState<Message[]>([
     { id: 0, from: 'assistant', text: { en: 'Ask about a person, or ask a free-text question.', ar: 'اسأل عن شخص، أو اطرح سؤالاً حراً.' } },
@@ -107,7 +115,7 @@ export function AssistantPanel({ onClose }: { onClose: () => void }) {
 
   function send(text: string) {
     const value = text.trim()
-    if (!value) return
+    if (!value || !ready) return
     const userMsg: Message = { id: Date.now(), from: 'user', text: { en: value, ar: value } }
     const reply = answerQuestion(value, role.id, dataset)
     const replyMsg: Message = { id: Date.now() + 1, from: 'assistant', text: reply.text, matchedPersonId: reply.matchedPersonId }
@@ -138,76 +146,115 @@ export function AssistantPanel({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <>
-      <div className="slideover-backdrop" onClick={onClose} />
-      <div className="slideover" role="dialog" aria-label={t('AI assistant', 'المساعد الذكي')}>
-        <div className="row between" style={{ padding: 16, borderBlockEnd: '1px solid var(--line)' }}>
-          <h2>{t('AI assistant', 'المساعد الذكي')}</h2>
-          <button type="button" className="icon-btn" onClick={onClose} aria-label={t('Close', 'إغلاق')}>
-            <X size={16} />
-          </button>
+    <div className="flex h-full min-h-0 flex-col bg-background">
+      <header className="flex items-center gap-3 border-b bg-card px-4 py-3">
+        <span aria-hidden className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-gold text-gold-foreground">
+          <Sparkles className="size-4" />
+        </span>
+        <div className="flex min-w-0 flex-1 flex-col">
+          <SheetTitle className="text-lg leading-tight font-semibold">{t('AI assistant', 'المساعد الذكي')}</SheetTitle>
+          <span className="truncate text-xs text-muted-foreground">
+            {t('Answers from the sample data, within your role', 'إجابات من البيانات النموذجية، ضمن صلاحيات دورك')}
+          </span>
         </div>
+        <Button variant="ghost" size="icon" onClick={onClose} aria-label={t('Close', 'إغلاق')}>
+          <X aria-hidden />
+        </Button>
+      </header>
 
-        <div ref={scrollRef} className="col" style={{ flex: 1, overflowY: 'auto', padding: 16, gap: 10 }}>
-          {messages.map((m) => (
-            <div key={m.id} className="col" style={{ alignSelf: m.from === 'user' ? 'flex-end' : 'flex-start', maxWidth: '88%', gap: 6 }}>
+      <div
+        ref={scrollRef}
+        role="log"
+        aria-live="polite"
+        aria-label={t('Conversation', 'المحادثة')}
+        className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-4"
+      >
+        {messages.map((m) => {
+          const mine = m.from === 'user'
+          return (
+            <div key={m.id} className={cn('flex max-w-[88%] flex-col gap-1.5', mine ? 'items-end self-end' : 'items-start self-start')}>
               <div
-                className="card"
-                style={{ background: m.from === 'user' ? 'var(--brand-tint)' : 'var(--surface-2)', margin: 0 }}
+                className={cn(
+                  'rounded-2xl px-3.5 py-2.5 text-base leading-relaxed whitespace-pre-line shadow-xs',
+                  mine ? 'rounded-ee-sm bg-primary text-primary-foreground' : 'rounded-es-sm border bg-card text-card-foreground',
+                )}
               >
                 {L(m.text)}
               </div>
               {m.matchedPersonId && (
-                <button
-                  type="button"
-                  className="btn sm primary"
-                  style={{ alignSelf: m.from === 'user' ? 'flex-end' : 'flex-start' }}
+                <Button
+                  size="sm"
                   onClick={() => {
                     navigate(`/customers/${m.matchedPersonId}`)
                     onClose()
                   }}
                 >
                   {t('View their journey', 'عرض رحلة العميل')}
-                </button>
+                  <ArrowRight aria-hidden className="rtl:rotate-180" />
+                </Button>
               )}
             </div>
-          ))}
-        </div>
+          )
+        })}
+      </div>
 
-        <div className="row" style={{ padding: '0 16px', gap: 6 }}>
+      <div className="border-t bg-card">
+        <div className="flex gap-2 overflow-x-auto px-4 pt-3 pb-1" aria-label={t('Suggested questions', 'أسئلة مقترحة')} role="group">
           {SUGGESTED_QUERIES.map((q) => (
-            <button key={q.en} type="button" className="chip" style={{ cursor: 'pointer' }} onClick={() => send(t(q.en, q.ar))}>
+            <Button
+              key={q.en}
+              type="button"
+              variant="outline"
+              size="sm"
+              className="shrink-0 rounded-full font-normal"
+              disabled={!ready}
+              onClick={() => send(t(q.en, q.ar))}
+            >
               {t(q.en, q.ar)}
-            </button>
+            </Button>
           ))}
         </div>
 
-        <div className="row" style={{ padding: 16, borderBlockStart: '1px solid var(--line)' }}>
+        <form
+          className="flex items-center gap-2 px-4 pt-2 pb-4"
+          onSubmit={(e) => {
+            e.preventDefault()
+            send(draft)
+          }}
+        >
           {RecognitionCtor && (
-            <button
+            <Button
               type="button"
-              className="icon-btn"
+              variant="outline"
+              size="icon-lg"
               title={t('Voice input', 'الإدخال الصوتي')}
-              aria-label={t('Voice input', 'الإدخال الصوتي')}
+              aria-label={listening ? t('Stop voice input', 'إيقاف الإدخال الصوتي') : t('Voice input', 'الإدخال الصوتي')}
               aria-pressed={listening}
               onClick={toggleVoice}
-              style={listening ? { color: 'var(--crit)', borderColor: 'var(--crit)' } : undefined}
+              className={cn('shrink-0', listening && 'border-destructive bg-destructive/10 text-danger-text animate-pulse motion-reduce:animate-none')}
             >
-              {listening ? <MicOff size={16} /> : <Mic size={16} />}
-            </button>
+              {listening ? <MicOff aria-hidden /> : <Mic aria-hidden />}
+            </Button>
           )}
-          <input
+          <Input
             type="text"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && send(draft)}
-            placeholder={t('Name, mobile, or a question…', 'اسم، رقم جوال، أو سؤال…')}
+            aria-label={t('Ask the assistant', 'اسأل المساعد')}
+            placeholder={
+              !ready
+                ? t('Loading the sample data…', 'جارٍ تحميل البيانات النموذجية…')
+                : listening
+                  ? t('Listening…', 'جارٍ الاستماع…')
+                  : t('Name, mobile, or a question…', 'اسم، رقم جوال، أو سؤال…')
+            }
+            className="h-10 min-w-0 flex-1"
           />
-          <button type="button" className="btn primary" onClick={() => send(draft)} aria-label={t('Send', 'إرسال')}>
-            <Send size={15} />
-          </button>
-        </div>
+          <Button type="submit" size="icon-lg" className="shrink-0" disabled={!draft.trim() || !ready} aria-label={t('Send', 'إرسال')}>
+            <Send aria-hidden className="rtl:-scale-x-100" />
+          </Button>
+        </form>
       </div>
-    </>
+    </div>
   )
 }

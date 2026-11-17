@@ -1,12 +1,21 @@
-import { useMemo, useState, type CSSProperties } from 'react'
-import { ChevronDown, ChevronUp } from 'lucide-react'
-import { useI18n } from '../i18n'
-import { useRole } from '../auth/RoleContext'
-import { canViewAgentNames } from '../auth/permissions'
-import { AGENT_REGISTRY, ENVELOPE_FIELD_GROUPS, ROUTING_MATRIX, SUPERVISOR_CHECK_ORDER } from '../data/agentRegistry'
-import { useAgentActivity } from '../services/queries'
-import { SampleBanner } from '../components/common/SampleBanner'
-import type { AgentActivityEntry, AgentProfile, CorrectiveActionKind } from '../types'
+import { useMemo, useState } from 'react'
+import type { ColumnDef } from '@tanstack/react-table'
+import { Bot, ChevronDown, FileJson, ShieldCheck } from 'lucide-react'
+import { useI18n } from '@/i18n'
+import { useRole } from '@/auth/RoleContext'
+import { canViewAgentNames } from '@/auth/permissions'
+import { AGENT_REGISTRY, ENVELOPE_FIELD_GROUPS, ROUTING_MATRIX, SUPERVISOR_CHECK_ORDER } from '@/data/agentRegistry'
+import { useAgentActivity } from '@/services/queries'
+import type { AgentActivityEntry, AgentProfile, CorrectiveActionKind } from '@/types'
+import { AGENT_VERDICT_TONE } from '@/lib/status'
+import { cn } from '@/lib/utils'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { Progress } from '@/components/ui/progress'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { PageHeader } from '@/components/common/PageHeader'
+import { SectionCard } from '@/components/common/SectionCard'
+import { StatusBadge } from '@/components/common/StatusBadge'
+import { DataTable, SortableHeader } from '@/components/common/DataTable'
 
 const KIND_LABEL: Record<CorrectiveActionKind, { en: string; ar: string }> = {
   employee: { en: 'Employee', ar: 'موظف' },
@@ -19,10 +28,14 @@ const KIND_LABEL: Record<CorrectiveActionKind, { en: string; ar: string }> = {
   marketing: { en: 'Marketing', ar: 'تسويق' },
 }
 
-const VERDICT_TONE: Record<AgentActivityEntry['supervisorVerdict'], 'good' | 'warn' | 'crit'> = {
-  approved: 'good',
-  returned: 'warn',
-  escalated: 'crit',
+const VERDICT_LABEL: Record<AgentActivityEntry['supervisorVerdict'], { en: string; ar: string }> = {
+  approved: { en: 'Approved', ar: 'معتمد' },
+  returned: { en: 'Returned', ar: 'مُعاد' },
+  escalated: { en: 'Escalated', ar: 'مُصعَّد' },
+}
+
+function rateTone(pct: number) {
+  return pct >= 90 ? 'success' : pct >= 75 ? 'warning' : 'danger'
 }
 
 /** APPLICATION_MODULES.md §E — "not a frontend module to build so much as a
@@ -34,7 +47,7 @@ const VERDICT_TONE: Record<AgentActivityEntry['supervisorVerdict'], 'good' | 'wa
 export default function IntelligentCxTeam() {
   const { t, L, lang } = useI18n()
   const { role } = useRole()
-  const { data: activity } = useAgentActivity()
+  const { data: activity, isLoading } = useAgentActivity()
   const [expandedKey, setExpandedKey] = useState<string | null>(null)
 
   const activityByAgent = useMemo(() => {
@@ -58,45 +71,89 @@ export default function IntelligentCxTeam() {
     return map
   }, [activity])
 
-  return (
-    <div className="col">
-      <div className="topbar">
-        <div className="page-head">
-          <h1>{t('Intelligent CX team', 'فريق تجربة العملاء الذكي')}</h1>
-          <p className="page-lede">
-            {t(
-              'Ten single-task agents and one supervisor that do the work of the CX team inside the portal — nothing else.',
-              'عشرة وكلاء بمهمة واحدة ومشرف واحد يؤدون عمل فريق تجربة العملاء داخل البوابة — لا شيء غير ذلك.',
-            )}
-          </p>
-        </div>
-        <SampleBanner />
-      </div>
+  const columns = useMemo<ColumnDef<AgentActivityEntry>[]>(
+    () => [
+      {
+        id: 'agent',
+        accessorFn: (e) => {
+          const agent = AGENT_REGISTRY.find((a) => a.key === e.agentKey)
+          return agent ? L(agent.name) : e.agentKey
+        },
+        header: ({ column }) => <SortableHeader column={column}>{t('Agent', 'الوكيل')}</SortableHeader>,
+        cell: ({ getValue }) => <span className="font-medium">{getValue<string>()}</span>,
+      },
+      {
+        id: 'subject',
+        accessorFn: (e) => L(e.subjectSummary),
+        header: t('What ran', 'ما الذي عمل'),
+        cell: ({ getValue }) => <span className="block min-w-56 whitespace-normal">{getValue<string>()}</span>,
+      },
+      {
+        accessorKey: 'supervisorVerdict',
+        header: ({ column }) => <SortableHeader column={column}>{t('Supervisor verdict', 'قرار المشرف')}</SortableHeader>,
+        cell: ({ row }) => (
+          <StatusBadge tone={AGENT_VERDICT_TONE[row.original.supervisorVerdict]} dot>
+            {L(VERDICT_LABEL[row.original.supervisorVerdict])}
+          </StatusBadge>
+        ),
+      },
+      {
+        accessorKey: 'createdAt',
+        header: ({ column }) => <SortableHeader column={column}>{t('When', 'متى')}</SortableHeader>,
+        cell: ({ row }) => (
+          <span className="whitespace-nowrap text-muted-foreground">
+            {new Date(row.original.createdAt).toLocaleString(lang === 'ar' ? 'ar' : 'en', { dateStyle: 'medium', timeStyle: 'short' })}
+          </span>
+        ),
+      },
+    ],
+    [t, L, lang],
+  )
 
-      {/* --- The common contract --------------------------------------- */}
-      <div className="card">
-        <span className="eyebrow">{t('The shape', 'الشكل')}</span>
-        <h2 style={{ marginBlockEnd: 10 }}>{t('One output shape, for every agent', 'شكل مخرجات واحد لكل وكيل')}</h2>
-        <p className="text-sm muted" style={{ maxWidth: '72ch', marginBlockEnd: 12 }}>
-          {t(
-            'Every agent writes the same eleven-field envelope. The "how the AI found this" panel on actions, patterns and AI Insights reads straight from it — nothing is rendered from a bespoke shape.',
-            'يكتب كل وكيل نفس المغلف المكوَّن من أحد عشر حقلاً. تقرأ لوحة "كيف توصّل الذكاء الاصطناعي لهذا" في الإجراءات والأنماط ورؤى الذكاء الاصطناعي من هذا المغلف مباشرة — دون أي شكل مخصص.',
-          )}
-        </p>
-        <div className="grid grid-3">
+  const th = 'px-3 text-xs font-semibold text-muted-foreground'
+
+  return (
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title={t('Intelligent CX team', 'فريق تجربة العملاء الذكي')}
+        description={t(
+          'Ten single-task agents and one supervisor that do the work of the CX team inside the portal — nothing else.',
+          'عشرة وكلاء بمهمة واحدة ومشرف واحد يؤدون عمل فريق تجربة العملاء داخل البوابة — لا شيء غير ذلك.',
+        )}
+      />
+
+      <SectionCard
+        title={
+          <span className="flex flex-col gap-1">
+            <span className="text-xs font-semibold tracking-wide text-gold-text uppercase">{t('The shape', 'الشكل')}</span>
+            {t('One output shape, for every agent', 'شكل مخرجات واحد لكل وكيل')}
+          </span>
+        }
+        description={t(
+          'Every agent writes the same eleven-field envelope. The "how the AI found this" panel on actions, patterns and AI Insights reads straight from it — nothing is rendered from a bespoke shape.',
+          'يكتب كل وكيل نفس المغلف المكوَّن من أحد عشر حقلاً. تقرأ لوحة "كيف توصّل الذكاء الاصطناعي لهذا" في الإجراءات والأنماط ورؤى الذكاء الاصطناعي من هذا المغلف مباشرة — دون أي شكل مخصص.',
+        )}
+      >
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
           {ENVELOPE_FIELD_GROUPS.map((g) => (
-            <div key={g.title.en} className="card tint" style={{ borderBlockStart: '3px solid var(--brand)' }}>
-              <b>{L(g.title)}</b>
-              <div className="text-sm muted mono" style={{ marginBlockStart: 6 }}>{L(g.fields)}</div>
+            <div key={g.title.en} className="relative flex min-w-0 flex-col gap-1.5 overflow-hidden rounded-lg border bg-muted/40 p-4 before:absolute before:inset-x-0 before:top-0 before:h-0.5 before:bg-primary">
+              <span className="flex items-center gap-2 text-sm font-semibold">
+                <FileJson aria-hidden className="size-4 text-primary" />
+                {L(g.title)}
+              </span>
+              <span className="font-mono text-xs break-words text-muted-foreground" dir="ltr">
+                {L(g.fields)}
+              </span>
             </div>
           ))}
         </div>
-      </div>
+      </SectionCard>
 
-      {/* --- Agent roster ------------------------------------------------- */}
-      <div>
-        <h2 style={{ marginBlockEnd: 10 }}>{t('The ten agents', 'الوكلاء العشرة')}</h2>
-        <div className="grid grid-3">
+      <section aria-labelledby="agents-heading" className="flex flex-col gap-3">
+        <h2 id="agents-heading" className="text-lg font-semibold">
+          {t('The ten agents', 'الوكلاء العشرة')}
+        </h2>
+        <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2 xl:grid-cols-3">
           {AGENT_REGISTRY.map((agent) => (
             <AgentCard
               key={agent.key}
@@ -104,133 +161,138 @@ export default function IntelligentCxTeam() {
               recent={activityByAgent.get(agent.key) ?? []}
               rate={approvalRate.get(agent.key)}
               expanded={expandedKey === agent.key}
-              onToggle={() => setExpandedKey((k) => (k === agent.key ? null : agent.key))}
+              onToggle={(open) => setExpandedKey(open ? agent.key : null)}
             />
           ))}
         </div>
-      </div>
+      </section>
 
-      {/* --- The supervisor ------------------------------------------------ */}
-      <div className="card" style={{ borderBlockStart: '3px solid var(--gold)' }}>
-        <div className="card-head">
-          <h2>{t('The CX Supervisor', 'المشرف الذكي')}</h2>
-          <span className="chip accent">{t('Different model family, temperature 0', 'عائلة نموذج مختلفة، درجة حرارة 0')}</span>
-        </div>
-        <p className="text-sm muted" style={{ maxWidth: '72ch' }}>
-          {t(
-            'Checks every worker output before it is released: approve, return with a reason, or escalate. It never edits a worker’s output and never approves its own escalation.',
-            'يراجع مخرجات كل وكيل قبل اعتمادها: الموافقة، أو الإعادة بسبب، أو التصعيد. لا يُعدّل مخرجات الوكيل أبداً ولا يعتمد تصعيده الخاص.',
-          )}
-        </p>
-        <div className="row" style={{ alignItems: 'flex-start', gap: 24, flexWrap: 'wrap' }}>
-          <div style={{ flex: '1 1 260px', minWidth: 240 }}>
-            <h3 style={{ marginBlockEnd: 8 }}>{t('Order of checks', 'ترتيب الفحوصات')}</h3>
-            <ol className="col text-sm" style={{ margin: 0, paddingInlineStart: 18, gap: 6 }}>
+      <SectionCard
+        className="relative overflow-hidden before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-gold"
+        title={
+          <span className="flex items-center gap-2">
+            <ShieldCheck aria-hidden className="size-5 text-gold-text" />
+            {t('The CX Supervisor', 'المشرف الذكي')}
+          </span>
+        }
+        description={t(
+          'Checks every worker output before it is released: approve, return with a reason, or escalate. It never edits a worker’s output and never approves its own escalation.',
+          'يراجع مخرجات كل وكيل قبل اعتمادها: الموافقة، أو الإعادة بسبب، أو التصعيد. لا يُعدّل مخرجات الوكيل أبداً ولا يعتمد تصعيده الخاص.',
+        )}
+        contentClassName="flex flex-col gap-4"
+      >
+        <StatusBadge tone="info" className="self-start">
+          {t('Different model family, temperature 0', 'عائلة نموذج مختلفة، درجة حرارة 0')}
+        </StatusBadge>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="flex flex-col gap-3">
+            <h3 className="text-sm font-semibold">{t('Order of checks', 'ترتيب الفحوصات')}</h3>
+            <ol className="flex flex-col gap-2">
               {SUPERVISOR_CHECK_ORDER.map((c, i) => (
-                <li key={i}>{L(c)}</li>
+                <li key={i} className="flex items-start gap-3 text-sm">
+                  <span aria-hidden className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary tabular-nums">
+                    {i + 1}
+                  </span>
+                  <span className="pt-0.5">{L(c)}</span>
+                </li>
               ))}
             </ol>
           </div>
-          <div style={{ flex: '1 1 260px', minWidth: 240 }}>
-            <h3 style={{ marginBlockEnd: 8 }}>{t('Approval rate per agent (sample)', 'معدل الاعتماد لكل وكيل (عينة)')}</h3>
-            <div className="col" style={{ gap: 8 }}>
+          <div className="flex flex-col gap-3">
+            <h3 className="text-sm font-semibold">{t('Approval rate per agent (sample)', 'معدل الاعتماد لكل وكيل (عينة)')}</h3>
+            <ul className="flex flex-col gap-2.5">
               {AGENT_REGISTRY.filter((a) => a.key !== 'supervisor').map((a) => {
                 const r = approvalRate.get(a.key)
                 const pct = r && r.total > 0 ? Math.round((r.approved / r.total) * 100) : null
+                const tone = pct === null ? null : rateTone(pct)
                 return (
-                  <div key={a.key} className="row between" style={{ gap: 10 }}>
-                    <span className="text-sm" style={{ minWidth: 150 }}>{L(a.name)}</span>
+                  <li key={a.key} className="grid grid-cols-[minmax(0,9rem)_1fr_2.75rem] items-center gap-3 sm:grid-cols-[minmax(0,12rem)_1fr_2.75rem]">
+                    <span className="truncate text-sm" title={L(a.name)}>
+                      {L(a.name)}
+                    </span>
                     {pct === null ? (
-                      <span className="text-sm muted">{t('no run sampled', 'لا يوجد تشغيل في العينة')}</span>
+                      <span className="col-span-2 text-xs text-muted-foreground">{t('no run sampled', 'لا يوجد تشغيل في العينة')}</span>
                     ) : (
                       <>
-                        <div className="meter" style={{ flex: 1 }}>
-                          <i style={{ width: `${pct}%`, '--c': pct >= 90 ? 'var(--good)' : pct >= 75 ? 'var(--warn)' : 'var(--crit)' } as CSSProperties} />
-                        </div>
-                        <span className="text-sm mono" style={{ width: 38, textAlign: 'end' }}>{pct}%</span>
+                        <Progress
+                          value={pct}
+                          aria-label={L(a.name)}
+                          className={cn(
+                            'h-2',
+                            tone === 'success' && '[&>[data-slot=progress-indicator]]:bg-success',
+                            tone === 'warning' && '[&>[data-slot=progress-indicator]]:bg-warning',
+                            tone === 'danger' && '[&>[data-slot=progress-indicator]]:bg-destructive',
+                          )}
+                        />
+                        <span className="text-end text-sm font-medium tabular-nums">
+                          <bdi dir="ltr">{pct}%</bdi>
+                        </span>
                       </>
                     )}
-                  </div>
+                  </li>
                 )
               })}
-            </div>
-            <p className="text-sm muted" style={{ marginBlockStart: 8 }}>
-              {t('From this prototype’s own sample run log below — a real calibration sample is 50 outputs reviewed weekly.', 'من سجل التشغيل التجريبي أدناه — العينة الفعلية للمعايرة هي 50 مخرجاً تُراجَع أسبوعياً.')}
+            </ul>
+            <p className="text-xs text-muted-foreground">
+              {t(
+                'From this prototype’s own sample run log below — a real calibration sample is 50 outputs reviewed weekly.',
+                'من سجل التشغيل التجريبي أدناه — العينة الفعلية للمعايرة هي 50 مخرجاً تُراجَع أسبوعياً.',
+              )}
             </p>
           </div>
         </div>
-      </div>
+      </SectionCard>
 
-      {/* --- Routing by classification -------------------------------------- */}
-      <div className="card">
-        <h2 style={{ marginBlockEnd: 10 }}>{t('Routing of corrective actions by classification', 'توجيه الإجراءات التصحيحية حسب التصنيف')}</h2>
-        <p className="text-sm muted" style={{ marginBlockEnd: 10 }}>
-          {t('Agent 5 tags every action with one classification, and the classification chooses the path — the matrix supplies the names, the path itself does not change per product.', 'يضع الوكيل 5 تصنيفاً واحداً لكل إجراء، والتصنيف يحدد المسار — المصفوفة تزوّد الأسماء، أما المسار نفسه فلا يتغير حسب المنتج.')}
-        </p>
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>{t('Classification', 'التصنيف')}</th>
-                <th>{t('Typical signal', 'إشارة نموذجية')}</th>
-                <th>{t('Path', 'المسار')}</th>
-                <th>{t('Receiver', 'المستلم')}</th>
-                <th>{t('What comes back', 'ما يعود')}</th>
-              </tr>
-            </thead>
-            <tbody>
+      <SectionCard
+        title={t('Routing of corrective actions by classification', 'توجيه الإجراءات التصحيحية حسب التصنيف')}
+        description={t(
+          'Agent 5 tags every action with one classification, and the classification chooses the path — the matrix supplies the names, the path itself does not change per product.',
+          'يضع الوكيل 5 تصنيفاً واحداً لكل إجراء، والتصنيف يحدد المسار — المصفوفة تزوّد الأسماء، أما المسار نفسه فلا يتغير حسب المنتج.',
+        )}
+      >
+        <div className="overflow-x-auto rounded-lg border">
+          <Table>
+            <TableHeader className="bg-muted/60">
+              <TableRow className="hover:bg-transparent">
+                <TableHead className={th}>{t('Classification', 'التصنيف')}</TableHead>
+                <TableHead className={th}>{t('Typical signal', 'إشارة نموذجية')}</TableHead>
+                <TableHead className={th}>{t('Path', 'المسار')}</TableHead>
+                <TableHead className={th}>{t('Receiver', 'المستلم')}</TableHead>
+                <TableHead className={th}>{t('What comes back', 'ما يعود')}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {(Object.keys(ROUTING_MATRIX) as CorrectiveActionKind[]).map((kind) => {
                 const row = ROUTING_MATRIX[kind]
                 return (
-                  <tr key={kind}>
-                    <td><b>{L(KIND_LABEL[kind])}</b></td>
-                    <td className="text-sm muted">{L(row.typicalSignal)}</td>
-                    <td className="text-sm">{L(row.path)}</td>
-                    <td className="text-sm">{L(row.receiver)}</td>
-                    <td className="text-sm muted">{L(row.whatComesBack)}</td>
-                  </tr>
+                  <TableRow key={kind} className="align-top">
+                    <TableCell className="px-3 py-3 text-sm font-semibold whitespace-nowrap">{L(KIND_LABEL[kind])}</TableCell>
+                    <TableCell className="min-w-44 px-3 py-3 text-sm whitespace-normal text-muted-foreground">{L(row.typicalSignal)}</TableCell>
+                    <TableCell className="min-w-44 px-3 py-3 text-sm whitespace-normal">{L(row.path)}</TableCell>
+                    <TableCell className="min-w-36 px-3 py-3 text-sm whitespace-normal">{L(row.receiver)}</TableCell>
+                    <TableCell className="min-w-44 px-3 py-3 text-sm whitespace-normal text-muted-foreground">{L(row.whatComesBack)}</TableCell>
+                  </TableRow>
                 )
               })}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
-      </div>
+      </SectionCard>
 
-      {/* --- Recent activity log ------------------------------------------- */}
-      <div className="card">
-        <h2 style={{ marginBlockEnd: 10 }}>{t('Recent activity', 'النشاط الأخير')}</h2>
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>{t('Agent', 'الوكيل')}</th>
-                <th>{t('What ran', 'ما الذي عمل')}</th>
-                <th>{t('Supervisor verdict', 'قرار المشرف')}</th>
-                <th>{t('When', 'متى')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(activity ?? []).map((entry) => {
-                const agent = AGENT_REGISTRY.find((a) => a.key === entry.agentKey)
-                return (
-                  <tr key={entry.id}>
-                    <td className="text-sm">{agent ? L(agent.name) : entry.agentKey}</td>
-                    <td className="text-sm">{L(entry.subjectSummary)}</td>
-                    <td><span className={`chip ${VERDICT_TONE[entry.supervisorVerdict]}`}>{entry.supervisorVerdict}</span></td>
-                    <td className="text-sm muted">{new Date(entry.createdAt).toLocaleString(lang)}</td>
-                  </tr>
-                )
-              })}
-              {!activity?.length && (
-                <tr><td colSpan={4} className="text-sm muted">{t('No runs sampled yet.', 'لا يوجد تشغيل في العينة بعد.')}</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <SectionCard title={t('Recent activity', 'النشاط الأخير')}>
+        <DataTable
+          columns={columns}
+          data={activity}
+          isLoading={isLoading}
+          getRowId={(e) => e.id}
+          initialSorting={[{ id: 'createdAt', desc: true }]}
+          pageSize={8}
+          emptyTitle={t('No runs sampled yet.', 'لا يوجد تشغيل في العينة بعد.')}
+        />
+      </SectionCard>
 
       {!canViewAgentNames(role.id) && (
-        <p className="text-sm muted">
+        <p className="text-sm text-muted-foreground">
           {t(
             'This page never names a human agent — only the AI agents themselves and the roles they escalate to.',
             'هذه الصفحة لا تذكر اسم أي موظف بشري أبداً — فقط وكلاء الذكاء الاصطناعي والأدوار التي يصعّدون إليها.',
@@ -252,63 +314,78 @@ function AgentCard({
   recent: AgentActivityEntry[]
   rate?: { approved: number; total: number }
   expanded: boolean
-  onToggle: () => void
+  onToggle: (open: boolean) => void
 }) {
   const { t, L, lang } = useI18n()
-  const accent = agent.phaseNote ? 'var(--neutral)' : 'var(--brand)'
   const latest = recent[0]
+  const pct = rate && rate.total > 0 ? Math.round((rate.approved / rate.total) * 100) : null
+  const notBuilt = !!agent.phaseNote
 
   return (
-    <div className="card" style={{ borderBlockStart: `3px solid ${accent}`, opacity: agent.phaseNote ? 0.75 : 1 }}>
-      <div className="row between" style={{ alignItems: 'flex-start' }}>
-        <div>
-          <span className="eyebrow">{typeof agent.id === 'number' ? t(`Agent ${agent.id}`, `الوكيل ${agent.id}`) : t('Supervisor', 'المشرف')}</span>
-          <b>{L(agent.name)}</b>
+    <Collapsible
+      open={expanded}
+      onOpenChange={onToggle}
+      className={cn(
+        'relative flex min-w-0 flex-col gap-3 overflow-hidden rounded-xl border bg-card p-4 shadow-xs before:absolute before:inset-x-0 before:top-0 before:h-0.5',
+        notBuilt ? 'bg-muted/40 before:bg-muted-foreground/40' : 'before:bg-primary',
+      )}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-start gap-3">
+          <span
+            aria-hidden
+            className={cn(
+              'flex size-9 shrink-0 items-center justify-center rounded-lg',
+              notBuilt ? 'bg-muted text-muted-foreground' : 'bg-primary/10 text-primary',
+            )}
+          >
+            {typeof agent.id === 'number' ? <span className="text-sm font-semibold tabular-nums">{agent.id}</span> : <Bot className="size-4" />}
+          </span>
+          <div className="flex min-w-0 flex-col">
+            <span className="text-xs font-semibold tracking-wide text-gold-text uppercase">
+              {typeof agent.id === 'number' ? t(`Agent ${agent.id}`, `الوكيل ${agent.id}`) : t('Supervisor', 'المشرف')}
+            </span>
+            <span className="text-base leading-snug font-semibold">{L(agent.name)}</span>
+          </div>
         </div>
-        {rate && rate.total > 0 && (
-          <span className={`chip ${rate.approved / rate.total >= 0.9 ? 'good' : 'warn'}`}>{Math.round((rate.approved / rate.total) * 100)}%</span>
+        {pct !== null && (
+          <StatusBadge tone={rateTone(pct)}>
+            <bdi dir="ltr">{pct}%</bdi>
+          </StatusBadge>
         )}
       </div>
-      <p className="text-sm" style={{ marginBlockStart: 8 }}>{L(agent.task)}</p>
 
-      {agent.phaseNote && (
-        <div className="text-sm" style={{ color: 'var(--warn)', marginBlockStart: 6 }}>{L(agent.phaseNote)}</div>
+      <p className="text-sm">{L(agent.task)}</p>
+
+      {notBuilt && <StatusBadge tone="warning" className="h-auto self-start py-1 whitespace-normal">{L(agent.phaseNote!)}</StatusBadge>}
+
+      {latest && !notBuilt && (
+        <p className="rounded-md bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+          {L(latest.subjectSummary)} — {new Date(latest.createdAt).toLocaleDateString(lang === 'ar' ? 'ar' : 'en')}
+        </p>
       )}
 
-      {latest && !agent.phaseNote && (
-        <div className="text-sm muted" style={{ marginBlockStart: 8 }}>
-          {L(latest.subjectSummary)} <span className="muted">— {new Date(latest.createdAt).toLocaleDateString(lang)}</span>
-        </div>
-      )}
-
-      <button
-        type="button"
-        className="row between"
-        style={{ all: 'unset', cursor: 'pointer', width: '100%', boxSizing: 'border-box', marginBlockStart: 10 }}
-        onClick={onToggle}
-        aria-expanded={expanded}
-      >
-        <span className="text-sm" style={{ color: 'var(--brand)', fontWeight: 600 }}>{t('Details', 'التفاصيل')}</span>
-        {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-      </button>
-
-      {expanded && (
-        <div className="col text-sm" style={{ marginBlockStart: 8, gap: 8 }}>
+      <CollapsibleTrigger className="-mx-2 -mb-1 mt-auto flex h-9 cursor-pointer items-center justify-between rounded-md px-2 text-sm font-semibold text-primary outline-none transition-colors hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50">
+        {t('Details', 'التفاصيل')}
+        <ChevronDown aria-hidden className={cn('size-4 transition-transform duration-200 motion-reduce:transition-none', expanded && 'rotate-180')} />
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <dl className="flex flex-col gap-3 border-t pt-3 text-sm">
           <KeyValue label={t('Trigger', 'المحفّز')} value={L(agent.trigger)} />
           <KeyValue label={t('Runs on', 'يعمل وفق')} value={L(agent.runsOn)} />
           <KeyValue label={t('Escalates to', 'يصعّد إلى')} value={L(agent.escalatesTo)} />
-          <KeyValue label={t('Must not', 'يُمنع من')} value={L(agent.mustNot)} />
-        </div>
-      )}
-    </div>
+          <KeyValue label={t('Must not', 'يُمنع من')} value={L(agent.mustNot)} danger />
+        </dl>
+      </CollapsibleContent>
+    </Collapsible>
   )
 }
 
-function KeyValue({ label, value }: { label: string; value: string }) {
+function KeyValue({ label, value, danger }: { label: string; value: string; danger?: boolean }) {
   return (
-    <div>
-      <div className="muted" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em', marginBlockEnd: 2 }}>{label}</div>
-      <div>{value}</div>
+    <div className="flex flex-col gap-0.5">
+      <dt className={cn('text-xs font-semibold tracking-wide uppercase', danger ? 'text-danger-text' : 'text-muted-foreground')}>{label}</dt>
+      <dd>{value}</dd>
     </div>
   )
 }

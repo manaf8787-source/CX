@@ -3,6 +3,7 @@ import { I18nProvider } from './i18n'
 import { ThemeProvider } from './theme/ThemeContext'
 import { RoleProvider } from './auth/RoleContext'
 import { Shell } from './components/layout/Shell'
+import { UiProviders } from './components/layout/UiProviders'
 
 import Home from './pages/Home'
 import Customers from './pages/Customers'
@@ -37,51 +38,53 @@ export default function App() {
   return (
     <I18nProvider>
       <ThemeProvider>
-        <RoleProvider>
-          <BrowserRouter>
-            <Routes>
-              <Route element={<Shell />}>
-                <Route path="/" element={<Navigate to="/home" replace />} />
-                <Route path="/home" element={<Home />} />
-                <Route path="/customers" element={<Customers />} />
-                <Route path="/customers/:personId" element={<Customers />} />
-                <Route path="/runaway" element={<Runaway />} />
+        <UiProviders>
+          <RoleProvider>
+            <BrowserRouter>
+              <Routes>
+                <Route element={<Shell />}>
+                  <Route path="/" element={<Navigate to="/home" replace />} />
+                  <Route path="/home" element={<Home />} />
+                  <Route path="/customers" element={<Customers />} />
+                  <Route path="/customers/:personId" element={<Customers />} />
+                  <Route path="/runaway" element={<Runaway />} />
 
-                <Route path="/actions" element={<ActionsLayout />}>
-                  <Route index element={<Navigate to="corrective" replace />} />
-                  <Route path="corrective" element={<Corrective />} />
-                  <Route path="signals" element={<Signals />} />
-                  <Route path="ai-insights" element={<AiInsights />} />
-                  <Route path="shopper-cases" element={<ShopperCases />} />
-                  <Route path="investigations" element={<Investigations />} />
+                  <Route path="/actions" element={<ActionsLayout />}>
+                    <Route index element={<Navigate to="corrective" replace />} />
+                    <Route path="corrective" element={<Corrective />} />
+                    <Route path="signals" element={<Signals />} />
+                    <Route path="ai-insights" element={<AiInsights />} />
+                    <Route path="shopper-cases" element={<ShopperCases />} />
+                    <Route path="investigations" element={<Investigations />} />
+                  </Route>
+
+                  <Route path="/close-the-loop" element={<CloseTheLoop />} />
+                  <Route path="/personas" element={<Personas />} />
+                  <Route path="/surveys" element={<Surveys />} />
+                  <Route path="/intelligent-cx-team" element={<IntelligentCxTeam />} />
+
+                  <Route path="/settings" element={<SettingsLayout />}>
+                    <Route index element={<Navigate to="overview" replace />} />
+                    <Route path="overview" element={<SettingsOverview />} />
+                    <Route path="monthly-pack" element={<MonthlyPack />} />
+                    <Route path="mystery-shopper" element={<MysteryShopper />} />
+                    <Route path="standards" element={<Standards />} />
+                    <Route path="voc" element={<Voc />} />
+                    <Route path="surveys-reference" element={<SurveysReference />} />
+                    <Route path="ld" element={<Ld />} />
+                    <Route path="teams-structure" element={<TeamsStructure />} />
+                    <Route path="hr-team" element={<HrTeamPerf />} />
+                    <Route path="rules" element={<Rules />} />
+                    <Route path="ai-insights-access" element={<AiInsightsAccess />} />
+                    <Route path="glossary" element={<SettingsGlossary />} />
+                  </Route>
+
+                  <Route path="*" element={<Navigate to="/home" replace />} />
                 </Route>
-
-                <Route path="/close-the-loop" element={<CloseTheLoop />} />
-                <Route path="/personas" element={<Personas />} />
-                <Route path="/surveys" element={<Surveys />} />
-                <Route path="/intelligent-cx-team" element={<IntelligentCxTeam />} />
-
-                <Route path="/settings" element={<SettingsLayout />}>
-                  <Route index element={<Navigate to="overview" replace />} />
-                  <Route path="overview" element={<SettingsOverview />} />
-                  <Route path="monthly-pack" element={<MonthlyPack />} />
-                  <Route path="mystery-shopper" element={<MysteryShopper />} />
-                  <Route path="standards" element={<Standards />} />
-                  <Route path="voc" element={<Voc />} />
-                  <Route path="surveys-reference" element={<SurveysReference />} />
-                  <Route path="ld" element={<Ld />} />
-                  <Route path="teams-structure" element={<TeamsStructure />} />
-                  <Route path="hr-team" element={<HrTeamPerf />} />
-                  <Route path="rules" element={<Rules />} />
-                  <Route path="ai-insights-access" element={<AiInsightsAccess />} />
-                  <Route path="glossary" element={<SettingsGlossary />} />
-                </Route>
-
-                <Route path="*" element={<Navigate to="/home" replace />} />
-              </Route>
-            </Routes>
-          </BrowserRouter>
-        </RoleProvider>
+              </Routes>
+            </BrowserRouter>
+          </RoleProvider>
+        </UiProviders>
       </ThemeProvider>
     </I18nProvider>
   )

@@ -1,11 +1,17 @@
 import { useMemo, useState } from 'react'
-import { useI18n } from '../../i18n'
-import { useRole } from '../../auth/RoleContext'
-import { canViewAgentNames, canViewConversationText, resolveAgentDisplay } from '../../auth/permissions'
-import { useAgentDirectory } from '../../services/queries'
-import { JOURNEY_RULES } from '../../utils/journeyRules'
-import { SourceBadge } from './SourceBadge'
-import type { ChannelId, Interaction } from '../../types'
+import { ArrowDownLeft, ArrowUpRight, PhoneOff } from 'lucide-react'
+import { useI18n } from '@/i18n'
+import { useRole } from '@/auth/RoleContext'
+import { canViewAgentNames, canViewConversationText, resolveAgentDisplay } from '@/auth/permissions'
+import { useAgentDirectory } from '@/services/queries'
+import { JOURNEY_RULES } from '@/utils/journeyRules'
+import type { ChannelId, Interaction } from '@/types'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { SectionCard } from '@/components/common/SectionCard'
+import { StatusBadge } from '@/components/common/StatusBadge'
+import { EmptyState } from '@/components/common/EmptyState'
+import { cn } from '@/lib/utils'
+import { CHANNEL_ICON, CHANNEL_LABEL, PUBLIC_CHANNELS } from './channels'
 
 const ALL_CHANNELS: ChannelId[] = [
   'website', 'app', 'whatsapp', 'call', 'ivr', 'branch', 'email', 'survey',
@@ -33,60 +39,106 @@ export function Timeline({ interactions }: { interactions: Interaction[] }) {
   const canSeeAgents = canViewAgentNames(role.id)
 
   return (
-    <div className="card">
-      <div className="card-head">
-        <h2>{t('Timeline', 'الجدول الزمني')}</h2>
-        <select value={channelFilter} onChange={(e) => setChannelFilter(e.target.value as 'all' | ChannelId)}>
-          <option value="all">{t('All channels', 'كل القنوات')}</option>
-          {usedChannels.map((c) => (
-            <option key={c} value={c}>{c}</option>
-          ))}
-        </select>
-      </div>
-      <div className="col" style={{ gap: 2 }}>
-        {sorted.map((i) => {
-          const agent = directory ? resolveAgentDisplay(i.agentRef, role.id, directory, { en: 'Agent', ar: 'وكيل' }, lang) : null
-          const hasProblem = i.problemFlags.length > 0
-          return (
-            <div
-              key={i.id}
-              className="row between"
-              style={{ padding: '8px 6px', borderInlineStart: `3px solid ${hasProblem ? 'var(--crit)' : 'transparent'}`, alignItems: 'flex-start', gap: 10 }}
-            >
-              <div className="col" style={{ gap: 4, flex: 1 }}>
-                <div className="row" style={{ gap: 8 }}>
-                  <SourceBadge channel={i.channel} />
-                  <span className="text-sm muted">{new Date(i.occurredAt).toLocaleString(lang)}</span>
-                  <span className="text-sm muted">{i.direction === 'inbound' ? t('Customer-started', 'بدأه العميل') : t('PSI-started', 'بدأته PSI')}</span>
-                  {canSeeAgents && agent?.visible && <span className="text-sm muted">{agent.label}</span>}
-                </div>
-                {i.reason && <span className="text-sm">{i.reason}</span>}
-                {i.channel === 'call' ? (
-                  <span className="text-sm muted">
-                    {t('Call — fact, time, reason and result only, never a recording or transcript.', 'مكالمة — الواقعة والوقت والسبب والنتيجة فقط، دون تسجيل أو نص.')}
-                  </span>
-                ) : (
-                  canSeeText && i.text && <span className="text-sm muted">&ldquo;{i.text}&rdquo;</span>
-                )}
-                {hasProblem && (
-                  <div className="row" style={{ gap: 4 }}>
-                    {i.problemFlags.map((f) => {
-                      const rule = JOURNEY_RULES.find((r) => r.id === f)
-                      return (
-                        <span key={f} className="chip crit" title={rule ? L(rule.definition) : undefined}>
-                          {rule ? L(rule.label) : f}
-                        </span>
-                      )
-                    })}
+    <SectionCard
+      title={t('Timeline', 'الجدول الزمني')}
+      description={t('Every channel on one line, newest first. Red marks a problem the rules found.', 'كل القنوات على خط واحد، الأحدث أولاً. الأحمر يعني مشكلة رصدتها القواعد.')}
+      actions={
+        <>
+          <label htmlFor="timeline-channel" className="sr-only">
+            {t('Channel', 'القناة')}
+          </label>
+          <Select value={channelFilter} onValueChange={(v) => setChannelFilter(v as 'all' | ChannelId)}>
+            <SelectTrigger id="timeline-channel" className="h-9 w-44">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t('All channels', 'كل القنوات')}</SelectItem>
+              {usedChannels.map((c) => (
+                <SelectItem key={c} value={c}>
+                  {L(CHANNEL_LABEL[c])}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </>
+      }
+    >
+      {!sorted.length ? (
+        <EmptyState title={t('No interactions on this channel.', 'لا توجد تفاعلات على هذه القناة.')} />
+      ) : (
+        <ol className="relative flex flex-col">
+          {sorted.map((i, idx) => {
+            const agent = directory ? resolveAgentDisplay(i.agentRef, role.id, directory, { en: 'Agent', ar: 'وكيل' }, lang) : null
+            const hasProblem = i.problemFlags.length > 0
+            const Icon = CHANNEL_ICON[i.channel]
+            const isLast = idx === sorted.length - 1
+            const when = new Date(i.occurredAt)
+            return (
+              <li key={i.id} className="relative flex gap-3 pb-5 last:pb-0">
+                {!isLast && <span aria-hidden className="absolute start-4 top-9 bottom-0 w-px -translate-x-1/2 bg-border rtl:translate-x-1/2" />}
+                <span
+                  aria-hidden
+                  className={cn(
+                    'relative z-10 flex size-8 shrink-0 items-center justify-center rounded-full border-2 bg-card',
+                    hasProblem
+                      ? 'border-destructive text-danger-text'
+                      : PUBLIC_CHANNELS.has(i.channel)
+                        ? 'border-info/40 text-info-text'
+                        : 'border-border text-muted-foreground',
+                  )}
+                >
+                  <Icon className="size-4" />
+                </span>
+                <div
+                  className={cn(
+                    'flex min-w-0 flex-1 flex-col gap-1.5 rounded-lg px-3 py-2',
+                    hasProblem ? 'border border-destructive/25 bg-destructive/5' : 'bg-muted/40',
+                  )}
+                >
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+                    <span className="font-medium">{L(CHANNEL_LABEL[i.channel])}</span>
+                    <time dateTime={i.occurredAt} className="text-muted-foreground tabular-nums">
+                      {when.toLocaleDateString(lang, { day: 'numeric', month: 'short', year: 'numeric' })} ·{' '}
+                      {when.toLocaleTimeString(lang, { hour: '2-digit', minute: '2-digit' })}
+                    </time>
+                    <span className="inline-flex items-center gap-1 text-muted-foreground">
+                      {i.direction === 'inbound' ? (
+                        <ArrowDownLeft aria-hidden className="size-3.5 rtl:-scale-x-100" />
+                      ) : (
+                        <ArrowUpRight aria-hidden className="size-3.5 rtl:-scale-x-100" />
+                      )}
+                      {i.direction === 'inbound' ? t('Customer-started', 'بدأه العميل') : t('PSI-started', 'بدأته PSI')}
+                    </span>
+                    {canSeeAgents && agent?.visible && <span className="text-muted-foreground">· {agent.label}</span>}
                   </div>
-                )}
-              </div>
-              {i.promiseKept === false && <span className="chip warn">{t('Promise not kept', 'وعد لم يُنفَّذ')}</span>}
-            </div>
-          )
-        })}
-        {!sorted.length && <div className="empty-state">{t('No interactions on this channel.', 'لا توجد تفاعلات على هذه القناة.')}</div>}
-      </div>
-    </div>
+                  {i.reason && <p className="text-sm">{i.reason}</p>}
+                  {i.channel === 'call' ? (
+                    <p className="inline-flex items-start gap-1.5 text-sm text-muted-foreground">
+                      <PhoneOff aria-hidden className="mt-0.5 size-3.5 shrink-0" />
+                      {t('Call — fact, time, reason and result only, never a recording or transcript.', 'مكالمة — الواقعة والوقت والسبب والنتيجة فقط، دون تسجيل أو نص.')}
+                    </p>
+                  ) : (
+                    canSeeText && i.text && <blockquote dir="auto" className="border-s-2 border-border ps-3 text-start text-sm text-muted-foreground">{i.text}</blockquote>
+                  )}
+                  {(hasProblem || i.promiseKept === false) && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {i.problemFlags.map((f) => {
+                        const rule = JOURNEY_RULES.find((r) => r.id === f)
+                        return (
+                          <span key={f} title={rule ? L(rule.definition) : undefined}>
+                            <StatusBadge tone="danger">{rule ? L(rule.label) : f}</StatusBadge>
+                          </span>
+                        )
+                      })}
+                      {i.promiseKept === false && <StatusBadge tone="warning">{t('Promise not kept', 'وعد لم يُنفَّذ')}</StatusBadge>}
+                    </div>
+                  )}
+                </div>
+              </li>
+            )
+          })}
+        </ol>
+      )}
+    </SectionCard>
   )
 }

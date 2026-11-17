@@ -24,13 +24,17 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   })
 
   useEffect(() => {
-    if (mode === 'system') document.documentElement.removeAttribute('data-theme')
-    else document.documentElement.setAttribute('data-theme', mode)
+    const root = document.documentElement
+    const media = window.matchMedia('(prefers-color-scheme: dark)')
+    const apply = () => root.classList.toggle('dark', mode === 'dark' || (mode === 'system' && media.matches))
+    apply()
+    media.addEventListener('change', apply)
     try {
       localStorage.setItem(STORAGE_KEY, mode)
     } catch {
       /* ignore */
     }
+    return () => media.removeEventListener('change', apply)
   }, [mode])
 
   const value = useMemo<ThemeValue>(

@@ -104,7 +104,7 @@ function buildInteractions(persons: Person[], total: number): Interaction[] {
   const out: Interaction[] = []
   for (let i = 0; i < total; i++) {
     const person = pick(rng, persons)
-    const hasProblem = rng() > 0.72
+    const hasProblem = rng() > 0.68
     const channel = pick(rng, CHANNELS)
     out.push({
       id: `i-${String(i + 1).padStart(4, '0')}`,
@@ -143,7 +143,24 @@ function buildEffortSummaries(persons: Person[], interactions: Interaction[]): E
   })
 }
 
-const SIGNAL_CATEGORIES = ['slow_response', 'unapproved_discount', 'wrong_language', 'repeat_contact', 'promise_not_kept']
+// Real complaint mixes are skewed, not uniform: a couple of issues dominate.
+// One rng() draw per signal, same as a uniform pick, so the rest of the seeded sample is unchanged.
+const SIGNAL_CATEGORY_WEIGHTS: [string, number][] = [
+  ['slow_response', 0.36],
+  ['repeat_contact', 0.3],
+  ['wrong_language', 0.14],
+  ['promise_not_kept', 0.12],
+  ['unapproved_discount', 0.08],
+]
+
+function pickSignalCategory(): string {
+  let r = rng()
+  for (const [category, weight] of SIGNAL_CATEGORY_WEIGHTS) {
+    if (r < weight) return category
+    r -= weight
+  }
+  return SIGNAL_CATEGORY_WEIGHTS[0][0]
+}
 
 function buildSignals(interactions: Interaction[]): Signal[] {
   return interactions
@@ -154,7 +171,7 @@ function buildSignals(interactions: Interaction[]): Signal[] {
       personId: rng() > 0.1 ? i.personKey : undefined,
       product: i.product,
       environment: i.environment,
-      category: pick(rng, SIGNAL_CATEGORIES),
+      category: pickSignalCategory(),
       occurredAt: i.occurredAt,
       agentRef: i.agentRef,
       isPublic: rng() > 0.85,
@@ -272,9 +289,24 @@ function buildCorrectiveActions(patterns: Pattern[]): CorrectiveAction[] {
   return eligible.map((p, idx) => {
     const status = pick(rng, ['proposed', 'approved', 'in_progress', 'verification', 'effective', 'partial', 'failed'] as const)
     const startedMonthIndex = 3
-    const monthlySignalSeries = Array.from({ length: 6 }, (_, m) => {
+    // Same rng draws as before (one base per month, plus the drop draw), but the
+    // after-months follow the status so the 60-day verdict never contradicts it.
+    const rawSeries = Array.from({ length: 6 }, (_, m) => {
       const base = intBetween(rng, 3, 9)
-      return m < startedMonthIndex ? base : Math.max(0, base - (status === 'effective' ? intBetween(rng, 3, 5) : status === 'partial' ? intBetween(rng, 1, 2) : 0))
+      if (m >= startedMonthIndex) {
+        if (status === 'effective') intBetween(rng, 3, 5)
+        else if (status === 'partial') intBetween(rng, 1, 2)
+      }
+      return base
+    })
+    const beforeAvg = rawSeries.slice(0, startedMonthIndex).reduce((s, v) => s + v, 0) / startedMonthIndex
+    const afterFactor = status === 'effective' || status === 'verification' ? 0.6 : status === 'partial' ? 0.82 : 1
+    const afterMonths = rawSeries.length - startedMonthIndex
+    const afterTotal = Math.round(beforeAvg * afterFactor * afterMonths)
+    const monthlySignalSeries = rawSeries.map((v, m) => {
+      if (m < startedMonthIndex) return v
+      const k = m - startedMonthIndex
+      return Math.floor(afterTotal / afterMonths) + (k < afterTotal % afterMonths ? 1 : 0)
     })
     const decisionRoll = rng()
     const decision = decisionRoll > 0.75 ? 'modified' : decisionRoll > 0.65 ? 'rejected' : undefined
@@ -439,16 +471,23 @@ function buildAiInsightEnvelopes(shopperCases: ShopperCase[]): AgentOutputEnvelo
 }
 
 function buildDetractorCallItems(persons: Person[]): DetractorCallItem[] {
-  return persons.slice(0, 12).map((p, idx) => ({
-    id: `dcl-${idx + 1}`,
-    personId: p.id,
-    product: p.products[0],
-    environment: p.environment,
-    severity: pick(rng, ['critical', 'medium', 'low'] as const),
-    firstScore: intBetween(rng, 0, 6),
-    channel: rng() > 0.5 ? 'human' : 'ai_campaign',
-    outcome: pick(rng, ['reached', 'resolved_on_call', 'declined', 'callback_requested'] as const),
-  }))
+  return persons.slice(0, 12).map((p, idx) => {
+    const severity = pick(rng, ['critical', 'medium', 'low'] as const)
+    const firstScore = intBetween(rng, 0, 6)
+    const channel: DetractorCallItem['channel'] = rng() > 0.5 ? 'human' : 'ai_campaign'
+    const outcome = pick(rng, ['reached', 'resolved_on_call', 'declined', 'callback_requested'] as const)
+    return {
+      id: `dcl-${idx + 1}`,
+      personId: p.id,
+      product: p.products[0],
+      environment: p.environment,
+      severity,
+      firstScore,
+      channel,
+      // A third of the month's list is still waiting for its call, so the interview flow has work to do.
+      outcome: idx % 3 === 2 ? undefined : outcome,
+    }
+  })
 }
 
 const PERSONA_SEED: Omit<Persona, 'runawayCount' | 'segmentSize'>[] = [

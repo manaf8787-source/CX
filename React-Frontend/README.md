@@ -19,22 +19,23 @@ No environment variables are needed — there is nothing to configure yet, since
 
 ## Stack
 
-React 19 + TypeScript + Vite, React Router, TanStack Query, Recharts, React Hook Form + Zod, Lucide icons.
+React 19 + TypeScript + Vite, **Tailwind CSS v4 + shadcn/ui** (Radix primitives, components copied into `src/components/ui/`), React Router, TanStack Query, TanStack Table, Recharts, React Hook Form + Zod, Lucide icons. Theming, i18n/RTL and roles use React Context (no Zustand).
 
-**By explicit decision, there is no Tailwind, no Zustand, and no UI component library.** The original build brief specified Tailwind/Zustand; the user asked instead to keep hand-written CSS (plain CSS custom properties + React Context for theming, i18n and roles — ported from the proven system already in `../frontend/src/theme`) and to design a genuinely fresh, premium visual language on top of it rather than reusing the old scaffold's look. See `docs/IMPLEMENTATION_REPORT.md` for the full reasoning.
+The UI moved from hand-written CSS to Tailwind + shadcn/ui by the user's decision on 17 Nov 2026. The migration runs page by page; until it finishes, the old stylesheet (`src/styles/base.css`) is loaded in a lower cascade layer for pages not yet migrated. **All UI conventions are in [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md)**, including the migration status and how to add shadcn components.
 
 ## Folder structure
 
 ```
 src/
   auth/        role context + permission gates (conversation-text / agent-name / informed-only rules)
-  components/  shared UI: layout shell, the AI assistant panel, page-local component groups
+  components/  ui/ (shadcn primitives), common/ (shared building blocks), layout/ (shell, sidebar), plus page-local groups
   data/        static reference data (roles, nav, products, agent registry, glossary, legacy reference)
-  hooks/       small shared hooks (e.g. useNow)
+  hooks/       small shared hooks (useNow, usePersonSearch, use-mobile)
+  lib/         cn(), status → tone/label maps, date formatting
   i18n/        EN/AR language + RTL context
   pages/       one file/folder per route — actions/ and settings/ are themselves sub-routed
   services/    the mock-data layer + TanStack Query hooks (the future API seam)
-  styles/      design tokens (tokens.css) + base styles
+  styles/      theme.css (shadcn/Tailwind tokens), tokens.css + base.css (legacy, removed when migration ends)
   theme/       light/dark theme context
   types/       domain types, AI-agent output envelope, settings/reference types
   utils/       ported business logic (SLA clocks, effectiveness scoring, runaway classification, journey rules)

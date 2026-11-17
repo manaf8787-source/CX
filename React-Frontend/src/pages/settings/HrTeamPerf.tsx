@@ -1,8 +1,14 @@
-import { useI18n } from '../../i18n'
-import { useNow } from '../../hooks/useNow'
-import { Tile } from '../../components/common/Tile'
-import { Chip } from '../../components/common/Chip'
-import { useHrPool, useShopperCases } from '../../services/queries'
+import { AlertTriangle, CheckCircle2, FolderOpen } from 'lucide-react'
+import { useI18n } from '@/i18n'
+import { useNow } from '@/hooks/useNow'
+import { useHrPool, useShopperCases } from '@/services/queries'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { KpiTile } from '@/components/common/KpiTile'
+import { SectionCard } from '@/components/common/SectionCard'
+import { StatusBadge } from '@/components/common/StatusBadge'
+import { EmptyState } from '@/components/common/EmptyState'
+import { LoadingState } from '@/components/common/LoadingState'
+import { SubPageHeader } from './SubPageHeader'
 
 /** Ported from `frontend/src/pages/HrTeam.tsx` (APPLICATION_MODULES.md §C) —
  * "informed only: team numbers and a late alert, no access to individual
@@ -12,40 +18,68 @@ import { useHrPool, useShopperCases } from '../../services/queries'
 export default function HrTeamPerf() {
   const { t } = useI18n()
   const now = useNow()
-  const { data: cases } = useShopperCases()
-  const { data: hrPool } = useHrPool()
+  const { data: cases, isLoading: casesLoading } = useShopperCases()
+  const { data: hrPool, isLoading: poolLoading } = useHrPool()
 
   const conductCases = (cases ?? []).filter((c) => c.isConductIssue)
   const open = conductCases.filter((c) => c.status !== 'closed')
   const late = open.filter((c) => new Date(c.resolveDueAt).getTime() < now)
 
   return (
-    <div className="col">
-      <p className="text-sm muted">{t('Informed only: team numbers and a late alert. No access to individual cases.', 'للعلم فقط: أرقام الفريق وتنبيه التأخير. لا صلاحية وصول للحالات الفردية.')}</p>
+    <section className="flex flex-col gap-4">
+      <SubPageHeader
+        title={t('HR team performance', 'أداء فريق الموارد البشرية')}
+        description={t('Informed only: team numbers and a late alert. No access to individual cases.', 'للعلم فقط: أرقام الفريق وتنبيه التأخير. لا صلاحية وصول للحالات الفردية.')}
+      />
 
-      <div className="grid grid-3">
-        <Tile label={t('Open conduct cases', 'حالات السلوك المفتوحة')} value={open.length} />
-        <Tile label={t('Late or at risk', 'متأخرة أو في خطر')} value={late.length} colorVar={late.length ? '--crit' : undefined} />
-        <Tile label={t('Closed total', 'إجمالي المغلقة')} value={conductCases.filter((c) => c.status === 'closed').length} />
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <KpiTile label={t('Open conduct cases', 'حالات السلوك المفتوحة')} value={open.length} icon={<FolderOpen />} accent="var(--chart-4)" loading={casesLoading} />
+        <KpiTile
+          label={t('Late or at risk', 'متأخرة أو في خطر')}
+          value={late.length}
+          icon={<AlertTriangle />}
+          accent={late.length ? 'var(--destructive)' : 'var(--chart-1)'}
+          loading={casesLoading}
+        />
+        <KpiTile
+          label={t('Closed total', 'إجمالي المغلقة')}
+          value={conductCases.filter((c) => c.status === 'closed').length}
+          icon={<CheckCircle2 />}
+          accent="var(--success)"
+          loading={casesLoading}
+        />
       </div>
 
-      <div className="card">
-        <div className="card-head"><h2>{t('By specialist', 'حسب الأخصائي')}</h2></div>
-        <div className="table-wrap">
-          <table>
-            <thead><tr><th>{t('Specialist', 'الأخصائي')}</th><th className="num">{t('Assigned cases', 'الحالات المسندة')}</th><th className="num">{t('Late', 'متأخرة')}</th></tr></thead>
-            <tbody>
-              {(hrPool ?? []).map((h) => (
-                <tr key={h.title}>
-                  <td>{h.title}</td>
-                  <td className="num">{h.assignedCases}</td>
-                  <td className="num">{h.lateCases > 0 ? <Chip tone="crit">{h.lateCases}</Chip> : 0}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+      <SectionCard title={t('By specialist', 'حسب الأخصائي')}>
+        {poolLoading ? (
+          <LoadingState rows={3} />
+        ) : !hrPool?.length ? (
+          <EmptyState title={t('No specialists in the pool yet', 'لا يوجد أخصائيون في المجموعة بعد')} />
+        ) : (
+          <div className="overflow-hidden rounded-lg border">
+            <Table>
+              <TableHeader className="bg-muted/60">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="px-3 text-xs font-semibold text-muted-foreground">{t('Specialist', 'الأخصائي')}</TableHead>
+                  <TableHead className="px-3 text-end text-xs font-semibold text-muted-foreground">{t('Assigned cases', 'الحالات المسندة')}</TableHead>
+                  <TableHead className="px-3 text-end text-xs font-semibold text-muted-foreground">{t('Late', 'متأخرة')}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {hrPool.map((h) => (
+                  <TableRow key={h.title}>
+                    <TableCell className="px-3 text-sm">{h.title}</TableCell>
+                    <TableCell className="px-3 text-end text-sm tabular-nums">{h.assignedCases}</TableCell>
+                    <TableCell className="px-3 text-end text-sm tabular-nums">
+                      {h.lateCases > 0 ? <StatusBadge tone="danger">{h.lateCases}</StatusBadge> : 0}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </SectionCard>
+    </section>
   )
 }

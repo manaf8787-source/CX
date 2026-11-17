@@ -1,26 +1,54 @@
 import { useMemo, useState } from 'react'
-import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { useForm } from 'react-hook-form'
-import { z } from 'zod'
 import { Link } from 'react-router-dom'
-import { useI18n } from '../../i18n'
-import { useNow } from '../../hooks/useNow'
-import { useRole } from '../../auth/RoleContext'
-import { canActOnCorrectiveAction } from '../../auth/permissions'
-import { useCreateActionFromPattern, useHandoffs, usePatterns, useSignals } from '../../services/queries'
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Controller, useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
+import { toast } from 'sonner'
+import { Activity, Layers, Megaphone, Plus, Settings2 } from 'lucide-react'
+import type { ColumnDef } from '@tanstack/react-table'
+import { useI18n } from '@/i18n'
+import { useNow } from '@/hooks/useNow'
+import { useRole } from '@/auth/RoleContext'
+import { canActOnCorrectiveAction } from '@/auth/permissions'
+import { useCreateActionFromPattern, useHandoffs, usePatterns, useSignals } from '@/services/queries'
+import type { CorrectiveActionKind, HandoffItem, Pattern } from '@/types'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { KpiTile } from '@/components/common/KpiTile'
+import { SectionCard } from '@/components/common/SectionCard'
+import { StatusBadge } from '@/components/common/StatusBadge'
+import { DataTable } from '@/components/common/DataTable'
+import { EmptyState } from '@/components/common/EmptyState'
+import { LoadingState } from '@/components/common/LoadingState'
 import { PatternThresholdMeter } from './components/PatternThresholdMeter'
 import { ScoresVsSignalsNotice } from './components/ScoresVsSignalsNotice'
-import type { CorrectiveActionKind, Pattern } from '../../types'
+import { signalCategoryLabel } from './components/labels'
 
 const CORRECTIVE_KINDS: CorrectiveActionKind[] = ['employee', 'service_behaviour', 'training_gap', 'product_app', 'process', 'environment', 'legal_privacy', 'marketing']
 
+const KIND_LABEL: Record<CorrectiveActionKind, { en: string; ar: string }> = {
+  employee: { en: 'Employee (management note)', ar: 'موظف (ملاحظة إدارية)' },
+  service_behaviour: { en: 'Service & behaviour', ar: 'الخدمة والسلوك' },
+  training_gap: { en: 'Training gap', ar: 'فجوة تدريبية' },
+  product_app: { en: 'Product & app', ar: 'المنتج والتطبيق' },
+  process: { en: 'Process', ar: 'العملية' },
+  environment: { en: 'Environment', ar: 'البيئة' },
+  legal_privacy: { en: 'Legal & privacy', ar: 'قانوني وخصوصية' },
+  marketing: { en: 'Marketing', ar: 'تسويق' },
+}
+
+
 export default function Signals() {
-  const { t, L } = useI18n()
+  const { t, L, lang } = useI18n()
   const { role } = useRole()
   const now = useNow()
-  const { data: signals } = useSignals()
-  const { data: patterns } = usePatterns()
-  const { data: handoffs } = useHandoffs()
+  const { data: signals, isLoading: signalsLoading } = useSignals()
+  const { data: patterns, isLoading: patternsLoading } = usePatterns()
+  const { data: handoffs, isLoading: handoffsLoading } = useHandoffs()
   const createAction = useCreateActionFromPattern()
   const [creatingFor, setCreatingFor] = useState<Pattern | null>(null)
 
@@ -35,100 +63,166 @@ export default function Signals() {
   }, [signals])
 
   const publicMentions = signals?.filter((s) => s.isPublic) ?? []
+  const canCreate = canActOnCorrectiveAction(role.id, 'process')
+
+  const handoffColumns: ColumnDef<HandoffItem>[] = [
+    { id: 'owner', header: t('Owner system', 'النظام المالك'), accessorFn: (h) => L(h.ownerSystem) },
+    {
+      id: 'status',
+      header: t('Status', 'الحالة'),
+      accessorKey: 'status',
+      cell: ({ row }) => (
+        <StatusBadge tone={row.original.status === 'done' ? 'success' : 'neutral'} dot>
+          {row.original.status === 'done' ? t('Done', 'منجز') : t('Open', 'مفتوح')}
+        </StatusBadge>
+      ),
+    },
+  ]
 
   return (
-    <div className="col">
+    <div className="flex flex-col gap-4">
       <ScoresVsSignalsNotice register="signals" />
 
-      <div className="grid grid-2">
-        <div className="card">
-          <div className="card-head">
-            <h2>{t('Signals (counted, not worked)', 'الإشارات (تُحصى ولا تُعالج فردياً)')}</h2>
-            <span className="tile-value" style={{ fontSize: 24 }}>{signals?.length ?? '—'}</span>
-          </div>
-          <div style={{ height: 120 }}>
+      <section aria-label={t('Signal totals', 'إجماليات الإشارات')} className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <KpiTile
+          label={t('Signals (counted, not worked)', 'الإشارات (تُحصى ولا تُعالج فردياً)')}
+          value={signals?.length}
+          accent="var(--chart-1)"
+          icon={<Activity />}
+          loading={signalsLoading}
+        />
+        <KpiTile
+          label={t('Patterns past threshold', 'أنماط تجاوزت الحد')}
+          value={patterns?.length}
+          accent="var(--warning)"
+          icon={<Layers />}
+          loading={patternsLoading}
+        />
+        <KpiTile
+          label={t('Public mentions', 'الإشارات العامة')}
+          value={signals ? publicMentions.length : undefined}
+          sub={t('48-hour reply clock', 'ساعة رد 48 ساعة')}
+          accent="var(--chart-4)"
+          icon={<Megaphone />}
+          loading={signalsLoading}
+        />
+      </section>
+
+      <SectionCard
+        title={t('Signal volume', 'حجم الإشارات')}
+        description={t('Signals per day across live products.', 'الإشارات يومياً عبر المنتجات الفعالة.')}
+        actions={
+          <Button variant="ghost" size="sm" asChild className="text-primary">
+            <Link to="/settings/rules">
+              <Settings2 aria-hidden />
+              {t('Edit thresholds', 'تعديل الحدود')}
+            </Link>
+          </Button>
+        }
+      >
+        {signalsLoading ? (
+          <LoadingState rows={2} />
+        ) : (
+          <div className="h-44" dir="ltr">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={volumeSeries}>
-                <defs>
-                  <linearGradient id="sigFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="var(--brand)" stopOpacity={0.35} />
-                    <stop offset="100%" stopColor="var(--brand)" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <XAxis dataKey="day" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
-                <YAxis hide />
-                <Tooltip />
-                <Area type="monotone" dataKey="count" stroke="var(--brand)" fill="url(#sigFill)" strokeWidth={2} />
+              <AreaChart
+                data={lang === 'ar' ? [...volumeSeries].reverse() : volumeSeries}
+                margin={lang === 'ar' ? { top: 4, right: -20, bottom: 0, left: 4 } : { top: 4, right: 4, bottom: 0, left: -20 }}
+              >
+                <CartesianGrid vertical={false} stroke="var(--border)" />
+                <XAxis dataKey="day" tickLine={false} axisLine={false} minTickGap={24} tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }} />
+                <YAxis
+                  allowDecimals={false}
+                  orientation={lang === 'ar' ? 'right' : 'left'}
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }}
+                />
+                <Tooltip
+                  cursor={{ stroke: 'var(--border)' }}
+                  formatter={(v) => [v, t('Signals', 'الإشارات')]}
+                  contentStyle={{ background: 'var(--popover)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--popover-foreground)', fontSize: 12 }}
+                />
+                <Area type="monotone" dataKey="count" stroke="var(--chart-1)" fill="var(--chart-1)" fillOpacity={0.12} strokeWidth={2} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
-        </div>
-        <div className="card">
-          <h2 style={{ marginBlockEnd: 8 }}>{t('Patterns past threshold', 'أنماط تجاوزت الحد')}</h2>
-          <div className="tile-value" style={{ fontSize: 32 }}>{patterns?.length ?? '—'}</div>
-          <Link to="/settings/rules" className="text-sm">{t('Edit thresholds under Rules as configuration →', 'تعديل الحدود ضمن القواعد كإعدادات ←')}</Link>
-        </div>
-      </div>
+        )}
+      </SectionCard>
 
-      <div className="card">
-        <h2 style={{ marginBlockEnd: 10 }}>{t('Patterns', 'الأنماط')}</h2>
-        <div className="col">
-          {patterns?.map((p) => (
-            <div className="card tint" key={p.id}>
-              <div className="row between" style={{ alignItems: 'flex-start' }}>
-                <div className="col" style={{ gap: 6, flex: 1 }}>
-                  <b>{p.category.replace(/_/g, ' ')} — {p.team}</b>
-                  <PatternThresholdMeter pattern={p} />
-                  <span className="text-sm">{L(p.aiSuggestion)}</span>
-                  <span className="text-sm muted">{L(p.recoveryFigure)}</span>
+      <SectionCard
+        title={t('Patterns', 'الأنماط')}
+        description={t('Each pattern shows how far its signals are toward the rule that makes it actionable.', 'يُظهر كل نمط مدى اقتراب إشاراته من القاعدة التي تجعله قابلاً للإجراء.')}
+      >
+        {patternsLoading ? (
+          <LoadingState rows={4} />
+        ) : !patterns?.length ? (
+          <EmptyState title={t('No patterns past threshold yet.', 'لا توجد أنماط تجاوزت الحد بعد.')} />
+        ) : (
+          <ul className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+            {patterns.map((p) => (
+              <li key={p.id} className="flex min-w-0 flex-col gap-3 rounded-lg border bg-card p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="text-sm font-semibold">
+                    {L(signalCategoryLabel(p.category))} <span className="font-normal text-muted-foreground">· {p.team}</span>
+                  </h3>
                 </div>
-                {canActOnCorrectiveAction(role.id, 'process') && p.hasMinimumSample && (
-                  <button type="button" className="btn sm primary" onClick={() => setCreatingFor(p)}>{t('Create action', 'إنشاء إجراء')}</button>
+                <PatternThresholdMeter pattern={p} />
+                <p className="text-sm">{L(p.aiSuggestion)}</p>
+                <p className="text-xs text-muted-foreground">{L(p.recoveryFigure)}</p>
+                {canCreate && p.hasMinimumSample && (
+                  <Button size="sm" className="h-9 self-start" onClick={() => setCreatingFor(p)}>
+                    <Plus aria-hidden />
+                    {t('Create action', 'إنشاء إجراء')}
+                  </Button>
                 )}
-              </div>
-            </div>
-          ))}
-          {!patterns?.length && <div className="empty-state">{t('No patterns past threshold yet.', 'لا توجد أنماط تجاوزت الحد بعد.')}</div>}
-        </div>
-      </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </SectionCard>
 
-      <div className="card">
-        <h2 style={{ marginBlockEnd: 10 }}>{t('Public mentions', 'الإشارات العامة')}</h2>
-        <div className="col">
-          {publicMentions.map((s) => {
-            const dueMs = s.publicReplyDueAt ? new Date(s.publicReplyDueAt).getTime() - now : null
-            const breached = dueMs !== null && dueMs <= 0
-            return (
-              <div className="row between" key={s.id}>
-                <div className="row">
-                  <span className="chip accent">{t('Public', 'عام')}</span>
-                  <span className="text-sm">{s.category.replace(/_/g, ' ')}</span>
-                  <span className="text-sm muted">{t('never tied to a person unless self-identified', 'لا تُربط بشخص إلا إذا عرّف نفسه')}</span>
-                </div>
-                {s.publicReplyDueAt && <span className={`chip ${breached ? 'crit' : 'warn'}`}>{breached ? t('48h reply breached', 'تجاوز ساعة الرد 48') : t('48h reply clock running', 'ساعة الرد 48 جارية')}</span>}
-              </div>
-            )
-          })}
-          {!publicMentions.length && <div className="empty-state">{t('No public mentions yet.', 'لا توجد إشارات عامة بعد.')}</div>}
-        </div>
-      </div>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <SectionCard
+          title={t('Public mentions', 'الإشارات العامة')}
+          description={t('Never tied to a person unless self-identified.', 'لا تُربط بشخص إلا إذا عرّف نفسه.')}
+        >
+          {signalsLoading ? (
+            <LoadingState rows={3} />
+          ) : publicMentions.length === 0 ? (
+            <EmptyState title={t('No public mentions yet.', 'لا توجد إشارات عامة بعد.')} />
+          ) : (
+            <ul className="flex flex-col divide-y">
+              {publicMentions.map((s) => {
+                const dueMs = s.publicReplyDueAt ? new Date(s.publicReplyDueAt).getTime() - now : null
+                const breached = dueMs !== null && dueMs <= 0
+                return (
+                  <li key={s.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5 first:pt-0 last:pb-0">
+                    <span className="inline-flex items-center gap-2 text-sm">
+                      <Megaphone aria-hidden className="size-4 text-muted-foreground" />
+                      <span>{L(signalCategoryLabel(s.category))}</span>
+                      <span className="text-muted-foreground">· {s.environment}</span>
+                    </span>
+                    {s.publicReplyDueAt ? (
+                      <StatusBadge tone={breached ? 'danger' : 'warning'} dot>
+                        {breached ? t('48h reply breached', 'تجاوز ساعة الرد 48') : t('48h reply clock running', 'ساعة الرد 48 جارية')}
+                      </StatusBadge>
+                    ) : (
+                      <StatusBadge tone="neutral">{t('No reply clock', 'لا ساعة رد')}</StatusBadge>
+                    )}
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </SectionCard>
 
-      <div className="card">
-        <h2 style={{ marginBlockEnd: 10 }}>{t('Hand-offs', 'التسليمات')}</h2>
-        <p className="text-sm muted" style={{ marginBottom: 8 }}>{t('One-customer fixes owned by another system — status tracked, no SLA clock runs here.', 'إصلاحات فردية تملكها أنظمة أخرى — تُتابع حالتها دون ساعة التزام.')}</p>
-        <div className="table-wrap">
-          <table>
-            <thead><tr><th>{t('Owner system', 'النظام المالك')}</th><th>{t('Status', 'الحالة')}</th></tr></thead>
-            <tbody>
-              {handoffs?.map((h) => (
-                <tr key={h.id}>
-                  <td>{L(h.ownerSystem)}</td>
-                  <td><span className={`chip ${h.status === 'done' ? 'good' : ''}`}>{h.status}</span></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <SectionCard
+          title={t('Hand-offs', 'التسليمات')}
+          description={t('One-customer fixes owned by another system — status tracked, no SLA clock runs here.', 'إصلاحات فردية تملكها أنظمة أخرى — تُتابع حالتها دون ساعة التزام.')}
+        >
+          <DataTable columns={handoffColumns} data={handoffs} isLoading={handoffsLoading} pageSize={6} emptyTitle={t('No hand-offs', 'لا تسليمات')} />
+        </SectionCard>
       </div>
 
       {creatingFor && (
@@ -138,6 +232,7 @@ export default function Signals() {
           onCreate={(values) => {
             createAction.mutate({ pattern: creatingFor, ...values })
             setCreatingFor(null)
+            toast.success(t('Corrective action proposed', 'تم اقتراح إجراء تصحيحي'))
           }}
         />
       )}
@@ -147,46 +242,70 @@ export default function Signals() {
 
 const createSchema = z.object({
   kind: z.enum(['employee', 'service_behaviour', 'training_gap', 'product_app', 'process', 'environment', 'legal_privacy', 'marketing']),
-  owner: z.string().min(2, 'Owner title is required'),
-  dueDate: z.string().min(1, 'Due date is required'),
+  owner: z.string().trim().min(2, 'owner'),
+  dueDate: z.string().min(1, 'due'),
 })
 type CreateValues = z.infer<typeof createSchema>
 
 function CreateActionDialog({ pattern, onCancel, onCreate }: { pattern: Pattern; onCancel: () => void; onCreate: (v: CreateValues) => void }) {
-  const { t } = useI18n()
+  const { t, L } = useI18n()
   const now = useNow()
-  const { register, handleSubmit, formState: { errors } } = useForm<CreateValues>({
+  const { register, handleSubmit, control, formState: { errors } } = useForm<CreateValues>({
+    resolver: zodResolver(createSchema),
     defaultValues: { kind: 'process', owner: `${pattern.team.replace(' team', '')} environment manager`, dueDate: new Date(now + 5 * 86_400_000).toISOString().slice(0, 10) },
   })
 
-  function submit(values: CreateValues) {
-    const parsed = createSchema.safeParse(values)
-    if (!parsed.success) return
-    onCreate(parsed.data)
-  }
-
   return (
-    <div className="modal-backdrop" onClick={onCancel}>
-      <form className="modal" onClick={(e) => e.stopPropagation()} onSubmit={handleSubmit(submit)}>
-        <h2>{t('Create a corrective action', 'إنشاء إجراء تصحيحي')}</h2>
-        <p className="text-sm muted">{pattern.category.replace(/_/g, ' ')} — {pattern.team}</p>
-        <label className="col text-sm">{t('Kind', 'النوع')}
-          <select {...register('kind')}>
-            {CORRECTIVE_KINDS.map((k) => <option key={k} value={k}>{k}</option>)}
-          </select>
-        </label>
-        <label className="col text-sm">{t('Owner (title)', 'المالك (المسمى الوظيفي)')}
-          <input type="text" {...register('owner')} />
-          {errors.owner && <span style={{ color: 'var(--crit)' }}>{errors.owner.message}</span>}
-        </label>
-        <label className="col text-sm">{t('Due date', 'تاريخ الاستحقاق')}
-          <input type="date" {...register('dueDate')} />
-        </label>
-        <div className="row" style={{ justifyContent: 'flex-end' }}>
-          <button type="button" className="btn" onClick={onCancel}>{t('Cancel', 'إلغاء')}</button>
-          <button type="submit" className="btn primary">{t('Propose action', 'اقتراح إجراء')}</button>
-        </div>
-      </form>
-    </div>
+    <Dialog open onOpenChange={(open) => !open && onCancel()}>
+      <DialogContent className="sm:max-w-lg">
+        <form onSubmit={handleSubmit(onCreate)} className="flex flex-col gap-5">
+          <DialogHeader>
+            <DialogTitle>{t('Create a corrective action', 'إنشاء إجراء تصحيحي')}</DialogTitle>
+            <DialogDescription>
+              {L(signalCategoryLabel(pattern.category))} — {pattern.team}
+            </DialogDescription>
+          </DialogHeader>
+          <FieldGroup className="gap-4">
+            <Field>
+              <FieldLabel htmlFor="ca-kind">{t('Kind', 'النوع')}</FieldLabel>
+              <Controller
+                control={control}
+                name="kind"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger id="ca-kind" className="h-9 w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CORRECTIVE_KINDS.map((k) => (
+                        <SelectItem key={k} value={k}>
+                          {L(KIND_LABEL[k])}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </Field>
+            <Field data-invalid={!!errors.owner}>
+              <FieldLabel htmlFor="ca-owner">{t('Owner (title)', 'المالك (المسمى الوظيفي)')}</FieldLabel>
+              <Input id="ca-owner" className="h-9" aria-invalid={!!errors.owner} {...register('owner')} />
+              {errors.owner && <FieldError>{t('Owner title is required.', 'المسمى الوظيفي للمالك مطلوب.')}</FieldError>}
+            </Field>
+            <Field data-invalid={!!errors.dueDate}>
+              <FieldLabel htmlFor="ca-due">{t('Due date', 'تاريخ الاستحقاق')}</FieldLabel>
+              <Input id="ca-due" type="date" className="h-9" aria-invalid={!!errors.dueDate} {...register('dueDate')} />
+              {errors.dueDate && <FieldError>{t('Due date is required.', 'تاريخ الاستحقاق مطلوب.')}</FieldError>}
+            </Field>
+          </FieldGroup>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onCancel}>
+              {t('Cancel', 'إلغاء')}
+            </Button>
+            <Button type="submit">{t('Propose action', 'اقتراح إجراء')}</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   )
 }

@@ -1,9 +1,15 @@
 import { useState } from 'react'
-import { useI18n } from '../../i18n'
-import { SampleBanner } from '../../components/common/SampleBanner'
-import { Chip, ProductTag } from '../../components/common/Chip'
-import { useProducts, useVocComments, useVocRows } from '../../services/queries'
-import type { ProductId, VocRow } from '../../types'
+import { MessageSquareQuote } from 'lucide-react'
+import { useI18n } from '@/i18n'
+import { useProducts, useVocComments, useVocRows } from '@/services/queries'
+import type { ProductId, VocRow } from '@/types'
+import { ProductTag } from '@/components/common/Chip'
+import { SectionCard } from '@/components/common/SectionCard'
+import { StatusBadge } from '@/components/common/StatusBadge'
+import { EmptyState } from '@/components/common/EmptyState'
+import { LoadingState } from '@/components/common/LoadingState'
+import { cn } from '@/lib/utils'
+import { SubPageHeader } from './SubPageHeader'
 
 function nps(rows: VocRow[]): number | null {
   const n = rows.reduce((s, r) => s + r.n, 0)
@@ -22,81 +28,130 @@ function fmtSigned(v: number | null) {
  * trigger/cap model. */
 export default function Voc() {
   const { t, L, lang } = useI18n()
-  const { data: products } = useProducts()
+  const { data: products, isLoading: productsLoading } = useProducts()
   const { data: vocRows } = useVocRows()
-  const { data: comments } = useVocComments()
+  const { data: comments, isLoading: commentsLoading } = useVocComments()
   const [filterProduct, setFilterProduct] = useState<ProductId | 'all'>('all')
 
   const launched = (products ?? []).filter((p) => p.live)
-  const visibleComments = (comments ?? []).filter((c) => launched.some((p) => p.id === c.product) && (filterProduct === 'all' || c.product === filterProduct))
+  const visibleComments = (comments ?? []).filter(
+    (c) => launched.some((p) => p.id === c.product) && (filterProduct === 'all' || c.product === filterProduct),
+  )
+  const filters: { id: ProductId | 'all'; label: string }[] = [{ id: 'all', label: t('All', 'الكل') }, ...launched.map((p) => ({ id: p.id, label: L(p.name) }))]
+
+  const legend = [
+    { cls: 'bg-success', label: t('Promoters', 'المروّجون') },
+    { cls: 'bg-muted-foreground/40', label: t('Passives', 'المحايدون') },
+    { cls: 'bg-destructive', label: t('Detractors', 'المنتقدون') },
+  ]
 
   return (
-    <div className="col">
-      <div className="row between">
-        <p className="text-sm muted">{t('Comments, IVR feedback and survey free text across every channel, with themes and sentiment.', 'التعليقات وملاحظات الرد الصوتي والنصوص الحرة عبر كل القنوات، مع المواضيع والمشاعر.')}</p>
-        <SampleBanner />
-      </div>
+    <section className="flex flex-col gap-4">
+      <SubPageHeader
+        title={t('Voice of Customer', 'صوت العميل')}
+        description={t(
+          'Comments, IVR feedback and survey free text across every channel, with themes and sentiment.',
+          'التعليقات وملاحظات الرد الصوتي والنصوص الحرة عبر كل القنوات، مع المواضيع والمشاعر.',
+        )}
+      />
 
-      <div className="grid grid-2">
-        {launched.map((p) => {
-          const rows = (vocRows ?? []).filter((r) => r.product === p.id)
-          return (
-            <div className="card" key={p.id}>
-              <div className="card-head">
-                <ProductTag productId={p.id} lang={lang} />
-                <span className="text-sm muted">NPS {fmtSigned(nps(rows))}</span>
-              </div>
-              <div className="col" style={{ gap: 6 }}>
-                {rows.map((r) => (
-                  <div key={r.channel} className="row between">
-                    <span className="text-sm" style={{ width: 90 }}>{r.channel}</span>
-                    <div className="stack" style={{ flex: 1 }}>
-                      <i style={{ width: `${(r.promoters / Math.max(1, r.n)) * 100}%`, background: 'var(--good)' }} />
-                      <i style={{ width: `${(r.passives / Math.max(1, r.n)) * 100}%`, background: 'var(--neutral)' }} />
-                      <i style={{ width: `${(r.detractors / Math.max(1, r.n)) * 100}%`, background: 'var(--crit)' }} />
-                    </div>
-                    <span className="text-sm mono" style={{ width: 70, textAlign: 'end' }}>{r.n} {t('resp.', 'ردّ')}</span>
-                  </div>
-                ))}
-                {!rows.length && <span className="text-sm muted">{t('no data yet', 'لا توجد بيانات بعد')}</span>}
-              </div>
-              <div className="legend" style={{ marginTop: 10 }}>
-                <span><i style={{ background: 'var(--good)' }} />{t('Promoters', 'المروّجون')}</span>
-                <span><i style={{ background: 'var(--neutral)' }} />{t('Passives', 'المحايدون')}</span>
-                <span><i style={{ background: 'var(--crit)' }} />{t('Detractors', 'المنتقدون')}</span>
-              </div>
-            </div>
-          )
-        })}
-      </div>
-
-      <div className="card">
-        <div className="card-head">
-          <h2>{t('Comments and free text', 'التعليقات والنصوص الحرة')}</h2>
-          <div className="row">
-            <button type="button" className={`chip ${filterProduct === 'all' ? 'accent' : ''}`} onClick={() => setFilterProduct('all')}>{t('All', 'الكل')}</button>
-            {launched.map((p) => (
-              <button key={p.id} type="button" className={`chip ${filterProduct === p.id ? 'accent' : ''}`} onClick={() => setFilterProduct(p.id)}>{L(p.name)}</button>
-            ))}
-          </div>
-        </div>
-        <div className="col" style={{ gap: 10 }}>
-          {visibleComments.map((c, i) => (
-            <div className="row between" key={i} style={{ alignItems: 'flex-start' }}>
-              <div className="col" style={{ gap: 4 }}>
-                <div className="row">
-                  <ProductTag productId={c.product} lang={lang} />
-                  <span className="text-sm muted">{c.channel}</span>
-                  <Chip>{L(c.theme)}</Chip>
+      {productsLoading ? (
+        <LoadingState rows={4} />
+      ) : (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          {launched.map((p) => {
+            const rows = (vocRows ?? []).filter((r) => r.product === p.id)
+            return (
+              <SectionCard
+                key={p.id}
+                title={<ProductTag productId={p.id} lang={lang} />}
+                actions={
+                  <span className="text-sm text-muted-foreground">
+                    NPS <bdi dir="ltr" className="font-semibold text-foreground tabular-nums">{fmtSigned(nps(rows))}</bdi>
+                  </span>
+                }
+                contentClassName="flex flex-col gap-3"
+              >
+                {rows.length ? (
+                  <ul className="flex flex-col gap-2.5">
+                    {rows.map((r) => {
+                      const n = Math.max(1, r.n)
+                      return (
+                        <li key={r.channel} className="grid grid-cols-[5.5rem_1fr_auto] items-center gap-3">
+                          <span className="truncate text-sm">{r.channel}</span>
+                          <div
+                            className="flex h-2.5 overflow-hidden rounded-full bg-muted"
+                            role="img"
+                            aria-label={`${r.channel}: ${r.promoters} ${t('promoters', 'مروّجون')}, ${r.passives} ${t('passives', 'محايدون')}, ${r.detractors} ${t('detractors', 'منتقدون')}`}
+                          >
+                            <span className="bg-success" style={{ width: `${(r.promoters / n) * 100}%` }} />
+                            <span className="bg-muted-foreground/40" style={{ width: `${(r.passives / n) * 100}%` }} />
+                            <span className="bg-destructive" style={{ width: `${(r.detractors / n) * 100}%` }} />
+                          </div>
+                          <span className="w-16 text-end text-xs text-muted-foreground tabular-nums">
+                            {r.n} {t('resp.', 'ردّ')}
+                          </span>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                ) : (
+                  <span className="text-sm text-muted-foreground">{t('no data yet', 'لا توجد بيانات بعد')}</span>
+                )}
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                  {legend.map((l) => (
+                    <span key={l.label} className="inline-flex items-center gap-1.5">
+                      <span aria-hidden className={cn('size-2.5 rounded-full', l.cls)} />
+                      {l.label}
+                    </span>
+                  ))}
                 </div>
-                <p className="text-sm">{L(c.text)}</p>
-              </div>
-              <Chip tone={c.sentiment === 'positive' ? 'good' : c.sentiment === 'negative' ? 'crit' : undefined}>{c.sentiment}</Chip>
-            </div>
-          ))}
-          {!visibleComments.length && <div className="empty-state">{t('No comments for this filter.', 'لا توجد تعليقات لهذا الفلتر.')}</div>}
+              </SectionCard>
+            )
+          })}
         </div>
-      </div>
-    </div>
+      )}
+
+      <SectionCard title={t('Comments and free text', 'التعليقات والنصوص الحرة')}>
+        <div className="mb-4 flex flex-wrap gap-2" role="group" aria-label={t('Filter by product', 'تصفية حسب المنتج')}>
+          {filters.map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              aria-pressed={filterProduct === f.id}
+              onClick={() => setFilterProduct(f.id)}
+              className={cn(
+                'inline-flex h-8 cursor-pointer items-center rounded-full border px-3 text-sm outline-none transition-colors duration-150 focus-visible:ring-[3px] focus-visible:ring-ring/50',
+                filterProduct === f.id ? 'border-primary bg-primary text-primary-foreground' : 'bg-card hover:bg-muted',
+              )}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+        {commentsLoading ? (
+          <LoadingState rows={3} />
+        ) : visibleComments.length ? (
+          <ul className="flex flex-col divide-y">
+            {visibleComments.map((c, i) => (
+              <li key={i} className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
+                <MessageSquareQuote aria-hidden className="mt-0.5 size-4 shrink-0 text-muted-foreground rtl:-scale-x-100" />
+                <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <ProductTag productId={c.product} lang={lang} />
+                    <span className="text-xs text-muted-foreground">{c.channel}</span>
+                    <StatusBadge>{L(c.theme)}</StatusBadge>
+                  </div>
+                  <p className="text-sm">{L(c.text)}</p>
+                </div>
+                <StatusBadge tone={c.sentiment === 'positive' ? 'success' : c.sentiment === 'negative' ? 'danger' : 'neutral'}>{c.sentiment}</StatusBadge>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <EmptyState title={t('No comments for this filter.', 'لا توجد تعليقات لهذا الفلتر.')} />
+        )}
+      </SectionCard>
+    </section>
   )
 }

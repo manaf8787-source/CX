@@ -1,7 +1,22 @@
-import { NavLink } from 'react-router-dom'
+import { NavLink, useLocation } from 'react-router-dom'
 import { BrainCircuit, ClipboardList, Home, ListChecks, PhoneCall, Settings2, Target, Users, UserX } from 'lucide-react'
-import { useI18n } from '../../i18n'
-import { PRIMARY_NAV } from '../../data/nav'
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarRail,
+  useSidebar,
+} from '@/components/ui/sidebar'
+import { RoleSwitch } from '@/components/common/RoleSwitch'
+import { useI18n } from '@/i18n'
+import { PRIMARY_NAV } from '@/data/nav'
 
 const ICONS: Record<string, typeof Home> = {
   '/home': Home,
@@ -15,31 +30,75 @@ const ICONS: Record<string, typeof Home> = {
   '/settings': Settings2,
 }
 
-export function Sidebar() {
+const ACTIVE_BAR =
+  'relative data-[active=true]:before:absolute data-[active=true]:before:inset-y-1.5 data-[active=true]:before:start-0 ' +
+  'data-[active=true]:before:w-[3px] data-[active=true]:before:rounded-full data-[active=true]:before:bg-sidebar-primary'
+
+export function AppSidebar() {
   const { L, t } = useI18n()
+  const { pathname } = useLocation()
+  const { isMobile, setOpenMobile } = useSidebar()
+  const isActive = (path: string) => pathname === path || pathname.startsWith(`${path}/`)
+
   return (
-    <nav className="sidebar" aria-label={t('Primary', 'التنقل الرئيسي')}>
-      <div className="brand-block">
-        <div className="brand-mark">CX</div>
-        <div>
-          <b>PSI CX Portal</b>
-          <span>{t('v38 · prototype', 'الإصدار 38 · نموذج أولي')}</span>
-        </div>
-      </div>
-      {PRIMARY_NAV.map((group) => (
-        <div className="nav-group" key={L(group.label)}>
-          <h4>{L(group.label)}</h4>
-          {group.items.map((item) => {
-            const Icon = ICONS[item.path] ?? Home
-            return (
-              <NavLink key={item.path} to={item.path} className="nav-btn">
-                <Icon size={15} className="nav-dot-icon" aria-hidden />
-                <span>{L(item.label)}</span>
+    // The RTL build of this component maps side="left" to the logical start edge.
+    <Sidebar side="left" collapsible="icon">
+      <SidebarHeader>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton size="lg" asChild className="hover:bg-transparent active:bg-transparent">
+              <NavLink to="/home" aria-label="PSI CX Portal">
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-sm font-bold text-sidebar-primary-foreground">
+                  CX
+                </span>
+                <span className="flex min-w-0 flex-col leading-tight">
+                  <span className="truncate text-base font-semibold text-sidebar-foreground">PSI CX Portal</span>
+                  <span className="truncate text-xs text-sidebar-muted-foreground">{t('v38 · prototype', 'الإصدار 38 · نموذج أولي')}</span>
+                </span>
               </NavLink>
-            )
-          })}
-        </div>
-      ))}
-    </nav>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarHeader>
+
+      <SidebarContent>
+        {PRIMARY_NAV.map((group) => (
+          <SidebarGroup key={group.label.en}>
+            <SidebarGroupLabel className="text-xs font-semibold tracking-wide text-sidebar-muted-foreground uppercase">
+              {L(group.label)}
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {group.items.map((item) => {
+                  const Icon = ICONS[item.path] ?? Home
+                  const active = isActive(item.path)
+                  return (
+                    <SidebarMenuItem key={item.path}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={active}
+                        tooltip={L(item.label)}
+                        className={`h-9 text-sm text-sidebar-foreground/90 data-[active=true]:text-sidebar-accent-foreground ${ACTIVE_BAR}`}
+                      >
+                        <NavLink to={item.path} onClick={() => isMobile && setOpenMobile(false)}>
+                          <Icon aria-hidden />
+                          <span>{L(item.label)}</span>
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  )
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
+      </SidebarContent>
+
+      <SidebarFooter className="gap-1.5 border-t border-sidebar-border group-data-[collapsible=icon]:hidden">
+        <span className="px-1 text-xs font-medium text-sidebar-muted-foreground">{t('Viewing as (demo)', 'العرض بصفة (تجريبي)')}</span>
+        <RoleSwitch className="border-sidebar-border bg-sidebar-accent text-sidebar-foreground [&_svg:not([class*='text-'])]:text-sidebar-muted-foreground" />
+      </SidebarFooter>
+      <SidebarRail />
+    </Sidebar>
   )
 }

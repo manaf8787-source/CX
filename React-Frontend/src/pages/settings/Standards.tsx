@@ -1,13 +1,21 @@
 import { useMemo, useState } from 'react'
-import { useI18n } from '../../i18n'
-import { useRole } from '../../auth/RoleContext'
-import { SampleBanner } from '../../components/common/SampleBanner'
-import { Chip } from '../../components/common/Chip'
-import { useStandards, useUpdateStandardStatus } from '../../services/queries'
-import type { StandardStatus } from '../../types'
+import type { ColumnDef } from '@tanstack/react-table'
+import { useI18n } from '@/i18n'
+import { useRole } from '@/auth/RoleContext'
+import { useStandards, useUpdateStandardStatus } from '@/services/queries'
+import type { Standard, StandardStatus } from '@/types'
+import type { Tone } from '@/lib/status'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { DataTable, SortableHeader } from '@/components/common/DataTable'
+import { SectionCard } from '@/components/common/SectionCard'
+import { StatusBadge } from '@/components/common/StatusBadge'
+import { SubPageHeader } from './SubPageHeader'
 
-const STATUS_TONE: Record<StandardStatus, 'crit' | 'warn' | 'accent' | 'good'> = {
-  not_started: 'crit', legal_review: 'warn', drafted: 'accent', approved_scored: 'good',
+const STATUS_TONE: Record<StandardStatus, Tone> = {
+  not_started: 'danger',
+  legal_review: 'warning',
+  drafted: 'info',
+  approved_scored: 'success',
 }
 const STATUS_LABEL: Record<StandardStatus, { en: string; ar: string }> = {
   not_started: { en: 'Not started', ar: 'لم يبدأ' },
@@ -29,73 +37,167 @@ export default function Standards() {
   const { t, L } = useI18n()
   const { role } = useRole()
   const canEdit = role.id === 'cxmgr'
-  const { data: standards } = useStandards()
+  const { data: standards, isLoading } = useStandards()
   const update = useUpdateStandardStatus()
   const [groupFilter, setGroupFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState<StandardStatus | 'all'>('all')
 
-  const groups = useMemo(() => [...new Set((standards ?? []).map((s) => s.group.en))], [standards])
-  const visible = (standards ?? []).filter((s) => (groupFilter === 'all' || s.group.en === groupFilter) && (statusFilter === 'all' || s.status === statusFilter))
+  const groups = useMemo(() => {
+    const seen = new Map<string, Standard['group']>()
+    for (const s of standards ?? []) if (!seen.has(s.group.en)) seen.set(s.group.en, s.group)
+    return [...seen.entries()]
+  }, [standards])
+  const visible = (standards ?? []).filter(
+    (s) => (groupFilter === 'all' || s.group.en === groupFilter) && (statusFilter === 'all' || s.status === statusFilter),
+  )
+
+  const columns = useMemo<ColumnDef<Standard>[]>(
+    () => [
+      {
+        accessorKey: 'code',
+        header: ({ column }) => <SortableHeader column={column}>{t('Code', 'الرمز')}</SortableHeader>,
+        cell: ({ row }) => <span className="font-mono text-xs text-muted-foreground">{row.original.code}</span>,
+      },
+      {
+        id: 'title',
+        accessorFn: (s) => L(s.title),
+        header: ({ column }) => <SortableHeader column={column}>{t('Standard', 'المعيار')}</SortableHeader>,
+        cell: ({ row }) => (
+          <div className="flex min-w-56 flex-col whitespace-normal">
+            <span className="text-sm font-medium">{L(row.original.title)}</span>
+            {row.original.linkedItems > 0 && (
+              <span className="text-xs text-muted-foreground">
+                {row.original.linkedItems} {t('linked items', 'عنصراً مرتبطاً')}
+              </span>
+            )}
+          </div>
+        ),
+      },
+      {
+        id: 'writer',
+        accessorFn: (s) => L(s.writer),
+        header: t('Writer', 'الكاتب'),
+        cell: ({ getValue }) => <span className="text-muted-foreground">{getValue<string>()}</span>,
+      },
+      {
+        id: 'variant',
+        accessorFn: (s) => (s.environmentVariant ? L(s.environmentVariant) : '–'),
+        header: t('Environment variant', 'اختلاف البيئة'),
+        cell: ({ getValue }) => <span className="whitespace-normal text-muted-foreground">{getValue<string>()}</span>,
+      },
+      {
+        accessorKey: 'priorityTier',
+        header: ({ column }) => <SortableHeader column={column}>{t('Priority', 'الأولوية')}</SortableHeader>,
+        cell: ({ row }) => row.original.priorityTier ?? '–',
+        meta: { align: 'end' },
+      },
+      {
+        id: 'status',
+        accessorFn: (s) => L(STATUS_LABEL[s.status]),
+        header: t('Status', 'الحالة'),
+        cell: ({ row }) => {
+          const s = row.original
+          return canEdit ? (
+            <Select value={s.status} onValueChange={(v) => update.mutate({ id: s.id, status: v as StandardStatus })}>
+              <SelectTrigger size="sm" className="h-9 w-48" aria-label={`${s.code}: ${t('status', 'الحالة')}`}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {STATUS_ORDER.map((st) => (
+                  <SelectItem key={st} value={st}>
+                    {L(STATUS_LABEL[st])}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <StatusBadge tone={STATUS_TONE[s.status]} dot>
+              {L(STATUS_LABEL[s.status])}
+            </StatusBadge>
+          )
+        },
+      },
+    ],
+    [t, L, canEdit, update],
+  )
 
   return (
-    <div className="col">
-      <div className="row between">
-        <p className="text-sm muted" style={{ maxWidth: '68ch' }}>
-          {t('Every checklist item and signal rule points to a numbered standard, so there is one source of truth (NFR-4). M-14 onward are L&D’s documentation list; M-01–M-13 are platform rules CX already wrote.', 'يشير كل عنصر في القوائم وكل قاعدة إشارة إلى معيار مرقّم. M-14 فصاعداً من قائمة وثائق التعلم والتطوير؛ M-01 إلى M-13 قواعد المنصة.')}
-        </p>
-        <SampleBanner />
+    <section className="flex flex-col gap-4">
+      <SubPageHeader
+        title={t('Standards register', 'سجل المعايير')}
+        description={t(
+          'Every checklist item and signal rule points to a numbered standard, so there is one source of truth (NFR-4). M-14 onward are L&D’s documentation list; M-01–M-13 are platform rules CX already wrote.',
+          'يشير كل عنصر في القوائم وكل قاعدة إشارة إلى معيار مرقّم. M-14 فصاعداً من قائمة وثائق التعلم والتطوير؛ M-01 إلى M-13 قواعد المنصة.',
+        )}
+      />
+
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {STATUS_ORDER.map((st) => {
+          const n = (standards ?? []).filter((s) => s.status === st).length
+          const active = statusFilter === st
+          return (
+            <button
+              key={st}
+              type="button"
+              aria-pressed={active}
+              onClick={() => setStatusFilter(active ? 'all' : st)}
+              className="flex min-w-0 cursor-pointer flex-col items-start gap-1 rounded-xl border bg-card p-3 text-start shadow-xs outline-none transition-colors duration-150 hover:bg-muted/50 focus-visible:ring-[3px] focus-visible:ring-ring/50 aria-pressed:border-primary aria-pressed:bg-accent"
+            >
+              <StatusBadge tone={STATUS_TONE[st]} dot>
+                {L(STATUS_LABEL[st])}
+              </StatusBadge>
+              <span className="text-2xl font-semibold tabular-nums">{n}</span>
+            </button>
+          )
+        })}
       </div>
 
-      <div className="row">
-        <select value={groupFilter} onChange={(e) => setGroupFilter(e.target.value)}>
-          <option value="all">{t('All groups', 'كل المجموعات')}</option>
-          {groups.map((g) => <option key={g} value={g}>{g}</option>)}
-        </select>
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}>
-          <option value="all">{t('All statuses', 'كل الحالات')}</option>
-          {STATUS_ORDER.map((s) => <option key={s} value={s}>{L(STATUS_LABEL[s])}</option>)}
-        </select>
-        <span className="text-sm muted">{visible.length} / {standards?.length ?? 0}</span>
-      </div>
-
-      <div className="card table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>{t('Code', 'الرمز')}</th>
-              <th>{t('Standard', 'المعيار')}</th>
-              <th>{t('Writer', 'الكاتب')}</th>
-              <th>{t('Environment variant', 'اختلاف البيئة')}</th>
-              <th className="num">{t('Priority', 'الأولوية')}</th>
-              <th>{t('Status', 'الحالة')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {visible.map((s) => (
-              <tr key={s.id}>
-                <td className="mono text-sm muted">{s.code}</td>
-                <td>
-                  {L(s.title)}
-                  {s.linkedItems > 0 && <span className="text-sm muted"> · {s.linkedItems} {t('linked items', 'عنصراً مرتبطاً')}</span>}
-                </td>
-                <td className="text-sm muted">{L(s.writer)}</td>
-                <td className="text-sm muted">{s.environmentVariant ? L(s.environmentVariant) : '–'}</td>
-                <td className="num">{s.priorityTier ?? '–'}</td>
-                <td>
-                  {canEdit ? (
-                    <select value={s.status} onChange={(e) => update.mutate({ id: s.id, status: e.target.value as StandardStatus })}>
-                      {STATUS_ORDER.map((st) => <option key={st} value={st}>{L(STATUS_LABEL[st])}</option>)}
-                    </select>
-                  ) : (
-                    <Chip tone={STATUS_TONE[s.status]}>{L(STATUS_LABEL[s.status])}</Chip>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {!visible.length && <div className="empty-state">{t('No standards match this filter.', 'لا توجد معايير مطابقة لهذا الفلتر.')}</div>}
-      </div>
-    </div>
+      <SectionCard>
+        <DataTable
+          columns={columns}
+          data={visible}
+          isLoading={isLoading}
+          getRowId={(s) => s.id}
+          searchPlaceholder={t('Search standards…', 'ابحث في المعايير…')}
+          pageSize={15}
+          emptyTitle={t('No standards match this filter.', 'لا توجد معايير مطابقة لهذا الفلتر.')}
+          toolbar={
+            <>
+              <Select value={groupFilter} onValueChange={setGroupFilter}>
+                <SelectTrigger className="h-9 w-full sm:w-56" aria-label={t('Group', 'المجموعة')}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t('All groups', 'كل المجموعات')}</SelectItem>
+                  {groups.map(([key, g]) => (
+                    <SelectItem key={key} value={key}>
+                      {L(g)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
+                <SelectTrigger className="h-9 w-full sm:w-52" aria-label={t('Status', 'الحالة')}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t('All statuses', 'كل الحالات')}</SelectItem>
+                  {STATUS_ORDER.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {L(STATUS_LABEL[s])}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <span className="text-sm text-muted-foreground tabular-nums">
+                <bdi dir="ltr">
+                  {visible.length} / {standards?.length ?? 0}
+                </bdi>
+              </span>
+            </>
+          }
+        />
+      </SectionCard>
+    </section>
   )
 }
