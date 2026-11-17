@@ -14,8 +14,8 @@ import {
   useSubmitMsAssignment,
 } from '@/services/queries'
 import { msSeverityFor } from '@/utils/mysteryShopper'
-import type { Bi, MsAssignment, MsAssignmentStatus } from '@/types'
-import type { Tone } from '@/lib/status'
+import type { Bi, MsAssignment } from '@/types'
+import { CHECKLIST_STATUS_LABEL, MS_ASSIGNMENT_STATUS_LABEL, MS_ASSIGNMENT_STATUS_TONE } from '@/lib/status'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -38,14 +38,6 @@ const TAB_LABEL: Record<Tab, Bi> = {
   shoppers: { en: 'Shoppers', ar: 'المتسوقون' },
   distribution: { en: 'Distribution', ar: 'التوزيع' },
   review: { en: 'Review', ar: 'المراجعة' },
-}
-
-const STATUS_TONE: Partial<Record<MsAssignmentStatus, Tone>> = {
-  submitted: 'warning',
-  review: 'warning',
-  approved: 'success',
-  returned: 'danger',
-  overdue: 'danger',
 }
 
 // The demo sign-in for the separate shopper landing page (FR: "email/mobile
@@ -165,7 +157,7 @@ function MysteryShopperConsole() {
                           <TableCell className="px-3 text-sm font-medium">{shopperOf(a.shopperId)?.name}</TableCell>
                           <TableCell className="px-3 text-sm">{cl ? L(cl.name) : a.checklistId}</TableCell>
                           <TableCell className="px-3">
-                            <StatusBadge tone={STATUS_TONE[a.status] ?? 'neutral'}>{a.status}</StatusBadge>
+                            <StatusBadge tone={MS_ASSIGNMENT_STATUS_TONE[a.status]}>{L(MS_ASSIGNMENT_STATUS_LABEL[a.status])}</StatusBadge>
                           </TableCell>
                           <TableCell className="px-3 text-end text-sm tabular-nums">
                             <span className="inline-flex items-center justify-end gap-2">
@@ -198,7 +190,7 @@ function MysteryShopperConsole() {
                 key={cl.id}
                 title={L(cl.name)}
                 description={`${t('Version', 'الإصدار')} ${cl.version} · ${cl.items.length} ${t('items', 'عناصر')}`}
-                actions={<StatusBadge tone={cl.status === 'published' ? 'success' : 'warning'}>{cl.status}</StatusBadge>}
+                actions={<StatusBadge tone={cl.status === 'published' ? 'success' : 'warning'}>{L(CHECKLIST_STATUS_LABEL[cl.status])}</StatusBadge>}
               >
                 <ul className="flex flex-col divide-y">
                   {cl.items.map((it) => (
@@ -479,7 +471,7 @@ function ShopperMyTasks() {
                       <span className="text-base font-semibold">{c && L(c.name)}</span>
                       <span className="text-sm text-muted-foreground">{s && L(s.title)}</span>
                     </div>
-                    <StatusBadge tone={a.status === 'approved' ? 'success' : a.status === 'overdue' ? 'danger' : 'neutral'}>{a.status}</StatusBadge>
+                    <StatusBadge tone={MS_ASSIGNMENT_STATUS_TONE[a.status]}>{L(MS_ASSIGNMENT_STATUS_LABEL[a.status])}</StatusBadge>
                   </div>
                   <div className="flex items-center justify-between gap-2">
                     <span className={cn('text-sm', daysLeft < 0 ? 'text-danger-text' : 'text-muted-foreground')}>

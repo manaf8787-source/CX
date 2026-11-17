@@ -14,7 +14,7 @@ export function ClockBadge({ dueIso, totalWindowMs, stoppedAtIso }: { dueIso: st
       <StatusBadge tone={LEVEL_TONE[CLOCK_TONE[state]]} dot>
         {L(CLOCK_LABEL[state])}
       </StatusBadge>
-      {state !== 'met' && <span className="text-xs text-muted-foreground tabular-nums">{formatRemaining(dueIso, now, lang)}</span>}
+      {!stoppedAtIso && state !== 'met' && <span className="text-xs text-muted-foreground tabular-nums">{formatRemaining(dueIso, now, lang)}</span>}
     </span>
   )
 }

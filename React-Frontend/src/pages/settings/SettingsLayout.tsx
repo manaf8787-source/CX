@@ -1,7 +1,9 @@
+import { Suspense } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useI18n } from '@/i18n'
 import { SETTINGS_NAV } from '@/data/nav'
 import { PageHeader } from '@/components/common/PageHeader'
+import { LoadingState } from '@/components/common/LoadingState'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 
@@ -68,7 +70,9 @@ export default function SettingsLayout() {
           </ul>
         </nav>
         <div className="flex min-w-0 flex-col gap-6">
-          <Outlet />
+          <Suspense fallback={<LoadingState rows={5} />}>
+            <Outlet />
+          </Suspense>
         </div>
       </div>
     </div>

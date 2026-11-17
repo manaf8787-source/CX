@@ -224,6 +224,10 @@ export interface ShopperCase {
    * next decision, e.g. "Environment manager". */
   ownerTitle: string
   isConductIssue: boolean
+  /** Stops the respond clock. Set once the case leaves `open`. */
+  respondedAt?: string
+  /** Stops the resolve clock. Set when the case is closed. */
+  closedAt?: string
 }
 
 /** FR-4.16 — when evidence is thin, request evidence instead of guessing a fix. */

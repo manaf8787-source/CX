@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { Outlet } from 'react-router-dom'
 import { Search, Sparkles } from 'lucide-react'
 import { AppSidebar } from './Sidebar'
 import { LangSwitch } from '../common/LangSwitch'
 import { ThemeSwitch } from '../common/ThemeSwitch'
-import { AssistantPanel } from '../ai/AssistantPanel'
+import { LoadingState } from '../common/LoadingState'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
@@ -12,6 +12,8 @@ import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { usePersonSearch } from '@/hooks/usePersonSearch'
 import { useI18n } from '@/i18n'
+
+const AssistantPanel = lazy(() => import('../ai/AssistantPanel').then((m) => ({ default: m.AssistantPanel })))
 
 function HeaderSearch() {
   const { t } = useI18n()
@@ -85,13 +87,17 @@ export function Shell() {
           </div>
         </header>
         <main id="main" tabIndex={-1} className="mx-auto flex w-full max-w-[1440px] flex-1 flex-col gap-4 p-4 outline-none md:p-6">
-          <Outlet />
+          <Suspense fallback={<LoadingState rows={6} />}>
+            <Outlet />
+          </Suspense>
         </main>
       </SidebarInset>
 
       <Sheet open={assistantOpen} onOpenChange={setAssistantOpen}>
         <SheetContent side="right" showCloseButton={false} aria-describedby={undefined} className="w-full gap-0 p-0 sm:max-w-md">
-          <AssistantPanel onClose={() => setAssistantOpen(false)} />
+          <Suspense fallback={<LoadingState rows={3} className="p-4" />}>
+            <AssistantPanel onClose={() => setAssistantOpen(false)} />
+          </Suspense>
         </SheetContent>
       </Sheet>
     </SidebarProvider>

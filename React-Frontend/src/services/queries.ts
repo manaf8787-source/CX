@@ -298,7 +298,10 @@ async function advanceShopperCase(input: { caseId: string; status: ShopperCase['
   await sleep(LATENCY_MS)
   const c = MOCK_SHOPPER_CASES.find((x) => x.id === input.caseId)
   if (!c) throw new Error('Shopper case not found')
+  const nowIso = new Date().toISOString()
   c.status = input.status
+  if (input.status !== 'open' && !c.respondedAt) c.respondedAt = nowIso
+  if (input.status === 'closed' && !c.closedAt) c.closedAt = nowIso
   return c
 }
 

@@ -355,7 +355,7 @@ function buildCorrectiveRationales(actions: CorrectiveAction[], patterns: Patter
 const SHOPPER_CHECKLIST_CATEGORIES = ['greeting', 'needs_discovery', 'pricing_disclosure', 'handover_process', 'follow_up_commitment']
 
 function buildShopperCases(): ShopperCase[] {
-  return Array.from({ length: 6 }, (_, i) => {
+  return Array.from({ length: 6 }, (_, i): ShopperCase => {
     const visitScorePct = intBetween(rng, 35, 98)
     // FR-4.14 — a visit under 60% is at least medium regardless of individual item results.
     const rolled = pick(rng, ['critical', 'medium', 'low'] as const)
@@ -382,7 +382,20 @@ function buildShopperCases(): ShopperCase[] {
       ownerTitle: isConductIssue ? "Agent's direct manager" : 'Environment manager',
       isConductIssue,
     }
-  })
+  }).map(withShopperCaseStopTimes)
+}
+
+const HOUR_MS = 3_600_000
+
+/** Deterministic (no rng draws, so the seeded sample stays stable): a case
+ * past `open` was responded to 6h after opening; a closed one closed 3 days in. */
+function withShopperCaseStopTimes(c: ShopperCase): ShopperCase {
+  const opened = new Date(c.openedAt).getTime()
+  return {
+    ...c,
+    respondedAt: c.status === 'open' ? undefined : new Date(opened + 6 * HOUR_MS).toISOString(),
+    closedAt: c.status === 'closed' ? new Date(opened + 72 * HOUR_MS).toISOString() : undefined,
+  }
 }
 
 /** FR-4.16 — only patterns with thin evidence (below the minimum sample)

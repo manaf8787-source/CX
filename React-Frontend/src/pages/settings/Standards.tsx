@@ -4,25 +4,13 @@ import { useI18n } from '@/i18n'
 import { useRole } from '@/auth/RoleContext'
 import { useStandards, useUpdateStandardStatus } from '@/services/queries'
 import type { Standard, StandardStatus } from '@/types'
-import type { Tone } from '@/lib/status'
+import { STANDARD_STATUS_LABEL as STATUS_LABEL, STANDARD_STATUS_TONE as STATUS_TONE } from '@/lib/status'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { DataTable, SortableHeader } from '@/components/common/DataTable'
 import { SectionCard } from '@/components/common/SectionCard'
 import { StatusBadge } from '@/components/common/StatusBadge'
 import { SubPageHeader } from './SubPageHeader'
 
-const STATUS_TONE: Record<StandardStatus, Tone> = {
-  not_started: 'danger',
-  legal_review: 'warning',
-  drafted: 'info',
-  approved_scored: 'success',
-}
-const STATUS_LABEL: Record<StandardStatus, { en: string; ar: string }> = {
-  not_started: { en: 'Not started', ar: 'لم يبدأ' },
-  legal_review: { en: 'Confirm with Legal', ar: 'تأكيد مع القانونية' },
-  drafted: { en: 'Drafted', ar: 'مسودة' },
-  approved_scored: { en: 'Approved and scored', ar: 'معتمد ومُقيَّم' },
-}
 const STATUS_ORDER: StandardStatus[] = ['not_started', 'legal_review', 'drafted', 'approved_scored']
 
 /** Ported and grown from `frontend/src/pages/Standards.tsx`'s flat 13-item

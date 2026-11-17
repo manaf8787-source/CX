@@ -3,7 +3,14 @@ import { Link } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { useCorrectiveActions, useLdRequests, useStandards } from '@/services/queries'
-import { CORRECTIVE_STATUS_LABEL, CORRECTIVE_STATUS_TONE } from '@/lib/status'
+import {
+  CORRECTIVE_STATUS_LABEL,
+  CORRECTIVE_STATUS_TONE,
+  LD_REQUEST_STATUS_LABEL,
+  LD_REQUEST_STATUS_TONE,
+  STANDARD_STATUS_LABEL,
+  STANDARD_STATUS_TONE,
+} from '@/lib/status'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { SectionCard } from '@/components/common/SectionCard'
@@ -87,7 +94,7 @@ export default function Ld() {
                       {r.environment ? ` · ${r.environment}` : ''}
                     </TableCell>
                     <TableCell className="px-3">
-                      <StatusBadge tone={r.status === 'delivered' ? 'success' : r.status === 'scheduled' ? 'info' : 'neutral'}>{r.status}</StatusBadge>
+                      <StatusBadge tone={LD_REQUEST_STATUS_TONE[r.status]}>{L(LD_REQUEST_STATUS_LABEL[r.status])}</StatusBadge>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -110,7 +117,7 @@ export default function Ld() {
               <li key={s.id} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
                 <span className="w-16 shrink-0 font-mono text-xs text-muted-foreground">{s.code}</span>
                 <span className="min-w-0 flex-1 text-sm">{L(s.title)}</span>
-                <StatusBadge>{s.status}</StatusBadge>
+                <StatusBadge tone={STANDARD_STATUS_TONE[s.status]}>{L(STANDARD_STATUS_LABEL[s.status])}</StatusBadge>
               </li>
             ))}
           </ul>

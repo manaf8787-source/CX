@@ -9,6 +9,12 @@ import { SectionCard } from '@/components/common/SectionCard'
 import { StatusBadge } from '@/components/common/StatusBadge'
 import { SubPageHeader } from './SubPageHeader'
 
+const BATCH_STATUS_LABEL: Record<'scheduled' | 'running' | 'closed', { en: string; ar: string }> = {
+  scheduled: { en: 'Scheduled', ar: 'مجدولة' },
+  running: { en: 'Running', ar: 'جارية' },
+  closed: { en: 'Closed', ar: 'مغلقة' },
+}
+
 /** `frontend/src/pages/SurveyEngine.tsx` — the pre-omnichannel branching
  * builder/campaign/batch model — is discontinued from the live v38 menu
  * (Programme KB §33); v38 replaces it with the triggers/caps model on
@@ -91,7 +97,7 @@ export default function SurveysReference() {
                       <bdi dir="ltr">{b.responseRate}%</bdi>
                     </TableCell>
                     <TableCell className="px-3">
-                      <StatusBadge tone={b.status === 'running' ? 'success' : 'neutral'}>{b.status}</StatusBadge>
+                      <StatusBadge tone={b.status === 'running' ? 'success' : 'neutral'}>{L(BATCH_STATUS_LABEL[b.status])}</StatusBadge>
                     </TableCell>
                   </TableRow>
                 )),

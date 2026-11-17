@@ -1,3 +1,4 @@
+import { lazy } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { I18nProvider } from './i18n'
 import { ThemeProvider } from './theme/ThemeContext'
@@ -5,34 +6,34 @@ import { RoleProvider } from './auth/RoleContext'
 import { Shell } from './components/layout/Shell'
 import { UiProviders } from './components/layout/UiProviders'
 
-import Home from './pages/Home'
-import Customers from './pages/Customers'
-import Runaway from './pages/Runaway'
-import CloseTheLoop from './pages/CloseTheLoop'
-import Personas from './pages/Personas'
-import Surveys from './pages/Surveys'
-import IntelligentCxTeam from './pages/IntelligentCxTeam'
+const Home = lazy(() => import('./pages/Home'))
+const Customers = lazy(() => import('./pages/Customers'))
+const Runaway = lazy(() => import('./pages/Runaway'))
+const CloseTheLoop = lazy(() => import('./pages/CloseTheLoop'))
+const Personas = lazy(() => import('./pages/Personas'))
+const Surveys = lazy(() => import('./pages/Surveys'))
+const IntelligentCxTeam = lazy(() => import('./pages/IntelligentCxTeam'))
 
-import ActionsLayout from './pages/actions/ActionsLayout'
-import Corrective from './pages/actions/Corrective'
-import Signals from './pages/actions/Signals'
-import AiInsights from './pages/actions/AiInsights'
-import ShopperCases from './pages/actions/ShopperCases'
-import Investigations from './pages/actions/Investigations'
+const ActionsLayout = lazy(() => import('./pages/actions/ActionsLayout'))
+const Corrective = lazy(() => import('./pages/actions/Corrective'))
+const Signals = lazy(() => import('./pages/actions/Signals'))
+const AiInsights = lazy(() => import('./pages/actions/AiInsights'))
+const ShopperCases = lazy(() => import('./pages/actions/ShopperCases'))
+const Investigations = lazy(() => import('./pages/actions/Investigations'))
 
-import SettingsLayout from './pages/settings/SettingsLayout'
-import SettingsOverview from './pages/settings/Overview'
-import MonthlyPack from './pages/settings/MonthlyPack'
-import MysteryShopper from './pages/settings/MysteryShopper'
-import Standards from './pages/settings/Standards'
-import Voc from './pages/settings/Voc'
-import SurveysReference from './pages/settings/SurveysReference'
-import Ld from './pages/settings/Ld'
-import TeamsStructure from './pages/settings/TeamsStructure'
-import HrTeamPerf from './pages/settings/HrTeamPerf'
-import Rules from './pages/settings/Rules'
-import AiInsightsAccess from './pages/settings/AiInsightsAccess'
-import SettingsGlossary from './pages/settings/Glossary'
+const SettingsLayout = lazy(() => import('./pages/settings/SettingsLayout'))
+const SettingsOverview = lazy(() => import('./pages/settings/Overview'))
+const MonthlyPack = lazy(() => import('./pages/settings/MonthlyPack'))
+const MysteryShopper = lazy(() => import('./pages/settings/MysteryShopper'))
+const Standards = lazy(() => import('./pages/settings/Standards'))
+const Voc = lazy(() => import('./pages/settings/Voc'))
+const SurveysReference = lazy(() => import('./pages/settings/SurveysReference'))
+const Ld = lazy(() => import('./pages/settings/Ld'))
+const TeamsStructure = lazy(() => import('./pages/settings/TeamsStructure'))
+const HrTeamPerf = lazy(() => import('./pages/settings/HrTeamPerf'))
+const Rules = lazy(() => import('./pages/settings/Rules'))
+const AiInsightsAccess = lazy(() => import('./pages/settings/AiInsightsAccess'))
+const SettingsGlossary = lazy(() => import('./pages/settings/Glossary'))
 
 export default function App() {
   return (

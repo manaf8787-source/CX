@@ -11,6 +11,14 @@ import { LoadingState } from '@/components/common/LoadingState'
 import { cn } from '@/lib/utils'
 import { SubPageHeader } from './SubPageHeader'
 
+const VOC_CHANNEL_LABEL: Record<string, { en: string; ar: string }> = {
+  digital: { en: 'Digital', ar: 'رقمي' },
+  call: { en: 'Call', ar: 'اتصال' },
+  app: { en: 'App', ar: 'التطبيق' },
+  branch: { en: 'Branch', ar: 'الفرع' },
+  event: { en: 'Event', ar: 'فعالية' },
+}
+
 function nps(rows: VocRow[]): number | null {
   const n = rows.reduce((s, r) => s + r.n, 0)
   if (!n) return null
@@ -78,7 +86,7 @@ export default function Voc() {
                       const n = Math.max(1, r.n)
                       return (
                         <li key={r.channel} className="grid grid-cols-[5.5rem_1fr_auto] items-center gap-3">
-                          <span className="truncate text-sm">{r.channel}</span>
+                          <span className="truncate text-sm">{VOC_CHANNEL_LABEL[r.channel] ? L(VOC_CHANNEL_LABEL[r.channel]) : r.channel}</span>
                           <div
                             className="flex h-2.5 overflow-hidden rounded-full bg-muted"
                             role="img"
@@ -139,7 +147,7 @@ export default function Voc() {
                 <div className="flex min-w-0 flex-1 flex-col gap-1.5">
                   <div className="flex flex-wrap items-center gap-2">
                     <ProductTag productId={c.product} lang={lang} />
-                    <span className="text-xs text-muted-foreground">{c.channel}</span>
+                    <span className="text-xs text-muted-foreground">{VOC_CHANNEL_LABEL[c.channel] ? L(VOC_CHANNEL_LABEL[c.channel]) : c.channel}</span>
                     <StatusBadge>{L(c.theme)}</StatusBadge>
                   </div>
                   <p className="text-sm">{L(c.text)}</p>

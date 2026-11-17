@@ -96,11 +96,11 @@ export default function ShopperCases() {
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
                           <span className="inline-flex items-center gap-2">
                             <span className="text-muted-foreground">{t('Respond', 'الرد')}</span>
-                            <ClockBadge dueIso={c.respondDueAt} totalWindowMs={1 * DAY_MS} />
+                            <ClockBadge dueIso={c.respondDueAt} totalWindowMs={1 * DAY_MS} stoppedAtIso={c.respondedAt} />
                           </span>
                           <span className="inline-flex items-center gap-2">
                             <span className="text-muted-foreground">{t('Resolve', 'الحل')}</span>
-                            <ClockBadge dueIso={c.resolveDueAt} totalWindowMs={5 * DAY_MS} />
+                            <ClockBadge dueIso={c.resolveDueAt} totalWindowMs={5 * DAY_MS} stoppedAtIso={c.closedAt} />
                           </span>
                         </div>
                       </div>
