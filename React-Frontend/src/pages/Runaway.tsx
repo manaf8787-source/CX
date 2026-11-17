@@ -82,7 +82,7 @@ export default function Runaway() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title={t('Runaway customers', 'العملاء الهاربون')}
+        term="Runaway customer" title={t('Runaway customers', 'العملاء الهاربون')}
         description={t(
           'Six types as counters, plus a cross-type "what we keep doing wrong" list. The point is to learn and fix the cause, not to chase each one.',
           'ستة أنواع كعدادات، مع قائمة الأخطاء المتكررة عبر الأنواع. الهدف التعلّم وإصلاح السبب، لا ملاحقة كل حالة.',
@@ -114,7 +114,7 @@ export default function Runaway() {
       </section>
 
       <SectionCard
-        title={t('What we keep doing wrong', 'ما زلنا نكرر هذه الأخطاء')}
+        term="Runaway customer" title={t('What we keep doing wrong', 'ما زلنا نكرر هذه الأخطاء')}
         description={t('Faults found across every runaway record. Open one to work on it as a corrective action.', 'أخطاء ظهرت عبر كل السجلات الهاربة. افتح أحدها للعمل عليه كإجراء تصحيحي.')}
       >
         {loading ? (

@@ -103,7 +103,7 @@ export default function MonthlyPack() {
         <KpiTile label={t('Closed total', 'إجمالي المغلقة')} value={closedTotal} icon={<CheckCircle2 />} accent="var(--success)" loading={actionsLoading} />
       </div>
 
-      <SectionCard title={t('Most common signal categories', 'أكثر فئات الإشارات شيوعاً')}>
+      <SectionCard term="Signal" title={t('Most common signal categories', 'أكثر فئات الإشارات شيوعاً')}>
         {signalsLoading ? (
           <LoadingState rows={4} />
         ) : topCategories.length ? (
@@ -122,7 +122,7 @@ export default function MonthlyPack() {
       </SectionCard>
 
       <SectionCard
-        title={t('Did past corrective actions work?', 'هل نجحت الإجراءات التصحيحية السابقة؟')}
+        term="60-day check" title={t('Did past corrective actions work?', 'هل نجحت الإجراءات التصحيحية السابقة؟')}
         description={t(
           'A before/after comparison is a signal, not proof. Real analysis needs two to three months of closed cases.',
           'المقارنة بين قبل وبعد مؤشر وليست دليلاً قاطعاً. التحليل الحقيقي يحتاج شهرين إلى ثلاثة من الحالات المغلقة.',

@@ -86,7 +86,7 @@ export default function Surveys() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title={t('Surveys and triggers', 'الاستبيانات والمحفزات')}
+        term="Survey trigger" title={t('Surveys and triggers', 'الاستبيانات والمحفزات')}
         description={t(
           'Ask only after something meaningful, never on a public channel, never more than the caps — one line per product.',
           'نسأل فقط بعد أمر ذي معنى، وأبداً على قناة عامة، وأبداً أكثر من الحدود المسموحة — خط واحد لكل منتج.',
@@ -240,7 +240,7 @@ export default function Surveys() {
       </SectionCard>
 
       <SectionCard
-        title={t('When we ask, and when we never ask', 'متى نسأل، ومتى لا نسأل أبداً')}
+        term="Survey trigger" title={t('When we ask, and when we never ask', 'متى نسأل، ومتى لا نسأل أبداً')}
         actions={
           <Button variant="outline" size="sm" asChild>
             <Link to="/settings/rules">
@@ -310,7 +310,7 @@ export default function Surveys() {
         </div>
       </div>
 
-      <SectionCard title={t('Per product, no group number', 'لكل منتج، دون رقم موحد')}>
+      <SectionCard term="NPS" title={t('Per product, no group number', 'لكل منتج، دون رقم موحد')}>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {PRODUCTS.map((p) => {
             const moments = productMoments?.find((m) => m.product === p.id)

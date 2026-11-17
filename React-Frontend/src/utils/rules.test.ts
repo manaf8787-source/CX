@@ -130,9 +130,8 @@ describe('close the loop', () => {
     expect(r.selected.map((i) => i.id).sort()).toEqual(['a1', 'd1'])
     expect(r.selected.length + r.excluded.length).toBe(items.length)
   })
-  it('recovered = re-survey score of 4 or more (documented approximation)', () => {
-    expect(isRecovered({ ...det('r', 'low'), secondScore: 4 })).toBe(true)
-    expect(isRecovered({ ...det('r', 'low'), secondScore: 3 })).toBe(false)
+  it('recovered is only final once the 60-day window has closed', () => {
+    expect(isRecovered({ ...det('r', 'low'), secondScore: 9 })).toBe(false)
     expect(isRecovered(det('r', 'low'))).toBe(false)
   })
   it('has the ten KB reason codes, and suggests the most frequent one from the timeline', () => {

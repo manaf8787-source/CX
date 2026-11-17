@@ -200,7 +200,8 @@ export function AssistantPanel({ onClose, initialQuestion }: { onClose: () => vo
         role="log"
         aria-live="polite"
         aria-label={t('Conversation', 'المحادثة')}
-        className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-4"
+        tabIndex={0}
+        className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-4 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
       >
         {messages.map((msg) => {
           const mine = msg.from === 'user'
@@ -259,7 +260,7 @@ export function AssistantPanel({ onClose, initialQuestion }: { onClose: () => vo
       </div>
 
       <div className="border-t bg-card">
-        <div className="flex gap-2 overflow-x-auto px-4 pt-3 pb-1" aria-label={t('Suggested questions', 'أسئلة مقترحة')} role="group">
+        <div className="flex gap-2 overflow-x-auto px-4 pt-3 pb-1 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50" aria-label={t('Suggested questions', 'أسئلة مقترحة')} role="group" tabIndex={0}>
           {SUGGESTED_QUERIES.map((q) => (
             <Button
               key={q.en}

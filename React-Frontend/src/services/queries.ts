@@ -1,41 +1,6 @@
+import { latency, mock } from './mockStore'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import {
-  MOCK_AGENT_ACTIVITY,
-  MOCK_AGENT_DIRECTORY,
-  MOCK_AI_ACCESS_MATRIX,
-  MOCK_AI_CAMPAIGNS,
-  MOCK_AI_INSIGHTS,
-  MOCK_AI_JOURNEY_READINGS,
-  MOCK_CAMPAIGN_RECOMMENDATIONS,
-  MOCK_CORRECTIVE_ACTIONS,
-  MOCK_CORRECTIVE_RATIONALES,
-  MOCK_DETRACTOR_CALL_ITEMS,
-  MOCK_EFFORT_SUMMARIES,
-  MOCK_GLOSSARY_TERMS,
-  MOCK_HANDOFFS,
-  MOCK_HR_POOL,
-  MOCK_INTERACTIONS,
-  MOCK_INVESTIGATIONS,
-  MOCK_LD_REQUESTS,
-  MOCK_LEAD_FUNNEL,
-  MOCK_MS_ASSIGNMENTS,
-  MOCK_MS_CHECKLISTS,
-  MOCK_MS_SCENARIOS,
-  MOCK_MS_SHOPPERS,
-  MOCK_PATTERNS,
-  MOCK_PERSONAS,
-  MOCK_PERSONS,
-  MOCK_PRODUCT_SURVEY_MOMENTS,
-  MOCK_RULES_CONFIG,
-  MOCK_SHOPPER_CASES,
-  MOCK_SIGNALS,
-  MOCK_STANDARDS,
-  MOCK_SURVEY_TRIGGERS,
-  MOCK_VOC_COMMENTS,
-  MOCK_VOC_ROWS,
-} from './mockData'
-import { sleep } from '../utils/random'
-import { INTERVIEW_OUTCOME_LABEL, isRecovered, REASON_CODE_LABEL } from '../utils/closeTheLoop'
+import { INTERVIEW_OUTCOME_LABEL, REASON_CODE_LABEL, recoveryStatus } from '../utils/closeTheLoop'
 import { scoreChecklist } from '../utils/mysteryShopper'
 import { PRODUCTS } from '../data/products'
 import type {
@@ -67,189 +32,189 @@ import type {
 const LATENCY_MS = 180
 
 async function fetchPersons() {
-  await sleep(LATENCY_MS)
-  return MOCK_PERSONS
+  await latency(LATENCY_MS)
+  return mock.MOCK_PERSONS
 }
 
 async function fetchPerson(id: string) {
-  await sleep(LATENCY_MS)
-  return MOCK_PERSONS.find((p) => p.id === id) ?? null
+  await latency(LATENCY_MS)
+  return mock.MOCK_PERSONS.find((p) => p.id === id) ?? null
 }
 
 async function fetchInteractionsForPerson(personId: string) {
-  await sleep(LATENCY_MS)
-  return MOCK_INTERACTIONS.filter((i) => i.personKey === personId)
+  await latency(LATENCY_MS)
+  return mock.MOCK_INTERACTIONS.filter((i) => i.personKey === personId)
 }
 
 async function fetchEffortSummary(personId: string) {
-  await sleep(LATENCY_MS)
-  return MOCK_EFFORT_SUMMARIES.find((e) => e.personId === personId) ?? null
+  await latency(LATENCY_MS)
+  return mock.MOCK_EFFORT_SUMMARIES.find((e) => e.personId === personId) ?? null
 }
 
 async function fetchSignals() {
-  await sleep(LATENCY_MS)
-  return MOCK_SIGNALS
+  await latency(LATENCY_MS)
+  return mock.MOCK_SIGNALS
 }
 
 async function fetchPatterns() {
-  await sleep(LATENCY_MS)
-  return MOCK_PATTERNS
+  await latency(LATENCY_MS)
+  return mock.MOCK_PATTERNS
 }
 
 async function fetchCorrectiveActions() {
-  await sleep(LATENCY_MS)
-  return MOCK_CORRECTIVE_ACTIONS
+  await latency(LATENCY_MS)
+  return mock.MOCK_CORRECTIVE_ACTIONS
 }
 
 async function fetchShopperCases() {
-  await sleep(LATENCY_MS)
-  return MOCK_SHOPPER_CASES
+  await latency(LATENCY_MS)
+  return mock.MOCK_SHOPPER_CASES
 }
 
 async function fetchInvestigations() {
-  await sleep(LATENCY_MS)
-  return MOCK_INVESTIGATIONS
+  await latency(LATENCY_MS)
+  return mock.MOCK_INVESTIGATIONS
 }
 
 async function fetchDetractorCallItems() {
-  await sleep(LATENCY_MS)
-  return MOCK_DETRACTOR_CALL_ITEMS
+  await latency(LATENCY_MS)
+  return mock.MOCK_DETRACTOR_CALL_ITEMS
 }
 
 async function fetchAllInteractions() {
-  await sleep(LATENCY_MS)
-  return MOCK_INTERACTIONS
+  await latency(LATENCY_MS)
+  return mock.MOCK_INTERACTIONS
 }
 
 async function fetchEffortSummaries() {
-  await sleep(LATENCY_MS)
-  return MOCK_EFFORT_SUMMARIES
+  await latency(LATENCY_MS)
+  return mock.MOCK_EFFORT_SUMMARIES
 }
 
 async function fetchAiJourneyReading(personId: string) {
-  await sleep(LATENCY_MS)
-  return MOCK_AI_JOURNEY_READINGS.find((r) => r.personId === personId) ?? null
+  await latency(LATENCY_MS)
+  return mock.MOCK_AI_JOURNEY_READINGS.find((r) => r.personId === personId) ?? null
 }
 
 async function fetchAiCampaigns() {
-  await sleep(LATENCY_MS)
-  return MOCK_AI_CAMPAIGNS
+  await latency(LATENCY_MS)
+  return mock.MOCK_AI_CAMPAIGNS
 }
 
 async function fetchPersonas() {
-  await sleep(LATENCY_MS)
-  return MOCK_PERSONAS
+  await latency(LATENCY_MS)
+  return mock.MOCK_PERSONAS
 }
 
 async function fetchCampaignRecommendations() {
-  await sleep(LATENCY_MS)
-  return MOCK_CAMPAIGN_RECOMMENDATIONS
+  await latency(LATENCY_MS)
+  return mock.MOCK_CAMPAIGN_RECOMMENDATIONS
 }
 
 async function fetchSurveyTriggers() {
-  await sleep(LATENCY_MS)
-  return MOCK_SURVEY_TRIGGERS
+  await latency(LATENCY_MS)
+  return mock.MOCK_SURVEY_TRIGGERS
 }
 
 async function fetchLeadFunnel() {
-  await sleep(LATENCY_MS)
-  return MOCK_LEAD_FUNNEL
+  await latency(LATENCY_MS)
+  return mock.MOCK_LEAD_FUNNEL
 }
 
 async function fetchProductSurveyMoments() {
-  await sleep(LATENCY_MS)
-  return MOCK_PRODUCT_SURVEY_MOMENTS
+  await latency(LATENCY_MS)
+  return mock.MOCK_PRODUCT_SURVEY_MOMENTS
 }
 
 async function fetchAgentDirectory() {
-  await sleep(LATENCY_MS)
-  return MOCK_AGENT_DIRECTORY
+  await latency(LATENCY_MS)
+  return mock.MOCK_AGENT_DIRECTORY
 }
 
 async function fetchHandoffs() {
-  await sleep(LATENCY_MS)
-  return MOCK_HANDOFFS
+  await latency(LATENCY_MS)
+  return mock.MOCK_HANDOFFS
 }
 
 async function fetchAiInsights() {
-  await sleep(LATENCY_MS)
-  return MOCK_AI_INSIGHTS
+  await latency(LATENCY_MS)
+  return mock.MOCK_AI_INSIGHTS
 }
 
 async function fetchCorrectiveRationale(actionId: string) {
-  await sleep(LATENCY_MS)
-  return MOCK_CORRECTIVE_RATIONALES[actionId] ?? null
+  await latency(LATENCY_MS)
+  return mock.MOCK_CORRECTIVE_RATIONALES[actionId] ?? null
 }
 
 async function fetchAgentActivity() {
-  await sleep(LATENCY_MS)
-  return MOCK_AGENT_ACTIVITY
+  await latency(LATENCY_MS)
+  return mock.MOCK_AGENT_ACTIVITY
 }
 
 // --- Settings and reference fetchers --------------------------------------
 
 async function fetchStandards() {
-  await sleep(LATENCY_MS)
-  return MOCK_STANDARDS
+  await latency(LATENCY_MS)
+  return mock.MOCK_STANDARDS
 }
 
 async function fetchMsChecklists() {
-  await sleep(LATENCY_MS)
-  return MOCK_MS_CHECKLISTS
+  await latency(LATENCY_MS)
+  return mock.MOCK_MS_CHECKLISTS
 }
 
 async function fetchMsScenarios() {
-  await sleep(LATENCY_MS)
-  return MOCK_MS_SCENARIOS
+  await latency(LATENCY_MS)
+  return mock.MOCK_MS_SCENARIOS
 }
 
 async function fetchMsShoppers() {
-  await sleep(LATENCY_MS)
-  return MOCK_MS_SHOPPERS
+  await latency(LATENCY_MS)
+  return mock.MOCK_MS_SHOPPERS
 }
 
 async function fetchMsAssignments() {
-  await sleep(LATENCY_MS)
-  return MOCK_MS_ASSIGNMENTS
+  await latency(LATENCY_MS)
+  return mock.MOCK_MS_ASSIGNMENTS
 }
 
 async function fetchVocRows() {
-  await sleep(LATENCY_MS)
-  return MOCK_VOC_ROWS
+  await latency(LATENCY_MS)
+  return mock.MOCK_VOC_ROWS
 }
 
 async function fetchVocComments() {
-  await sleep(LATENCY_MS)
-  return MOCK_VOC_COMMENTS
+  await latency(LATENCY_MS)
+  return mock.MOCK_VOC_COMMENTS
 }
 
 async function fetchRulesConfig() {
-  await sleep(LATENCY_MS)
-  return MOCK_RULES_CONFIG
+  await latency(LATENCY_MS)
+  return mock.MOCK_RULES_CONFIG
 }
 
 async function fetchAiAccessMatrix() {
-  await sleep(LATENCY_MS)
-  return MOCK_AI_ACCESS_MATRIX
+  await latency(LATENCY_MS)
+  return mock.MOCK_AI_ACCESS_MATRIX
 }
 
 async function fetchLdRequests() {
-  await sleep(LATENCY_MS)
-  return MOCK_LD_REQUESTS
+  await latency(LATENCY_MS)
+  return mock.MOCK_LD_REQUESTS
 }
 
 async function fetchHrPool() {
-  await sleep(LATENCY_MS)
-  return MOCK_HR_POOL
+  await latency(LATENCY_MS)
+  return mock.MOCK_HR_POOL
 }
 
 async function fetchGlossaryTerms() {
-  await sleep(LATENCY_MS)
-  return MOCK_GLOSSARY_TERMS
+  await latency(LATENCY_MS)
+  return mock.MOCK_GLOSSARY_TERMS
 }
 
 async function fetchProducts() {
-  await sleep(LATENCY_MS)
+  await latency(LATENCY_MS)
   return PRODUCTS
 }
 
@@ -259,8 +224,8 @@ async function fetchProducts() {
 // affected query keys so every view re-reads the same updated record.
 
 async function decideCorrectiveAction(input: { id: string; decision: 'approved' | 'modified' | 'rejected'; reason?: string }) {
-  await sleep(LATENCY_MS)
-  const action = MOCK_CORRECTIVE_ACTIONS.find((a) => a.id === input.id)
+  await latency(LATENCY_MS)
+  const action = mock.MOCK_CORRECTIVE_ACTIONS.find((a) => a.id === input.id)
   if (!action) throw new Error('Corrective action not found')
   action.decision = input.decision
   action.decisionReason = { en: input.reason || '—', ar: input.reason || '—' }
@@ -269,9 +234,9 @@ async function decideCorrectiveAction(input: { id: string; decision: 'approved' 
 }
 
 async function createActionFromPattern(input: { pattern: Pattern; kind: CorrectiveActionKind; owner: string; dueDate: string }) {
-  await sleep(LATENCY_MS)
+  await latency(LATENCY_MS)
   const action: CorrectiveAction = {
-    id: `ca-${MOCK_CORRECTIVE_ACTIONS.length + 1}`,
+    id: `ca-${mock.MOCK_CORRECTIVE_ACTIONS.length + 1}`,
     kind: input.kind,
     patternId: input.pattern.id,
     title: { en: `Address ${input.pattern.category.replace(/_/g, ' ')} in ${input.pattern.team}`, ar: 'معالجة النمط المرصود لهذا الفريق' },
@@ -280,13 +245,13 @@ async function createActionFromPattern(input: { pattern: Pattern; kind: Correcti
     status: 'proposed',
     verificationDueAt: new Date(Date.now() + 60 * 86_400_000).toISOString(),
   }
-  MOCK_CORRECTIVE_ACTIONS.push(action)
+  mock.MOCK_CORRECTIVE_ACTIONS.push(action)
   return action
 }
 
 async function decideShopperCaseAction(input: { caseId: string; n: number; decision: 'confirmed' | 'modified' | 'rejected' }) {
-  await sleep(LATENCY_MS)
-  const c = MOCK_SHOPPER_CASES.find((x) => x.id === input.caseId)
+  await latency(LATENCY_MS)
+  const c = mock.MOCK_SHOPPER_CASES.find((x) => x.id === input.caseId)
   if (!c) throw new Error('Shopper case not found')
   const line = c.proposedActions.find((p) => p.n === input.n)
   if (line) line.decision = input.decision
@@ -295,8 +260,8 @@ async function decideShopperCaseAction(input: { caseId: string; n: number; decis
 }
 
 async function advanceShopperCase(input: { caseId: string; status: ShopperCase['status'] }) {
-  await sleep(LATENCY_MS)
-  const c = MOCK_SHOPPER_CASES.find((x) => x.id === input.caseId)
+  await latency(LATENCY_MS)
+  const c = mock.MOCK_SHOPPER_CASES.find((x) => x.id === input.caseId)
   if (!c) throw new Error('Shopper case not found')
   const nowIso = new Date().toISOString()
   c.status = input.status
@@ -306,9 +271,9 @@ async function advanceShopperCase(input: { caseId: string; status: ShopperCase['
 }
 
 async function requestInvestigation(input: { patternId: string; kind: Investigation['kind']; requestedCount?: number; environment?: string; scenario?: string; lookFor?: string }) {
-  await sleep(LATENCY_MS)
+  await latency(LATENCY_MS)
   const inv: Investigation = {
-    id: `inv-${MOCK_INVESTIGATIONS.length + 1}`,
+    id: `inv-${mock.MOCK_INVESTIGATIONS.length + 1}`,
     patternId: input.patternId,
     kind: input.kind,
     requestedCount: input.requestedCount,
@@ -317,13 +282,13 @@ async function requestInvestigation(input: { patternId: string; kind: Investigat
     lookFor: input.lookFor ? { en: input.lookFor, ar: input.lookFor } : undefined,
     status: 'requested',
   }
-  MOCK_INVESTIGATIONS.push(inv)
+  mock.MOCK_INVESTIGATIONS.push(inv)
   return inv
 }
 
 async function returnInvestigation(input: { id: string; resultSummary: string }) {
-  await sleep(LATENCY_MS)
-  const inv = MOCK_INVESTIGATIONS.find((i) => i.id === input.id)
+  await latency(LATENCY_MS)
+  const inv = mock.MOCK_INVESTIGATIONS.find((i) => i.id === input.id)
   if (!inv) throw new Error('Investigation not found')
   inv.status = 'returned'
   inv.resultSummary = { en: input.resultSummary, ar: input.resultSummary }
@@ -334,16 +299,16 @@ async function returnInvestigation(input: { id: string; resultSummary: string })
  * against the detractor list item. "Declined" is read as "no retry" at
  * display time (`outcome === 'declined'`), not a separate stored flag. */
 async function recordInterview(input: { id: string; reasonCode: ReasonCode; outcome: InterviewOutcome; notes?: string; resurveyOn?: string }) {
-  await sleep(LATENCY_MS)
-  const item = MOCK_DETRACTOR_CALL_ITEMS.find((d) => d.id === input.id)
+  await latency(LATENCY_MS)
+  const item = mock.MOCK_DETRACTOR_CALL_ITEMS.find((d) => d.id === input.id)
   if (!item) throw new Error('Detractor call item not found')
   item.reasonCode = input.reasonCode
   item.notes = input.notes
   item.resurveyOn = input.resurveyOn
   item.outcome = input.outcome
   // KB §7: the interview sits on the person's timeline.
-  MOCK_INTERACTIONS.push({
-    id: `i-ctl-${item.id}-${MOCK_INTERACTIONS.length + 1}`,
+  mock.MOCK_INTERACTIONS.push({
+    id: `i-ctl-${item.id}-${mock.MOCK_INTERACTIONS.length + 1}`,
     personKey: item.personId,
     sourceRef: `close-the-loop-${item.id}`,
     channel: 'call',
@@ -351,7 +316,7 @@ async function recordInterview(input: { id: string; reasonCode: ReasonCode; outc
     occurredAt: new Date().toISOString(),
     product: item.product,
     environment: item.environment,
-    language: MOCK_PERSONS.find((p) => p.id === item.personId)?.language ?? 'en',
+    language: mock.MOCK_PERSONS.find((p) => p.id === item.personId)?.language ?? 'en',
     reason: 'Close the loop interview',
     outcome: `${REASON_CODE_LABEL[input.reasonCode].en} · ${INTERVIEW_OUTCOME_LABEL[input.outcome].en}`,
     problemFlags: [],
@@ -359,18 +324,20 @@ async function recordInterview(input: { id: string; reasonCode: ReasonCode; outc
   return item
 }
 
-/** FR-5.4/5.5 — the 7–14 day re-survey's second score; sets `recoveredAt`
- * the moment `isRecovered` is met, so the recovery delta is derivable
- * straight from the record afterwards. */
+/** FR-5.4/5.5 — the 7–14 day re-survey's second score. It is a rating event
+ * under the recovered rule (Rules and Definitions, Decision 3); `recoveredAt`
+ * marks the first recovery event inside the 60-day window. */
 async function recordResurvey(input: { id: string; secondScore: number }) {
-  await sleep(LATENCY_MS)
-  const item = MOCK_DETRACTOR_CALL_ITEMS.find((d) => d.id === input.id)
+  await latency(LATENCY_MS)
+  const item = mock.MOCK_DETRACTOR_CALL_ITEMS.find((d) => d.id === input.id)
   if (!item) throw new Error('Detractor call item not found')
   item.secondScore = input.secondScore
-  if (isRecovered(item)) item.recoveredAt = new Date().toISOString()
+  item.resurveyedAt = new Date().toISOString()
+  const r = recoveryStatus(item)
+  if (!item.recoveredAt && (r.status === 'recovered' || r.provisional === 'recovered')) item.recoveredAt = item.resurveyedAt
   // KB §7: the re-survey sits on the person's timeline too.
-  MOCK_INTERACTIONS.push({
-    id: `i-rs-${item.id}-${MOCK_INTERACTIONS.length + 1}`,
+  mock.MOCK_INTERACTIONS.push({
+    id: `i-rs-${item.id}-${mock.MOCK_INTERACTIONS.length + 1}`,
     personKey: item.personId,
     sourceRef: `re-survey-${item.id}`,
     channel: 'survey',
@@ -378,7 +345,7 @@ async function recordResurvey(input: { id: string; secondScore: number }) {
     occurredAt: new Date().toISOString(),
     product: item.product,
     environment: item.environment,
-    language: MOCK_PERSONS.find((p) => p.id === item.personId)?.language ?? 'en',
+    language: mock.MOCK_PERSONS.find((p) => p.id === item.personId)?.language ?? 'en',
     reason: 'Re-survey after resolution',
     outcome: `${item.firstScore} → ${input.secondScore}`,
     score: input.secondScore,
@@ -391,17 +358,17 @@ async function recordResurvey(input: { id: string; secondScore: number }) {
  * collects members): a critical-severity item can never end up a campaign
  * member, even if something upstream passed one in. */
 async function createAiCampaign(input: { name: Bi; segmentDescription: Bi; script: Bi; memberIds: string[] }) {
-  await sleep(LATENCY_MS)
-  const safeMemberIds = input.memberIds.filter((id) => MOCK_DETRACTOR_CALL_ITEMS.find((d) => d.id === id)?.severity !== 'critical')
+  await latency(LATENCY_MS)
+  const safeMemberIds = input.memberIds.filter((id) => mock.MOCK_DETRACTOR_CALL_ITEMS.find((d) => d.id === id)?.severity !== 'critical')
   const campaign: AiInterviewCampaign = {
-    id: `camp-ai-${MOCK_AI_CAMPAIGNS.length + 1}`,
+    id: `camp-ai-${mock.MOCK_AI_CAMPAIGNS.length + 1}`,
     name: input.name,
     segmentDescription: input.segmentDescription,
     script: input.script,
     status: 'draft',
     memberIds: safeMemberIds,
   }
-  MOCK_AI_CAMPAIGNS.push(campaign)
+  mock.MOCK_AI_CAMPAIGNS.push(campaign)
   return campaign
 }
 
@@ -410,8 +377,8 @@ async function createAiCampaign(input: { name: Bi; segmentDescription: Bi; scrip
  * persona nobody can act on should carry (even though this mock layer does
  * not go as far as actually dropping the record). */
 async function decidePersona(input: { id: string; decision: 'approved' | 'modified' | 'rejected'; reason?: string }) {
-  await sleep(LATENCY_MS)
-  const persona = MOCK_PERSONAS.find((p) => p.id === input.id)
+  await latency(LATENCY_MS)
+  const persona = mock.MOCK_PERSONAS.find((p) => p.id === input.id)
   if (!persona) throw new Error('Persona not found')
   persona.approvedByCxManager = input.decision === 'approved'
   return persona
@@ -422,8 +389,8 @@ async function decidePersona(input: { id: string; decision: 'approved' | 'modifi
 /** NFR-4 — the CX manager grows the register's status as each document is
  * written and scored; CX only, per `canEditStandardsRegister` upstream. */
 async function updateStandardStatus(input: { id: string; status: StandardStatus }) {
-  await sleep(LATENCY_MS)
-  const std = MOCK_STANDARDS.find((s) => s.id === input.id)
+  await latency(LATENCY_MS)
+  const std = mock.MOCK_STANDARDS.find((s) => s.id === input.id)
   if (!std) throw new Error('Standard not found')
   std.status = input.status
   return std
@@ -432,7 +399,7 @@ async function updateStandardStatus(input: { id: string; status: StandardStatus 
 /** FR "Distribution" — sends a new checklist+scenario to each selected
  * shopper, 3 days out, same shape as the old scaffold's send(). */
 async function sendMsAssignments(input: { checklistId: string; scenarioId: string; shopperIds: string[]; via: MsAssignment['via'] }) {
-  await sleep(LATENCY_MS)
+  await latency(LATENCY_MS)
   const now = new Date().toISOString()
   const due = new Date(Date.now() + 3 * 86_400_000).toISOString()
   const created = input.shopperIds.map((shopperId, i) => ({
@@ -445,7 +412,7 @@ async function sendMsAssignments(input: { checklistId: string; scenarioId: strin
     dueAt: due,
     status: 'sent' as const,
   }))
-  MOCK_MS_ASSIGNMENTS.unshift(...created)
+  mock.MOCK_MS_ASSIGNMENTS.unshift(...created)
   return created
 }
 
@@ -453,9 +420,9 @@ async function sendMsAssignments(input: { checklistId: string; scenarioId: strin
  * the severity-floor rule (<60% ⇒ at least medium) is read off this score by
  * the page, not stored again here. */
 async function submitMsAssignment(input: { id: string; checklistId: string; answers: Record<string, number | 'na' | null> }) {
-  await sleep(LATENCY_MS)
-  const assignment = MOCK_MS_ASSIGNMENTS.find((a) => a.id === input.id)
-  const checklist = MOCK_MS_CHECKLISTS.find((c) => c.id === input.checklistId)
+  await latency(LATENCY_MS)
+  const assignment = mock.MOCK_MS_ASSIGNMENTS.find((a) => a.id === input.id)
+  const checklist = mock.MOCK_MS_CHECKLISTS.find((c) => c.id === input.checklistId)
   if (!assignment || !checklist) throw new Error('Assignment or checklist not found')
   const result = scoreChecklist(checklist, input.answers)
   assignment.status = 'submitted'
@@ -465,16 +432,16 @@ async function submitMsAssignment(input: { id: string; checklistId: string; answ
 }
 
 async function decideMsAssignment(input: { id: string; approve: boolean }) {
-  await sleep(LATENCY_MS)
-  const assignment = MOCK_MS_ASSIGNMENTS.find((a) => a.id === input.id)
+  await latency(LATENCY_MS)
+  const assignment = mock.MOCK_MS_ASSIGNMENTS.find((a) => a.id === input.id)
   if (!assignment) throw new Error('Assignment not found')
   assignment.status = input.approve ? 'approved' : 'returned'
   return assignment
 }
 
 async function updateRuleConfig(input: { id: string; value: number }) {
-  await sleep(LATENCY_MS)
-  const rule = MOCK_RULES_CONFIG.find((r) => r.id === input.id)
+  await latency(LATENCY_MS)
+  const rule = mock.MOCK_RULES_CONFIG.find((r) => r.id === input.id)
   if (!rule) throw new Error('Rule not found')
   rule.value = input.value
   return rule
@@ -484,15 +451,15 @@ async function updateRuleConfig(input: { id: string; value: number }) {
  * the five-level access vocabulary; changes apply at once (USER_ROLES_AND_
  * PERMISSIONS.md). */
 async function updateAiAccessCell(input: { group: string; label: string; roleId: RoleId; value: Access }) {
-  await sleep(LATENCY_MS)
-  const row = MOCK_AI_ACCESS_MATRIX.find((r) => r.group.en === input.group && r.label.en === input.label)
+  await latency(LATENCY_MS)
+  const row = mock.MOCK_AI_ACCESS_MATRIX.find((r) => r.group.en === input.group && r.label.en === input.label)
   if (!row) throw new Error('Access row not found')
   row.values[input.roleId] = input.value
   return row
 }
 
 async function toggleProductLaunch(input: { id: ProductId }) {
-  await sleep(LATENCY_MS)
+  await latency(LATENCY_MS)
   const product = PRODUCTS.find((p) => p.id === input.id)
   if (!product) throw new Error('Product not found')
   product.live = !product.live
@@ -500,15 +467,15 @@ async function toggleProductLaunch(input: { id: ProductId }) {
 }
 
 async function fetchHomeSummary() {
-  await sleep(LATENCY_MS)
-  const runawayCount = MOCK_EFFORT_SUMMARIES.filter((e) => e.daysSinceLastContact > 30).length
-  const openActions = MOCK_CORRECTIVE_ACTIONS.filter((a) => a.status !== 'effective' && a.status !== 'failed').length
+  await latency(LATENCY_MS)
+  const runawayCount = mock.MOCK_EFFORT_SUMMARIES.filter((e) => e.daysSinceLastContact > 30).length
+  const openActions = mock.MOCK_CORRECTIVE_ACTIONS.filter((a) => a.status !== 'effective' && a.status !== 'failed').length
   return {
     runawayCount,
     openActions,
-    personaCount: MOCK_PERSONAS.length,
-    journeysViewed: MOCK_PERSONS.length,
-    toCall: MOCK_DETRACTOR_CALL_ITEMS.filter((d) => !d.outcome).length || MOCK_DETRACTOR_CALL_ITEMS.length,
+    personaCount: mock.MOCK_PERSONAS.length,
+    journeysViewed: mock.MOCK_PERSONS.length,
+    toCall: mock.MOCK_DETRACTOR_CALL_ITEMS.filter((d) => !d.outcome).length || mock.MOCK_DETRACTOR_CALL_ITEMS.length,
   }
 }
 

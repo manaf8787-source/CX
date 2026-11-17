@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { DeferredRender } from '@/components/common/DeferredRender'
 import { ArrowRight, BrainCircuit, ListChecks, PhoneCall, Search, ShieldAlert, Target, Users, UserX } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { useNow } from '@/hooks/useNow'
@@ -263,41 +264,43 @@ export default function Home() {
             <LoadingState rows={3} />
           ) : (
             <div className="h-56" dir="ltr">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={lang === 'ar' ? [...signalsByMonth].reverse() : signalsByMonth} margin={lang === 'ar' ? { top: 4, right: -20, bottom: 0, left: 4 } : { top: 4, right: 4, bottom: 0, left: -20 }}>
-                  <CartesianGrid vertical={false} stroke="var(--border)" />
-                  <XAxis dataKey="month" tickLine={false} axisLine={false} tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }} />
-                  <YAxis
-                    allowDecimals={false}
-                    orientation={lang === 'ar' ? 'right' : 'left'}
-                    tickLine={false}
-                    axisLine={false}
-                    tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }}
-                  />
-                  <Tooltip
-                    cursor={{ fill: 'var(--muted)' }}
-                    contentStyle={{ background: 'var(--popover)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--popover-foreground)', fontSize: 12 }}
-                  />
-                  <Legend
-                    wrapperStyle={{ fontSize: 12 }}
-                    iconType="circle"
-                    iconSize={8}
-                    formatter={(value) => <span style={{ color: 'var(--muted-foreground)' }}>{value}</span>}
-                  />
-                  {live.map((p, i) => (
-                    <Bar
-                      key={p.id}
-                      dataKey={p.id}
-                      name={L(p.name)}
-                      stackId="signals"
-                      fill={`var(${p.colorVar})`}
-                      radius={i === live.length - 1 ? [4, 4, 0, 0] : 0}
-                      maxBarSize={36}
-                      {...chartMotion}
+              <DeferredRender>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={lang === 'ar' ? [...signalsByMonth].reverse() : signalsByMonth} margin={lang === 'ar' ? { top: 4, right: -20, bottom: 0, left: 4 } : { top: 4, right: 4, bottom: 0, left: -20 }}>
+                    <CartesianGrid vertical={false} stroke="var(--border)" />
+                    <XAxis dataKey="month" tickLine={false} axisLine={false} tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }} />
+                    <YAxis
+                      allowDecimals={false}
+                      orientation={lang === 'ar' ? 'right' : 'left'}
+                      tickLine={false}
+                      axisLine={false}
+                      tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }}
                     />
-                  ))}
-                </BarChart>
-              </ResponsiveContainer>
+                    <Tooltip
+                      cursor={{ fill: 'var(--muted)' }}
+                      contentStyle={{ background: 'var(--popover)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--popover-foreground)', fontSize: 12 }}
+                    />
+                    <Legend
+                      wrapperStyle={{ fontSize: 12 }}
+                      iconType="circle"
+                      iconSize={8}
+                      formatter={(value) => <span style={{ color: 'var(--muted-foreground)' }}>{value}</span>}
+                    />
+                    {live.map((p, i) => (
+                      <Bar
+                        key={p.id}
+                        dataKey={p.id}
+                        name={L(p.name)}
+                        stackId="signals"
+                        fill={`var(${p.colorVar})`}
+                        radius={i === live.length - 1 ? [4, 4, 0, 0] : 0}
+                        maxBarSize={36}
+                        {...chartMotion}
+                      />
+                    ))}
+                  </BarChart>
+                </ResponsiveContainer>
+              </DeferredRender>
             </div>
           )}
           <div className="mt-3">
@@ -352,7 +355,7 @@ export default function Home() {
 
         <SectionCard
           className="lg:col-span-3"
-          title={t('AI team activity', 'نشاط الفريق الذكي')}
+          term="Intelligent CX team" title={t('AI team activity', 'نشاط الفريق الذكي')}
           description={t('Latest runs and the supervisor’s verdict on each.', 'أحدث التشغيلات وحكم المشرف على كل منها.')}
         >
           {activityLoading ? (

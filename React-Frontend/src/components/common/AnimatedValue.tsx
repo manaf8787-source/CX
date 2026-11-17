@@ -1,18 +1,18 @@
-import type { ReactNode } from 'react'
+import { useCallback, useRef, type ReactNode } from 'react'
 import { useCountUp } from '@/hooks/useCountUp'
 
 /** Matches "62", "62%", "1,234", "4.5 days"; anything else renders unchanged. */
 const NUMERIC = /^(-?\d[\d,]*(?:\.\d+)?)(\D*)$/
 
 function CountUp({ value, decimals, grouped, suffix }: { value: number; decimals: number; grouped: boolean; suffix: string }) {
-  const shown = useCountUp(value)
-  const text = shown.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals, useGrouping: grouped })
-  return (
-    <>
-      {text}
-      {suffix}
-    </>
+  const ref = useRef<HTMLSpanElement>(null)
+  const format = useCallback(
+    (n: number) => n.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals, useGrouping: grouped }) + suffix,
+    [decimals, grouped, suffix],
   )
+  useCountUp(ref, value, format)
+  // The text is written by useCountUp (outside React) so a counting tile never re-renders per frame.
+  return <span ref={ref} />
 }
 
 /** Counts numeric KPI values up from zero; non-numeric values render as given. */

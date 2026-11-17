@@ -6,37 +6,39 @@ import { RoleProvider } from './auth/RoleContext'
 import { AuthProvider, RequireAuth } from './auth/AuthContext'
 import { Shell } from './components/layout/Shell'
 import { UiProviders } from './components/layout/UiProviders'
+import { pageLoaders } from './routes/pages'
 
-const Login = lazy(() => import('./pages/Login'))
-const Home = lazy(() => import('./pages/Home'))
-const Customers = lazy(() => import('./pages/Customers'))
-const Runaway = lazy(() => import('./pages/Runaway'))
-const CloseTheLoop = lazy(() => import('./pages/CloseTheLoop'))
-const Personas = lazy(() => import('./pages/Personas'))
-const Surveys = lazy(() => import('./pages/Surveys'))
-const IntelligentCxTeam = lazy(() => import('./pages/IntelligentCxTeam'))
-const ProductPage = lazy(() => import('./pages/ProductPage'))
+const Login = lazy(pageLoaders.login)
+const Home = lazy(pageLoaders.home)
+const Customers = lazy(pageLoaders.customers)
+const Runaway = lazy(pageLoaders.runaway)
+const CloseTheLoop = lazy(pageLoaders.closeTheLoop)
+const Personas = lazy(pageLoaders.personas)
+const Surveys = lazy(pageLoaders.surveys)
+const IntelligentCxTeam = lazy(pageLoaders.intelligentCxTeam)
+const ProductPage = lazy(pageLoaders.productPage)
 
-const ActionsLayout = lazy(() => import('./pages/actions/ActionsLayout'))
-const Corrective = lazy(() => import('./pages/actions/Corrective'))
-const Signals = lazy(() => import('./pages/actions/Signals'))
-const AiInsights = lazy(() => import('./pages/actions/AiInsights'))
-const ShopperCases = lazy(() => import('./pages/actions/ShopperCases'))
-const Investigations = lazy(() => import('./pages/actions/Investigations'))
+const ActionsLayout = lazy(pageLoaders.actionsLayout)
+const Corrective = lazy(pageLoaders.corrective)
+const Signals = lazy(pageLoaders.signals)
+const AiInsights = lazy(pageLoaders.aiInsights)
+const ShopperCases = lazy(pageLoaders.shopperCases)
+const Investigations = lazy(pageLoaders.investigations)
 
-const SettingsLayout = lazy(() => import('./pages/settings/SettingsLayout'))
-const SettingsOverview = lazy(() => import('./pages/settings/Overview'))
-const MonthlyPack = lazy(() => import('./pages/settings/MonthlyPack'))
-const MysteryShopper = lazy(() => import('./pages/settings/MysteryShopper'))
-const Standards = lazy(() => import('./pages/settings/StandardsRegister'))
-const Voc = lazy(() => import('./pages/settings/Voc'))
-const SurveysReference = lazy(() => import('./pages/settings/SurveysReference'))
-const Ld = lazy(() => import('./pages/settings/Ld'))
-const TeamsStructure = lazy(() => import('./pages/settings/TeamsStructure'))
-const HrTeamPerf = lazy(() => import('./pages/settings/HrTeamPerf'))
-const Rules = lazy(() => import('./pages/settings/Rules'))
-const AiInsightsAccess = lazy(() => import('./pages/settings/AiInsightsAccess'))
-const SettingsGlossary = lazy(() => import('./pages/settings/Glossary'))
+const SettingsLayout = lazy(pageLoaders.settingsLayout)
+const SettingsOverview = lazy(pageLoaders.settingsOverview)
+const MonthlyPack = lazy(pageLoaders.monthlyPack)
+const MysteryShopper = lazy(pageLoaders.mysteryShopper)
+const Standards = lazy(pageLoaders.standards)
+const Voc = lazy(pageLoaders.voc)
+const SurveysReference = lazy(pageLoaders.surveysReference)
+const Ld = lazy(pageLoaders.ld)
+const TeamsStructure = lazy(pageLoaders.teamsStructure)
+const HrTeamPerf = lazy(pageLoaders.hrTeamPerf)
+const Rules = lazy(pageLoaders.rules)
+const AiInsightsAccess = lazy(pageLoaders.aiInsightsAccess)
+const SettingsGlossary = lazy(pageLoaders.settingsGlossary)
+const AdminSettings = lazy(pageLoaders.adminSettings)
 
 function FullPageLoading() {
   return <div role="status" aria-busy="true" className="min-h-svh bg-background" />
@@ -98,6 +100,7 @@ export default function App() {
                     <Route path="ld" element={<Ld />} />
                     <Route path="teams-structure" element={<TeamsStructure />} />
                     <Route path="hr-team" element={<HrTeamPerf />} />
+                    <Route path="admin" element={<AdminSettings />} />
                     <Route path="rules" element={<Rules />} />
                     <Route path="ai-insights-access" element={<AiInsightsAccess />} />
                     <Route path="glossary" element={<SettingsGlossary />} />

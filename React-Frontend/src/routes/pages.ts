@@ -1,0 +1,64 @@
+/**
+ * Route chunk loaders, shared by the lazy routes in App.tsx and by prefetching, so
+ * hovering or focusing a sidebar link warms that page's chunk before it is opened.
+ * (No idle prefetch of every page: importing runs module code and slowed first load.)
+ */
+export const pageLoaders = {
+  login: () => import('../pages/Login'),
+  home: () => import('../pages/Home'),
+  customers: () => import('../pages/Customers'),
+  runaway: () => import('../pages/Runaway'),
+  closeTheLoop: () => import('../pages/CloseTheLoop'),
+  personas: () => import('../pages/Personas'),
+  surveys: () => import('../pages/Surveys'),
+  intelligentCxTeam: () => import('../pages/IntelligentCxTeam'),
+  productPage: () => import('../pages/ProductPage'),
+  actionsLayout: () => import('../pages/actions/ActionsLayout'),
+  corrective: () => import('../pages/actions/Corrective'),
+  signals: () => import('../pages/actions/Signals'),
+  aiInsights: () => import('../pages/actions/AiInsights'),
+  shopperCases: () => import('../pages/actions/ShopperCases'),
+  investigations: () => import('../pages/actions/Investigations'),
+  settingsLayout: () => import('../pages/settings/SettingsLayout'),
+  settingsOverview: () => import('../pages/settings/Overview'),
+  monthlyPack: () => import('../pages/settings/MonthlyPack'),
+  mysteryShopper: () => import('../pages/settings/MysteryShopper'),
+  standards: () => import('../pages/settings/StandardsRegister'),
+  voc: () => import('../pages/settings/Voc'),
+  surveysReference: () => import('../pages/settings/SurveysReference'),
+  ld: () => import('../pages/settings/Ld'),
+  teamsStructure: () => import('../pages/settings/TeamsStructure'),
+  hrTeamPerf: () => import('../pages/settings/HrTeamPerf'),
+  rules: () => import('../pages/settings/Rules'),
+  aiInsightsAccess: () => import('../pages/settings/AiInsightsAccess'),
+  settingsGlossary: () => import('../pages/settings/Glossary'),
+  adminSettings: () => import('../pages/settings/AdminSettings'),
+} as const
+
+type LoaderKey = keyof typeof pageLoaders
+
+/** Which chunks a sidebar destination needs (layout + default child). */
+const PATH_LOADERS: [prefix: string, keys: LoaderKey[]][] = [
+  ['/home', ['home']],
+  ['/customers', ['customers']],
+  ['/runaway', ['runaway']],
+  ['/actions', ['actionsLayout', 'corrective']],
+  ['/close-the-loop', ['closeTheLoop']],
+  ['/personas', ['personas']],
+  ['/surveys', ['surveys']],
+  ['/intelligent-cx-team', ['intelligentCxTeam']],
+  ['/products/', ['productPage']],
+  ['/settings', ['settingsLayout', 'settingsOverview']],
+]
+
+const started = new Set<LoaderKey>()
+
+export function prefetchPath(path: string) {
+  const entry = PATH_LOADERS.find(([prefix]) => path === prefix || path.startsWith(prefix.endsWith('/') ? prefix : `${prefix}/`))
+  if (!entry) return
+  for (const key of entry[1]) {
+    if (started.has(key)) continue
+    started.add(key)
+    pageLoaders[key]().catch(() => started.delete(key))
+  }
+}

@@ -34,6 +34,15 @@ export function isInformedOnly(role: RoleId): boolean {
   return INFORMED_ONLY_ROLES.has(role)
 }
 
+/** KB §1 / §17: the receiver of a case or action is the person who can fix
+ * it, never top management — heads and C-level are informed only. Used to
+ * refuse an owner title that names a head, a chief or the board. */
+const TOP_MANAGEMENT_TITLE = /\b(head of|chief|ceo|coo|cfo|cto|c-level|chairman|board|managing director|general manager|vice president|vp)\b|رئيس|المدير العام|الرئيس التنفيذي|مجلس الإدارة/i
+
+export function isTopManagementTitle(title: string): boolean {
+  return TOP_MANAGEMENT_TITLE.test(title)
+}
+
 /** FR-4.3 — an "employee" kind action is always a management note to the
  * direct manager only: never a case, never HR, never a name outside that
  * line. Everyone else sees it purely as "informed", nobody outside CX/the

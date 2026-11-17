@@ -97,7 +97,7 @@ export default function SettingsOverview() {
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
         <SectionCard
           className="xl:col-span-3"
-          title={t('Indicators per product', 'المؤشرات لكل منتج')}
+          term="NPS" title={t('Indicators per product', 'المؤشرات لكل منتج')}
           actions={
             <StatusBadge tone="neutral" icon={<Ban aria-hidden />}>
               {t('Group NPS: none, by design', 'NPS الموحد: لا يوجد، بالتصميم')}

@@ -52,7 +52,7 @@ export default function Investigations() {
       </aside>
 
       {thinPatterns.length > 0 && (
-        <SectionCard title={t('Thin-evidence patterns awaiting a request', 'أنماط ذات أدلة ضعيفة بانتظار طلب')}>
+        <SectionCard term="Pattern" title={t('Thin-evidence patterns awaiting a request', 'أنماط ذات أدلة ضعيفة بانتظار طلب')}>
           <ul className="flex flex-col divide-y">
             {thinPatterns.map((p) => (
               <RequestRow key={p.id} pattern={p} />

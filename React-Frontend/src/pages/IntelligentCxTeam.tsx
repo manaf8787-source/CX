@@ -126,7 +126,7 @@ export default function IntelligentCxTeam() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title={t('Intelligent CX team', 'فريق تجربة العملاء الذكي')}
+        term="Intelligent CX team" title={t('Intelligent CX team', 'فريق تجربة العملاء الذكي')}
         description={t(
           'Ten single-task agents and one supervisor that do the work of the CX team inside the portal — nothing else.',
           'عشرة وكلاء بمهمة واحدة ومشرف واحد يؤدون عمل فريق تجربة العملاء داخل البوابة — لا شيء غير ذلك.',

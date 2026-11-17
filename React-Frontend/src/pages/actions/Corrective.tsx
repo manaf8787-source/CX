@@ -122,7 +122,9 @@ export default function Corrective() {
                         <div className="flex flex-wrap items-center gap-2">
                           <h2 className="text-lg font-semibold">{L(a.title)}</h2>
                           <StatusBadge tone="info">{L(ACTION_KIND[a.kind].label)}</StatusBadge>
+                          {a.fromInsight && <StatusBadge tone="neutral">{t('From AI Insights', 'من رؤى الذكاء الاصطناعي')}</StatusBadge>}
                         </div>
+                        {a.fromInsight && <p className="text-xs text-muted-foreground">{L(a.fromInsight.recovery)}</p>}
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
                           <span className="inline-flex items-center gap-1.5">
                             <UserRound aria-hidden className="size-4" />

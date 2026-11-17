@@ -115,3 +115,19 @@ export function detectPatterns(allSignals: Signal[], options: DetectPatternsOpti
 
   return patterns
 }
+
+/** How far a pattern is toward (or past) its rule: current value over the threshold. */
+export function thresholdCloseness(p: Pick<Pattern, 'currentValue' | 'thresholdTarget'>): number {
+  return p.thresholdTarget > 0 ? p.currentValue / p.thresholdTarget : 0
+}
+
+/** Patterns ordered for review: furthest past (or closest to) the threshold first;
+ * patterns with the minimum sample before thin ones at the same closeness. */
+export function sortByThresholdCloseness<T extends Pick<Pattern, 'currentValue' | 'thresholdTarget' | 'hasMinimumSample' | 'id'>>(patterns: T[]): T[] {
+  return [...patterns].sort(
+    (a, b) =>
+      thresholdCloseness(b) - thresholdCloseness(a) ||
+      Number(b.hasMinimumSample) - Number(a.hasMinimumSample) ||
+      a.id.localeCompare(b.id),
+  )
+}

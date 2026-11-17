@@ -20,6 +20,7 @@ import { PRIMARY_NAV, SETTINGS_NAV, type NavGroup } from '@/data/nav'
 import { useRole } from '@/auth/RoleContext'
 import { canAccessPath, canOpenPage } from '@/auth/access'
 import { useProducts } from '@/services/queries'
+import { prefetchPath } from '@/routes/pages'
 
 const ICONS: Record<string, typeof Home> = {
   '/home': Home,
@@ -99,7 +100,12 @@ export function AppSidebar() {
                         tooltip={L(item.label)}
                         className={`h-9 text-sm text-sidebar-foreground/90 data-[active=true]:text-sidebar-accent-foreground ${ACTIVE_BAR}`}
                       >
-                        <NavLink to={item.path} onClick={() => isMobile && setOpenMobile(false)}>
+                        <NavLink
+                          to={item.path}
+                          onClick={() => isMobile && setOpenMobile(false)}
+                          onPointerEnter={() => prefetchPath(item.path)}
+                          onFocus={() => prefetchPath(item.path)}
+                        >
                           <Icon aria-hidden />
                           <span>{L(item.label)}</span>
                         </NavLink>

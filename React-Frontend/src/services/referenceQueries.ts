@@ -1,6 +1,5 @@
+import { latency, mock } from './mockStore'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { MOCK_CORRECTIVE_ACTIONS, MOCK_INVESTIGATIONS } from './mockData'
-import { sleep } from '../utils/random'
 import {
   AGENT_JDS,
   CRM_FIELDS,
@@ -17,7 +16,9 @@ import {
   type RegisterStatus,
 } from '../data/v38Reference'
 import type { CampaignBriefDraft, PlanLine } from '../components/ai/assistantIntents'
-import type { Bi, CorrectiveAction, Investigation } from '../types'
+import type { Bi, CorrectiveAction, CorrectiveActionKind, Investigation } from '../types'
+import { isTopManagementTitle } from '../auth/permissions'
+import { suggestionSentence, type InsightSuggestion } from '../data/insightSuggestions'
 
 /**
  * Same repository seam as `queries.ts` (each fetch is the call a real API
@@ -28,7 +29,7 @@ import type { Bi, CorrectiveAction, Investigation } from '../types'
 const LATENCY_MS = 150
 
 async function read<T>(value: T): Promise<T> {
-  await sleep(LATENCY_MS)
+  await latency(LATENCY_MS)
   return value
 }
 
@@ -48,7 +49,7 @@ export function useSetRegisterStatus() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (input: { code: string; status: RegisterStatus }) => {
-      await sleep(LATENCY_MS)
+      await latency(LATENCY_MS)
       const s = STANDARDS_REGISTER.find((x) => x.code === input.code)
       if (!s) throw new Error('Standard not found')
       s.status = input.status
@@ -75,7 +76,7 @@ export function useSaveCampaignBrief() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (input: { brief: CampaignBriefDraft; savedBy: Bi }) => {
-      await sleep(LATENCY_MS)
+      await latency(LATENCY_MS)
       const saved: SavedCampaignBrief = { ...input.brief, id: `brief-${CAMPAIGN_BRIEFS.length + 1}`, savedAt: new Date().toISOString(), savedBy: input.savedBy }
       CAMPAIGN_BRIEFS.unshift(saved)
       return saved
@@ -90,9 +91,9 @@ export function useCreateProposedActions() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (input: { plan: PlanLine[]; scope: Bi }) => {
-      await sleep(LATENCY_MS)
+      await latency(LATENCY_MS)
       const created: CorrectiveAction[] = input.plan.map((line, k) => ({
-        id: `ca-${MOCK_CORRECTIVE_ACTIONS.length + 1 + k}`,
+        id: `ca-${mock.MOCK_CORRECTIVE_ACTIONS.length + 1 + k}`,
         kind: line.kind,
         title: { en: `Fix "${line.fault.en}" for ${input.scope.en}`, ar: `معالجة "${line.fault.ar}" لـ ${input.scope.ar}` },
         owner: line.owner.en,
@@ -100,8 +101,41 @@ export function useCreateProposedActions() {
         status: 'proposed',
         verificationDueAt: new Date(Date.now() + 74 * 86_400_000).toISOString(),
       }))
-      MOCK_CORRECTIVE_ACTIONS.push(...created)
+      mock.MOCK_CORRECTIVE_ACTIONS.push(...created)
       return created
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['corrective-actions'] })
+      qc.invalidateQueries({ queryKey: ['home-summary'] })
+    },
+  })
+}
+
+/** KB §6: an AI Insights suggestion becomes a *proposed* corrective action.
+ * It is a suggestion a person approves: status starts at "proposed", the
+ * receiver is a title (never top management), and nothing is approved here. */
+export function useProposeFromInsight() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (input: { insightSubjectId: string; suggestion: InsightSuggestion; environment: string; kind: CorrectiveActionKind; owner: string; dueDate: string }) => {
+      await latency(LATENCY_MS)
+      if (isTopManagementTitle(input.owner)) throw new Error('The receiver is the person who can fix it, never top management.')
+      const exists = mock.MOCK_CORRECTIVE_ACTIONS.find(
+        (a) => a.fromInsight?.subjectId === input.insightSubjectId && a.fromInsight.suggestionId === input.suggestion.id,
+      )
+      if (exists) return exists
+      const action: CorrectiveAction = {
+        id: `ca-${mock.MOCK_CORRECTIVE_ACTIONS.length + 1}`,
+        kind: input.kind,
+        title: { en: `${input.suggestion.text.en} (${input.environment})`, ar: `${input.suggestion.text.ar} (${input.environment})` },
+        owner: input.owner,
+        dueDate: new Date(`${input.dueDate}T12:00:00`).toISOString(),
+        status: 'proposed',
+        verificationDueAt: new Date(new Date(`${input.dueDate}T12:00:00`).getTime() + 60 * 86_400_000).toISOString(),
+        fromInsight: { subjectId: input.insightSubjectId, suggestionId: input.suggestion.id, recovery: suggestionSentence(input.suggestion) },
+      }
+      mock.MOCK_CORRECTIVE_ACTIONS.push(action)
+      return action
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['corrective-actions'] })
@@ -115,21 +149,21 @@ export function useSendToInvestigation() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (input: { actionId: string; patternId?: string; environment?: string; reason?: string }) => {
-      await sleep(LATENCY_MS)
-      const action = MOCK_CORRECTIVE_ACTIONS.find((a) => a.id === input.actionId)
+      await latency(LATENCY_MS)
+      const action = mock.MOCK_CORRECTIVE_ACTIONS.find((a) => a.id === input.actionId)
       if (!action) throw new Error('Action not found')
       action.decision = undefined
       action.decisionReason = input.reason ? { en: input.reason, ar: input.reason } : undefined
       action.sentToInvestigation = true
       const inv: Investigation = {
-        id: `inv-${MOCK_INVESTIGATIONS.length + 1}`,
+        id: `inv-${mock.MOCK_INVESTIGATIONS.length + 1}`,
         patternId: input.patternId,
         kind: 'customer_interviews',
         requestedCount: 5,
         environment: input.environment,
         status: 'requested',
       }
-      MOCK_INVESTIGATIONS.push(inv)
+      mock.MOCK_INVESTIGATIONS.push(inv)
       return inv
     },
     onSuccess: () => {
@@ -141,3 +175,44 @@ export function useSendToInvestigation() {
 
 export const useTrainingMaterials = () => useQuery({ queryKey: ['training-materials'], queryFn: () => read(TRAINING_MATERIALS) })
 export const useTrainingSessions = () => useQuery({ queryKey: ['training-sessions'], queryFn: () => read(TRAINING_SESSIONS) })
+
+// --- Settings: notices and digests (KB §15; prototype "Notices and digests") ---
+
+export type DigestFrequency = 'weekly' | 'daily' | 'off'
+
+export interface HeadNotice {
+  productId: 're' | 'af' | 'cl' | 'to' | 'ev'
+  /** Titles only, never names. Heads are informed, never given a task. */
+  informed: Bi
+  digest: DigestFrequency
+  /** Immediate alert only for a high-priority case past its SLA, or a pattern. */
+  immediateAlert: boolean
+}
+
+/** Transcribed from the v38 prototype (`INFORM` and its defaults). PSI Wallet
+ * has no row there; it stays "awaiting decision" in the UI. */
+const HEAD_NOTICES: HeadNotice[] = [
+  { productId: 're', informed: { en: 'Head of Sales', ar: 'رئيس المبيعات' }, digest: 'weekly', immediateAlert: true },
+  { productId: 'af', informed: { en: 'Head of After-Sales', ar: 'رئيس ما بعد البيع' }, digest: 'weekly', immediateAlert: true },
+  { productId: 'cl', informed: { en: 'Head of Club and Tours', ar: 'رئيس النادي والجولات' }, digest: 'weekly', immediateAlert: true },
+  { productId: 'to', informed: { en: 'Head of Club and Tours', ar: 'رئيس النادي والجولات' }, digest: 'weekly', immediateAlert: true },
+  { productId: 'ev', informed: { en: 'Head of Events', ar: 'رئيس الفعاليات' }, digest: 'weekly', immediateAlert: true },
+]
+
+export const useHeadNotices = () => useQuery({ queryKey: ['head-notices'], queryFn: () => read(HEAD_NOTICES.map((n) => ({ ...n }))) })
+
+/** Only the CX manager changes notices; the page enforces it, and so does this mutation's caller. */
+export function useUpdateHeadNotice() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (input: { productId: HeadNotice['productId']; digest?: DigestFrequency; immediateAlert?: boolean }) => {
+      await latency(LATENCY_MS)
+      const n = HEAD_NOTICES.find((x) => x.productId === input.productId)
+      if (!n) throw new Error('Notice not found')
+      if (input.digest) n.digest = input.digest
+      if (input.immediateAlert !== undefined) n.immediateAlert = input.immediateAlert
+      return { ...n }
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['head-notices'] }),
+  })
+}

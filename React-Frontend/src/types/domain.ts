@@ -181,6 +181,8 @@ export interface CorrectiveAction {
   startedMonthIndex?: number
   /** KB §6: the manager asked for an investigation before deciding. */
   sentToInvestigation?: boolean
+  /** KB §6: "suggestions become proposed corrective actions" — the AI Insights suggestion this came from. */
+  fromInsight?: { subjectId: string; suggestionId: string; recovery: Bi }
 }
 
 /** FR-4.2 — "How the AI found this", one per corrective action: sources,
@@ -281,7 +283,30 @@ export interface DetractorCallItem {
   /** Re-survey date set at the interview, 7 to 14 days after resolution. */
   resurveyOn?: string
   secondScore?: number // re-survey, FR-5.4
-  recoveredAt?: string // set once FR-5.5's definition is met within 60 days
+  /** When the re-survey answer came back (counts as a rating event under the recovered rule). */
+  resurveyedAt?: string
+  recoveredAt?: string // the first recovery event inside the 60-day window, if any
+  /** The instrument the first score came from: NPS 0-10, CSAT and CES 1-5 (default NPS). */
+  instrument?: FeedbackInstrument
+  /** When the incident (the detractor answer or complaint) happened; the 60-day window starts here. */
+  incidentAt?: string
+  /** What the person did after the incident, read from the timeline (Rules and Definitions, Decision 3). */
+  followUps?: RecoveryEvent[]
+}
+
+export type FeedbackInstrument = 'nps' | 'csat' | 'ces'
+
+/** Rules and Definitions, Decision 3: the events that decide "recovered". */
+export type RecoveryEventKind = 'rating' | 'transaction' | 'renewal' | 'new_lead' | 'contact' | 'cancel'
+
+export interface RecoveryEvent {
+  at: string
+  kind: RecoveryEventKind
+  /** For a rating. */
+  instrument?: FeedbackInstrument
+  score?: number
+  /** For a contact: whether it carried a complaint. */
+  complaint?: boolean
 }
 
 export type AiCampaignStatus = 'draft' | 'running' | 'closed'

@@ -72,7 +72,7 @@ export default function Personas() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title={t('Personas and campaigns', 'الشخصيات والحملات')}
+        term="Persona" title={t('Personas and campaigns', 'الشخصيات والحملات')}
         description={t(
           'Six personas built from the CRM, each with a Marketing recommendation and a ranked next campaign.',
           'ست شخصيات مبنية من بيانات نظام إدارة العملاء، لكل منها توصية تسويقية وحملة تالية مرتبة.',

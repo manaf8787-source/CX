@@ -90,7 +90,7 @@ function CustomerList() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title={t('Customers', 'العملاء')}
+        term="Omnichannel" title={t('Customers', 'العملاء')}
         description={t('One record per person: CRM profile, effort tiles, AI reading, and a channel timeline.', 'سجل واحد لكل شخص: الملف الشخصي، مؤشرات الجهد، قراءة الذكاء الاصطناعي، والجدول الزمني.')}
       />
 

@@ -4,9 +4,33 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" />
+    <meta name="description" content="PSI CX Portal — one record per person, every channel on one timeline. Sample data only." />
+    <meta name="theme-color" content="#12385b" />
+    <link rel="preload" href="/fonts/ibm-plex-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/ibm-plex-sans-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <script>
+      // Apply the saved language, direction and theme before first paint (no flash, no
+      // RTL layout jump), and preload the Arabic font only for Arabic sessions.
+      ;(function () {
+        try {
+          var root = document.documentElement
+          var lang = localStorage.getItem('psicx.lang') === 'ar' ? 'ar' : 'en'
+          root.lang = lang
+          root.dir = lang === 'ar' ? 'rtl' : 'ltr'
+          var theme = localStorage.getItem('psicx.theme')
+          var dark = theme === 'dark' || ((theme === null || theme === 'system') && matchMedia('(prefers-color-scheme: dark)').matches)
+          root.classList.toggle('dark', dark)
+          if (lang === 'ar') {
+            ;['400', '600'].forEach(function (w) {
+              var l = document.createElement('link')
+              l.rel = 'preload'; l.as = 'font'; l.type = 'font/woff2'; l.crossOrigin = 'anonymous'
+              l.href = '/fonts/ibm-plex-sans-arabic-arabic-' + w + '-normal.woff2'
+              document.head.appendChild(l)
+            })
+          }
+        } catch (e) {}
+      })()
+    </script>
     <title>PSI CX Portal</title>
   </head>
   <body>

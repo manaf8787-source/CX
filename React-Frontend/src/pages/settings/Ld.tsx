@@ -71,7 +71,7 @@ export default function Ld() {
       </div>
 
       <SectionCard
-        title={t('Training-gap corrective actions', 'الإجراءات التصحيحية لفجوة التدريب')}
+        term="Corrective action" title={t('Training-gap corrective actions', 'الإجراءات التصحيحية لفجوة التدريب')}
         actions={<GoLink to="/actions/corrective">{t('Open Actions → Corrective actions', 'فتح الإجراءات ← الإجراءات التصحيحية')}</GoLink>}
       >
         {actionsLoading ? (

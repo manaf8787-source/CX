@@ -1,6 +1,6 @@
 # PSI CX Portal — project notes for Claude
 
-This repository is **documentation, not application code**. It holds the knowledge base, plans and standards list for the PSI CX Portal programme. The interactive prototype is a Claude Artifact hosted at claude.ai; the `.html` file here is a static export of it (version 38), not a live app to build or run. The `frontend/` folder is a separate React scaffold and is not the prototype.
+This repository holds the knowledge base, plans and standards list for the PSI CX Portal programme, plus a React build of the portal. The interactive prototype is a Claude Artifact hosted at claude.ai; the `.html` file here is a static export of it (version 38), not a live app to build or run. **`React-Frontend/` is the React build of v38** (Vite + TypeScript + shadcn/ui + Tailwind, sample data only, no backend): run it with `npm install` then `npm run dev`, and check it with `npm run check` and `npm run test:e2e`. Its own docs are in `React-Frontend/docs/` (analysis, design system, fidelity review, implementation report). The `frontend/` folder is an older pre-omnichannel React scaffold, reference only.
 
 ## Who this is for
 
@@ -16,7 +16,7 @@ The rules (five decisions, all configuration): signals are counted, not worked; 
 
 | File | What it is |
 |---|---|
-| `Documents/PSI-CX-Programme-Knowledge-Base.md` | **Start here.** Chronological project log: decisions, requirements, open questions. Sections 28 to 43 cover the omnichannel rebuild, the rules layer and the intelligent CX team. |
+| `Documents/PSI-CX-Programme-Knowledge-Base.md` | **Start here.** Chronological project log: decisions, requirements, open questions. Sections 28 to 43 cover the omnichannel rebuild, the rules layer and the intelligent CX team; section 44 the React build. |
 | `Documents/PSI-CX-Portal-Knowledge-Base-Modules.md` | **Reference.** v38 page by page: what each page is for, what each role sees, the rules, the data. Same content as the Word document without pictures. |
 | `Documents/PSI-CX-Portal-Knowledge-Base.docx` / `KB.pdf` | The illustrated knowledge base (60 screenshots), for people who will not open an `.md` file. |
 | `Documents/CX-Portal-Phase-One-Omnichannel-Integration-Plan.docx` | What the AI and IT teams need to build: per channel, the unified record, identity, integrations, the ten-week plan. |

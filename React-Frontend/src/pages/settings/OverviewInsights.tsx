@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { DeferredRender } from '@/components/common/DeferredRender'
 import { ArrowRight, Globe2, Star } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { useChartMotion } from '@/hooks/useChartMotion'
@@ -199,18 +200,20 @@ export function OverviewCharts({ products, vocRows }: { products: Product[]; voc
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <SectionCard term="NPS" title={t('NPS by month', 'NPS حسب الشهر')} description={t('One line per product; never combined.', 'خط لكل منتج؛ دون دمج.')}>
           <div className="h-60" dir="ltr">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={trendRows} margin={dir === 'rtl' ? { top: 6, right: -16, bottom: 0, left: 8 } : { top: 6, right: 8, bottom: 0, left: -16 }}>
-                <CartesianGrid vertical={false} stroke="var(--border)" />
-                <XAxis dataKey="month" tickLine={false} axisLine={false} tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }} />
-                <YAxis orientation={dir === 'rtl' ? 'right' : 'left'} domain={[0, 80]} tickLine={false} axisLine={false} tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }} />
-                <Tooltip contentStyle={tooltipStyle} />
-                <Legend wrapperStyle={{ fontSize: 12 }} iconType="circle" iconSize={8} formatter={(v) => <span style={{ color: 'var(--muted-foreground)' }}>{v}</span>} />
-                {products.map((p) => (
-                  <Line key={p.id} type="monotone" dataKey={p.id} name={L(p.name)} stroke={`var(${p.colorVar})`} strokeWidth={2.4} dot={{ r: 2.5 }} {...chartMotion} />
-                ))}
-              </LineChart>
-            </ResponsiveContainer>
+            <DeferredRender>
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={trendRows} margin={dir === 'rtl' ? { top: 6, right: -16, bottom: 0, left: 8 } : { top: 6, right: 8, bottom: 0, left: -16 }}>
+                  <CartesianGrid vertical={false} stroke="var(--border)" />
+                  <XAxis dataKey="month" tickLine={false} axisLine={false} tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }} />
+                  <YAxis orientation={dir === 'rtl' ? 'right' : 'left'} domain={[0, 80]} tickLine={false} axisLine={false} tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }} />
+                  <Tooltip contentStyle={tooltipStyle} />
+                  <Legend wrapperStyle={{ fontSize: 12 }} iconType="circle" iconSize={8} formatter={(v) => <span style={{ color: 'var(--muted-foreground)' }}>{v}</span>} />
+                  {products.map((p) => (
+                    <Line key={p.id} type="monotone" dataKey={p.id} name={L(p.name)} stroke={`var(${p.colorVar})`} strokeWidth={2.4} dot={{ r: 2.5 }} {...chartMotion} />
+                  ))}
+                </LineChart>
+              </ResponsiveContainer>
+            </DeferredRender>
           </div>
         </SectionCard>
 
@@ -284,7 +287,7 @@ export function OverviewCharts({ products, vocRows }: { products: Product[]; voc
                       return (
                         <td key={c} className={cn('h-11 min-w-16 rounded-md text-center tabular-nums', heatClass(v))} title={row ? `n ${row.n}` : undefined}>
                           <bdi dir="ltr" className="font-semibold">{v ?? '–'}</bdi>
-                          {row && <div className="text-[11px] leading-tight opacity-80">n {row.n}</div>}
+                          {row && <div className="text-[11px] leading-tight">n {row.n}</div>}
                         </td>
                       )
                     })}

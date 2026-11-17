@@ -17,10 +17,15 @@ import {
   CLOSE_LOOP_DEFAULTS,
   INTERVIEW_OUTCOME_LABEL,
   SEVERITY_ORDER,
+  INSTRUMENT_LABEL,
+  RECOVERY_REASON_LABEL,
   computeMonthlyCapacity,
-  isRecovered,
+  instrumentRange,
+  recoveryRate,
+  recoveryStatus,
   sampleToCapacity,
 } from '@/utils/closeTheLoop'
+import { useNow } from '@/hooks/useNow'
 import { SEVERITY_TONE } from '@/lib/status'
 import type { DetractorCallItem } from '@/types'
 import { Button } from '@/components/ui/button'
@@ -73,16 +78,20 @@ export default function CloseTheLoop() {
   const { selected, excluded } = useMemo(() => sampleToCapacity(sorted, capacity), [sorted, capacity])
   const usedPct = sorted.length ? Math.min(100, Math.round((selected.length / sorted.length) * 100)) : 0
   const canCreateCampaign = role.id === 'cxmgr' || role.id === 'cxteam'
+  const now = useNow()
+  const rate = useMemo(() => recoveryRate(items ?? [], now), [items, now])
 
   function personName(id: string) {
     return persons?.find((p) => p.id === id)?.name ?? id
   }
 
-  function saveResurvey(id: string) {
+  function saveResurvey(item: DetractorCallItem) {
+    const id = item.id
     const raw = resurveyDraft[id]
     const v = Number(raw)
-    if (raw === undefined || raw === '' || !Number.isFinite(v) || v < 0 || v > 10) {
-      toast.error(t('Enter a score from 0 to 10.', 'أدخل درجة من 0 إلى 10.'))
+    const { min, max } = instrumentRange(item.instrument ?? 'nps')
+    if (raw === undefined || raw === '' || !Number.isInteger(v) || v < min || v > max) {
+      toast.error(t(`Enter a whole score from ${min} to ${max}.`, `أدخل درجة صحيحة من ${min} إلى ${max}.`))
       return
     }
     recordResurvey.mutate({ id, secondScore: v })
@@ -129,6 +138,12 @@ export default function CloseTheLoop() {
       accessorKey: 'firstScore',
       header: ({ column }) => <SortableHeader column={column}>{t('First score', 'النتيجة الأولى')}</SortableHeader>,
       meta: { align: 'end' },
+      cell: ({ row }) => (
+        <span className="inline-flex flex-col items-end leading-tight">
+          <span className="tabular-nums">{row.original.firstScore}</span>
+          <span className="text-xs text-muted-foreground">{L(INSTRUMENT_LABEL[row.original.instrument ?? 'nps'])}</span>
+        </span>
+      ),
     },
     {
       id: 'reason',
@@ -149,41 +164,69 @@ export default function CloseTheLoop() {
         ),
     },
     {
-      id: 'recovery',
-      header: t('Re-survey / recovery', 'إعادة الاستبيان / التعافي'),
+      id: 'resurvey',
+      header: t('Re-survey', 'إعادة الاستبيان'),
       enableSorting: false,
       cell: ({ row }) => {
         const i = row.original
         if (i.secondScore !== undefined) {
-          const recovered = isRecovered(i)
+          const delta = i.secondScore - i.firstScore
           return (
-            <StatusBadge tone={recovered ? 'success' : 'neutral'} icon={recovered ? <TrendingUp aria-hidden /> : undefined}>
+            <StatusBadge tone={delta > 0 ? 'success' : 'neutral'} icon={delta > 0 ? <TrendingUp aria-hidden /> : undefined}>
               <bdi dir="ltr" className="tabular-nums">
-                {i.firstScore} → {i.secondScore}
+                {i.firstScore} → {i.secondScore} ({delta > 0 ? '+' : ''}
+                {delta})
               </bdi>
-              {recovered && ` · ${t('Recovered', 'تعافى')}`}
             </StatusBadge>
           )
         }
         if (i.outcome === 'declined') return <span className="text-sm text-muted-foreground">{t('Declined — no retry', 'رفض — دون إعادة محاولة')}</span>
         if (!i.outcome) return <span className="text-muted-foreground">—</span>
+        const { min, max } = instrumentRange(i.instrument ?? 'nps')
         return (
           <div className="flex items-center gap-1.5">
             <Input
               type="number"
               inputMode="numeric"
-              min={0}
-              max={10}
-              placeholder="0–10"
-              aria-label={t('Second score (0 to 10)', 'النتيجة الثانية (0 إلى 10)')}
+              min={min}
+              max={max}
+              placeholder={`${min}–${max}`}
+              aria-label={t(`Second score (${min} to ${max})`, `النتيجة الثانية (${min} إلى ${max})`)}
               className="h-9 w-20"
               value={resurveyDraft[i.id] ?? ''}
               onChange={(e) => setResurveyDraft((d) => ({ ...d, [i.id]: e.target.value }))}
             />
-            <Button variant="outline" size="sm" className="h-9" onClick={() => saveResurvey(i.id)}>
+            <Button variant="outline" size="sm" className="h-9" onClick={() => saveResurvey(i)}>
               {t('Save', 'حفظ')}
             </Button>
           </div>
+        )
+      },
+    },
+    {
+      id: 'recovered',
+      header: t('Recovered (60 days)', 'التعافي (60 يوماً)'),
+      enableSorting: false,
+      cell: ({ row }) => {
+        const r = recoveryStatus(row.original, { now })
+        const tone = r.status === 'recovered' ? 'success' : r.status === 'not_recovered' ? 'danger' : 'neutral'
+        const label =
+          r.status === 'recovered' ? t('Recovered', 'تعافى') : r.status === 'not_recovered' ? t('Not recovered', 'لم يتعافَ') : t('Too early', 'مبكر')
+        return (
+          <span className="inline-flex flex-col gap-0.5">
+            <StatusBadge tone={tone} dot>
+              {label}
+            </StatusBadge>
+            <span className="text-xs text-muted-foreground">
+              {r.status === 'too_early'
+                ? r.provisional === 'recovered'
+                  ? t('So far: a recovery event', 'حتى الآن: حدث تعافٍ')
+                  : r.provisional === 'not_recovered'
+                    ? t('So far: not recovering', 'حتى الآن: لا تعافي')
+                    : t('Nothing decisive yet', 'لا شيء حاسم بعد')
+                : L(RECOVERY_REASON_LABEL[r.reason])}
+            </span>
+          </span>
         )
       },
     },
@@ -206,6 +249,7 @@ export default function CloseTheLoop() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title={t('Close the loop', 'إغلاق الحلقة')}
+        term="Close the loop"
         description={t('Every detractor gets a human call, a reason code and a re-survey. Critical cases first.', 'كل منتقد يحصل على مكالمة بشرية ورمز سبب وإعادة استبيان. الحالات الحرجة أولاً.')}
       />
 
@@ -243,6 +287,38 @@ export default function CloseTheLoop() {
       </SectionCard>
 
       <SectionCard
+        title={t('Recovered within 60 days', 'التعافي خلال 60 يوماً')}
+        term="Recovered"
+        description={t(
+          'Recovered: within 60 days a CSAT or CES of 4 or 5, an NPS promoter or passive, a transaction, renewal or new lead, or a new contact without a complaint. Not recovered: silent, a detractor again, cancelled or a runaway. Before 60 days: too early.',
+          'التعافي: خلال 60 يوماً تقييم CSAT أو CES بـ 4 أو 5، أو مروّج أو محايد في NPS، أو معاملة أو تجديد أو عميل محتمل جديد، أو تواصل جديد دون شكوى. عدم التعافي: الصمت، أو منتقد مجدداً، أو الإلغاء، أو الهروب. قبل 60 يوماً: مبكر.',
+        )}
+      >
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="flex flex-col gap-1 rounded-lg bg-success/10 px-3 py-2">
+            <span className="text-xs text-muted-foreground">{t('Recovered', 'تعافى')}</span>
+            <span className="text-2xl font-semibold tabular-nums">
+              {rate.pct === null ? '–' : `${rate.pct}%`}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              <bdi dir="ltr" className="tabular-nums">
+                {rate.recovered} / {rate.decided}
+              </bdi>{' '}
+              {t('whose 60 days are over', 'ممن انقضت أيامهم الستون')}
+            </span>
+          </div>
+          <div className="flex flex-col gap-1 rounded-lg bg-muted/50 px-3 py-2">
+            <span className="text-xs text-muted-foreground">{t('Not recovered', 'لم يتعافَ')}</span>
+            <span className="text-2xl font-semibold tabular-nums">{rate.decided - rate.recovered}</span>
+          </div>
+          <div className="flex flex-col gap-1 rounded-lg bg-muted/50 px-3 py-2">
+            <span className="text-xs text-muted-foreground">{t('Too early', 'مبكر')}</span>
+            <span className="text-2xl font-semibold tabular-nums">{rate.tooEarly}</span>
+          </div>
+        </div>
+      </SectionCard>
+
+      <SectionCard
         title={t("This month's call list", 'قائمة الاتصال لهذا الشهر')}
         actions={<span className="text-sm text-muted-foreground tabular-nums">{selected.length}</span>}
       >
@@ -257,7 +333,7 @@ export default function CloseTheLoop() {
       </SectionCard>
 
       <SectionCard
-        title={t('AI interview campaigns', 'حملات المقابلات بالذكاء الاصطناعي')}
+        term="Close the loop" title={t('AI interview campaigns', 'حملات المقابلات بالذكاء الاصطناعي')}
         description={t(
           'Humans call by default. Hand-off rules: 2x no-answer/hang-up → human; asks for a person or says anything critical → human the same day; declines → no retry. Critical detractors are never in a campaign.',
           'الاتصال بشري افتراضياً. قواعد التسليم: عدم الرد مرتين → بشري؛ طلب شخص أو قول أمر حرج → بشري بنفس اليوم؛ الرفض → دون إعادة محاولة. المنتقدون الحرجون لا يُدرجون في أي حملة أبداً.',

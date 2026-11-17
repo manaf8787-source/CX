@@ -2,7 +2,7 @@
 
 Owner: Manaf Obeidat, Delivery and CX Manager, PSI Real Estate (Amman)
 Audience: the chairman's review, the CX team, and the developers who will build the real platform
-Status: prototype v38 with sample data, last updated 17 November 2026 (sections 28 to 43: the omnichannel rebuild, the rules layer and the intelligent CX team; the module-by-module Knowledge Base with screenshots is `PSI-CX-Portal-Knowledge-Base-Modules.md` and the illustrated Word and PDF document)
+Status: prototype v38 with sample data, last updated 17 November 2026 (sections 28 to 43: the omnichannel rebuild, the rules layer and the intelligent CX team; section 44: the React build; the module-by-module Knowledge Base with screenshots is `PSI-CX-Portal-Knowledge-Base-Modules.md` and the illustrated Word and PDF document)
 
 Everything in this document is either something Manaf decided or said, or something Claude proposed and built into the prototype. Anything proposed but not yet confirmed is marked **[Proposed]** or listed in the open questions at the end.
 
@@ -540,3 +540,21 @@ Source badges on every event (PSI Website, PSI Real Estate app, WhatsApp, Facebo
 7. The Jira CXP project: Manaf creates it, then the backlog draft is reviewed before posting.
 8. PSI brand colours, fonts and logo files; real HR pool members and environment names; real SLA targets; call recording as a policy decision; retention periods with Legal.
 9. Earlier open questions in section 14 that are still open: After-Sales real call script, calling hours and consent rules, data residency, the real mailboxes.
+
+## 44. React build of the portal (17 Nov 2026)
+
+A working React version of the v38 portal now lives in `React-Frontend/`, built from this knowledge base and the Modules KB. It is a front end on sample data only; there is no backend yet, and nothing in it is real data.
+
+| Decision (Manaf, 17 Nov) | Detail |
+|---|---|
+| Build a new React front end | In `React-Frontend/`; the older `frontend/` scaffold is kept as reference only. |
+| UI library | First "no library", then changed the same day to **shadcn/ui + Tailwind**; the ui-ux-pro-max design skill is used for design guidance. |
+| AI assistant | Mock only for now: answers come from the sample data, no live AI call. |
+| Login screen and animation | Added. The login is a sample sign-in: choose a role, no passwords. |
+| Git | All work is committed and pushed to GitHub every hour (scheduled task CX-AutoPush). |
+
+What it covers: the seven v38 pages, the five Actions tabs, the assistant, the intelligent CX team page and the twelve Settings and reference pages; English and Arabic with full RTL; light and dark; role-based access. A page-by-page check against the Modules KB (`React-Frontend/docs/FIDELITY_REVIEW.md`) found 93 of 104 requirements done, 9 partly done, none missing. It has 104 unit tests, 125 browser tests, and a clean accessibility audit (WCAG 2.1 AA).
+
+**[Proposed]** by Claude, not yet confirmed: the navy #12385B and gold #C8963E colours and the IBM Plex fonts (placeholders until the PSI brand files arrive, see 43.8); the role-picker sign-in; the motion rules; the sample data reshaped so the 30-day pattern window produces four corrective actions.
+
+Open items from the build, added to the questions above: who owns the standards register (L&D in this KB, other owners in the prototype); 28 or 33 L&D standards documents; whether Marketing sees Surveys and triggers; finer scoping inside Actions for team leads and HR.

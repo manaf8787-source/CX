@@ -38,7 +38,7 @@ Every text/background pair in `theme.css` was checked at ≥ 4.5:1 in both theme
 
 ## 3. Typography, spacing, radius, motion
 
-- **Fonts:** IBM Plex Sans (Latin) and IBM Plex Sans Arabic, weights 400–700, loaded from Google Fonts in `index.html`. `html:lang(ar)` switches the stack to put Arabic first. Use `font-mono` (IBM Plex Mono) only for IDs and code, not for numbers. Use `tabular-nums` for numbers.
+- **Fonts:** IBM Plex Sans (Latin) and IBM Plex Sans Arabic, weights 400–700, self-hosted from `public/fonts/` (SIL OFL, copied from @fontsource 5.3.0) and declared in `src/styles/fonts.css` with `font-display: swap`. `index.html` preloads Latin 400/600, and Arabic 400/600 only for Arabic sessions; a small inline script there also sets `lang`, `dir` and the dark class before first paint. `html:lang(ar)` switches the stack to put Arabic first. Use `font-mono` (IBM Plex Mono) only for IDs and code, not for numbers. Use `tabular-nums` for numbers.
 - **Type scale** (dense dashboard; nothing below 12px):
 
   | Class | Size | Use |
@@ -76,7 +76,7 @@ Every text/background pair in `theme.css` was checked at ≥ 4.5:1 in both theme
 | KPI or dashboard tile | `KpiTile`, with `label`, `value`, `sub`, `accent` (any CSS colour), `icon`, `to` or `onClick`, and `loading`. In a bento grid, size it with `className="md:col-span-2"`. |
 | Status pill | `StatusBadge tone=…`. Map domain values through `lib/status.ts` (`SEVERITY_TONE`, `CORRECTIVE_STATUS_*`, `SHOPPER_CASE_STATUS_TONE`, `INVESTIGATION_STATUS_TONE`, `AGENT_VERDICT_TONE`, `STANDARD_STATUS_*`, `LD_REQUEST_STATUS_*`, `MS_ASSIGNMENT_STATUS_*`, `CHECKLIST_STATUS_LABEL`, `LEVEL_TONE`). Never render a raw enum value; add a bilingual label map there rather than inside pages. |
 | Product label | `ProductTag` (coloured dot plus foreground text) |
-| Sortable, searchable or paginated table | `DataTable` (`common/DataTable`, TanStack Table v8). Columns are `ColumnDef[]`. Use `SortableHeader` for sortable headers. `meta: { align: 'end' }` right-aligns numbers and turns on tabular figures. Props include `searchPlaceholder`, a `toolbar` slot for filters, `pageSize` (0 turns pagination off) and `onRowClick`. |
+| Sortable, searchable or paginated table | `DataTable` (`common/DataTable`, TanStack Table v8). Columns are `ColumnDef[]`; `cell`/`header` renderers are plain functions called directly (not components), so they must not call hooks — put stateful cell content in a named component and render it from the function. Use `SortableHeader` for sortable headers. `meta: { align: 'end' }` right-aligns numbers and turns on tabular figures. Props include `searchPlaceholder`, a `toolbar` slot for filters, `pageSize` (0 turns pagination off) and `onRowClick`. |
 | Small static table | shadcn `Table` directly |
 | Filter bar | A row of `Select` or `Input` controls with `size="sm"`/`h-9`, passed as `DataTable`'s `toolbar`, or a `flex flex-wrap gap-2` row |
 | Tabs that change the URL | `RouteTabs` (`common/Tabs`) |
@@ -106,7 +106,8 @@ The `cn` helper is shadcn's own package `cn` (from the `shadcn-ui/cn` repo), not
 
 - [ ] Text contrast is ≥ 4.5:1 in both themes, and UI boundaries such as input borders and icons are ≥ 3:1. Use the `*-text` tokens on tints.
 - [ ] Every interactive element is reachable by keyboard with a visible focus ring (`focus-visible:ring-[3px] ring-ring/50`). There are no clickable `div`s without `role`/`tabIndex`/key handling.
-- [ ] Icon-only buttons have an `aria-label`. Decorative icons have `aria-hidden`.
+- [ ] Icon-only buttons have an `aria-label`. Decorative icons have `aria-hidden`. When a control shows text, its accessible name must contain that text (WCAG 2.5.3): add extra context as `sr-only` text, not an `aria-label` that replaces the visible words.
+- [ ] Dialogs and sheets: `ui/dialog` and `ui/sheet` return focus to whatever opened them (also when opened from state, not a `DialogTrigger`); Escape closes. Don't override `onCloseAutoFocus` without keeping that.
 - [ ] Tables have proper header cells. Sortable headers set `aria-sort` (`DataTable` does this).
 - [ ] Hover is never the only way to discover something, and everything clickable shows a pointer cursor.
 - [ ] Hover and press states transition in 150–300ms, and `prefers-reduced-motion` is respected.
@@ -120,7 +121,7 @@ The `cn` helper is shadcn's own package `cn` (from the `shadcn-ui/cn` repo), not
 2. Root it with `<div className="flex flex-col gap-6">` and start with `PageHeader`.
 3. Build from `components/common/*` and `components/ui/*` (section 5). Use tokens only (section 2), never raw hex or inline colour styles; keep `style` for runtime values such as `--c`.
 4. Every string through `t()`/`L()`; every status through a map in `lib/status.ts`; role-gating through `auth/permissions.ts`.
-5. Verify with `npx tsc -b --noEmit && npm run lint && npm run build`, then a Playwright click-through in English/LTR and Arabic/RTL, light and dark, at 1440px and 375px, and run the checklist in section 6.
+5. Verify with `npm run check` and `npm run test:e2e` (which includes the axe WCAG 2.1 AA scan of every route in both languages and themes, and the keyboard spec), then a Playwright click-through in English/LTR and Arabic/RTL, light and dark, at 1440px and 375px, and run the checklist in section 6.
 
 ## 8. Motion
 

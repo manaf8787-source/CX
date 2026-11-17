@@ -185,8 +185,76 @@ A permanent test suite, so the business rules and role rules are checked on ever
 
 **Bugs found by the tests**
 1. **Fixed:** the assistant didn't understand "How many open corrective actions?", only "open actions", although its own help text tells people to ask about open actions. The pattern in `assistantEngine.ts` now accepts both, and there is a test for it.
-2. **Not fixed, needs a decision:** the sample data counts signals over all 180 days, but pattern cards say "in 30 days" and the Rules document sets a rolling 30-day window. Pattern detection now lives in `src/utils/patterns.ts`, with the same output and a tested `windowDays` option. Turning the window on today would drop the sample from 12 patterns to 3, none with the minimum sample of 10, which would leave Corrective actions empty. The sample data would need more signals inside the last 30 days first.
+2. **Resolved in §12 (17 Nov 2026):** the sample data counted signals over all 180 days, while pattern cards say "in 30 days" and the Rules document sets a rolling 30-day window. The sample was reshaped and the window is now on; see §12.1.
+
+## 12. 30-day window, accessibility audit and performance (17 Nov 2026)
+
+### 12.1 Rolling 30-day pattern window (closes §11, bug 2)
+- `MOCK_PATTERNS` now calls `detectPatterns(signals, { windowDays: 30 })`, as Rules and Definitions Decision 1 sets.
+- The sample was reshaped, not the rule. Changes in `services/mockData.ts`:
+  - 90% of problem contacts fall in the last 29 days; the rest stay 30–180 days back.
+  - People are weighted towards the largest market: Dubai 42%, Abu Dhabi 24%, Amman 18%, Sharjah 16%.
+  - Signal categories skew by place: Dubai towards slow replies, Sharjah towards repeat contacts. The environment-concentration rule exists for exactly this.
+- Result: 37 signals, 34 inside the window, and 11 patterns.
+  - Same issue: slow replies (19 signals) and repeat contacts (12) both reach the minimum sample of 10.
+  - Environment concentration: Dubai and Sharjah.
+  - Same agent: 7 patterns, all below the minimum sample.
+- That gives **4 corrective actions** in four different states: proposed, in progress, 60-day check and partial. The 60-day verdicts still match each status.
+- Older history stays: 120 interactions, 77 of them older than 30 days.
+- Three new unit tests check the sample:
+  - every pattern's signals are inside 30 days;
+  - 4–6 actions exist across at least 3 states, each from a pattern with the minimum sample;
+  - older history is kept.
+- Visible side effect: most signals now sit in the last month, so "Signals by month" on Home rises sharply in Oct–Nov. This is sample data only.
+
+### 12.2 Accessibility
+`@axe-core/playwright` 4.14.0 (pinned dev dependency) runs `e2e/a11y.spec.ts`. Tags are WCAG 2.0/2.1 A and AA. It scans all 25 routes in English/Arabic × light/dark (100 scans), the login page in the same four combinations, the open assistant sheet, and an open form dialog. A scan fails on any serious or critical violation. Scans wait for animations to settle, so contrast is measured on the final frame, not mid-fade.
+
+| | Before | After |
+|---|---|---|
+| Tests failing | 105 of 106 | 0 of 106 |
+| `label-content-name-mismatch` (serious, WCAG 2.5.3) | 304 nodes | 0 |
+| `color-contrast` (serious) | 172 nodes\* | 0 |
+| `scrollable-region-focusable` (serious) | 1 | 0 |
+| Violations of any impact, all 100 route scans | — | **0** |
+
+\*Most of the 172 were scans taken mid-fade. The genuine ones were two:
+- inactive tab labels at 3.9:1 (`ui/tabs` used `text-foreground/60`, now `text-muted-foreground`);
+- the sample-size labels on the Overview heat map, which were set at 80% opacity.
+
+Name mismatches fixed:
+- the language button now has no `aria-label`; its accessible name is the visible language name plus a hidden hint;
+- the account button now uses `sr-only` text in place of an `aria-label`;
+- the sidebar logo link's `aria-label` is removed, so its name is the visible "PSI CX Portal".
+
+**Keyboard-only pass (`e2e/keyboard.spec.ts`, 6 tests).** It covers the skip link, sidebar links with Tab and Enter, tabs with the arrow keys, table sorting with Enter (`aria-sort` cycles), the form dialog (focus trapped, Escape closes, focus returns), and the assistant (opened by keyboard, answers, Escape, focus returns). It found two real bugs:
+1. **Focus was lost after closing any dialog or sheet.** Radix returns focus only to a `DialogTrigger`, and every dialog here is opened from state, so focus fell to `<body>`. The new `ui/use-restore-focus.ts`, used by `ui/dialog` and `ui/sheet`, remembers what had focus when the dialog opened and returns focus there (WCAG 2.4.3).
+2. **Every table cell remounted on any page re-render.** TanStack's `flexRender` treats a `cell` function as a component type, and pages rebuild their columns on each render. The Call button was replaced while its dialog was open, which also wasted render work. `DataTable` now calls `cell` and `header` renderers directly; none use hooks, which was checked by a scan.
+
+### 12.3 Performance
+Lighthouse 13.6.0 in headless Chromium against `vite preview`, signed in as CX manager. Desktop and mobile presets (mobile uses 4× CPU throttling). Before is one run; after is the median of three. Accessibility and Best Practices were already 100 and stay 100 on every page.
+
+| Page | Desktop before → after | Mobile before → after | Mobile TBT before → after |
+|---|---|---|---|
+| Login | 100 → 100 | 88 → 90 | 470 → 400 ms |
+| Home | 98 → 99 | 75 → 75–88\* | 1,060 → 300–990 ms\* |
+| Customers | 99 → 99 | 84 → 88 | 550 → 450 ms |
+| Actions / Signals | **80 → 99** | 75 → 73 | 970 → ~1,000 ms |
+
+\*Mobile Home measured 87–88 (TBT about 300 ms) in six standalone runs, and 75 when measured straight after the Login run. Throttled mobile numbers swing with machine load, so treat them as ranges. CLS is 0–0.005 everywhere.
+
+What changed:
+- **Fonts are self-hosted.** The render-blocking Google Fonts stylesheet and its third-party requests are gone. There are 10 woff2 subsets in `public/fonts`, about 300 KB in all; each page loads only the weights it uses. Latin 400/600 are preloaded, and Arabic only for Arabic sessions.
+- **The sample data loads in its own chunk.** `services/mockStore.ts` holds it, and every repository call awaits it, so the swap-to-API seam is unchanged. A build plugin preloads the chunk from the HTML, so it still downloads alongside the entry. Initial entry JS went from **212.4 to 187.5 KB gzipped**; the 22 KB data chunk downloads in parallel and runs off the first task.
+- **Lighter rendering:**
+  - Count-up numbers write to the DOM directly, with no React re-render per frame.
+  - Arriving query data renders in a time-sliced transition (`notifyManager` → `startTransition`).
+  - Charts mount after first paint inside `DeferredRender`, in a space already reserved for them.
+- **Route chunks prefetch on hover or focus of a sidebar link.** An idle prefetch of every page was tried and removed, because importing runs module code and added blocking time.
+- **An early inline script** sets `lang`, `dir` and the theme before first paint. This avoids a light-mode flash and a left-to-right jump for Arabic users.
+
+**Remaining:** on throttled mobile, Actions / Signals still has about 1 s of TBT. That is React rendering 11 pattern cards, KPI tiles, an area chart and a table in one view. The next step would be virtualising or collapsing the pattern list, which is a design decision, so it is left as is.
 
 ## Final status
 
-The app builds, type-checks, and lints clean; a full click-through across every route, both languages/directions, both themes, and all 12 roles found zero console errors and no visual defects. It is a complete, working, mock-data prototype of the v38 PSI CX Portal IA — ready to view and demo, not yet connected to a real backend.
+The app builds, type-checks, and lints clean (3 long-standing fast-refresh warnings). 107 unit tests and 125 end-to-end tests pass, and the end-to-end tests include a zero-violation axe WCAG 2.1 AA scan of every route in both languages and both themes, plus a keyboard-only pass. A full click-through across every route, both languages/directions, both themes, and all 12 roles found zero console errors and no visual defects. It is a complete, working, mock-data prototype of the v38 PSI CX Portal IA — ready to view and demo, not yet connected to a real backend.

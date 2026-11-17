@@ -32,7 +32,7 @@ The UI moved from hand-written CSS to Tailwind CSS v4 + shadcn/ui by Manaf's dec
 |---|---|---|
 | `npm test` | Vitest + Testing Library in jsdom: the business rules (pattern thresholds, runaway types, 60-day effectiveness, due-date clocks, mystery-shopper scoring, close-the-loop capacity and sampling), role permissions and page access, the sample session, i18n completeness, the assistant engine, and component tests (KpiTile, DataTable, sign-in, Timeline role gating) | ~3 s |
 | `npm run test:coverage` | the same, with v8 coverage for `src/utils`, `src/lib`, `src/auth` | ~4 s |
-| `npm run test:e2e` | Playwright (Chromium) against a production build served by `vite preview` on port 4321: sign-in flow, all 25 routes in English and Arabic, role gating, the assistant, reduced motion | ~15 s plus the build |
+| `npm run test:e2e` | Playwright (Chromium) against a production build served by `vite preview` on port 4321: sign-in flow, all 25 routes in English and Arabic, role gating, the assistant, reduced motion; an **axe-core WCAG 2.1 AA scan** of every route in English/Arabic × light/dark plus the login page and dialogs (fails on any serious or critical violation); and a **keyboard-only** spec (skip link, sidebar, tabs, table sort, dialog focus trap and return, assistant) | ~50 s plus the build |
 | `npm run check` | typecheck, lint, unit tests, build | ~10 s |
 
 Unit tests live next to the code (`*.test.ts(x)`); shared helpers are in `src/test/`. End-to-end specs are in `e2e/`.

@@ -14,6 +14,8 @@ import type {
   CorrectiveActionKind,
   CorrectiveRationale,
   DetractorCallItem,
+  FeedbackInstrument,
+  RecoveryEvent,
   EffortSummary,
   GlossaryTerm,
   HandoffItem,
@@ -43,6 +45,7 @@ import type {
   VocRow,
 } from '../types'
 import { daysAgoIso, intBetween, pick, seededRandom } from '../utils/random'
+import type { InsightCategory } from '../data/insightSuggestions'
 import { PATTERN_RULES, detectPatterns } from '../utils/patterns'
 import { classifyRunaway } from '../utils/runaway'
 import { GLOSSARY_TERMS } from '../data/glossary'
@@ -421,48 +424,115 @@ const AI_INSIGHT_SERVICE_BANDS = [
 ]
 
 /** FR-4.10/4.11 — reads scored records, one insight per category+environment,
- * kept visibly separate from Signals (FR-4.13). FR-4.12: "send to a case"
- * only when a shopper case shares this insight's category. */
+ * kept visibly separate from Signals (FR-4.13). Categories are the six the v38
+ * prototype's AI Insights uses (communication, attitude, product knowledge,
+ * speed, process, mobile app). FR-4.12: "send to a case" only when an open
+ * shopper case is in the same category. */
+const INSIGHT_SCORED_CATEGORIES: InsightCategory[] = ['communication', 'attitude', 'knowledge', 'speed', 'process']
+
+/** Shopper checklist category → AI Insights category, so "send to a case" can
+ * find a shopper case "in the same category" (KB §6). [Proposed] mapping. */
+export const SHOPPER_TO_INSIGHT_CATEGORY: Record<string, InsightCategory> = {
+  greeting: 'attitude',
+  needs_discovery: 'communication',
+  pricing_disclosure: 'knowledge',
+  handover_process: 'process',
+  follow_up_commitment: 'communication',
+}
+
 function buildAiInsightEnvelopes(shopperCases: ShopperCase[]): AgentOutputEnvelope<AiInsightPayload>[] {
-  return SHOPPER_CHECKLIST_CATEGORIES.map((category, idx) => {
+  const openCaseFor = (category: InsightCategory) =>
+    shopperCases.find((c) => SHOPPER_TO_INSIGHT_CATEGORY[c.category] === category && c.status !== 'closed')
+  // Same number of rng() draws per insight as before, so the rest of the seeded sample is unchanged.
+  const scored = INSIGHT_SCORED_CATEGORIES.map((category, idx): AgentOutputEnvelope<AiInsightPayload> => {
     const environment = pick(rng, ENVIRONMENTS)
     const sampleSize = intBetween(rng, 4, 22)
     const recovered = Math.max(1, Math.round(sampleSize * (0.5 + rng() * 0.3)))
-    const matchingCase = shopperCases.find((c) => c.category === category && c.status !== 'closed')
-    return {
-      agentId: 'agent-4-ai-insights',
-      runId: `run-insight-${idx + 1}`,
-      subjectType: 'ai_insight',
-      subjectId: `insight-${category}`,
-      payload: {
-        category,
-        environment,
-        serviceTimeBand: pick(rng, AI_INSIGHT_SERVICE_BANDS),
-        recoveryFigure: recoverySentence(sampleSize, recovered),
-        sampleSize,
-        chartSeries: [
-          { label: 'Low score', value: sampleSize - recovered },
-          { label: 'Recovered after action', value: recovered },
-        ],
-        sendToCaseEligibleCaseId: matchingCase?.id,
-      },
-      evidence: [{ sourceType: 'survey_response', sourceId: `svy-${idx + 1}`, occurredAt: daysAgoIso(rng, 30), summary: { en: `Scored record below threshold for ${category.replace(/_/g, ' ')}.`, ar: 'سجل مُقيَّم دون الحد المطلوب.' } }],
-      confidence: sampleSize >= MINIMUM_SAMPLE ? 0.74 : 0.38,
-      rulesApplied: ['ai_insights.scored_record_pattern'],
-      model: 'mock-agent-4',
-      lang: 'en',
-      supervisorVerdict: 'approved',
-      createdAt: daysAgoIso(rng, 3),
-    }
+    return insightEnvelope(idx, category, environment, pick(rng, AI_INSIGHT_SERVICE_BANDS), sampleSize, recovered, openCaseFor(category)?.id, daysAgoIso(rng, 30), daysAgoIso(rng, 3))
   })
+  // The app category (prototype: Abu Dhabi rent, any time band) is fixed, no rng draws.
+  const appDay = new Date(Date.now() - 6 * 86_400_000).toISOString()
+  const app = insightEnvelope(5, 'app', 'Abu Dhabi', { en: 'Mobile app, any time', ar: 'تطبيق الجوال، أي وقت' }, 26, 14, openCaseFor('app')?.id, appDay, appDay)
+  return [...scored, app]
 }
+
+function insightEnvelope(
+  idx: number,
+  category: InsightCategory,
+  environment: string,
+  serviceTimeBand: { en: string; ar: string },
+  sampleSize: number,
+  recovered: number,
+  caseId: string | undefined,
+  evidenceAt: string,
+  createdAt: string,
+): AgentOutputEnvelope<AiInsightPayload> {
+  return {
+    agentId: 'agent-4-ai-insights',
+    runId: `run-insight-${idx + 1}`,
+    subjectType: 'ai_insight',
+    subjectId: `insight-${category}`,
+    payload: {
+      category,
+      environment,
+      serviceTimeBand,
+      recoveryFigure: recoverySentence(sampleSize, recovered),
+      sampleSize,
+      chartSeries: [
+        { label: 'Low score', value: sampleSize - recovered },
+        { label: 'Recovered after action', value: recovered },
+      ],
+      sendToCaseEligibleCaseId: caseId,
+    },
+    evidence: [{ sourceType: 'survey_response', sourceId: `svy-${idx + 1}`, occurredAt: evidenceAt, summary: { en: `Scored record below threshold for ${category}.`, ar: 'سجل مُقيَّم دون الحد المطلوب.' } }],
+    confidence: sampleSize >= MINIMUM_SAMPLE ? 0.74 : 0.38,
+    rulesApplied: ['ai_insights.scored_record_pattern'],
+    model: 'mock-agent-4',
+    lang: 'en',
+    supervisorVerdict: 'approved',
+    createdAt,
+  }
+}
+
+/** Days since each sample incident: the first six are still inside the
+ * 60-day recovery window ("too early"), the last six have closed. */
+const DETRACTOR_INCIDENT_DAYS_AGO = [8, 15, 22, 30, 38, 47, 64, 70, 78, 85, 92, 100]
+
+/** What each sample person did after the incident, as [days after the
+ * incident, event] — chosen so every branch of the recovered rule
+ * (Rules and Definitions, Decision 3) appears once in the sample. */
+const DETRACTOR_FOLLOW_UPS: [number, Omit<RecoveryEvent, 'at'>][][] = [
+  [[3, { kind: 'contact', complaint: false }]],
+  [],
+  [[10, { kind: 'new_lead' }]],
+  [[12, { kind: 'rating', instrument: 'nps', score: 3 }]],
+  [[6, { kind: 'contact', complaint: true }]],
+  [[20, { kind: 'rating', instrument: 'ces', score: 4 }]],
+  [[20, { kind: 'rating', instrument: 'nps', score: 8 }]],
+  [[30, { kind: 'transaction' }]],
+  [[10, { kind: 'contact', complaint: true }]],
+  [],
+  [[15, { kind: 'rating', instrument: 'csat', score: 5 }], [40, { kind: 'rating', instrument: 'csat', score: 1 }]],
+  [[45, { kind: 'renewal' }]],
+]
+
+const INSTRUMENT_CYCLE: FeedbackInstrument[] = ['nps', 'csat', 'ces']
 
 function buildDetractorCallItems(persons: Person[]): DetractorCallItem[] {
   return persons.slice(0, 12).map((p, idx) => {
     const severity = pick(rng, ['critical', 'medium', 'low'] as const)
-    const firstScore = intBetween(rng, 0, 6)
+    const rawScore = intBetween(rng, 0, 6)
     const channel: DetractorCallItem['channel'] = rng() > 0.5 ? 'human' : 'ai_campaign'
     const outcome = pick(rng, ['reached', 'resolved_on_call', 'declined', 'callback_requested'] as const)
+    // Derived, no extra rng draws: NPS detractors score 0 to 6, CSAT and CES detractors 1 or 2.
+    const instrument = INSTRUMENT_CYCLE[idx % 3]
+    const firstScore = instrument === 'nps' ? rawScore : 1 + (rawScore % 2)
+    const daysAgo = DETRACTOR_INCIDENT_DAYS_AGO[idx]
+    const incidentMs = Date.now() - daysAgo * 86_400_000
+    const followUps: RecoveryEvent[] = DETRACTOR_FOLLOW_UPS[idx].map(([after, e]) => ({
+      ...e,
+      at: new Date(incidentMs + after * 86_400_000).toISOString(),
+    }))
     return {
       id: `dcl-${idx + 1}`,
       personId: p.id,
@@ -473,6 +543,9 @@ function buildDetractorCallItems(persons: Person[]): DetractorCallItem[] {
       channel,
       // A third of the month's list is still waiting for its call, so the interview flow has work to do.
       outcome: idx % 3 === 2 ? undefined : outcome,
+      instrument,
+      incidentAt: new Date(incidentMs).toISOString(),
+      followUps,
     }
   })
 }

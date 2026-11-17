@@ -110,7 +110,7 @@ export default function ProductPage() {
 
         {product.id === 're' && (
           <SectionCard
-            title={t('Website and app: two named sources', 'الموقع والتطبيق: مصدران منفصلان')}
+            term="Omnichannel" title={t('Website and app: two named sources', 'الموقع والتطبيق: مصدران منفصلان')}
             description={t('Kept apart in every count — a web user and an app user are different people at different stages.', 'منفصلان في كل عدد — مستخدم الموقع ومستخدم التطبيق شخصان مختلفان في مرحلتين مختلفتين.')}
           >
             <div className="grid grid-cols-2 gap-3">

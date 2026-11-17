@@ -1,6 +1,5 @@
 import { useState, type ReactNode } from 'react'
 import {
-  flexRender,
   getCoreRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
@@ -49,6 +48,14 @@ interface DataTableProps<TData> {
 }
 
 /** shadcn DataTable pattern (Table + TanStack Table v8): sorting, global filter, pagination, empty/loading states. */
+
+// flexRender treats a function as a component type. Pages rebuild their columns on each
+// render, so every cell remounted on any state change (dropping focus, e.g. when a
+// dialog opened from a row closed). Renderers here are plain functions: call them.
+function renderSlot<P>(slot: unknown, props: P): ReactNode {
+  return typeof slot === 'function' ? (slot as (p: P) => ReactNode)(props) : (slot as ReactNode)
+}
+
 export function DataTable<TData>({
   columns,
   data,
@@ -125,7 +132,7 @@ export function DataTable<TData>({
                         }
                         className={cn('h-10 px-3 text-xs font-semibold text-muted-foreground', meta?.align === 'end' && 'text-end', meta?.headerClassName)}
                       >
-                        {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                        {header.isPlaceholder ? null : renderSlot(header.column.columnDef.header, header.getContext())}
                       </TableHead>
                     )
                   })}
@@ -155,7 +162,7 @@ export function DataTable<TData>({
                           key={cell.id}
                           className={cn('px-3 py-2.5 text-sm', meta?.align === 'end' && 'text-end tabular-nums', meta?.cellClassName)}
                         >
-                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          {renderSlot(cell.column.columnDef.cell, cell.getContext())}
                         </TableCell>
                       )
                     })}

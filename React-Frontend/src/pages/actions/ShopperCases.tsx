@@ -18,6 +18,16 @@ import { ErrorState } from '@/components/common/ErrorState'
 import { cn } from '@/lib/utils'
 import { ClockBadge } from './components/ClockBadge'
 import { DecisionDialog } from './components/DecisionDialog'
+import { TermHelp } from '@/components/common/TermHelp'
+
+/** Mystery shopper checklist categories, in both languages. */
+const SHOPPER_CATEGORY_LABEL: Record<string, { en: string; ar: string }> = {
+  greeting: { en: 'Greeting', ar: 'الاستقبال والترحيب' },
+  needs_discovery: { en: 'Needs discovery', ar: 'اكتشاف الاحتياجات' },
+  pricing_disclosure: { en: 'Pricing disclosure', ar: 'الإفصاح عن الأسعار' },
+  handover_process: { en: 'Handover process', ar: 'عملية التسليم' },
+  follow_up_commitment: { en: 'Follow-up commitment', ar: 'الالتزام بالمتابعة' },
+}
 
 const DAY_MS = 86_400_000
 const FLOW: ShopperCase['status'][] = ['open', 'triaged', 'owner_decision', 'hr_review', 'closed']
@@ -84,18 +94,18 @@ export default function ShopperCases() {
                           <StatusBadge tone={SEVERITY_TONE[c.severity]} dot>
                             {L(SEVERITY_LABEL[c.severity])}
                           </StatusBadge>
-                          <h2 className="text-base font-semibold capitalize">{c.category.replace(/_/g, ' ')}</h2>
+                          <h2 className="text-base font-semibold">{SHOPPER_CATEGORY_LABEL[c.category] ? L(SHOPPER_CATEGORY_LABEL[c.category]) : c.category.replace(/_/g, ' ')}</h2>
                           <ProductTag productId={c.product} lang={lang} />
                         </div>
                         <span className="text-sm text-muted-foreground">
-                          {c.environment} · {t('visit score', 'درجة الزيارة')}{' '}
+                          {c.environment} · {t('visit score', 'درجة الزيارة')} <TermHelp term="Mystery Shopper Score" className="inline-flex size-5 align-middle" />{' '}
                           <bdi dir="ltr" className="font-medium text-foreground tabular-nums">
                             {c.visitScorePct}%
                           </bdi>
                         </span>
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
                           <span className="inline-flex items-center gap-2">
-                            <span className="text-muted-foreground">{t('Respond', 'الرد')}</span>
+                            <span className="inline-flex items-center text-muted-foreground">{t('Respond', 'الرد')}<TermHelp term="Respond clock" className="size-5" /></span>
                             <ClockBadge dueIso={c.respondDueAt} totalWindowMs={1 * DAY_MS} stoppedAtIso={c.respondedAt} />
                           </span>
                           <span className="inline-flex items-center gap-2">

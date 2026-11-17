@@ -11,7 +11,7 @@ export default function ActionsLayout() {
   const { t } = useI18n()
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={t('Actions', 'الإجراءات')} description={t('What is being fixed, why, and did it work.', 'ما الذي يتم إصلاحه، ولماذا، وهل نجح؟')} />
+      <PageHeader term="Corrective action" title={t('Actions', 'الإجراءات')} description={t('What is being fixed, why, and did it work.', 'ما الذي يتم إصلاحه، ولماذا، وهل نجح؟')} />
       <RouteTabs items={ACTIONS_TABS} label={t('Actions sections', 'أقسام الإجراءات')} />
       <Suspense fallback={<LoadingState rows={5} />}>
         <RouteTransition scope="section">
