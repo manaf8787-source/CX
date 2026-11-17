@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>PSI CX Portal — explainer frames</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=block">
+<style>
+  /* App tokens (frontend/src/styles/theme.css) */
+  :root {
+    --bg: #EAF0F5; --ink: #0F1F2E; --brand: #0B7A8A; --brand-hi: #38B6C6;
+    --p-re: #0E8F8A; --p-af: #3563D8; --p-cl: #DE8514; --p-to: #8A4BD2; --p-ev: #DB406F;
+    --good: #17995C; --warn: #D08A00; --crit: #D3342C;
+    --side: #0B1F31; --side2: #143450; --side-ink: #E8F0F7; --side-muted: #8CA5BB;
+    --font: 'IBM Plex Sans Arabic', 'Segoe UI', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--side); font-family: var(--font); }
+  #stage { position: relative; width: 1920px; height: 1080px; overflow: hidden; }
+  .layer { position: absolute; inset: 0; }
+  #bg { background: radial-gradient(1200px 700px at 18% 12%, rgba(14,143,138,.28), transparent 60%),
+                    radial-gradient(1100px 700px at 88% 95%, rgba(53,99,216,.24), transparent 60%),
+                    linear-gradient(160deg, var(--side) 0%, var(--side2) 100%); }
+  #screen { background: var(--bg); overflow: hidden; }
+  #shots img { position: absolute; left: 0; top: 0; transform-origin: 0 0; display: none; }
+  #fx { pointer-events: none; }
+  .chip { position: absolute; left: 48px; bottom: 44px; display: flex; align-items: center; gap: 14px; padding: 12px 22px 12px 14px;
+          background: rgba(11,31,49,.9); color: var(--side-ink); border-radius: 999px; font-size: 26px; font-weight: 600;
+          box-shadow: 0 10px 30px rgba(11,31,49,.25); }
+  .demo { position: absolute; right: 40px; bottom: 44px; padding: 8px 16px; border-radius: 999px; font-size: 18px; font-weight: 500;
+          background: rgba(255,255,255,.92); color: #566879; border: 1px solid #DAE2EA; }
+  .logo { border-radius: 22%; background: conic-gradient(from 200deg, var(--p-re), var(--p-af), var(--p-to), var(--p-ev), var(--p-cl), var(--p-re));
+          display: grid; place-items: center; color: #fff; font-weight: 700; letter-spacing: -.02em; }
+  #card { color: var(--side-ink); }
+  .center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 28px; text-align: center; }
+  .big { font-size: 104px; font-weight: 700; line-height: 1.05; letter-spacing: -.02em; }
+  .mid { font-size: 64px; font-weight: 700; line-height: 1.1; }
+  .sub { font-size: 34px; font-weight: 500; color: var(--side-muted); }
+  .panel { width: 470px; height: 380px; border-radius: 28px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.16);
+           display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; }
+  .panel svg { width: 120px; height: 120px; }
+  .step { display: flex; align-items: center; gap: 28px; font-size: 56px; font-weight: 600; }
+  .num { width: 76px; height: 76px; border-radius: 50%; display: grid; place-items: center; font-size: 38px; font-weight: 700; background: var(--brand-hi); color: #04222A; }
+  .tick { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; background: var(--good); }
+  #dip { background: var(--side); }
+  #dbg { position: absolute; left: 10px; top: 8px; font: 600 28px var(--font); color: #fff; background: rgba(200,0,60,.85); padding: 4px 12px; border-radius: 8px; display: none; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="bg" class="layer"></div>
+  <div id="screen" class="layer"><div id="shots"></div></div>
+  <svg id="fx" class="layer" width="1920" height="1080" viewBox="0 0 1920 1080"></svg>
+  <div id="hud" class="layer">
+    <div class="chip" id="chip"><div class="logo" style="width:44px;height:44px;font-size:17px">CX</div><span id="chipText"></span></div>
+    <div class="demo" id="demo">Demo data · every name and number is invented</div>
+  </div>
+  <div id="card" class="layer"></div>
+  <div id="dip" class="layer"></div>
+  <div id="dbg"></div>
+</div>
+<script>
+const W = 1920, H = 1080
+let TL = null, imgs = {}
+const $ = (id) => document.getElementById(id)
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v))
+const lerp = (a, b, k) => a + (b - a) * k
+const easeIO = (k) => (k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2)
+const easeOut = (k) => 1 - Math.pow(1 - k, 3)
+const easeBack = (k) => { const c = 1.6; return 1 + (c + 1) * Math.pow(k - 1, 3) + c * Math.pow(k - 1, 2) }
+const prog = (t, t0, d) => clamp((t - t0) / d, 0, 1)
+
+// ---------------------------------------------------------------- setup
+window.init = async (timeline, shotBase, debug) => {
+  TL = timeline
+  $('dbg').style.display = debug ? 'block' : 'none'
+  const holder = $('shots')
+  await Promise.all(Object.entries(TL.manifest).map(([name, m]) => new Promise((res, rej) => {
+    const im = new Image(); im.onload = () => im.decode().then(res, res); im.onerror = rej
+    im.src = shotBase + m.file; im.style.width = m.w + 'px'; im.style.height = m.h + 'px'
+    holder.appendChild(im); imgs[name] = im
+  })))
+  await document.fonts.load('700 100px "IBM Plex Sans Arabic"'); await document.fonts.load('600 40px "IBM Plex Sans Arabic"')
+  await document.fonts.load('500 30px "IBM Plex Sans Arabic"'); await document.fonts.ready
+  buildCards()
+  return true
+}
+
+// ---------------------------------------------------------------- camera
+function fullRect(m) { const w = Math.min(m.w, 1520); return { x: (m.w - w) / 2, y: 0, w, h: w * H / W } }
+function camFor(shot, key) {
+  const m = TL.manifest[shot]
+  if (!key || key === 'full') { const r = fullRect(m); return fit(r, m, 0) }
+  const list = (Array.isArray(key) ? key : [key]).map((k) => m.boxes[k]).filter(Boolean)
+  const b = list.length ? list.reduce((u, r) => {
+    const x = Math.min(u.x, r.x), y = Math.min(u.y, r.y)
+    return { x, y, w: Math.max(u.x + u.w, r.x + r.w) - x, h: Math.max(u.y + u.h, r.y + r.h) - y }
+  }) : null
+  if (!b) { console.warn('missing box', shot, key); return fit(fullRect(m), m, 0) }
+  return fit(b, m, Math.max(70, .22 * Math.max(b.w, b.h)))
+}
+function fit(b, m, pad) {
+  const s = clamp(Math.min(W / (b.w + 2 * pad), (H - 150) / (b.h + 2 * pad)), W / Math.min(m.w, 1520) * 0.999, 2.0)
+  let cx = b.x + b.w / 2, cy = b.y + b.h / 2 + 30 / s  // nudge up: leave room for the bottom chip
+  const hw = W / 2 / s, hh = H / 2 / s
+  cx = m.w <= 2 * hw ? m.w / 2 : clamp(cx, hw, m.w - hw)
+  cy = m.h <= 2 * hh ? m.h / 2 : clamp(cy, hh, m.h - hh)
+  return { cx, cy, s }
+}
+const toScreen = (c, b) => ({ x: (b.x - c.cx) * c.s + W / 2, y: (b.y - c.cy) * c.s + H / 2, w: b.w * c.s, h: b.h * c.s })
+
+// Work out a screen scene's state at time t.
+function screenState(sc, t) {
+  const CAM_D = 1.0
+  let shot = sc.shot
+  let cam = { from: null, to: camFor(shot, 'full'), t0: sc.start, d: 0.01 }
+  let rings = [], ringT = 0, ringShot = shot
+  let click = null
+  for (const b of sc.beats || []) {
+    const sw = b.click ? b.t + 0.55 : b.t
+    if (b.click && t >= b.t - 0.7) click = { shot, key: b.click, t: b.t }
+    if (b.ring && t >= b.t) {
+      // a click beat's ring belongs to the pre-click shot; others to the shot after the beat
+      rings = b.ring; ringT = b.t; ringShot = b.click ? shot : (b.shot || shot)
+    }
+    // cam: a click beat frames the target on the pre-click shot; camAfter frames the result
+    const preShot = shot
+    const camT = b.click ? b.t - 0.6 : b.t   // reach a button just before the cursor clicks it
+    if (b.cam && t >= camT) {
+      cam = { from: camValue(cam, camT), to: camFor(b.click ? preShot : (b.shot || shot), b.cam), t0: camT, d: b.click ? 0.7 : CAM_D }
+    }
+    if (b.shot && t >= sw) { shot = b.shot; if (b.click) rings = []; }
+    if (b.camAfter && t >= sw + 0.1) {
+      cam = { from: camValue(cam, sw + 0.1), to: camFor(shot, b.camAfter), t0: sw + 0.1, d: CAM_D }
+    }
+    if (b.ring && t >= b.t && !b.click) ringShot = shot
+  }
+  const c = camValue(cam, t)
+  // gentle drift so stills never feel frozen
+  const drift = 1 + 0.018 * prog(t, sc.start, sc.end - sc.start)
+  return { shot, cam: { ...c, s: c.s * drift }, rings, ringT, ringShot, click }
+}
+function camValue(cam, t) {
+  if (!cam.from) return cam.to
+  const k = easeIO(prog(t, cam.t0, cam.d))
+  return { cx: lerp(cam.from.cx, cam.to.cx, k), cy: lerp(cam.from.cy, cam.to.cy, k), s: Math.exp(lerp(Math.log(cam.from.s), Math.log(cam.to.s), k)) }
+}
+
+// ---------------------------------------------------------------- draw screen
+const CURSOR = '<path d="M0 0 L0 34 L9 26 L15 40 L21 37 L15 24 L27 24 Z" fill="#0F1F2E" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"/>'
+function drawScreen(sc, t) {
+  const st = screenState(sc, t)
+  for (const [n, im] of Object.entries(imgs)) {
+    if (n === st.shot) {
+      im.style.display = 'block'
+      im.style.transform = `translate(${W / 2 - st.cam.cx * st.cam.s}px, ${H / 2 - st.cam.cy * st.cam.s}px) scale(${st.cam.s})`
+    } else im.style.display = 'none'
+  }
+  let svg = ''
+  const m = TL.manifest[st.shot]
+  const boxes = st.rings.map((k) => (TL.manifest[st.ringShot].boxes[k] ? toScreen(st.cam, TL.manifest[st.ringShot].boxes[k]) : null)).filter(Boolean)
+  if (boxes.length && st.ringShot === st.shot) {
+    const k = prog(t, st.ringT, 0.35), a = easeOut(k), grow = 1 + (1 - easeBack(k)) * 0.25
+    const P = 12
+    let holes = ''
+    const rects = boxes.map((b) => {
+      const cx = b.x + b.w / 2, cy = b.y + b.h / 2, w = (b.w + 2 * P) * grow, h = (b.h + 2 * P) * grow
+      return { x: cx - w / 2, y: cy - h / 2, w, h }
+    })
+    for (const r of rects) holes += `<rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" rx="14" fill="#000"/>`
+    svg += `<defs><mask id="spot"><rect width="${W}" height="${H}" fill="#fff"/>${holes}</mask>
+      <filter id="glow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="7"/></filter></defs>
+      <rect width="${W}" height="${H}" fill="rgba(11,31,49,${0.30 * a})" mask="url(#spot)"/>`
+    for (const r of rects) {
+      svg += `<rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" rx="14" fill="none" stroke="#38B6C6" stroke-width="10" opacity="${0.55 * a}" filter="url(#glow)"/>
+              <rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" rx="14" fill="none" stroke="#0B7A8A" stroke-width="5" opacity="${a}"/>
+              <rect x="${r.x - 3}" y="${r.y - 3}" width="${r.w + 6}" height="${r.h + 6}" rx="16" fill="none" stroke="#fff" stroke-width="2" opacity="${0.9 * a}"/>`
+    }
+  }
+  if (st.click && t < st.click.t + 1.1) {
+    const b0 = TL.manifest[st.click.shot].boxes[st.click.key]
+    if (b0) {
+      const b = toScreen(st.cam, b0)
+      const tx = b.x + b.w * 0.55, ty = b.y + b.h * 0.6
+      const k = easeIO(prog(t, st.click.t - 0.7, 0.6))
+      const x = lerp(tx + 160, tx, k), y = lerp(ty + 120, ty, k)
+      const fade = 1 - prog(t, st.click.t + 0.8, 0.3)
+      const press = t >= st.click.t && t < st.click.t + 0.15 ? 0.88 : 1
+      const rk = prog(t, st.click.t, 0.5)
+      if (rk > 0 && rk < 1) svg += `<circle cx="${tx}" cy="${ty}" r="${12 + 46 * easeOut(rk)}" fill="none" stroke="#0B7A8A" stroke-width="${5 * (1 - rk) + 1}" opacity="${1 - rk}"/>`
+      svg += `<g transform="translate(${x},${y}) scale(${1.25 * press})" opacity="${fade}">${CURSOR}</g>`
+    }
+  }
+  $('fx').innerHTML = svg
+  $('chipText').textContent = sc.label || ''
+  const hudA = easeOut(prog(t, sc.start + 0.25, 0.4))
+  $('chip').style.opacity = hudA; $('chip').style.transform = `translateY(${(1 - hudA) * 20}px)`
+  $('chipText').dir = /[؀-ۿ]/.test(sc.label || '') ? 'rtl' : 'ltr'
+}
+
+// ---------------------------------------------------------------- cards
+const ICON = {
+  inbox: '<svg viewBox="0 0 24 24" fill="none" stroke="#7EC8D2" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13l2.5-7.5A2 2 0 0 1 7.4 4h9.2a2 2 0 0 1 1.9 1.5L21 13v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M3 13h5l1.5 3h5L16 13h5"/></svg>',
+  sheet: '<svg viewBox="0 0 24 24" fill="none" stroke="#7EC8D2" stroke-width="1.6" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M3 14h18M9 4v16M15 4v16"/></svg>',
+  mail: '<svg viewBox="0 0 24 24" fill="none" stroke="#7EC8D2" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>',
+}
+const TICK = '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>'
+function buildCards() {
+  const root = $('card')
+  for (const sc of TL.scenes.filter((s) => s.type === 'card')) {
+    const el = document.createElement('div'); el.className = 'center'; el.id = 'card-' + sc.id; el.style.display = 'none'
+    const L = sc.lines
+    if (sc.layout === 'hook') {
+      el.innerHTML = L.map((l, i) => `<div class="big" data-i="${i}" style="${i === 2 ? 'color:#F0B53D' : ''}">${l.text}</div>`).join('')
+    } else if (sc.layout === 'problem') {
+      const ic = ['inbox', 'sheet', 'mail']
+      el.innerHTML = `<div style="display:flex;gap:44px">${L.map((l, i) => `<div class="panel" data-i="${i}">${ICON[ic[i]]}<div class="mid" style="font-size:52px">${l.text}</div><div class="sub">${l.sub}</div></div>`).join('')}</div>`
+    } else if (sc.layout === 'brand') {
+      el.innerHTML = `<div class="logo" data-i="0" style="width:210px;height:210px;font-size:84px">CX</div>
+        <div class="big" data-i="0b">${L[0].text}</div><div class="sub" data-i="1" style="font-size:40px;max-width:1300px">${L[1].text}</div>`
+    } else if (sc.layout === 'why') {
+      el.innerHTML = `<div style="display:flex;flex-direction:column;gap:40px;align-items:flex-start">${L.map((l, i) => `<div class="step" data-i="${i}"><div class="tick">${TICK}</div>${l.text}</div>`).join('')}</div>`
+    } else if (sc.layout === 'cta') {
+      el.innerHTML = `<div style="display:flex;align-items:center;gap:26px;margin-bottom:30px"><div class="logo" style="width:120px;height:120px;font-size:48px">CX</div><div class="mid" style="font-size:72px">PSI CX Portal</div></div>
+        <div style="display:flex;flex-direction:column;gap:34px;align-items:flex-start">${L.map((l, i) => `<div class="step" data-i="${i}"><div class="num">${i + 1}</div>${l.text}</div>`).join('')}</div>`
+    }
+    root.appendChild(el)
+  }
+}
+function reveal(node, t, t0, dy = 36) {
+  const k = easeOut(prog(t, t0, 0.45))
+  node.style.opacity = k; node.style.transform = `translateY(${(1 - k) * dy}px)`
+}
+function drawCard(sc, t) {
+  for (const el of $('card').children) el.style.display = el.id === 'card-' + sc.id ? 'flex' : 'none'
+  const el = $('card-' + sc.id)
+  const L = sc.lines
+  el.querySelectorAll('[data-i]').forEach((n) => {
+    const key = n.dataset.i
+    if (key === '0b') { reveal(n, t, L[0].t + 0.15); return }
+    const i = +key
+    if (sc.layout === 'brand' && i === 0) {
+      const k = easeBack(prog(t, L[0].t - 0.15, 0.6)); n.style.opacity = clamp(k, 0, 1); n.style.transform = `scale(${0.6 + 0.4 * k}) rotate(${(1 - clamp(k, 0, 1)) * -12}deg)`; return
+    }
+    reveal(n, t, L[i].t)
+  })
+  // subtle push-in on every card
+  el.style.transform = `scale(${1 + 0.025 * prog(t, sc.start, sc.end - sc.start)})`
+}
+
+// ---------------------------------------------------------------- frame
+window.render = (t) => {
+  const S = TL.scenes
+  let i = S.findIndex((s) => t >= s.start && t < s.end); if (i < 0) i = t < 0 ? 0 : S.length - 1
+  const sc = S[i]
+  const isScreen = sc.type === 'screen'
+  $('screen').style.display = isScreen ? 'block' : 'none'
+  $('fx').style.display = isScreen ? 'block' : 'none'
+  $('hud').style.display = isScreen ? 'block' : 'none'
+  $('card').style.display = isScreen ? 'none' : 'block'
+  if (isScreen) drawScreen(sc, t); else drawCard(sc, t)
+  // dip through the background at every scene boundary (and in from black at the very start)
+  const D = TL.dip
+  let dip = 0
+  if (i > 0) dip = Math.max(dip, 1 - (t - sc.start) / D)
+  if (i < S.length - 1) dip = Math.max(dip, 1 - (sc.end - t) / D)
+  if (i === 0) dip = Math.max(dip, 1 - t / 0.6)
+  if (i === S.length - 1) dip = Math.max(dip, 1 - (sc.end - t) / 0.8)
+  $('dip').style.opacity = clamp(dip, 0, 1)
+  $('dbg').textContent = `${sc.id}  ${t.toFixed(2)}s`
+  return true
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,66 @@
+{
+ "key": "23c7d14b8035",
+ "spoken": "Voice of Customer brings every comment together, by channel, theme and sentiment.",
+ "words": [
+  {
+   "text": "Voice",
+   "start": 0.096,
+   "end": 0.373
+  },
+  {
+   "text": "of",
+   "start": 0.385,
+   "end": 0.481
+  },
+  {
+   "text": "Customer",
+   "start": 0.493,
+   "end": 0.95
+  },
+  {
+   "text": "brings",
+   "start": 0.962,
+   "end": 1.346
+  },
+  {
+   "text": "every",
+   "start": 1.478,
+   "end": 1.743
+  },
+  {
+   "text": "comment",
+   "start": 1.755,
+   "end": 2.115
+  },
+  {
+   "text": "together",
+   "start": 2.127,
+   "end": 2.572
+  },
+  {
+   "text": "by",
+   "start": 2.812,
+   "end": 2.921
+  },
+  {
+   "text": "channel",
+   "start": 2.933,
+   "end": 3.389
+  },
+  {
+   "text": "theme",
+   "start": 3.738,
+   "end": 4.135
+  },
+  {
+   "text": "and",
+   "start": 4.255,
+   "end": 4.339
+  },
+  {
+   "text": "sentiment",
+   "start": 4.351,
+   "end": 4.844
+  }
+ ]
+}

@@ -1,0 +1,86 @@
+{
+ "key": "7e9d206a4bfe",
+ "spoken": "Meet the P S I C X Portal. One place for every customer signal, and every fix.",
+ "words": [
+  {
+   "text": "Meet",
+   "start": 0.096,
+   "end": 0.288
+  },
+  {
+   "text": "the",
+   "start": 0.3,
+   "end": 0.397
+  },
+  {
+   "text": "P",
+   "start": 0.409,
+   "end": 0.709
+  },
+  {
+   "text": "S",
+   "start": 0.721,
+   "end": 1.082
+  },
+  {
+   "text": "I",
+   "start": 1.178,
+   "end": 1.298
+  },
+  {
+   "text": "C",
+   "start": 1.31,
+   "end": 1.623
+  },
+  {
+   "text": "X",
+   "start": 1.635,
+   "end": 1.851
+  },
+  {
+   "text": "Portal",
+   "start": 1.863,
+   "end": 2.272
+  },
+  {
+   "text": "One place",
+   "start": 2.68,
+   "end": 3.113
+  },
+  {
+   "text": "for",
+   "start": 3.125,
+   "end": 3.329
+  },
+  {
+   "text": "every",
+   "start": 3.438,
+   "end": 3.666
+  },
+  {
+   "text": "customer",
+   "start": 3.678,
+   "end": 4.099
+  },
+  {
+   "text": "signal",
+   "start": 4.111,
+   "end": 4.507
+  },
+  {
+   "text": "and",
+   "start": 4.784,
+   "end": 4.892
+  },
+  {
+   "text": "every",
+   "start": 4.976,
+   "end": 5.192
+  },
+  {
+   "text": "fix",
+   "start": 5.204,
+   "end": 5.733
+  }
+ ]
+}

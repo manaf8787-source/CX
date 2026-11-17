@@ -1,0 +1,136 @@
+{
+ "key": "c1e98d9b97ba",
+ "spoken": "This handover case came in from a survey. The respond clock has already breached. So we record a first response, and it lands on the timeline.",
+ "words": [
+  {
+   "text": "This",
+   "start": 0.096,
+   "end": 0.264
+  },
+  {
+   "text": "handover",
+   "start": 0.276,
+   "end": 0.685
+  },
+  {
+   "text": "case",
+   "start": 0.697,
+   "end": 1.082
+  },
+  {
+   "text": "came",
+   "start": 1.178,
+   "end": 1.394
+  },
+  {
+   "text": "in",
+   "start": 1.406,
+   "end": 1.514
+  },
+  {
+   "text": "from",
+   "start": 1.526,
+   "end": 1.659
+  },
+  {
+   "text": "a",
+   "start": 1.671,
+   "end": 1.707
+  },
+  {
+   "text": "survey",
+   "start": 1.719,
+   "end": 2.212
+  },
+  {
+   "text": "The",
+   "start": 2.62,
+   "end": 2.668
+  },
+  {
+   "text": "respond",
+   "start": 2.68,
+   "end": 3.101
+  },
+  {
+   "text": "clock",
+   "start": 3.113,
+   "end": 3.462
+  },
+  {
+   "text": "has",
+   "start": 3.474,
+   "end": 3.678
+  },
+  {
+   "text": "already",
+   "start": 3.69,
+   "end": 4.05
+  },
+  {
+   "text": "breached",
+   "start": 4.062,
+   "end": 4.579
+  },
+  {
+   "text": "So",
+   "start": 4.976,
+   "end": 5.108
+  },
+  {
+   "text": "we",
+   "start": 5.12,
+   "end": 5.228
+  },
+  {
+   "text": "record",
+   "start": 5.24,
+   "end": 5.589
+  },
+  {
+   "text": "a",
+   "start": 5.601,
+   "end": 5.637
+  },
+  {
+   "text": "first",
+   "start": 5.649,
+   "end": 6.01
+  },
+  {
+   "text": "response",
+   "start": 6.022,
+   "end": 6.623
+  },
+  {
+   "text": "and",
+   "start": 6.875,
+   "end": 6.959
+  },
+  {
+   "text": "it",
+   "start": 6.971,
+   "end": 7.091
+  },
+  {
+   "text": "lands",
+   "start": 7.103,
+   "end": 7.428
+  },
+  {
+   "text": "on",
+   "start": 7.44,
+   "end": 7.512
+  },
+  {
+   "text": "the",
+   "start": 7.524,
+   "end": 7.584
+  },
+  {
+   "text": "timeline",
+   "start": 7.596,
+   "end": 8.113
+  }
+ ]
+}

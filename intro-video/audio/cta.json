@@ -1,0 +1,71 @@
+{
+ "key": "793da40eff75",
+ "spoken": "Open the portal, pick your role, and walk one case through the cycle.",
+ "words": [
+  {
+   "text": "Open",
+   "start": 0.096,
+   "end": 0.288
+  },
+  {
+   "text": "the",
+   "start": 0.3,
+   "end": 0.373
+  },
+  {
+   "text": "portal",
+   "start": 0.385,
+   "end": 0.781
+  },
+  {
+   "text": "pick",
+   "start": 1.154,
+   "end": 1.334
+  },
+  {
+   "text": "your",
+   "start": 1.346,
+   "end": 1.478
+  },
+  {
+   "text": "role",
+   "start": 1.49,
+   "end": 1.791
+  },
+  {
+   "text": "and",
+   "start": 2.151,
+   "end": 2.236
+  },
+  {
+   "text": "walk",
+   "start": 2.248,
+   "end": 2.524
+  },
+  {
+   "text": "one",
+   "start": 2.536,
+   "end": 2.8
+  },
+  {
+   "text": "case",
+   "start": 2.812,
+   "end": 3.149
+  },
+  {
+   "text": "through",
+   "start": 3.161,
+   "end": 3.281
+  },
+  {
+   "text": "the",
+   "start": 3.293,
+   "end": 3.365
+  },
+  {
+   "text": "cycle",
+   "start": 3.377,
+   "end": 3.81
+  }
+ ]
+}

@@ -1,0 +1,161 @@
+{
+ "key": "df6f4700eceb",
+ "spoken": "Step two. The owner records the root cause, and the corrective action. This case is high priority, so a preventive action is required too, with an owner and a due date.",
+ "words": [
+  {
+   "text": "Step",
+   "start": 0.096,
+   "end": 0.337
+  },
+  {
+   "text": "two",
+   "start": 0.349,
+   "end": 0.589
+  },
+  {
+   "text": "The",
+   "start": 0.986,
+   "end": 1.094
+  },
+  {
+   "text": "owner",
+   "start": 1.106,
+   "end": 1.454
+  },
+  {
+   "text": "records",
+   "start": 1.466,
+   "end": 1.827
+  },
+  {
+   "text": "the",
+   "start": 1.839,
+   "end": 1.923
+  },
+  {
+   "text": "root",
+   "start": 1.935,
+   "end": 2.199
+  },
+  {
+   "text": "cause",
+   "start": 2.212,
+   "end": 2.764
+  },
+  {
+   "text": "and",
+   "start": 2.993,
+   "end": 3.077
+  },
+  {
+   "text": "the",
+   "start": 3.089,
+   "end": 3.161
+  },
+  {
+   "text": "corrective",
+   "start": 3.173,
+   "end": 3.594
+  },
+  {
+   "text": "action",
+   "start": 3.606,
+   "end": 3.99
+  },
+  {
+   "text": "This",
+   "start": 4.387,
+   "end": 4.567
+  },
+  {
+   "text": "case",
+   "start": 4.579,
+   "end": 4.964
+  },
+  {
+   "text": "is",
+   "start": 5.048,
+   "end": 5.144
+  },
+  {
+   "text": "high",
+   "start": 5.156,
+   "end": 5.361
+  },
+  {
+   "text": "priority",
+   "start": 5.373,
+   "end": 6.01
+  },
+  {
+   "text": "so",
+   "start": 6.298,
+   "end": 6.442
+  },
+  {
+   "text": "a",
+   "start": 6.454,
+   "end": 6.502
+  },
+  {
+   "text": "preventive",
+   "start": 6.514,
+   "end": 6.899
+  },
+  {
+   "text": "action",
+   "start": 6.911,
+   "end": 7.332
+  },
+  {
+   "text": "is",
+   "start": 7.428,
+   "end": 7.572
+  },
+  {
+   "text": "required",
+   "start": 7.584,
+   "end": 8.077
+  },
+  {
+   "text": "too",
+   "start": 8.089,
+   "end": 8.425
+  },
+  {
+   "text": "with",
+   "start": 8.702,
+   "end": 8.822
+  },
+  {
+   "text": "an",
+   "start": 8.834,
+   "end": 8.954
+  },
+  {
+   "text": "owner",
+   "start": 8.966,
+   "end": 9.303
+  },
+  {
+   "text": "and",
+   "start": 9.519,
+   "end": 9.579
+  },
+  {
+   "text": "a",
+   "start": 9.591,
+   "end": 9.651
+  },
+  {
+   "text": "due",
+   "start": 9.663,
+   "end": 9.844
+  },
+  {
+   "text": "date",
+   "start": 9.856,
+   "end": 10.192
+  }
+ ]
+}

@@ -1,0 +1,56 @@
+{
+ "key": "6193d7022377",
+ "spoken": "Step four. Submit the fix, and the resolve clock stops.",
+ "words": [
+  {
+   "text": "Step",
+   "start": 0.096,
+   "end": 0.325
+  },
+  {
+   "text": "four",
+   "start": 0.337,
+   "end": 0.673
+  },
+  {
+   "text": "Submit",
+   "start": 1.07,
+   "end": 1.418
+  },
+  {
+   "text": "the",
+   "start": 1.43,
+   "end": 1.514
+  },
+  {
+   "text": "fix",
+   "start": 1.526,
+   "end": 2.019
+  },
+  {
+   "text": "and",
+   "start": 2.248,
+   "end": 2.344
+  },
+  {
+   "text": "the",
+   "start": 2.356,
+   "end": 2.428
+  },
+  {
+   "text": "resolve",
+   "start": 2.44,
+   "end": 2.812
+  },
+  {
+   "text": "clock",
+   "start": 2.825,
+   "end": 3.113
+  },
+  {
+   "text": "stops",
+   "start": 3.125,
+   "end": 3.666
+  }
+ ]
+}

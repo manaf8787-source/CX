@@ -2,7 +2,7 @@
 
 Owner: Manaf Obeidat, Delivery and CX Manager, PSI Real Estate (Amman)
 Audience: the chairman's review, the CX team, and the developers who will build the real platform
-Status: prototype with sample data, last updated 2 November 2026 (sections 24 to 27 added; the full module-by-module Knowledge Base with structure, authority matrix and screenshots is `claude/PSI-CX-Portal-Knowledge-Base-Modules.md`)
+Status: prototype v37 with sample data, last updated 11 November 2026 (sections 28 to 38 added: the omnichannel rebuild; the module-by-module Knowledge Base with screenshots is `PSI-CX-Portal-Knowledge-Base-Modules.md` and the illustrated Word and PDF document)
 
 Everything in this document is either something Manaf decided or said, or something Claude proposed and built into the prototype. Anything proposed but not yet confirmed is marked **[Proposed]** or listed in the open questions at the end.
 
@@ -436,3 +436,68 @@ Structure is documented only in the Knowledge Base document. The portal no longe
 ## 27. Round 3 additions (2 Nov 2026)
 
 Built in the prototype (v19) and described in `PSI-CX-Portal-Knowledge-Base-Modules.md`: a Settings page (product launch, HR pool, notices and digests; changed by the CX manager only), a Monthly CX pack with CSV download, a Suggestions log for ideas that are not complaints, a Glossary, a role on every timeline line (audit trail), two email templates and a weekly digest for informed-only people, an honest "no data yet" state for AI Insights, and a rewritten Demo walkthrough (two stories) and Build specification (full authority matrix and the new records). A pilot plan for management is in `PSI-CX-Portal-Pilot-Plan.docx`: eight weeks, one environment (proposed Dubai) and the two live products.
+
+## 28. New design, structure and standards register (6 Nov 2026, v24)
+
+Logo option A (an open door under a roofline) chosen; placeholder colours navy #12385B and gold #C8963E until PSI's brand hex codes, fonts and logo files arrive. Menu regrouped (Overview, Customer voice, Mystery shopper, Cases and insights, Channels, Products, Organisation, Reference). A Teams and structure page inside the portal (titles, not names) with tabs by function, the authority matrix, routing and what the CRM provides. A **standards register** of 26 standards (M-01 to M-26) with statuses observe only, draft standard, approved and scored; items under a non-approved standard are recorded, not scored. **Wave 1 of the mystery shopper is a baseline**: shoppers observe, standards are set from the exercise; two rules scored from day one (no information or promise outside the approved sheets, no contact outside official channels). Two scenario types: a short walk-in with no lead, and a long full journey with a lead and 14 days of follow-up through digital channels and calls. Meeting room and privacy items added. Distribution ties a checklist to its scenario and requires a branch or gallery. OD (later renamed L&D) role and dashboard: OD complaint types, OD requests on cases, training materials and plan, OD-owned standards edited by OD and approved for scoring by the CX manager.
+
+## 29. AI percentages explained, AI Insights per role (6 Nov 2026, v25 to v28)
+
+The CX manager asked what "71%" on an AI suggestion meant. Every suggested action now reads in full: "tried in 14 similar closed cases, the customer recovered in 10, 10 of 14 is 71%", with a bar and a small-sample warning under 10 cases, and a panel "How to read these percentages" (what similar means, what recovered means, two limits, how the headline concentration figure differs). "Send to a case" lists only open cases in the same category. A mobile app complaint type was added. AI Insights opened to every role within its authority and specialty (OD: communication, knowledge, attitude; HR: attitude; environment management: its own environment; executives: read only), with an **AI Insights access** matrix the CX manager edits. No product owner or product manager user in the portal (removed at Manaf's request). More demo data: one pattern per category and environment, grouped by category, team or environment.
+
+## 30. Signals and corrective actions replace cases (6 Nov 2026, v29 to v31)
+
+**Decision.** The portal reflects only the common incidents (signals) from all channels and suggests corrective actions; it does not correct single cases. Individual cases stay in each product's own escalation matrix (the PSI Club matrix was read from the 2 November Knowledge Base: five of its six rows are handled entirely there; the sixth, sales assignment and first contact, was the case arriving twice) to avoid one case arriving through two channels. Only the mystery shopper creates a case immediately, and correction is avoided unless the case is critical. Built: a Signals page (every complaint, low score, breach and rating as a counted signal, from every channel including the Club breach log), patterns over thresholds (same agent 3 times, same issue 5 times, more than 50% from one environment, within 30 days; editable by the CX manager), a corrective actions register (Proposed → Approved and assigned by the CX manager → In progress → 30-day check → Effective or Not effective), hand-offs for one-customer corrections another system owns (do-not-call to the CRM, detractor recovery calls, PSI Club member recovery to agree with Abu Omar), shopper-only cases, and one set of numbers across Signals, Overview, Monthly pack and AI Insights. Every corrective action and pattern carries "How the AI found this" (sources, rule that fired, where, who, why this team, why this action, what the AI did not do). To discuss later: more mystery shopper examples and the definition of critical, medium and low impact.
+
+## 31. OD renamed to L&D (7 Nov 2026, v32)
+
+The department is Learning and Development (L&D), not Organization Development. Everything in the portal says L&D.
+
+## 32. Omnichannel direction (7 Nov 2026)
+
+**Decision.** The whole portal is revamped around omnichannel: reflect every channel the customer used, read the customer history and build the journey and the corrective actions from it; the same for leads, who are part of the journey; all products' chats included. Main scope stays customer experience: enhance the journey, attract new customers, and learn from runaway customers. Research on omnichannel practice and on what banks do (one golden record per person, a timeline of every interaction, phased rollout, problem management on patterns rather than tickets; the warning that integration is the whole job).
+
+**Answers given by Manaf.** The CRM is custom and in-house, holds all customer history, transactions and agent activities per lead, and can integrate with anything. Call side: an in-house AI agent for outbound and lead generation (opens leads or hands to a person) plus an IVR routing to HR, suggestions and complaints. Chat: WhatsApp Business, area-based WhatsApp groups between agents and targeted customers, and the private chat inside the mobile apps. Identity key: probably the mobile number, which can change; to confirm with the CRM owner. Runaway customers to learn from, in order: leads that went quiet, tenants who did not renew, owners who stopped dealing with PSI. Scope: all five products, unlaunched ones hidden. Conversation text readable by the CX team and CX manager only. The IT team is correcting contact data (phone numbers without names and the reverse).
+
+## 33. Customer journey, runaway customers, personas and campaigns (7 to 9 Nov 2026, v33 to v35)
+
+Built: a **Customer journey** page (one key, mobile, name, email, ID or unit, returns the whole history across every channel over the years, with an AI reading in four parts citing dated events, a timeline with problem events highlighted, and the journey rules: repeat contact within 48 hours, 7 and 30 days, forced channel switch, promise not kept, slow reply, wrong language, hand-off, IVR complaint not logged, unapproved discount, silence); a **Runaway customers** page (six types: went to a competitor, silent lead, frozen deal or payment, did not renew, dormant owner, complained then left; "what we keep doing wrong" across them); **Personas and campaigns** (six personas built from CRM profile and behaviour, each with a recommendation to Marketing: who, which channel and when, campaign type, what not to do; a ranked next campaign); a **Marketing manager** role. Old modules removed from the menu at Manaf's request: After-Sales desk, call center desk and IVR simulation, survey engine, suggestions log, demo walkthrough, build specification.
+
+**AI assistant** (v34): voice or text, Arabic or English, filters people from the CRM and every channel, explains a person, builds a corrective action plan (created as proposed actions) or a campaign brief (saved for Marketing); understanding by Claude inside claude.ai with the viewer's permission, otherwise a built-in parser; data from the same registers as the pages.
+
+**Simplified** (v35) after Manaf found the portal too complex: one search on the home page, four pages (Customers, Runaway customers, Actions with signals, AI insights and shopper cases as tabs, Personas and campaigns), everything else under "Settings and reference"; each role sees one to five pages.
+
+## 34. Phase one integration plan (9 Nov 2026)
+
+Document: *CX Portal Phase One: Omnichannel Integration Plan* (Claude doc, also in the CX folder). Decision: integrate per channel, tag per product. The unified interaction record every source maps to. Identity: mobile number as the working key, CRM contact id as the anchor, two-key matches merge, one-key matches are reviewed, old numbers kept as aliases; the IT clean-up is a prerequisite for the mobile only. Integrations source by source (CRM contacts, activities, deals and agents; AI call engine; IVR; inbound calls; WhatsApp Business and area groups; app chats; surveys and ratings; mystery shopper; PSI Club). What the AI team builds: identity resolution, journey rules, runaway classification, patterns and actions, AI reading, the assistant. Personas from the CRM: rules on CRM fields first, clustering after three months of live records. Access and retention. Ten weeks from 16 November 2026 to go-live the week of 25 January 2027, with the CRM connector as the critical path. Needed from Manaf: the CRM field list and a 200-contact anonymised sample, the WhatsApp partner, the call platform, the app chats and their backends.
+
+## 35. What the terms mean, PSI Wallet (9 Nov 2026, v36 to v37)
+
+A "?" beside every metric and heading and a "What the terms mean" button on every page, with plain definitions, formulas and examples (NPS, CSAT, promoters, passives, detractors, responses, mystery shopper score, app CSAT, signal, pattern, corrective action, 30-day check, hand-off, runaway, persona, journey, repeat contact, channel switch, speed to lead, lead, SLA, environment, pool, omnichannel); the same definitions in the Glossary. **PSI Wallet** added as the sixth product, built like PSI Club: not launched (pilot), hidden until switched on; pilot numbers, what investors ask, four complaint types with owners, a draft investor survey, Wallet events on the investor's timeline as a channel, and the Wallet in the overseas investor and portfolio owner personas.
+
+## 36. Standards documentation for L&D (10 Nov 2026)
+
+Document: *Standards Documentation List for L&D* (Claude doc, also in the CX folder). The standards serve the whole platform, read by five instruments (shopper checklist, signal rules, survey questions, journey analysis, corrective-action owners), not only the shopper. L&D leads the creation with George as head of the unit and a champion from each environment; one group standard with environment variants only where the business differs, PSI Assets (rental) carrying most. Twenty-eight documents in six groups, each with what it must include, who writes it, which instruments read it and the Assets variant; a template every document follows; priority order (nine documents before the second shopper wave and the first live signals, by the end of November). Shared with George, Said Abu Laila and Ali Mhanna (AI call center) on Teams; Dhrumil Mehta, who is building a campaigns platform with overlap, was sent the portal, the phase one plan and the standards list, and asked for his platform's documentation for an overlap analysis.
+
+## 37. Files and links (11 Nov 2026)
+
+| Item | Where |
+|---|---|
+| CX Portal prototype v37 (private, shared with specific people) | https://claude.ai/artifact/Y27QrDZiBLL5jJMb5bw2VB |
+| Intro deck (4 slides, with links to the demo and the video) | https://claude.ai/artifact/QjDwbKr8TZgJPMduVYmUKj |
+| Walkthrough video page | https://claude.ai/artifact/L7ovEmwgZ7j3seLhiHgGTJ |
+| Phase One Omnichannel Integration Plan | https://claude.ai/artifact/PbaA7h5U3AGaZMygGkmUS6 |
+| Standards Documentation List for L&D | https://claude.ai/artifact/HojC8au21GvcgbkVtDK3E3 |
+| Local folder | C:\Users\xele\Desktop\CX (Documents: this file, the Modules KB, the Word and PDF knowledge base, the portal HTML v37) |
+
+## 38. Open questions (11 Nov 2026)
+
+1. Which items are critical, medium and low for the mystery shopper, with more scenario examples (to define with the team).
+2. The definition of "recovered" in the AI recovery figures [Proposed: within 30 days of closing, not reopened or escalated, and a better rating or a positive reply].
+3. The thresholds that turn signals into an action [Proposed: 3 per agent, 5 per issue, 50% concentration, 30 days].
+4. PSI Club member recovery for a detractor VIP member: Club admin queue item or CX call (with Abu Omar).
+5. Whether the CRM exposes a read API or only database access; the WhatsApp partner; where the AI caller and IVR logs live; which app chats exist and their backends.
+6. The CRM field list and a 200-contact anonymised sample for the persona rules.
+7. PSI brand colours, fonts and logo files.
+8. Real HR pool members and environment names; real SLA targets; call recording as a policy decision; retention periods with Legal.
+9. Earlier open questions in section 14 that are still open: After-Sales real call script, calling hours and consent rules, data residency, the real mailboxes.

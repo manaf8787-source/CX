@@ -1,0 +1,111 @@
+{
+ "key": "db6850bb2a82",
+ "spoken": "A I Insights spots patterns and suggests actions, with the evidence. Nothing becomes a case until the C X manager approves.",
+ "words": [
+  {
+   "text": "A",
+   "start": 0.096,
+   "end": 0.264
+  },
+  {
+   "text": "I",
+   "start": 0.276,
+   "end": 0.421
+  },
+  {
+   "text": "Insights",
+   "start": 0.433,
+   "end": 0.913
+  },
+  {
+   "text": "spots",
+   "start": 0.925,
+   "end": 1.286
+  },
+  {
+   "text": "patterns",
+   "start": 1.298,
+   "end": 1.851
+  },
+  {
+   "text": "and",
+   "start": 1.911,
+   "end": 2.031
+  },
+  {
+   "text": "suggests",
+   "start": 2.043,
+   "end": 2.536
+  },
+  {
+   "text": "actions",
+   "start": 2.548,
+   "end": 3.125
+  },
+  {
+   "text": "with",
+   "start": 3.329,
+   "end": 3.462
+  },
+  {
+   "text": "the",
+   "start": 3.474,
+   "end": 3.57
+  },
+  {
+   "text": "evidence",
+   "start": 3.582,
+   "end": 4.135
+  },
+  {
+   "text": "Nothing",
+   "start": 4.531,
+   "end": 4.772
+  },
+  {
+   "text": "becomes",
+   "start": 4.784,
+   "end": 5.132
+  },
+  {
+   "text": "a",
+   "start": 5.144,
+   "end": 5.192
+  },
+  {
+   "text": "case",
+   "start": 5.204,
+   "end": 5.649
+  },
+  {
+   "text": "until",
+   "start": 5.781,
+   "end": 5.998
+  },
+  {
+   "text": "the",
+   "start": 6.01,
+   "end": 6.094
+  },
+  {
+   "text": "C",
+   "start": 6.106,
+   "end": 6.382
+  },
+  {
+   "text": "X",
+   "start": 6.394,
+   "end": 6.587
+  },
+  {
+   "text": "manager",
+   "start": 6.599,
+   "end": 6.995
+  },
+  {
+   "text": "approves",
+   "start": 7.007,
+   "end": 7.584
+  }
+ ]
+}

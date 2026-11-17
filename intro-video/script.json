@@ -1,0 +1,572 @@
+{
+  "voice": "en-US-AndrewNeural",
+  "rate": "+4%",
+  "phonetic": {
+    "PSI": "P S I",
+    "CX": "C X",
+    "NPS": "N P S",
+    "CSAT": "C-SAT",
+    "SMS": "S M S",
+    "AI": "A I"
+  },
+  "scenes": [
+    {
+      "id": "hook",
+      "type": "card",
+      "layout": "hook",
+      "say": "A customer waits three weeks for a handover. Nobody calls. And nobody knows the clock is running.",
+      "lines": [
+        {
+          "on": "three weeks",
+          "text": "3 weeks late"
+        },
+        {
+          "on": "Nobody calls",
+          "text": "No call"
+        },
+        {
+          "on": "clock",
+          "text": "No clock"
+        }
+      ]
+    },
+    {
+      "id": "problem",
+      "type": "card",
+      "layout": "problem",
+      "say": "Complaints sit in inboxes. Surveys sit in spreadsheets. Mystery shop results sit in email.",
+      "lines": [
+        {
+          "on": "inboxes",
+          "text": "Complaints",
+          "sub": "in inboxes"
+        },
+        {
+          "on": "spreadsheets",
+          "text": "Surveys",
+          "sub": "in spreadsheets"
+        },
+        {
+          "on": "email",
+          "text": "Shop results",
+          "sub": "in email"
+        }
+      ]
+    },
+    {
+      "id": "brand",
+      "type": "card",
+      "layout": "brand",
+      "say": "Meet the PSI CX Portal. One place for every customer signal, and every fix.",
+      "lines": [
+        {
+          "on": "Portal",
+          "text": "PSI CX Portal"
+        },
+        {
+          "on": "One place",
+          "text": "One place for every customer signal, and every fix."
+        }
+      ]
+    },
+    {
+      "id": "signin",
+      "type": "screen",
+      "shot": "landing",
+      "label": "Sign in",
+      "say": "Pick your role to sign in. Today, we are the CX team.",
+      "beats": [
+        {
+          "on": "role",
+          "cam": "grid"
+        },
+        {
+          "on": "CX team",
+          "cam": "cxteam",
+          "ring": [
+            "cxteam"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "overview",
+      "type": "screen",
+      "shot": "overview",
+      "label": "Overview",
+      "say": "The overview shows NPS, CSAT and open incidents at a glance. Alerts flag what needs attention first.",
+      "beats": [
+        {
+          "on": "overview",
+          "cam": "full"
+        },
+        {
+          "on": "NPS",
+          "cam": "tiles",
+          "ring": [
+            "nps"
+          ]
+        },
+        {
+          "on": "CSAT",
+          "ring": [
+            "csat"
+          ]
+        },
+        {
+          "on": "open incidents",
+          "ring": [
+            "incidents"
+          ]
+        },
+        {
+          "on": "Alerts",
+          "cam": "alerts",
+          "ring": [
+            "alerts"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "voc",
+      "type": "screen",
+      "shot": "voc",
+      "label": "Voice of Customer",
+      "say": "Voice of Customer brings every comment together, by channel, theme and sentiment.",
+      "beats": [
+        {
+          "on": "Voice",
+          "cam": "full"
+        },
+        {
+          "on": "channel",
+          "cam": "products",
+          "ring": [
+            "products"
+          ]
+        },
+        {
+          "on": "theme",
+          "cam": "negative",
+          "ring": [
+            "negative"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cycle",
+      "type": "screen",
+      "shot": "inc_open",
+      "label": "The complaint cycle",
+      "say": "Now, the heart of the job: the complaint cycle. Every case has an owner, and two clocks. One to respond, and one to resolve.",
+      "beats": [
+        {
+          "on": "heart",
+          "cam": "full"
+        },
+        {
+          "on": "complaint cycle",
+          "cam": "list",
+          "ring": [
+            "list"
+          ]
+        },
+        {
+          "on": "two clocks",
+          "cam": "clocks"
+        },
+        {
+          "on": "respond",
+          "ring": [
+            "respond"
+          ]
+        },
+        {
+          "on": "resolve",
+          "ring": [
+            "resolve"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "step1",
+      "type": "screen",
+      "shot": "inc_open",
+      "label": "Step 1 · Respond",
+      "say": "This handover case came in from a survey. The respond clock has already breached. So we record a first response, and it lands on the timeline.",
+      "beats": [
+        {
+          "on": "handover case",
+          "cam": "head",
+          "ring": [
+            "head"
+          ]
+        },
+        {
+          "on": "breached",
+          "cam": "clocks",
+          "ring": [
+            "respond"
+          ]
+        },
+        {
+          "on": "first response",
+          "cam": "btnFirst",
+          "ring": [
+            "btnFirst"
+          ],
+          "click": "btnFirst",
+          "shot": "inc_responded"
+        },
+        {
+          "on": "timeline",
+          "cam": "timeline",
+          "ring": [
+            "lastEvent"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "step2",
+      "type": "screen",
+      "shot": "inc_responded",
+      "label": "Step 2 · Root cause and fix",
+      "say": "Step two. The owner records the root cause, and the corrective action. This case is high priority, so a preventive action is required too, with an owner and a due date.",
+      "beats": [
+        {
+          "on": "Step two",
+          "cam": "fix"
+        },
+        {
+          "on": "root cause",
+          "shot": "inc_rc1",
+          "ring": [
+            "category",
+            "explanation"
+          ],
+          "cam": [
+            "category",
+            "explanation",
+            "corrective"
+          ]
+        },
+        {
+          "on": "corrective action",
+          "shot": "inc_rc2",
+          "ring": [
+            "corrective"
+          ]
+        },
+        {
+          "on": "high priority",
+          "shot": "inc_rc3",
+          "cam": "head",
+          "ring": [
+            "priority"
+          ]
+        },
+        {
+          "on": "preventive action",
+          "cam": [
+            "preventive",
+            "ownerDue"
+          ],
+          "ring": [
+            "preventive"
+          ]
+        },
+        {
+          "on": "owner and a due date",
+          "ring": [
+            "ownerDue"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "step3",
+      "type": "screen",
+      "shot": "inc_rc3",
+      "label": "Step 3 · Decide the actions",
+      "say": "Step three. Each proposed action is confirmed, modified or rejected. Anything modified or rejected goes to the CX manager to approve. Here, we confirm both.",
+      "beats": [
+        {
+          "on": "Step three",
+          "cam": "actions",
+          "ring": [
+            "actions"
+          ]
+        },
+        {
+          "on": "confirmed",
+          "ring": [
+            "decide1"
+          ]
+        },
+        {
+          "on": "confirm both",
+          "shot": "inc_actions",
+          "ring": [
+            "chips"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "step4",
+      "type": "screen",
+      "shot": "inc_actions",
+      "label": "Step 4 · Submit the fix",
+      "say": "Step four. Submit the fix, and the resolve clock stops.",
+      "beats": [
+        {
+          "on": "Step four",
+          "cam": "submit"
+        },
+        {
+          "on": "Submit",
+          "ring": [
+            "submit"
+          ],
+          "click": "submit",
+          "shot": "inc_resolved"
+        },
+        {
+          "on": "resolve clock",
+          "cam": "clocks",
+          "ring": [
+            "resolve"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "step5",
+      "type": "screen",
+      "shot": "inc_resolved",
+      "label": "Step 5 · Verify and close",
+      "say": "Step five. The CX team verifies the work. Root cause clear. Action done. Customer told, and satisfied. Then we close the case, and the full history stays on the timeline.",
+      "beats": [
+        {
+          "on": "Step five",
+          "cam": "verify",
+          "ring": [
+            "verify"
+          ]
+        },
+        {
+          "on": "Root cause clear",
+          "shot": "inc_chk1",
+          "ring": [
+            "cb1"
+          ]
+        },
+        {
+          "on": "Action done",
+          "shot": "inc_chk2",
+          "ring": [
+            "cb2"
+          ]
+        },
+        {
+          "on": "Customer told",
+          "shot": "inc_chk3",
+          "ring": [
+            "cb3"
+          ]
+        },
+        {
+          "on": "close the case",
+          "ring": [
+            "closeBtn"
+          ],
+          "click": "closeBtn",
+          "shot": "inc_closed"
+        },
+        {
+          "on": "full history",
+          "cam": "detail",
+          "ring": [
+            "timeline"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "surveys",
+      "type": "screen",
+      "shot": "survey",
+      "label": "Survey Engine",
+      "say": "Surveys go out in batches, by WhatsApp, SMS, or a team call, and response rates are tracked as they come in.",
+      "beats": [
+        {
+          "on": "batches",
+          "cam": "cards"
+        },
+        {
+          "on": "WhatsApp",
+          "ring": [
+            "channels"
+          ]
+        },
+        {
+          "on": "response rates",
+          "ring": [
+            "rates"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "shopper",
+      "type": "screen",
+      "shot": "shopper",
+      "label": "Mystery Shopper",
+      "say": "Mystery shopping visits and calls are planned, scored and reviewed. A critical fail opens a case.",
+      "beats": [
+        {
+          "on": "Mystery",
+          "cam": "full"
+        },
+        {
+          "on": "scored",
+          "cam": "tiles",
+          "ring": [
+            "score"
+          ]
+        },
+        {
+          "on": "critical fail",
+          "cam": "table",
+          "ring": [
+            "crit",
+            "failRow"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "desk",
+      "type": "screen",
+      "shot": "desk",
+      "label": "After-Sales Desk",
+      "say": "On the After-Sales desk, agents work a daily call list, with up to three tries per customer, and the right survey for each unit.",
+      "beats": [
+        {
+          "on": "After-Sales desk",
+          "cam": "table"
+        },
+        {
+          "on": "three tries",
+          "ring": [
+            "tries"
+          ]
+        },
+        {
+          "on": "right survey",
+          "ring": [
+            "callBtn"
+          ],
+          "click": "callBtn",
+          "shot": "desk_call",
+          "camAfter": "full"
+        }
+      ]
+    },
+    {
+      "id": "insights",
+      "type": "screen",
+      "shot": "insights",
+      "label": "AI Insights",
+      "say": "AI Insights spots patterns and suggests actions, with the evidence. Nothing becomes a case until the CX manager approves.",
+      "beats": [
+        {
+          "on": "Insights",
+          "cam": "full"
+        },
+        {
+          "on": "patterns",
+          "cam": "card1",
+          "ring": [
+            "card1"
+          ]
+        },
+        {
+          "on": "evidence",
+          "ring": [
+            "evidence"
+          ]
+        },
+        {
+          "on": "Nothing",
+          "ring": [
+            "approve"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "arabic",
+      "type": "screen",
+      "shot": "arabic",
+      "label": "العربية",
+      "say": "And every screen works in Arabic, right to left.",
+      "beats": [
+        {
+          "on": "every screen",
+          "cam": "full"
+        },
+        {
+          "on": "right to left",
+          "ring": [
+            "rail"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "why",
+      "type": "card",
+      "layout": "why",
+      "say": "One place. One owner per case. A clock everyone can see. So no customer falls through the cracks.",
+      "lines": [
+        {
+          "on": "One place",
+          "text": "One place"
+        },
+        {
+          "on": "One owner",
+          "text": "One owner per case"
+        },
+        {
+          "on": "A clock",
+          "text": "A clock everyone can see"
+        }
+      ]
+    },
+    {
+      "id": "cta",
+      "type": "card",
+      "layout": "cta",
+      "say": "Open the portal, pick your role, and walk one case through the cycle.",
+      "lines": [
+        {
+          "on": "Open",
+          "text": "Open the portal"
+        },
+        {
+          "on": "pick",
+          "text": "Pick your role"
+        },
+        {
+          "on": "walk",
+          "text": "Walk one case through the cycle"
+        }
+      ]
+    }
+  ]
+}

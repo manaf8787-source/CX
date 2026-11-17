@@ -1,0 +1,101 @@
+{
+ "key": "e9203d9f9ba0",
+ "spoken": "The overview shows N P S, C-SAT and open incidents at a glance. Alerts flag what needs attention first.",
+ "words": [
+  {
+   "text": "The",
+   "start": 0.096,
+   "end": 0.204
+  },
+  {
+   "text": "overview",
+   "start": 0.216,
+   "end": 0.721
+  },
+  {
+   "text": "shows",
+   "start": 0.733,
+   "end": 1.07
+  },
+  {
+   "text": "N",
+   "start": 1.214,
+   "end": 1.382
+  },
+  {
+   "text": "P",
+   "start": 1.394,
+   "end": 1.683
+  },
+  {
+   "text": "S",
+   "start": 1.695,
+   "end": 2.055
+  },
+  {
+   "text": "C-SAT",
+   "start": 2.26,
+   "end": 3.113
+  },
+  {
+   "text": "and",
+   "start": 3.281,
+   "end": 3.425
+  },
+  {
+   "text": "open",
+   "start": 3.51,
+   "end": 3.75
+  },
+  {
+   "text": "incidents",
+   "start": 3.762,
+   "end": 4.219
+  },
+  {
+   "text": "at",
+   "start": 4.231,
+   "end": 4.363
+  },
+  {
+   "text": "a",
+   "start": 4.375,
+   "end": 4.411
+  },
+  {
+   "text": "glance",
+   "start": 4.423,
+   "end": 4.976
+  },
+  {
+   "text": "Alerts",
+   "start": 5.373,
+   "end": 5.673
+  },
+  {
+   "text": "flag",
+   "start": 5.685,
+   "end": 6.058
+  },
+  {
+   "text": "what",
+   "start": 6.07,
+   "end": 6.226
+  },
+  {
+   "text": "needs",
+   "start": 6.238,
+   "end": 6.454
+  },
+  {
+   "text": "attention",
+   "start": 6.466,
+   "end": 6.863
+  },
+  {
+   "text": "first",
+   "start": 6.875,
+   "end": 7.356
+  }
+ ]
+}

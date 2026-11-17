@@ -1,0 +1,76 @@
+{
+ "key": "b51671e0ebaf",
+ "spoken": "Complaints sit in inboxes. Surveys sit in spreadsheets. Mystery shop results sit in email.",
+ "words": [
+  {
+   "text": "Complaints",
+   "start": 0.096,
+   "end": 0.469
+  },
+  {
+   "text": "sit",
+   "start": 0.481,
+   "end": 0.673
+  },
+  {
+   "text": "in",
+   "start": 0.685,
+   "end": 0.769
+  },
+  {
+   "text": "inboxes",
+   "start": 0.781,
+   "end": 1.526
+  },
+  {
+   "text": "Surveys",
+   "start": 1.923,
+   "end": 2.344
+  },
+  {
+   "text": "sit",
+   "start": 2.356,
+   "end": 2.608
+  },
+  {
+   "text": "in",
+   "start": 2.62,
+   "end": 2.704
+  },
+  {
+   "text": "spreadsheets",
+   "start": 2.716,
+   "end": 3.413
+  },
+  {
+   "text": "Mystery",
+   "start": 3.81,
+   "end": 4.135
+  },
+  {
+   "text": "shop",
+   "start": 4.147,
+   "end": 4.411
+  },
+  {
+   "text": "results",
+   "start": 4.423,
+   "end": 4.856
+  },
+  {
+   "text": "sit",
+   "start": 4.868,
+   "end": 5.084
+  },
+  {
+   "text": "in",
+   "start": 5.096,
+   "end": 5.192
+  },
+  {
+   "text": "email",
+   "start": 5.204,
+   "end": 5.601
+  }
+ ]
+}

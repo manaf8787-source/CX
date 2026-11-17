@@ -1,0 +1,71 @@
+{
+ "key": "ecc48eaeb233",
+ "spoken": "Pick your role to sign in. Today, we are the C X team.",
+ "words": [
+  {
+   "text": "Pick",
+   "start": 0.108,
+   "end": 0.24
+  },
+  {
+   "text": "your",
+   "start": 0.252,
+   "end": 0.397
+  },
+  {
+   "text": "role",
+   "start": 0.409,
+   "end": 0.625
+  },
+  {
+   "text": "to",
+   "start": 0.637,
+   "end": 0.709
+  },
+  {
+   "text": "sign",
+   "start": 0.721,
+   "end": 1.022
+  },
+  {
+   "text": "in",
+   "start": 1.034,
+   "end": 1.238
+  },
+  {
+   "text": "Today",
+   "start": 1.635,
+   "end": 1.911
+  },
+  {
+   "text": "we",
+   "start": 2.151,
+   "end": 2.26
+  },
+  {
+   "text": "are",
+   "start": 2.272,
+   "end": 2.344
+  },
+  {
+   "text": "the",
+   "start": 2.356,
+   "end": 2.428
+  },
+  {
+   "text": "C",
+   "start": 2.44,
+   "end": 2.704
+  },
+  {
+   "text": "X",
+   "start": 2.716,
+   "end": 2.909
+  },
+  {
+   "text": "team",
+   "start": 2.921,
+   "end": 3.185
+  }
+ ]
+}

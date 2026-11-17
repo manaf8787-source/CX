@@ -1,0 +1,86 @@
+{
+ "key": "9381292f6cb8",
+ "spoken": "Mystery shopping visits and calls are planned, scored and reviewed. A critical fail opens a case.",
+ "words": [
+  {
+   "text": "Mystery",
+   "start": 0.096,
+   "end": 0.445
+  },
+  {
+   "text": "shopping",
+   "start": 0.457,
+   "end": 0.877
+  },
+  {
+   "text": "visits",
+   "start": 0.889,
+   "end": 1.226
+  },
+  {
+   "text": "and",
+   "start": 1.238,
+   "end": 1.322
+  },
+  {
+   "text": "calls",
+   "start": 1.334,
+   "end": 1.659
+  },
+  {
+   "text": "are",
+   "start": 1.671,
+   "end": 1.755
+  },
+  {
+   "text": "planned",
+   "start": 1.767,
+   "end": 2.236
+  },
+  {
+   "text": "scored",
+   "start": 2.5,
+   "end": 2.921
+  },
+  {
+   "text": "and",
+   "start": 2.933,
+   "end": 3.029
+  },
+  {
+   "text": "reviewed",
+   "start": 3.041,
+   "end": 3.498
+  },
+  {
+   "text": "A",
+   "start": 3.894,
+   "end": 3.954
+  },
+  {
+   "text": "critical",
+   "start": 3.966,
+   "end": 4.375
+  },
+  {
+   "text": "fail",
+   "start": 4.387,
+   "end": 4.796
+  },
+  {
+   "text": "opens",
+   "start": 4.916,
+   "end": 5.18
+  },
+  {
+   "text": "a",
+   "start": 5.192,
+   "end": 5.24
+  },
+  {
+   "text": "case",
+   "start": 5.252,
+   "end": 5.733
+  }
+ ]
+}

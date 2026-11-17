@@ -1,0 +1,121 @@
+{
+ "key": "076b08ab41a5",
+ "spoken": "Surveys go out in batches, by WhatsApp, S M S, or a team call, and response rates are tracked as they come in.",
+ "words": [
+  {
+   "text": "Surveys",
+   "start": 0.096,
+   "end": 0.529
+  },
+  {
+   "text": "go",
+   "start": 0.541,
+   "end": 0.709
+  },
+  {
+   "text": "out",
+   "start": 0.721,
+   "end": 0.841
+  },
+  {
+   "text": "in",
+   "start": 0.853,
+   "end": 0.938
+  },
+  {
+   "text": "batches",
+   "start": 0.95,
+   "end": 1.562
+  },
+  {
+   "text": "by",
+   "start": 1.731,
+   "end": 1.875
+  },
+  {
+   "text": "WhatsApp",
+   "start": 1.887,
+   "end": 2.464
+  },
+  {
+   "text": "S",
+   "start": 2.704,
+   "end": 2.873
+  },
+  {
+   "text": "M",
+   "start": 2.885,
+   "end": 2.969
+  },
+  {
+   "text": "S",
+   "start": 3.065,
+   "end": 3.413
+  },
+  {
+   "text": "or",
+   "start": 3.63,
+   "end": 3.75
+  },
+  {
+   "text": "a",
+   "start": 3.762,
+   "end": 3.798
+  },
+  {
+   "text": "team",
+   "start": 3.81,
+   "end": 4.038
+  },
+  {
+   "text": "call",
+   "start": 4.051,
+   "end": 4.375
+  },
+  {
+   "text": "and",
+   "start": 4.651,
+   "end": 4.712
+  },
+  {
+   "text": "response",
+   "start": 4.724,
+   "end": 5.168
+  },
+  {
+   "text": "rates",
+   "start": 5.18,
+   "end": 5.385
+  },
+  {
+   "text": "are",
+   "start": 5.397,
+   "end": 5.457
+  },
+  {
+   "text": "tracked",
+   "start": 5.469,
+   "end": 5.889
+  },
+  {
+   "text": "as",
+   "start": 5.901,
+   "end": 5.986
+  },
+  {
+   "text": "they",
+   "start": 5.998,
+   "end": 6.106
+  },
+  {
+   "text": "come",
+   "start": 6.118,
+   "end": 6.334
+  },
+  {
+   "text": "in",
+   "start": 6.346,
+   "end": 6.502
+  }
+ ]
+}

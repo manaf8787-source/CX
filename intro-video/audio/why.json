@@ -1,0 +1,91 @@
+{
+ "key": "5b9b60b5d51a",
+ "spoken": "One place. One owner per case. A clock everyone can see. So no customer falls through the cracks.",
+ "words": [
+  {
+   "text": "One place",
+   "start": 0.096,
+   "end": 0.613
+  },
+  {
+   "text": "One",
+   "start": 1.01,
+   "end": 1.142
+  },
+  {
+   "text": "owner",
+   "start": 1.154,
+   "end": 1.31
+  },
+  {
+   "text": "per",
+   "start": 1.322,
+   "end": 1.454
+  },
+  {
+   "text": "case",
+   "start": 1.466,
+   "end": 1.923
+  },
+  {
+   "text": "A",
+   "start": 2.32,
+   "end": 2.368
+  },
+  {
+   "text": "clock",
+   "start": 2.38,
+   "end": 2.68
+  },
+  {
+   "text": "everyone",
+   "start": 2.74,
+   "end": 3.077
+  },
+  {
+   "text": "can",
+   "start": 3.089,
+   "end": 3.221
+  },
+  {
+   "text": "see",
+   "start": 3.233,
+   "end": 3.534
+  },
+  {
+   "text": "So",
+   "start": 3.942,
+   "end": 4.074
+  },
+  {
+   "text": "no",
+   "start": 4.087,
+   "end": 4.219
+  },
+  {
+   "text": "customer",
+   "start": 4.231,
+   "end": 4.639
+  },
+  {
+   "text": "falls",
+   "start": 4.651,
+   "end": 4.952
+  },
+  {
+   "text": "through",
+   "start": 4.964,
+   "end": 5.084
+  },
+  {
+   "text": "the",
+   "start": 5.096,
+   "end": 5.168
+  },
+  {
+   "text": "cracks",
+   "start": 5.18,
+   "end": 5.709
+  }
+ ]
+}

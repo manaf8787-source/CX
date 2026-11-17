@@ -1,776 +1,370 @@
-# PSI CX Portal: Knowledge Base (modules, roles, authority matrix)
+# PSI CX Portal: Knowledge Base (v37, omnichannel)
 
-Prototype on sample data. Updated 1 Nov 2026. The illustrated version with 51 screenshots is the published page; screenshot names are listed as [Screenshot: name].
+Prototype on sample data. Version 37, updated 11 Nov 2026. The illustrated version (36 screenshots) is the Word and PDF document; screenshot names are listed as [Screenshot: name].
 
 ## Contents
 
-- 1. What this is and what is in scope
-- 2. Structure: who is involved
-- 3. Authority matrix
-- 4. Entry and navigation
-- 5. Overview, product dashboards and Voice of Customer
-- 6. Product: Real Estate
-- 7. Product: After-Sales (the desk and the team)
-- 8. Products not launched yet
-- 9. Complaints management
-- 10. AI Insights: suggested corrective actions
-- 11. Survey engine: builder, campaigns and delivery
-- 12. Mystery shopper (internal and external)
-- 13. Call center and IVR (CX view)
-- 14. Settings, monthly pack, suggestions log, glossary and audit trail
-- 15. Standards library
-- 16. Data and integrations needed
-- 17. Rules decided so far
+- 1. What the portal is now
+- 2. Who uses it and what each one sees
+- 3. Home: one search
+- 4. Customers: the journey of one person
+- 5. Runaway customers
+- 6. Actions: corrective actions, signals, AI insights, shopper cases
+- 7. Personas and campaigns
+- 8. The AI assistant
+- 9. What the terms mean
+- 10. Settings and reference
+- 11. Products
+- 12. Data and integration: phase one
+- 13. Standards: what L&D is writing
+- 14. Open items and version history
 
-## 1. What this is and what is in scope
+## 1. What the portal is now
 
-The CX Portal is the single place where PSI manages the customer experience: surveys, mystery shopping, complaints, insights and the After-Sales desk. This page describes every part of it, who does what, and who may do what.
+One place where every customer signal becomes a corrective action, and the owner who fixes it. Version 37, prototype on sample data; nothing is sent.
 
-### The demo and this document
+The portal was rebuilt around the customer on 7 to 11 November 2026. It is now an **omnichannel** platform: one record per person (lead or customer), every contact from every channel on one timeline, read by rules and by AI to say what happened, who is leaving and why, and what to fix. The earlier modules (mystery shopper, standards, voice of customer, L&D, structure) still exist and sit under Settings and reference.
 
-The portal today is a working prototype on sample data. It sends nothing: no emails, no WhatsApp, no calls. Every name, number and chart in the screenshots is a sample. This Knowledge Base describes how each part should work in the live system and reflects what the prototype already shows. Where something is a placeholder, it says so.
+### The one rule that runs the portal
 
-### Scope decisions
+Everything that hurts a customer arrives as a **signal**: a complaint, a low score, a missed deadline, a bad rating, from any channel. A signal is counted, not worked one by one; the system that owns it (CRM, PSI Club, support) handles the customer. When signals form a **pattern** (same agent three times, same issue five times, or more than half from one branch, within 30 days), the portal proposes one **corrective action** with an owner, a due date and a 30-day check. The only thing that opens a case directly is a critical item seen by the **mystery shopper** (a false promise, an unofficial channel).
 
-- The portal is CX only. Call QA topics (agent compliance scoring, evaluator accuracy, AI persona) are handled outside it.
-- Only launched products are shown: PSI Real Estate team (the PSI mobile app) and After-Sales. PSI Club, Tour Estate and Events are built into the portal but hidden until launch. The CX manager switches them on when a product launches.
-- Digital channels are rated only when a lead opens. For speed to lead, the system rings the agent pool first, and only when an agent picks up does it ring the customer. A customer never waits unanswered.
-- Complaints cover everything that hurts customer experience, however it was found (customer, survey, mystery shopper, call monitoring, staff report).
-- The BrightCall dashboard is view only. Nothing is changed there.
+> Why: before this rule, the same complaint arrived twice, once through the product's own escalation (for example the PSI Club matrix) and once as a portal case. Now each product keeps its own correction, and the portal fixes the cause.
 
-### How this document is organised
+### The five pages
 
-Section 2 gives the overall structure of the CX team. Section 3 is the authority matrix for every role. After that, every function and every product has its own section, and each one starts with its own Structure: the job titles that work in it, what each does, and what each can see. Then come what it is for, what it looks like, what each user does, and where its data comes from. The last sections list the data and integrations needed from IT and the rules decided so far.
-
-## 2. Structure: who is involved
-
-Two CX levels, the people who own each case outcome, and people who are only told. Titles are used, not names. Environments and agent pools are read from the CRM.
-
-### The CX team has two levels
-
-| Level | Role | What they do |
+| Page | Question it answers | Who uses it |
 |---|---|---|
-| Level 2 | CX manager | Everything the CX team does, plus approves AI suggested actions and rejected or modified corrective actions, and manages the structure, the HR pool, SLAs and product launch status. |
-| Level 1 | CX team | Works the cases: triages, assigns by hand, writes proposed corrective actions, verifies and closes. Cannot approve rejected actions or change the structure. |
+| Home | Who or what do you want to know? One search box for a name, a mobile, an ID or a question in your own words | Everyone with portal access |
+| Customers | What happened to this person, over the years, on every channel, and what should we do next? | CX, environment managers, Marketing (no conversation text) |
+| Runaway customers | Who left, went quiet, froze or did not renew, by type, and what did we do wrong? | CX, environment managers, Marketing, executives |
+| Actions | What are we fixing, why, and did it work? Corrective actions, with signals, AI insights and shopper cases as tabs | CX, environment managers, team leads, L&D, HR |
+| Personas and campaigns | Who are our customers and leads, and who should Marketing target next, on which channel? | CX, Marketing, executives |
 
-### Everyone else, by title
+[Screenshot: landing] The entry page: one card per user type. Each opens the portal as that role.
 
-| Role | Portal access | Notes |
-|---|---|---|
-| Environment management (for example Sales manager, Dubai) | Cases of their environment, AI Insights for their scope, Voice of Customer, Real Estate dashboard | Works cases assigned to them or their pool. Reviews corrective actions for the pools under them. Sees agent names inside their own scope. |
-| Team lead (pool of an environment) | Cases and insights of the agents in the pool | Sees names of the agents in the pool. |
-| After-Sales lead and After-Sales agent | The After-Sales desk: call queue and call screen. The lead also sees the team queue and After-Sales cases | Agents work their own call list. Leads reassign calls and own After-Sales cases. |
-| HR specialist 1 and 2 | Only the cases assigned to them | Work attitude and conduct cases and write the corrective actions. Pool is dynamic. |
-| HR manager | Team performance page only | Informed only. Sees specialists' counts and is alerted on delay. No case access, ever. |
-| C-level and department heads | No tasks. They receive a notice | Informed only. Never assigned a case. Corrective actions never come from them; they come from direct management. |
-| Product CX (PS Tours) | Their own product's cases | PS Tours has its own CX team that follows up with operations. Not launched. |
-| Executive | Dashboards and results, read only | No actions. |
-| Mystery shoppers (internal and external) | Their own tasks only, through a separate sign-in | See the Mystery shopper section. |
+What was removed from the menu in this version because the new direction does not use it: the After-Sales call desk, the call center desk and IVR simulation, the survey engine, the suggestions log, the demo walkthrough and the build specification. The code is kept; they are out of the menu.
 
-### Four roles on every case
+## 2. Who uses it and what each one sees
 
-- **Case owner:** always CX. Follows the case from opening to close.
-- **Assigned to:** the person who deals with it. Chosen from the concerned people, never top management.
-- **Corrective action owner:** confirms, modifies or rejects each proposed action. Differs by product (see the routing table).
-- **Informed only:** receives a notice. Has no task and no access to the case.
+Each role sees one to five pages, inside its authority and its specialty. Only the CX manager has the full view.
 
-### Routing by product
-
-| Product | How a case is assigned | Assigned to | Corrective action from | Informed only |
-|---|---|---|---|---|
-| Real Estate | Automatic by type and environment. CX can change it | Sales manager of the environment, then team lead, then the agent pool (from the CRM) | Direct management of the pool | Head of Sales |
-| After-Sales | Automatic by type (handover, snagging, payment, maintenance and so on) | After-Sales lead, developer liaison, finance contact, maintenance lead, leasing manager | After-Sales lead | Head of After-Sales |
-| PSI Club (not launched) | Manual: CX assigns every case by hand | Sales agents pool of the environment, or its team lead | Direct management of the pool | C-level. Finance is not involved |
-| Tour Estate (not launched) | Handed to the product CX team | Operations, guide or driver supervisor | Tour operations management | Head of Club and Tours |
-| Events (not launched) | Automatic by type | Events lead | Head of Events | Head of Events |
-| Attitude and conduct (any product) | CX assigns by hand to the HR pool | HR specialist | HR specialist writes it; the agent's direct manager reviews it | HR manager: team report and a late alert only |
-
-### Environments and pools come from the CRM
-
-Environments (for example Dubai, Abu Dhabi, PSI Assets), agent pools and team leads are fixed in the CRM. The portal reads them and never edits them. A new environment appears after the next sync. Every survey or contact record carries the responsible agent from the CRM, and that agent is snapshotted at the moment the survey is sent, so later CRM changes do not rewrite history.
-
-### HR pool
-
-The HR pool is dynamic. After the meeting with HR management, they supply the members with email and mobile. Each member signs in with the email or mobile plus a one-time code and sees only the cases assigned to them. The agent's direct manager must review HR's corrective actions before the case can close.
-
-### Who is informed
-
-Heads and C-level receive notices (late, high priority, escalated) and have no task. The matrix and this tab show exactly who receives what for each product.
-
-### Structure of the CX Portal itself
-
-Who runs the portal, who works in it, and who only reads or is told. Names are never used; titles only.
-
-[Screenshot: fn-portal] Structure of the CX Portal: admin, operators, scope users, read-only and informed-only.
-
-| Job title | Role in this function | What they do | Access |
+| Role | Pages | Sees | Can |
 |---|---|---|---|
-| CX manager (level 2) | Portal owner and administrator | Edits complaint types, SLAs, routing, HR pool and launch status; approves AI suggested actions and rejected or modified corrective actions; does everything level 1 does | Full |
-| CX team (level 1) | Operator | Runs surveys, mystery shopper, triage and cases, imports forms; cannot approve or change structure | Full operations, structure read only |
-| Environment management (Sales manager of an environment) | Scope user | Works cases of the environment, reviews corrective actions for pools under them, reads insights and Voice of Customer | Own environment |
-| Sales team lead (pool) | Scope user | Sees cases and results of the agents in the pool, including names | Own pool |
-| After-Sales lead and agents | Scope user | Work the After-Sales desk and After-Sales cases | Own queue or product |
-| HR specialist 1 and 2 | Scope user | Work only the conduct cases assigned to them | Assigned cases only |
-| Executive | Reader | Reads dashboards and results | Read only |
-| HR manager | Informed only | Reads team performance, receives late alerts, no case access | Team page only |
-| Heads and C-level | Informed only | Receive notices only, never assigned a case | Notice only |
-| IT and CRM owner | Data provider | Provides the CRM feed (environments, pools, agents, customers), company sign-in and mail | Back end, no portal screens |
-| Call center vendor (BrightCall) | Data source | View-only dashboard; call and IVR data | Source only |
+| CX manager (level 2) | All five, plus Settings and reference | Everything, all categories, all environments, agent names, conversation text | Approve corrective actions, set thresholds, set who sees what, approve standards for scoring |
+| CX team (level 1) | All five, plus Settings and reference | Everything, agent names, conversation text | Create corrective actions, send AI suggestions to cases, triage shopper cases, run the assistant |
+| Environment management (e.g. Sales manager, Dubai) | Home, Customers, Runaway, Actions, PSI Real Estate | Only its own environment, with agent names; no conversation text | Own and run its corrective actions, decide on proposed actions on shopper cases |
+| Sales team lead (pool) | Home, Customers, Actions | Its pool's agents and cases | Follow actions for its pool |
+| After-Sales team lead | Home, Customers, Actions, Voice of Customer, After-Sales | Process, speed and communication signals | Own After-Sales actions |
+| L&D manager (Learning and Development) | Actions, Standards register, Training | Communication, product knowledge and attitude signals; its own L&D requests | Deliver training and materials, write the standards it owns (the CX manager approves them for scoring) |
+| HR specialist | Actions, HR team | Attitude signals; cases assigned to the HR pool | Write corrective actions on conduct; the agent's direct manager reviews them |
+| HR manager | HR team performance | Team numbers and late alerts only | Nothing on cases (informed only) |
+| Marketing manager | Home, Customers, Runaway, Personas | Personas, campaign recommendations, runaway types; no conversation text, no agent names | Receive campaign briefs |
+| Executive (read only) | Home, Customers, Runaway, Actions, Personas, Overview, Monthly pack | Everything, read only, no agent names | Nothing (informed) |
+| Mystery shopper | Own tasks only | Briefs, deadlines, forms | Fill the forms, ask questions |
 
-## 3. Authority matrix
+> Standing rules: cases are assigned to the people concerned, never to top management; heads and C-level are informed only. Agent names show only to CX and to the agent's own management. Conversation text (WhatsApp, app chat, CRM notes) is readable by the CX team and the CX manager only.
 
-Who can do what, for every role. This is the master reference for permissions in the live system.
+[Screenshot: insacc] AI Insights access: the CX manager's matrix of which role sees which categories, environment, names and actions. Changes apply at once.
 
-Symbols: ● full, ◐ own scope only (own environment, pool, assigned cases or tasks), ○ view only, ✉ informed only (a notice, no access or task), ✔ approves, – no access.
+## 3. Home: one search
 
-| What | CX manager | CX team | Environment mgmt | Team lead | After-Sales lead | After-Sales agent | HR specialist | HR manager | C-level and heads | Product CX (PS Tours) | Executive | Mystery shopper |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| **Dashboards and insights** | | | | | | | | | | | | |
-| Overview and product dashboards | ● | ● | ◐ | ◐ | ◐ | – | – | – | ✉ | ◐ | ○ | – |
-| Voice of Customer | ● | ● | ○ | ○ | ○ | – | – | – | – | ◐ | ○ | – |
-| AI Insights: triggers and suggested actions | ● | ● | ◐ | ◐ | ○ | – | – | – | – | ◐ | ○ | – |
-| See agent names in the drill-down | ● | ● | ◐ | ◐ | ◐ | – | ◐ | – | – | – | – | – |
-| Monthly CX pack | ● | ● | – | – | – | – | – | – | – | – | ○ | – |
-| Glossary | ○ | ○ | ○ | ○ | ○ | – | – | – | – | ○ | ○ | – |
-| Approve AI suggested corrective actions | ✔ | – | – | – | – | – | – | – | – | – | – | – |
-| **Complaints handling** | | | | | | | | | | | | |
-| See cases | ● | ● | ◐ | ◐ | ◐ | – | ◐ | – | ✉ | ◐ | ○ | – |
-| Triage and assign by hand | ● | ● | – | – | – | – | – | – | – | – | – | – |
-| Write proposed corrective actions | ● | ● | – | – | – | – | – | – | – | – | – | – |
-| Respond, record root cause | – | – | ◐ | ◐ | ◐ | – | ◐ | – | – | ◐ | – | – |
-| Confirm, modify or reject proposed actions | – | – | ◐ | ◐ | ◐ | – | ◐ | – | – | ◐ | – | – |
-| Review HR corrective actions (direct manager) | ○ | – | ◐ | ◐ | – | – | – | – | – | – | – | – |
-| Approve rejected or modified actions | ✔ | – | – | – | – | – | – | – | – | – | – | – |
-| Verify and close, reopen | ● | ● | – | – | – | – | – | – | – | – | – | – |
-| Told about late and high-priority cases | ● | ● | ● | ● | ● | – | ● | ✉ | ✉ | ● | – | – |
-| HR team performance | ○ | – | – | – | – | – | – | ◐ | – | – | – | – |
-| **Configuration** | | | | | | | | | | | | |
-| SLAs, complaint types, routing | ● | ○ | – | – | – | – | – | – | – | – | – | – |
-| Settings: product launch, HR pool, notices | ● | ○ | – | – | – | – | – | – | – | – | – | – |
-| **Surveys and mystery shopper** | | | | | | | | | | | | |
-| Survey builder and campaigns | ● | ● | – | – | – | – | – | – | – | – | ○ | – |
-| WhatsApp templates: check and submit to Meta | ● | ● | – | – | – | – | – | – | – | – | – | – |
-| Mystery shopper programme and review | ● | ● | – | – | – | – | – | – | – | – | ○ | – |
-| Import a filled shopper form | ● | ● | – | – | – | – | – | – | – | – | – | – |
-| Fill own shopping tasks | – | – | – | – | – | – | – | – | – | – | – | ◐ |
-| After-Sales call queue and call screen | ○ | ○ | – | – | ◐ | ◐ | – | – | – | – | – | – |
-| Call center dashboard | ● | ● | ○ | – | ○ | – | – | – | – | – | ○ | – |
-| Suggestions log | ● | ● | – | – | – | – | – | – | – | – | ○ | – |
-| Standards library | ● | ● | ○ | ○ | ○ | – | – | – | – | ○ | ○ | – |
+The home page is one box. A name, a mobile number, an ID or a unit opens the person; a question in your own words goes to the assistant.
 
-### Rules that sit above the table
+[Screenshot: home] Home for the CX manager: the search box, example requests, and four live numbers (runaway, open actions, personas, journeys), each a button.
 
-- Cases are assigned to the people concerned, never to top management.
-- Heads and C-level are informed only. Corrective actions come from direct management.
-- The HR manager sees team numbers and late alerts, never cases.
-- PSI Club: Finance is not involved; C-level is informed only; CX assigns by hand, case by case, to the sales agents pool.
-- Agent names are visible to the CX team, the environment management and team lead for their scope, and the HR specialist on their own cases. Everyone else sees counts only.
-- Only CX closes a case. The owner cannot close it.
-- Only the CX manager approves AI suggested actions and rejected or modified corrective actions.
-- The BrightCall dashboard is view only for everyone.
+**What each user does**
 
-## 4. Entry and navigation
+- **CX team and manager:** Type a key to open a journey, or a question to get a list, a plan or a campaign from the assistant
+- **Marketing:** Same box; results come without conversation text or agent names
+- **Environment manager:** Same box; results limited to its own environment
 
-The landing page has one entry per role. There are no passwords in the prototype. In the live system, sign-in uses the company directory (SSO), and shoppers and HR members use email or mobile plus a one-time code.
+[Screenshot: home-ar] The same page in Arabic. Every page of the portal is bilingual with full right-to-left layout.
 
-[Screenshot: landing] Landing page: one entry per role, plus the shopper entry.
+## 4. Customers: the journey of one person
 
-| Entry | Lands on | Sees |
-|---|---|---|
-| CX manager (level 2) | Overview | Everything, plus approvals and structure |
-| CX team (level 1) | Overview | All working areas; no approvals, no structure changes |
-| Environment management | Cases | Own environment: cases, insights, Voice of Customer, Real Estate |
-| Team lead | Cases | Cases and insights of the pool |
-| After-Sales lead / agent | After-Sales desk | Call queue, call screen, cases |
-| HR specialist | Cases | Only cases assigned to them |
-| HR manager | HR team | Team performance only |
-| Executive | Overview | Overview, Voice of Customer, Insights, read only |
-| Mystery shopper | My tasks | Own tasks only |
+One record per person, lead or customer, with every contact from every channel in date order, and an AI reading of what happened and what to do next.
 
-The interface is bilingual (English and Arabic) with full right-to-left layout. Menus are grouped (Overview and insights, Products, Complaints, Surveys and shoppers, Admin, My team) and each role sees only its own groups. Products that are not launched do not appear in menus, cards or filters.
+The search stitches the record by mobile number, email, Emirates ID and CRM contact id. The page shows the CRM profile (type, environment, units and deals, where they live, where they work, income source, preferred channel, language, persona), four effort tiles (interactions, contacts in 90 days, problems found, days since last contact), the AI reading, and the timeline.
 
-## 5. Overview, product dashboards and Voice of Customer
+[Screenshot: journey-top] Rashid, an investor since 2016 with three units: profile from the CRM, persona, and the effort tiles.
 
-Where leaders and the CX team read how customers feel, across products, and drill down.
+### The AI reading
 
-### What it is for
+Four parts, every sentence pointing at a dated event on the timeline: who the person is and how many years and channels the record covers; what went wrong, in date order; a verdict (healthy, high effort, or one of the six runaway types); and what to do next. The AI did not listen to calls, because agent calls are not recorded; it read the CRM activity log, the chats and the scores.
 
-The overview shows headline experience scores (NPS and customer satisfaction), open and late complaints, survey response, and what needs attention. Product pages (Real Estate, After-Sales) show the same view for one product. Voice of Customer collects what customers say in comments, IVR comments and survey free text, with themes and sentiment.
+[Screenshot: journey-ai] The AI reading for Rashid: passed between teams twice in 2021, a passive score in 2022, no contact for 14 months. Verdict: dormant owner. Next: an account manager call about rental management, which he asked for and never got.
 
-[Screenshot: overview] Overview dashboard.
+### The timeline
+
+Channels on the timeline: CRM notes, inbound and outbound calls, AI calls, IVR, WhatsApp Business, WhatsApp area groups, app chat, branch visits, email, surveys, app ratings, mystery shopper, website and ads, events, PSI Club and PSI Wallet. Each event shows the date, the channel, who started it (customer or PSI), the reason, the outcome, any promise with its due time, and the message text where the viewer may see it. Problem events are highlighted: promise not kept, forced channel switch, repeat within 48 hours, slow reply, wrong language, hand-off, detractor.
+
+[Screenshot: journey-timeline] The timeline, newest first, filtered by channel. Highlighted rows are the problems the rules found.
+
+[Screenshot: journey-problems] Below the timeline: Problems found and Channels used, folded by default.
+
+[Screenshot: journey-priya] Priya, a lead lost to a competitor: an unapproved discount, a manager callback never made, a 53-hour WhatsApp reply, then closed lost.
+
+### The journey rules
+
+| Rule | What it means |
+|---|---|
+| Repeat contact | The same person comes back about the same matter: within 48 hours the first answer failed; within 7 days the fix was incomplete; within 30 days the problem came back |
+| Forced channel switch | The customer moved to another channel after getting no reply on the first |
+| Promise not kept | A callback, document or date was promised and nothing went out before its due time |
+| Slow reply | A WhatsApp or app chat reply took more than 24 hours |
+| Wrong language | A reply in English to an Arabic message, or the reverse |
+| Hand-off | Passed between teams twice or more with no named owner |
+| IVR complaint not logged | Pressed Complaints in the IVR and no CRM activity followed |
+| Unapproved discount | A discount promised in chat without approval, then withdrawn |
+| Silence | No contact either way for 30 days (lead) or 12 months (owner or investor) |
+
+[Screenshot: journey-ar] The journey in Arabic.
+
+## 5. Runaway customers
+
+Everyone who left, went quiet, froze or did not renew, by type, with what the record says we did wrong. The point is not to chase each one; it is to learn and fix the cause for the next ones.
+
+| Type | Definition |
+|---|---|
+| Went to a competitor | Was a lead or a customer, then closed a deal with another broker or developer |
+| Silent lead | Enquired and was contacted, then stopped answering on every channel for 30 days or more |
+| Frozen deal or payment | Booking, payment plan or handover stalled; still with PSI but nothing moves |
+| Did not renew | Tenant whose lease ended without renewal |
+| Dormant owner | Owner or investor with no contact, deal or referral for 12 months or more |
+| Complained, then left | Scored as a detractor or complained, then no further business |
+
+[Screenshot: runaway] The six types as counters, then "What we keep doing wrong": the faults found across all runaway records, each a corrective-action candidate.
+
+[Screenshot: runaway-detail] One person opened from the list: what we did wrong and what to do, with a button to the full journey.
+
+The thresholds (30 days, 12 months) are settings. The order of learning agreed with the CX manager: leads that went quiet first, then tenants who did not renew, then owners who stopped dealing with PSI.
+
+[Screenshot: env-runaway] The same page for the Dubai environment manager: only Dubai people.
+
+## 6. Actions: corrective actions, signals, AI insights, shopper cases
+
+One page for what we are fixing, why, and whether it worked. Corrective actions are the main tab; signals and patterns, AI insights and shopper cases are the other three.
+
+### Corrective actions
+
+One action per pattern, with one owner, a due date and a 30-day check. Flow: Proposed (by the AI, by CX, or by the assistant) → Approved and assigned (CX manager only) → In progress (owner) → 30-day check → Effective, or Not effective and back to the root cause. Corrective fixes a cause that already hurt customers; preventive stops a cause before it does.
+
+[Screenshot: actions] The register: proposed, open, late, effective, and the list with owner, due date and status.
+
+Every action carries a panel "How the AI found this": the sources and dates, the rule that fired with its threshold, where, who (names only for roles allowed to see them), why this team, why this action (recovered in X of N similar closed cases), and what the AI did not do. The same panel appears on every pattern card, so an L&D manager or an environment manager can judge a suggestion without asking CX.
+
+[Screenshot: action-detail] CA-203 as the L&D manager sees it: the payment plans sheet and AI script, with "How the AI found this" open.
+
+### Signals and patterns
+
+Every complaint, low score, breach and rating from every channel lands here as a signal, counted not worked. The Patterns tab shows the groups that passed a threshold, with the signals behind them, the team involved, the AI suggestion and its recovery figure, and a button to create the action. The Rules tab holds the thresholds, editable by the CX manager: same agent 3 times, same issue 5 times, more than 50% from one environment, within 30 days.
+
+[Screenshot: signals-patterns] Patterns over a threshold, each with its signals, the team involved, the AI suggestion and the action it already has.
+
+[Screenshot: signals-rules] Rules and thresholds, with the five definitions that make the model work.
+
+### Hand-offs
+
+A correction for one customer that another system owns: a do-not-call flag in the CRM, a recovery call, a PSI Club member recovery item (to agree with Abu Omar). The portal records where it went and checks it was done; no clock runs here.
+
+[Screenshot: signals-handoffs] Hand-offs with their status and the hand-off rules by signal type.
+
+### AI Insights
+
+The AI reads the scored records (surveys, shopper scores, app ratings, call reviews) and finds where the low scores concentrate: one pattern per category and environment, with a service and a time band. Each suggested corrective action shows its recovery figure in full: "tried in 14 similar closed cases, the customer recovered in 10, 10 of 14 is 71%", a bar, and a small-sample warning under 10 cases. A panel "How to read these percentages" defines similar, recovered, the two limits, and the difference from the headline concentration figure. Suggestions become proposed corrective actions; "Send to a case" exists only for shopper cases in the same category.
+
+[Screenshot: insights] An AI Insights pattern with its suggested actions, each explained in full.
+
+> Two registers, two numbers: AI Insights reads scores and ratings (322 scored records in the sample); Signals counts complaints and breaches (50 in the last 30 days). A low score becomes a signal only when it is also a complaint, a breach or a critical shopper item. The page says so.
+
+### Shopper cases
+
+Only the mystery shopper opens a case directly, for a critical item seen in one visit or call. These cases keep the full case flow: CX triage with numbered proposed actions, the owner decides on each line, HR pool for conduct, the agent's direct manager reviews HR's actions, respond and resolve clocks in working hours. Which items are critical, medium and low is still to be defined with the team.
+
+[Screenshot: shopper-cases] Shopper cases: the case list with its clocks and the case detail with proposed actions.
+
+## 7. Personas and campaigns
+
+Who our customers and leads are, built from what they did, said and scored, not from assumptions. Each persona carries a recommendation to Marketing.
+
+| Persona | Who | Main pain | Channels they use |
+|---|---|---|---|
+| Overseas investor | Lives abroad, business owner, buys off-plan for yield | Wrong payment plan details; silence between milestones | PSI Wallet, WhatsApp, email |
+| First-time expat buyer | Salaried, works in the UAE, buying a home | Handover slipped with no call; repeat questions unanswered | App chat, calls, WhatsApp |
+| Local family renter | Tenant in PSI Assets, uses the app for maintenance | Maintenance request lost; app request not visible | App chat, calls |
+| Portfolio owner | Several units, delegates to an assistant | Passed between After-Sales and Assets; statement errors | PSI Wallet, email, account manager calls |
+| Comparison shopper | Lead talking to several brokers, wants the best price | Slow WhatsApp reply; wrong language; discount promised then withdrawn | WhatsApp, website |
+| Referral-driven member | PSI Club member who refers friends | No update on a nominated lead; commission late | Club app, WhatsApp |
+
+[Screenshot: personas] The six personas with size and runaway count, and the selected persona's description, pain and the channels its people actually use.
+
+[Screenshot: personas-marketing] Recommendation to Marketing for the selected persona: who to target, which channel and when, campaign type, what not to do, segment size. Below, the next campaign ranked.
+
+How the personas are built: first by rules on CRM fields (residence, work sector, income source, units owned, lost reason) plus the channel the person actually contacts us on, counted from the timeline; later by clustering once three months of live timeline records exist. The CX manager names and approves personas; a persona nobody can act on is dropped. Personal fields are shown as persona attributes and segment sizes, never exported per person.
+
+[Screenshot: marketing-home] The Marketing manager's portal: home, customers, runaway and personas, without conversation text or agent names.
+
+## 8. The AI assistant
+
+Ask in Arabic or English, by voice or text. The assistant filters people from the CRM and every channel, explains what happened, builds a corrective action plan, or a campaign brief.
+
+The assistant is a button on every page for CX, Marketing, executives and environment managers, and the home search box sends questions to it. It understands people (leads, tenants, owners, investors, members), the six personas, the six runaway types, channels, where we failed (late, promise, channel switch, language, hand-off, detractor, repeat), environments, "similar to someone", "why did someone go quiet", and the two actions: plan and campaign.
+
+- "People who contacted us on WhatsApp, we replied late, and they left" returns the people with the reason beside each and the channel to reach them on, from the agent they already know.
+- "Cases similar to Priya" returns the same persona and runaway type.
+- "Why did Rashid go quiet?" returns the journey reading.
+- "Silent leads in Abu Dhabi, give me a corrective action plan" returns the people, then one action per repeated fault with its owner, and a button that creates them as proposed actions.
+- "Create a campaign for tenants who did not renew" returns a brief: who, channel split, language, message, timing, what not to do, and a button that saves it for Marketing.
+
+[Screenshot: assistant] The assistant with a result list, each person with "reach via", and a corrective action plan ready to be created as proposed actions.
+
+Two engines. When the portal runs inside claude.ai and the viewer allows it, Claude turns the free-text request into the filter and confirms in the same language; the first call asks the viewer's permission. Otherwise a built-in Arabic and English keyword parser does the same with no connection. The header says which is running. Results come from the same registers the pages use, so no number in the assistant differs from the portal.
+
+Voice uses the browser's speech recognition (Chrome and Edge) in the portal's language; press the microphone, speak, and the request runs when you stop. On browsers without it the microphone is hidden and typing remains.
+
+## 9. What the terms mean
+
+A "?" beside every metric and heading, a "What the terms mean" button on every page, and the glossary.
+
+Each definition says what the term is, how it is calculated and gives an example. NPS: one question, "how likely are you to recommend PSI", 0 to 10; 9 and 10 promoters, 7 and 8 passives, 0 to 6 detractors; NPS is % promoters minus % detractors, from −100 to +100; 50% promoters and 18% detractors give +32. CSAT: one question about one moment, 1 to 5; the share who answered 4 or 5. NPS asks about the relationship; CSAT about one moment.
+
+[Screenshot: terms-pop] The "?" beside a metric opens its definition in place.
+
+[Screenshot: terms-modal] "What the terms mean": the full list with search, for the moment someone asks in a meeting.
+
+| Term | Short meaning |
+|---|---|
+| Mystery shopper score (MPS) | Share of checklist items met in approved visits, 0 to 100; only approved standards are scored |
+| App CSAT | Average in-app rating 1 to 5; a 1 or 2 counts as a detractor |
+| Signal | Any complaint, low score, breach or rating from any channel, counted not worked |
+| Pattern | Signals past a threshold; one pattern gets one corrective action |
+| 30-day check | Thirty days after an action is done the same signals are counted again; dropped means effective |
+| Hand-off | A one-customer fix that another system owns; recorded and checked, no clock |
+| Runaway | A person who left, went quiet, froze or did not renew; six types |
+| Persona | A group of customers who behave alike, built from the CRM and the timeline |
+| Omnichannel | One record per person with every channel on it; many channels that know each other |
+
+## 10. Settings and reference
+
+The earlier modules, now folded under one menu entry. Opened for planning and configuration, not every day.
+
+### Overview and Monthly CX pack
+
+The Overview opens with the customers-and-runaways strip and the signals-and-actions strip (the same four numbers as the Signals page), then NPS, CSAT, responses, mystery shop score and open shopper cases, NPS by month and by channel, the product-by-channel heatmap and why detractors are unhappy. The Monthly CX pack is the one page for the management meeting, with the same numbers, the shopper cases by environment and product, what AI Insights found and whether past fixes worked. The pack downloads as CSV.
+
+[Screenshot: overview] Overview for the CX manager with the Wallet switched on for planning.
+
+[Screenshot: report] Monthly CX pack.
+
+### Mystery shopper and the standards register
+
+The programme runs two scenario types: a short walk-in with no lead, and a long full journey with a lead and 14 days of follow-up through digital channels and calls. Wave 1 is a baseline: shoppers record what they see and nothing is scored except two critical rules (no information or promise outside the approved sheets, no contact outside official channels); standards are set from the exercise. The standards register holds 26 standards (M-01 to M-26) with status observe only, draft or approved and scored; items under a non-approved standard are excluded from the score. Checklists are tied to scenarios and distribution requires a branch or gallery. L&D owns the fifteen people-facing standards and edits them; only the CX manager approves a standard for scoring.
+
+[Screenshot: shopper] Mystery shopper: pipeline, checklists, scenarios and distribution.
+
+[Screenshot: standards] Standards register: 26 standards, 20 observe only, 4 draft, 2 approved and scored, by area, with the owner on each.
+
+### Voice of Customer
+
+Survey results by product and channel, with the survey definitions per product (including a draft investor survey for the Wallet). Digital channels are rated only when a lead opens.
 
 [Screenshot: voc] Voice of Customer.
 
-[Screenshot: exec-overview] Executive view of the overview (read only).
+### L&D: training, materials and standards
 
-### What each user does
+The L&D manager (Learning and Development, previously called OD) sees only the corrective actions and L&D requests that need training, a material or a standard, the complaint types in its area (script, dress code, communication skills, product knowledge, outdated materials), the training materials and sessions, and which complaint types each one covers. L&D requests can be raised from any case or action.
 
-**What each user does**
+[Screenshot: ld-dashboard] The L&D dashboard.
 
-- **CX manager and CX team:** Read everything, open any metric to see the cases or comments behind it.
-- **Environment management and team lead:** See the same pages limited to their environment or pool.
-- **Executive:** Read only. No buttons that change anything.
-- **Heads and C-level:** Do not use the portal. They receive notices.
+### Teams and structure, Settings, AI Insights access
 
-### Where the data comes from
+Teams and structure shows who is involved in each function and product (titles, not names), the authority matrix, routing and what the CRM provides (environments and pools are fixed in the CRM). Settings holds the launch list (which products are live), the HR pool and the notices heads receive. AI Insights access is the CX manager's matrix of who sees what (section 2).
 
-- Surveys answered through the survey engine (see Survey engine).
-- Complaints and their SLA state (see Complaints management).
-- Mystery shopper results (see Mystery shopper).
-- Call center overview and IVR (see Call center and IVR).
-- CRM for customer, service, environment, pool and agent (see Data and integrations).
+[Screenshot: teams] Teams and structure.
 
-> Figures in the demo are samples. In the live system every number is computed from CRM, surveys and closed cases.
+[Screenshot: settings] Settings: the launch list, with PSI Wallet switched on for planning.
 
-## 6. Product: Real Estate
+## 11. Products
 
-The PSI Real Estate team and the PSI mobile app. Live. Sales environments, team leads and agent pools come from the CRM.
+Six products, two live. Not-launched products stay out of the menu, the entry page and the filters until the CX manager switches them on.
 
-### Structure: Real Estate
-
-[Screenshot: fn-re] Structure of Real Estate.
-
-| Job title | Role in this function | What they do | Access |
-|---|---|---|---|
-| Head of Sales | Informed only | Receives notices | Notice only |
-| Sales manager per environment (Dubai, Abu Dhabi, PSI Assets: placeholders) | Environment owner and assignee | Works cases, reviews actions, owns corrective actions for the pool | Own environment |
-| Sales team lead per pool | Pool lead | Works cases for the pool; sees agent names | Own pool |
-| Sales agents pool (from the CRM) | Subject of surveys and cases | Assigned cases when picked; their results are visible by name only to roles allowed | Cases assigned |
-| CX team | Case owner | Triage, assign, verify, close | Full |
-| HR specialists | Conduct route | Work attitude cases assigned by CX | Assigned cases |
-
-[Screenshot: prod-re] Real Estate product page.
-
-**What each user does**
-
-- **CX team:** Triage, assign, verify and close Real Estate cases.
-- **Sales manager of the environment, team lead:** Work the cases and own the corrective actions for the pool.
-- **Executive:** Read only.
-
-## 7. Product: After-Sales (the desk and the team)
-
-The working area for the After-Sales team: the daily call list, the call screen with the right survey, and reporting an issue.
-
-### Structure: After-Sales
-
-[Screenshot: fn-af] Structure of After-Sales.
-
-| Job title | Role in this function | What they do | Access |
-|---|---|---|---|
-| Head of After-Sales | Informed only | Receives notices | Notice only |
-| After-Sales lead | Product owner for CX cases | Owns cases and corrective actions; reassigns calls; sees the team queue | Own product |
-| After-Sales agents | Call team | Work the call queue (3 tries per customer), fill surveys, report an issue | Own queue |
-| Developer liaison, finance contact, maintenance lead, leasing manager, account manager | Case owners by type | Work the cases routed to them | Assigned cases |
-| CX team | Case owner | Triage, assign by type, verify, close | Full |
-
-[Screenshot: prod-af] After-Sales product page.
-
-[Screenshot: af-desk] After-Sales desk.
-
-The survey version follows the unit status and timing: ready units, off-plan units and rental units each have their own version. An agent works the queue, makes up to 3 tries per customer, records the outcome, and fills the survey on the call screen. Anyone can report an issue, which becomes a case.
-
-**What each user does**
-
-- **After-Sales agent:** Own call queue; call screen; report an issue.
-- **After-Sales lead:** Team queue, reassign calls, own After-Sales cases.
-- **CX team:** Read the desk and results; cannot work agents' queues.
-
-## 8. Products not launched yet
-
-PSI Club, Tour Estate and Events are built into the portal but hidden until the CX manager switches them on when a product launches. Their structures are ready.
-
-PSI Club, Tour Estate and Events are built but hidden until the CX manager switches them on when a product launches. Their structures are ready:
-
-### PSI Club
-
-[Screenshot: fn-club] Structure of PSI Club. CX assigns by hand; Finance is not involved.
-
-| Job title | Role in this function | What they do | Access |
-|---|---|---|---|
-| C-level | Informed only | Receives notices; never assigned | Notice only |
-| Direct management of the pool | Corrective action owner | Confirms or changes the proposed actions | Own scope |
-| Team lead and sales agents pool of the environment | Assignees | Work the case; CX picks by hand, case by case | Assigned cases |
-| CX team | Case owner | Manual assignment, verify, close | Full |
-| Finance | Not involved | No role in escalation | None |
-
-### Tour Estate (PS Tours)
-
-[Screenshot: fn-tour] Structure of Tour Estate. It has its own CX team.
-
-| Job title | Role in this function | What they do | Access |
-|---|---|---|---|
-| Head of Club and Tours | Informed only | Receives notices | Notice only |
-| PS Tours CX team | Case owner | Follows up with operations | Own product |
-| Tour operations management | Corrective action owner | Confirms the actions | Own product |
-| Operations, guide or driver supervisor | Assignee | Works the case | Assigned cases |
-
-### Events
-
-[Screenshot: fn-events] Structure of Events.
-
-| Job title | Role in this function | What they do | Access |
-|---|---|---|---|
-| Head of Events | Informed only | Receives notices | Notice only |
-| Events lead | Assignee and corrective action owner | Works the case by type | Own product |
-| CX team | Case owner | Triage, verify, close | Full |
-
-## 9. Complaints management
-
-Everything that hurts the customer experience becomes a case with a clock, an owner and a recorded fix. CX owns the case; the concerned team fixes it; CX verifies and closes.
-
-### Structure: who works in Complaints management
-
-Case owner is always CX. The fixer is the concerned team for the product. Corrective actions come from direct management, never from top management.
-
-[Screenshot: fn-complaints] Structure of Complaints management: owner, assignees per product, corrective action owners, informed only.
-
-| Job title | Role in this function | What they do | Access |
-|---|---|---|---|
-| CX team (level 1) | Case owner | Triage, choose the assignee, write proposed corrective actions, verify, close or reopen | Full |
-| CX manager | Approver | Approves modified or rejected actions; edits types, SLAs and routing | Full |
-| Sales manager of the environment | Assignee (Real Estate) | Takes the case or passes it to the team lead or agent; confirms, modifies or rejects proposed actions | Own environment |
-| Sales team lead | Assignee (Real Estate, Club) | Works the case for the pool; reviews HR actions for agents under them | Own pool |
-| Sales agents pool | Assignee (Club, manual) | Receive PSI Club cases when CX picks them by hand | Assigned cases |
-| After-Sales lead | Assignee and corrective action owner (After-Sales) | Handover, snagging, conduct and detractor cases; owns the corrective action | Own product |
-| Developer liaison, finance contact, maintenance lead, leasing manager, account manager | Assignee by complaint type (After-Sales) | Work the cases routed to them by type (finishing quality, payment, maintenance, leasing, construction updates) | Assigned cases |
-| HR specialist 1 or 2 | Assignee (attitude and conduct) | Work the case and write the corrective actions | Assigned cases |
-| Direct manager of the agent | Reviewer of HR actions | Reviews HR's corrective actions before the case can close | Own scope |
-| Head of Sales, Head of After-Sales, C-level (Club) | Informed only | Receive notices on late, high priority and escalated cases | Notice only |
-| HR manager | Informed only | Team report and a late alert only | Team page only |
-
-### Sources: where cases come from
-
-| Source | How it arises |
-|---|---|
-| Survey rule | A survey answer matches a rule (for example, snagging rated 2 or lower, or a detractor on a key question). |
-| AI call center monitoring | A breach is flagged: call outside allowed hours, no AI disclosure, wrong fact, no handover when asked, late callback. |
-| Mystery shopper | A critical fail or failed item. |
-| Reported by staff | Anyone, including an After-Sales agent, uses Report an issue. |
-| Customer ticket (linked) | Raised in a product's own app or support tool. It stays there and is linked read only, so it is never handled twice. |
-| AI Insights | CX sends a suggested action from the Insights page as a case (see AI Insights). |
-
-Each case also records the channel it came from (call center, WhatsApp or web, branch or gallery, app, event), the related product, the environment, and a link to the call in the CRM for call center cases.
-
-[Screenshot: cmp-list] Complaints list: defaults to Needs attention, worst clock first.
-
-### The workflow in six steps
-
-| Step | Who | What happens |
+| Product | Status | What the portal covers |
 |---|---|---|
-| 1 Opened | System | Case created; the respond clock starts. |
-| 2 CX triage | CX team | Confirms it is a CX matter, the type, the environment and the related product; chooses the assignee from the concerned people; writes proposed corrective actions 1, 2, 3, 4. |
-| 3 Owner responds | Assignee | First response stops the respond clock. |
-| 4 Owner fixes and records | Assignee and corrective action owner | Root cause category and explanation, corrective action, preventive action with owner, date and expected effect. Each proposed action is confirmed, modified or rejected. Submitting stops the resolve clock. |
-| 5 CX verifies | CX team | Three checks: root cause is clear, the action was really done, the customer was told and is satisfied. Or sends it back with a reason. |
-| 6 Closed | CX team | CX can reopen if the customer is not satisfied. |
+| PSI Real Estate | Live | Sales journey from enquiry to booking: leads, viewings, bookings, the PSI mobile app |
+| After-Sales | Live | Handover, snagging, finishing, payments, maintenance and renewals (PSI Assets rental) |
+| PSI Club | Not launched | VIP and influencer lead nominations; its own escalation matrix handles late steps, the portal reads the breach log as signals |
+| Tour Estate | Not launched | Tours, guides, drivers and cars; has its own CX team |
+| PSI Events | Not launched | Launches, investor evenings and VIP events |
+| PSI Wallet | Not launched (pilot) | The investor's portfolio in one place: properties across countries, documents, cash flow and AI suggestions |
 
-[Screenshot: cmp-triage-re] Triage of a Real Estate case: assignee list is filtered to the concerned people; proposed corrective actions are written here.
+[Screenshot: product-re] PSI Real Estate product page.
 
-### Proposed corrective actions
+PSI Wallet was added on 9 November, built like PSI Club. Its page shows the pilot numbers (investors onboarded, properties added, documents uploaded with failed uploads, suggestions acted on, NPS), what investors ask the Wallet team, four complaint types with owners (upload and sync failures and suggestion complaints to the Wallet product team; wrong value or cash flow to the account manager; privacy worries to the Wallet team with Legal as backup), a draft investor survey, and what the Wallet sends to the portal. Wallet events sit on the investor's timeline as a channel, so a failed upload followed by a call to the agent shows as a forced channel switch. The overseas investor and portfolio owner personas list the Wallet as a channel.
 
-When CX assigns, it writes "Proposed corrective actions by CX" as a numbered list. The owner must decide on each line: confirm, modify (with a note) or reject (with a reason). The case cannot be submitted while any line is undecided. If any line is modified or rejected, the CX manager must approve before the case can close.
+[Screenshot: product-wallet] PSI Wallet product page.
 
-### Manual assignment for PSI Club
+## 12. Data and integration: phase one
 
-PSI Club cases are not routed automatically. CX picks the assignee by hand from the sales agents pool of the environment. C-level is informed only and Finance is not involved.
+How the five pages get live data. Summary of the Phase One Omnichannel Integration Plan (separate document, 9 November 2026).
 
-[Screenshot: cmp-triage-club] Triage of a PSI Club case: manual choice, no default owner.
+**Per channel, not per product.** The same CRM, WhatsApp number and call engine serve every product, and one person moves across products, so each channel is connected once and every record carries product, environment and agent as attributes. Adding a product later is configuration.
 
-[Screenshot: cmp-assigned-club] The same case after assignment.
+**The CRM is the golden record.** It is custom, holds all customer history, transactions and agent activities per lead, and can integrate. The portal reads its contacts, leads, activities, deals, units and agents; it adds what the CRM does not hold: the channel conversations, the scores, the shopper observations and the journey analysis.
 
-### Attitude and conduct: the HR route
-
-CX can assign an attitude or conduct case directly to the HR pool. The HR specialist works it and writes the corrective actions. Before closing, the direct manager of the agent concerned must review HR's corrective actions. The HR manager is told only if the HR step is late.
-
-[Screenshot: em-hr-review] Environment manager reviewing HR's corrective actions.
-
-[Screenshot: hrs-cases] HR specialist sees only the cases assigned to them.
-
-[Screenshot: hrm-team] HR manager: team performance, informed only, no case access.
-
-### Verify and close
-
-Closing rules are editable. By default: root cause category, explanation and corrective action are required; a preventive action is required for high priority cases or when the same type happens 3 times in 30 days; otherwise "not needed" needs a written reason. Closing is blocked while a proposed action is undecided or a required manager review is pending.
-
-[Screenshot: cmp-verify] Verify stage: CX checks and closes, or sends back.
-
-[Screenshot: cmp-closed-file] A closed case file with its full record.
-
-### Complaint types, SLAs and routing
-
-27 complaint types are drafted across products, each with priority, owner, backup, manager, head and two clocks. Targets are in working hours. Clocks count Monday to Friday, 09:00 to 18:00; they pause while waiting on the customer; a clock is at risk when under 25 percent remains. Types can be routed by environment (each environment has its own people) or the same for all. Call timing is one merged type: customer called outside allowed hours or callback later than promised (high priority, respond 4h, resolve 27h).
-
-[Screenshot: cmp-types] Complaint types and SLAs (editable by the CX manager).
-
-[Screenshot: cmp-route] Routing and escalation ladder.
-
-| Ladder step | When | Notified |
+| Source | What we take | Owner to ask |
 |---|---|---|
-| Start | Case created | Owner |
-| Reminder | 50% of resolve time used | Owner |
-| Warning | 80% used | Owner and backup |
-| Breach | 100% used | Owner, backup and manager |
-| Still open | One working day after breach | Adds the department head (informed only) |
+| CRM: contacts, leads, activities, deals, units, agents and pools | Profile, type, environment, every activity with direction, date, agent, reason and result, deals and payment status, pools | CRM owner (IT) |
+| AI call engine and IVR | Outbound calls, leads opened, hand-offs; IVR path chosen and messages left | Call center lead, AI vendor |
+| WhatsApp Business (official number) and area groups | Full conversations with timestamps and replier; groups only if on the official number | IT with the WhatsApp partner, Sales ops |
+| App chats (PSI app, Club app, Wallet) | Threads per account with timestamps and request ids | App product teams |
+| Surveys, app ratings, mystery shopper | Scores, verbatims, visit records, critical items | CX team |
+| PSI Club | Referral status, nudges, breach log (SA-1, SA-2) | Club product team |
 
-### Emails
+**Identity.** The mobile number is the working key and the CRM contact id the anchor; a match on two keys merges, on one key is reviewed; old numbers stay as aliases. The IT clean-up of contacts with missing mobiles or names is a prerequisite for the mobile only. **Access.** Conversation text to the CX team and CX manager only; retention to confirm with Legal under the UAE data protection law.
 
-Two mailboxes: CX Team (routine: call lists, weekly summary, survey invitations, shopper tasks) and CX Complaints (assignment, reminders, warnings, breach, escalation, resolved). Each message type has an on or off switch, an editable template and a preview. Mail outside working hours waits until 09:00, except breach and head-level escalation, which send immediately.
+**Plan.** Ten weeks from 16 November 2026 to go-live the week of 25 January 2027: unified record and schema, CRM connector (critical path), identity resolution, WhatsApp feed, AI calls and IVR logs, app chat feed, journey rules and runaways, AI reading and assistant, five pages on live data, go-live gate. Everything on the five pages is generated sample data (30 people, about 120 interactions) until then; the analysis rules are the design and run unchanged on live data.
 
-[Screenshot: cmp-mail] Mailboxes and templates.
+## 13. Standards: what L&D is writing
 
-### Measuring whether fixes work
+The platform runs on written standards read by five instruments: the shopper checklist, the signal rules, the survey questions, the journey analysis and the corrective-action owners. Summary of the Standards Documentation List for L&D (10 November 2026).
 
-Each preventive action records type, date and expected effect. The Action effectiveness tab compares complaints of that type per 100 customers before and after the fix, with reopened cases and satisfaction after the fix. A drop of a quarter or more is working; a rise or a drop under 10 percent is not working; under two months of data is too early. This is a signal, not proof.
+L&D leads the creation, with George as head of the unit, and a champion from each environment. Every standard is written once as the PSI group standard; an environment adds a variant only where its business differs, with PSI Assets (rental) carrying most variants because a tenant's journey replaces a buyer's. Each document follows one template: the rule in one sentence, the measure and threshold, the instruments that read it, an example done right and wrong, the environment variants, exceptions, the owner who fixes a breach, the training it points to, and the effective date.
 
-[Screenshot: cmp-eff] Action effectiveness (sample data).
-
-### What each user does
-
-**What each user does**
-
-- **CX team (level 1):** Triage, assign by hand, write proposed actions, verify, close, reopen, record what the customer said.
-- **CX manager (level 2):** All of the above, plus approve rejected or modified actions, and edit types, SLAs and routing.
-- **Environment management / team lead:** Work the cases of their environment, confirm or change proposed actions, review HR's actions for agents under them.
-- **After-Sales lead:** Own After-Sales cases and corrective actions.
-- **HR specialist:** Work assigned conduct cases; write corrective actions.
-- **HR manager:** Read team numbers; receive late alerts.
-- **Heads and C-level:** Receive notices only.
-
-[Screenshot: em-cases] Environment manager's case list (own environment only).
-
-## 10. AI Insights: suggested corrective actions
-
-Insights reads past incidents and surveys and suggests what to do, with the evidence. Nothing becomes a case until the CX manager approves.
-
-### Structure: who works with AI Insights
-
-[Screenshot: fn-insights] Structure of AI Insights.
-
-| Job title | Role in this function | What they do | Access |
-|---|---|---|---|
-| CX manager | Approver | Approves suggested corrective actions and sends them to a case | Full, approves |
-| CX team | Reader | Reads triggers, hotspots and evidence; cannot approve | Full read |
-| Environment management and team lead | Scope reader | Read insights for their environment or pool, with agent names | Own scope |
-| Executive | Reader | Read only | View only |
-
-### What it does
-
-- Groups cases by category (for example attitude, communication, handover, snagging) and shows how often each happens.
-- Finds environment hotspots and time bands (for example bad attitude in one environment in the evening).
-- Shows similar past cases and the share where a given action worked, as a percentage.
-- Raises triggers, for example when a category's detractor share crosses a threshold (such as 90 percent) in an environment, service or time band.
-- Filters: score type (customer satisfaction, or MPS, the mystery shopper score), product or channel (including the mobile app), service (investment, rental, buying), environment, pool.
-- Suggests guideline actions such as a one-to-one with the agent, referral to HR, or a review by direct management.
-
-[Screenshot: ins-main] AI Insights: triggers, categories, hotspots, similar cases.
-
-### Drill-down to agent names
-
-Any metric opens to service, then environment, then pool, then the agent names, using the responsible agent recorded from the CRM. Names are shown only to roles allowed to see them.
-
-[Screenshot: ins-drill] Drill-down from a metric to agents.
-
-### Approval flow
-
-The CX manager approves a suggested action and sends it to a case. It then follows the normal complaint workflow, including HR routing where relevant.
-
-[Screenshot: em-insights] Environment manager view: insights limited to their scope.
-
-### What each user does
-
-**What each user does**
-
-- **CX manager:** Reviews suggestions, approves, sends to a case.
-- **CX team:** Reads insights and evidence; cannot approve.
-- **Environment management / team lead:** Read insights for their scope.
-- **Executive:** Read only.
-
-> Insight figures in the demo are planted samples. In the live system they are computed from CRM, surveys and closed cases.
-
-## 11. Survey engine: builder, campaigns and delivery
-
-Builds the customer surveys and sends them, and checks WhatsApp rules before anything is launched.
-
-### Structure: who works in the Survey builder
-
-[Screenshot: fn-survey] Structure of the Survey builder.
-
-| Job title | Role in this function | What they do | Access |
-|---|---|---|---|
-| CX manager | Owner | Approves launches; full control of surveys, rules and templates | Full |
-| CX team | Builder | Builds surveys and rules, runs campaigns, checks WhatsApp templates, submits them to Meta | Full |
-| After-Sales agent and lead | Survey users | Fill the survey on the call screen; the lead reassigns calls | Own queue / team |
-| Executive | Reader | Views campaigns and results | View only |
-| Customers | Respondents | Answer by link or inside WhatsApp | External |
-| CRM (system) | Source | Audience and the responsible agent, snapshotted at send time | Feed |
-| Meta and the messaging provider (external) | Approver of templates | Approve WhatsApp templates in English and Arabic; the SMS provider registers the sender name | External |
-
-### What it serves
-
-- Customer experience surveys for Real Estate and After-Sales (including the After-Sales versions by unit status).
-- Mystery shopper distribution uses the same delivery engine.
-- Complaint rules: an answer can open a case automatically.
-
-[Screenshot: eng-campaigns] Campaigns: audiences, channel, status.
-
-[Screenshot: eng-builder] Survey builder: questions, rules, languages.
-
-### Delivery channel and the WhatsApp readiness check
-
-Each survey chooses a delivery mode: WhatsApp message with a link to the portal, WhatsApp conversation with the questions inside the chat, SMS with a link, or email with a link. The Meta rules and the template check appear only for the two WhatsApp options.
-
-[Screenshot: wa-link] WhatsApp with a link: template check for English and Arabic.
-
-[Screenshot: wa-chat] WhatsApp chat mode: reply buttons and lists per question.
-
-[Screenshot: wa-sms] SMS: Meta rules do not apply.
-
-| Check | Source |
+| Group | Documents |
 |---|---|
-| Variables numbered in order {{1}}, {{2}}; not at the start or end; not adjacent | Meta rule |
-| Body up to 1,024 characters; no shortened links | Meta rule |
-| Opt-in confirmed for the audience; marketing wording needs an opt-out | Meta rule |
-| Category: Utility only when tied to a specific order, visit, case or task; otherwise Marketing | Meta rule (Meta decides and can recategorise) |
-| Chat mode: reply buttons 3 options of 20 characters; lists 10 rows of 24 characters; 24-hour window after the customer replies | Meta rule |
-| Too many questions in a chat; 0 to 10 scale has 11 choices; photo evidence is better in the portal | Our tip |
-
-Arabic and English templates are approved separately. Launching by WhatsApp is blocked until both languages are approved (simulated in the demo). SMS and email are not blocked.
-
-[Screenshot: eng-launch] Launch: blocked until the WhatsApp template is approved.
-
-### What each user does
-
-**What each user does**
-
-- **CX manager / CX team:** Build surveys, define rules, run campaigns, submit templates to Meta.
-- **Executive:** View only.
-- **Customers:** Answer by link or chat.
-
-### Where the data comes from
-
-The audience and the responsible agent come from the CRM at send time. WhatsApp delivery needs the WhatsApp Business platform and approved templates; SMS needs a provider and registered sender name.
-
-## 12. Mystery shopper (internal and external)
-
-Plans, distributes, collects and reviews mystery shopping visits and calls.
-
-### Structure: who works in the Mystery shopper programme
-
-[Screenshot: fn-shopper] Structure of the Mystery shopper programme.
-
-| Job title | Role in this function | What they do | Access |
-|---|---|---|---|
-| CX manager | Programme owner | Full control; sets checklists and standards links | Full |
-| CX team | Programme operator | Creates tasks, distributes by channel, answers shopper questions, reviews submissions, imports filled forms | Full |
-| Internal mystery shopper (PSI staff) | Shopper | Fills own tasks in the portal or WhatsApp, asks CX questions | Own tasks only |
-| External mystery shopper (agency or individual) | Shopper | Same as internal; separate sign-in with email or mobile plus a code | Own tasks only |
-| Executive | Reader | Views results | View only |
-
-### Two people types, one process
-
-Shoppers may be internal (PSI staff) or external (an agency or individuals). Both use the same entry: a separate sign-in with the email or mobile the task was sent to plus a one-time code. A shopper sees only their own tasks.
-
-### Headquarters side (CX team)
-
-[Screenshot: ms-results] Results and scores.
-
-[Screenshot: ms-checklists] Checklists linked to the standards library.
-
-[Screenshot: ms-shoppers] Shopper list (internal and external).
-
-[Screenshot: ms-dist] Distribution: who, where, deadline, channel. WhatsApp readiness appears here when WhatsApp is chosen.
-
-[Screenshot: ms-review] Review queue: CX checks each submission.
-
-[Screenshot: ms-import] Import a filled form (Excel or CSV) when a shopper did not use the portal.
-
-[Screenshot: ms-inbox] Shopper questions inbox: CX replies and the answer shows on the shopper screen.
-
-### Shopper side
-
-[Screenshot: sh-login] Shopper sign-in.
-
-[Screenshot: sh-home] My tasks: survey type, target area, scenario, deadline, status.
-
-[Screenshot: sh-task] A task: brief, form, consent and privacy rules, questions to CX.
-
-Shoppers can fill in the portal or in WhatsApp. Submissions go to the same CX review queue. A critical fail opens a complaint case.
-
-### What each user does
-
-**What each user does**
-
-- **CX team:** Create tasks, distribute, answer questions, review, import forms.
-- **CX manager:** All of the above.
-- **Mystery shopper:** Fill own tasks, ask CX questions.
-- **Executive:** View results.
-
-## 13. Call center and IVR (CX view)
-
-What the CX team sees about the AI call center and the IVR. This page is for experience only, not for QA.
-
-### Structure: who works with the call center view
-
-| Job title | Role in this function | What they do | Access |
-|---|---|---|---|
-| CX manager and CX team | Owners of the CX view | Read the overview and IVR, turn IVR complaints into cases, review the suggestions log | Full |
-| Environment management, After-Sales lead | Readers | View the call center dashboard for their scope | View only |
-| Executive | Reader | Views the dashboard | View only |
-| Call center vendor (BrightCall) | Data source | Provides calls and IVR journeys; the portal never changes anything there | Source only |
-
-[Screenshot: cc-overview] Call center overview: calls answered, first call to a new lead, callbacks kept, handed to a person when asked, customer rating, why customers call.
-
-[Screenshot: cc-ivr] IVR: suggestions, comments and complaints route differently.
-
-- Complaints from the IVR create a case with a clock and an owner.
-- Comments go to Voice of Customer.
-- Suggestions go to a suggestions log reviewed monthly by CX.
-- Speed to lead: for a new digital lead, the system rings the agent pool first; only when an agent picks up does it ring the customer. If no one picks up, a survey is not sent.
-- Digital channels are rated only when a lead opens.
-
-> The BrightCall dashboard is a view-only source. The portal never changes anything there.
-
-## 14. Settings, monthly pack, suggestions log, glossary and audit trail
-
-Supporting pages that make the portal usable day to day: where the CX manager changes settings, the management report, the log for ideas that are not complaints, the glossary, and who did what on a case.
-
-### Structure: who works with these pages
-
-| Job title | Role in this function | What they do | Access |
-|---|---|---|---|
-| CX manager (level 2) | Owner | Changes settings, reads and downloads the monthly pack, reviews the suggestions log | Full |
-| CX team (level 1) | Operator | Reads settings (no changes), reads the pack, marks suggestions | Settings read only |
-| Executive | Reader | Reads the monthly pack and the glossary | View only |
-| Environment management and team lead | Reader | Read the glossary | View only |
-| HR manager, heads and C-level | Informed only | Receive notices and the weekly digest by email. No portal pages for these roles | Notice only |
-
-### Settings
-
-One admin page with three tabs. Product launch switches PSI Club, Tour Estate and Events on or off; hidden products disappear from menus, cards and filters. HR pool lists the members (title, email, mobile) and the CX manager can add a member. Notices and digests choose which informed-only people receive which notice, and whether it is immediate or a digest. Environments, pools and agents are not edited here; they come from the CRM.
-
-[Screenshot: x-settings] Settings: product launch.
-
-[Screenshot: x-settings-hr] Settings: HR pool. The HR manager is informed only.
-
-### Monthly CX pack
-
-One page for the management meeting: cases, open, late and awaiting CX check; late cases by environment and by live product; the most common complaint types; what AI Insights found; and whether past preventive actions worked. Download as CSV. The executive can read it.
-
-[Screenshot: x-report] Monthly CX pack (sample data).
-
-### Suggestions log
-
-Ideas from the IVR, surveys and staff that are not complaints. CX reviews them once a month and marks each as new, under review, adopted or not now. Nothing here has an SLA clock.
-
-[Screenshot: x-suggest] Suggestions log.
-
-### Glossary
-
-Plain definitions of NPS, CSAT, MPS, detractor share, the clocks, working hours, case owner, assigned to, corrective action owner, informed only, proposed and preventive actions, environment and pool, speed to lead, and WhatsApp template categories.
-
-[Screenshot: x-glossary] Glossary.
-
-### Notices for informed-only people
-
-Two email templates and a digest exist for people who have no task. Notice to heads and C-level: for information only, sent when a case is late or high priority. Late alert to the HR manager: the HR step is late, with no case access. A weekly digest goes to heads and C-level. All are switched on or off in Emails and reminders.
-
-[Screenshot: x-notice] Notice template for informed-only people.
-
-### Audit trail
-
-Every line in a case timeline now records who did it (the role) as well as what and when: triage, fix submitted, manager decision on proposed actions, direct manager review of HR actions, close, reopen, send back.
-
-### Demo walkthrough
-
-The walkthrough now has two stories. Story 1 follows a complaint from the AI finding, through a PSI Club triage, the environment manager deciding on proposed actions, the HR route and the direct manager review, the informed-only HR manager, and the monthly pack. Story 2 covers After-Sales, surveys and the mystery shopper.
-
-[Screenshot: x-guide] Demo walkthrough.
-
-**What each user does**
-
-- **CX manager:** Runs the walkthrough, changes settings, downloads the pack.
-- **CX team:** Marks suggestions, reads the pack.
-- **Executive:** Reads the pack.
-
-### Where the data comes from
-
-- Pack numbers are computed from cases, surveys, AI Insights and recorded fixes.
-- Launch status and HR pool are set by the CX manager in the portal.
-- Suggestions arrive from IVR feedback, survey comments and staff.
-
-## 15. Standards library
-
-Every checklist item and rule points to a numbered standard so there is one source of truth.
-
-### Structure: who works with the Standards library
-
-| Job title | Role in this function | What they do | Access |
-|---|---|---|---|
-| CX manager and CX team | Maintainers | Load documents, link checklist items and rules, set statuses | Full |
-| Environment management, team lead, After-Sales lead | Readers | Read the standards behind a rule or checklist item | View only |
-| Executive | Reader | Reads | View only |
-
-[Screenshot: standards] Standards library.
-
-Thirteen standards are listed with a status: awaiting document, confirm with Legal, or drafted by CX. When the HR, SLA, script and legal documents arrive they are loaded here and the linked items update.
-
-**What each user does**
-
-- **CX team and manager:** Maintain the library.
-- **Environment management, team lead, After-Sales lead:** Read.
-
-## 16. Data and integrations needed
-
-What the live system must receive from other systems.
-
-| Integration | Direction | What moves | Needed from |
-|---|---|---|---|
-| CRM | In | Customers, service (investment, rental, buying), unit status, deal and handover dates, environment, pool, team lead, responsible agent, other agents who took part | IT or CRM vendor: API or scheduled export |
-| Phone system and AI call center | In (view only for BrightCall) | Calls, outcomes, recording links, IVR journeys | Call center vendor |
-| WhatsApp Business platform | Out and in | Template messages, survey replies | Messaging provider, Meta-approved templates |
-| SMS | Out | Survey links | SMS provider, registered sender name |
-| Email | Out and in | Complaints and CX mail, replies added to the case timeline | IT: company mail or API |
-| Product support tools | Both | Linked tickets, status back to the portal | Each product team |
-| Directory (SSO) | In | Users and roles | IT |
-
-### Fields the portal needs from the CRM on every record
-
-- Environment, pool, team lead.
-- Responsible agent (primary) and other agents who took part.
-- Service: investment, rental, buying.
-- Unit status, deal date, handover date, mobile, language.
-- The agent is snapshotted when a survey or contact is sent.
-
-### Core records
-
-- Case: id, source, type, product, environment, priority, case owner, assigned to, corrective action owner, informed list, respond and resolve targets, proposed actions with decisions, root cause, preventive action, manager review state.
-- Survey response: survey, version, answers, scores, agent snapshot, channel, completed time.
-- Mystery shopper task: shopper, target, scenario, deadline, answers, review state.
-- HR pool member: title, email, mobile.
-
-> Recordings and full transcripts stay in the call system and are linked, not copied, until Legal confirms storage and consent rules. Customer numbers are masked in lists.
-
-## 17. Rules decided so far
-
-The working rules agreed with the CX manager, in one place.
-
-- Portal scope is CX only; QA topics stay outside.
-- Only live products are shown: Real Estate team (mobile app) and After-Sales. Club, Tour Estate and Events stay hidden until launch.
-- Cases go to the concerned people, never to top management. Heads and C-level are informed only.
-- PSI Club: manual assignment by CX to the sales agents pool; no Finance; C-level informed only; corrective action from direct management.
-- CX writes proposed corrective actions at assignment; the owner confirms, modifies or rejects each.
-- HR: CX assigns attitude and conduct cases to the HR pool directly; the agent's direct manager reviews HR's corrective actions; the HR manager is informed only (team report and late alert).
-- Environments and pools are fixed in the CRM; the portal reads, never edits.
-- The agent is recorded from the CRM when a survey is sent; drill-down runs metric, service, environment, pool, agent names.
-- Digital channels are rated only when a lead opens; speed to lead rings the agent pool first, then the customer.
-- Call timing complaints are one merged type.
-- WhatsApp readiness applies to customer surveys and mystery shopper tasks, only when the channel is WhatsApp.
-- The BrightCall dashboard is view only.
-
-### Assumptions in this version
-
-- AI suggested actions are approved by the CX manager before they become cases.
-- Agent names are visible only to CX, environment management and team lead in their scope, and the HR specialist on their own cases.
-- MPS stands for Mystery Shopper Score.
-- HR internal notes are visible to the reviewing direct manager.
-- Environment names and HR pool members are placeholders until supplied.
+| Frontline and branch | Branch and gallery presentation; meeting room and privacy; appearance and dress code; reception and greeting; waiting |
+| Communication and selling | Communication; needs discovery and qualification; accurate information; approved promises and discounts; presenting a unit and closing; scripts and objection handling |
+| Digital channels and chat | Official channels policy; reply time per channel; chat conduct and language; digital lead handling; app and portal service |
+| Call center | Inbound call; outbound and AI caller; IVR wording and routing; complaint intake; call quality criteria |
+| After-Sales and rental | Handover; snagging; maintenance request; move-in and move-out; renewal; payment and statement; off-plan construction updates |
+| Follow-up and conduct | Lead follow-up; promise and callback; customer ownership and hand-off; conduct; data and privacy in customer contact |
+
+Priority 1, before the second shopper wave (end of November): accurate information, approved promises and discounts, official channels, communication, reception and greeting, dress code. Priority 2, before live chat signals: reply time per channel, chat conduct and language, promise and callback. Priority 3, before the runaway and journey pages: lead follow-up, customer ownership and hand-off, renewal, handover.
+
+## 14. Open items and version history
+
+What is still to decide, and how the prototype got here.
+
+### Open items
+
+- Which items are critical, medium and low for the mystery shopper, with more scenario examples, to be defined with the team.
+- The definition of "recovered" used in the AI recovery figures (proposed: within 30 days of closing, not reopened or escalated, and a better rating or a positive reply), to be confirmed by the CX manager.
+- The thresholds that turn signals into an action (3 per agent, 5 per issue, 50% concentration, 30 days) are proposals.
+- PSI Club member recovery (a detractor VIP member): a Club admin queue item or a CX call, to agree with Abu Omar.
+- Whether the CRM exposes a read API or only database access; the WhatsApp partner; where the AI caller and IVR logs live.
+- PSI brand colours, fonts and logo files: the portal uses placeholder navy and gold and an original logo.
+- Real HR pool members and environment names; real SLA targets; call recording as a policy decision.
+
+### Version history
+
+| Version | Date | What changed |
+|---|---|---|
+| v19 | 2 Nov 2026 | Prototype approved to go to development after changes; first knowledge base |
+| v24 | 6 Nov | New design and logo, regrouped menu, Teams and structure, standards register, two scenario types, OD role and dashboard |
+| v25 to v28 | 6 Nov | AI percentages explained in full; relevant cases only; AI Insights per role with the access matrix; more demo data |
+| v29 to v31 | 6 Nov | Signals and corrective actions replace cases; hand-offs; shopper cases only; one set of numbers everywhere |
+| v32 | 7 Nov | OD renamed to L&D |
+| v33 to v35 | 7 to 9 Nov | Omnichannel rebuild: customer journey, runaway customers, personas and campaigns, AI assistant; simplified to one search and four pages |
+| v36 to v37 | 9 Nov | What the terms mean; PSI Wallet product |
+| This document | 11 Nov 2026 | Knowledge base rewritten for v37 |

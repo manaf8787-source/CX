@@ -1,0 +1,136 @@
+{
+ "key": "6b455b9d4968",
+ "spoken": "Step three. Each proposed action is confirmed, modified or rejected. Anything modified or rejected goes to the C X manager to approve. Here, we confirm both.",
+ "words": [
+  {
+   "text": "Step",
+   "start": 0.096,
+   "end": 0.349
+  },
+  {
+   "text": "three",
+   "start": 0.361,
+   "end": 0.697
+  },
+  {
+   "text": "Each",
+   "start": 1.094,
+   "end": 1.25
+  },
+  {
+   "text": "proposed",
+   "start": 1.262,
+   "end": 1.731
+  },
+  {
+   "text": "action",
+   "start": 1.743,
+   "end": 2.115
+  },
+  {
+   "text": "is",
+   "start": 2.127,
+   "end": 2.236
+  },
+  {
+   "text": "confirmed",
+   "start": 2.248,
+   "end": 2.873
+  },
+  {
+   "text": "modified",
+   "start": 3.149,
+   "end": 3.714
+  },
+  {
+   "text": "or",
+   "start": 3.846,
+   "end": 3.942
+  },
+  {
+   "text": "rejected",
+   "start": 3.954,
+   "end": 4.495
+  },
+  {
+   "text": "Anything",
+   "start": 4.892,
+   "end": 5.288
+  },
+  {
+   "text": "modified",
+   "start": 5.301,
+   "end": 5.938
+  },
+  {
+   "text": "or",
+   "start": 5.949,
+   "end": 6.082
+  },
+  {
+   "text": "rejected",
+   "start": 6.094,
+   "end": 6.599
+  },
+  {
+   "text": "goes",
+   "start": 6.611,
+   "end": 6.899
+  },
+  {
+   "text": "to",
+   "start": 6.911,
+   "end": 6.995
+  },
+  {
+   "text": "the",
+   "start": 7.007,
+   "end": 7.091
+  },
+  {
+   "text": "C",
+   "start": 7.103,
+   "end": 7.428
+  },
+  {
+   "text": "X",
+   "start": 7.536,
+   "end": 7.74
+  },
+  {
+   "text": "manager",
+   "start": 7.752,
+   "end": 8.221
+  },
+  {
+   "text": "to",
+   "start": 8.233,
+   "end": 8.377
+  },
+  {
+   "text": "approve",
+   "start": 8.389,
+   "end": 8.87
+  },
+  {
+   "text": "Here",
+   "start": 9.291,
+   "end": 9.495
+  },
+  {
+   "text": "we",
+   "start": 9.736,
+   "end": 9.832
+  },
+  {
+   "text": "confirm",
+   "start": 9.844,
+   "end": 10.18
+  },
+  {
+   "text": "both",
+   "start": 10.192,
+   "end": 10.565
+  }
+ ]
+}

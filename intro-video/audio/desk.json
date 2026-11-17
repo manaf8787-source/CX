@@ -1,0 +1,126 @@
+{
+ "key": "a3c68f16e00a",
+ "spoken": "On the After-Sales desk, agents work a daily call list, with up to three tries per customer, and the right survey for each unit.",
+ "words": [
+  {
+   "text": "On",
+   "start": 0.096,
+   "end": 0.192
+  },
+  {
+   "text": "the",
+   "start": 0.204,
+   "end": 0.276
+  },
+  {
+   "text": "After-Sales",
+   "start": 0.288,
+   "end": 0.949
+  },
+  {
+   "text": "desk",
+   "start": 0.962,
+   "end": 1.382
+  },
+  {
+   "text": "agents",
+   "start": 1.743,
+   "end": 2.091
+  },
+  {
+   "text": "work",
+   "start": 2.103,
+   "end": 2.296
+  },
+  {
+   "text": "a",
+   "start": 2.308,
+   "end": 2.38
+  },
+  {
+   "text": "daily",
+   "start": 2.392,
+   "end": 2.692
+  },
+  {
+   "text": "call",
+   "start": 2.704,
+   "end": 3.005
+  },
+  {
+   "text": "list",
+   "start": 3.017,
+   "end": 3.413
+  },
+  {
+   "text": "with",
+   "start": 3.618,
+   "end": 3.762
+  },
+  {
+   "text": "up",
+   "start": 3.774,
+   "end": 3.906
+  },
+  {
+   "text": "to",
+   "start": 3.918,
+   "end": 4.014
+  },
+  {
+   "text": "three",
+   "start": 4.026,
+   "end": 4.339
+  },
+  {
+   "text": "tries",
+   "start": 4.351,
+   "end": 4.699
+  },
+  {
+   "text": "per",
+   "start": 4.712,
+   "end": 4.844
+  },
+  {
+   "text": "customer",
+   "start": 4.856,
+   "end": 5.349
+  },
+  {
+   "text": "and",
+   "start": 5.637,
+   "end": 5.697
+  },
+  {
+   "text": "the",
+   "start": 5.709,
+   "end": 5.781
+  },
+  {
+   "text": "right",
+   "start": 5.793,
+   "end": 6.01
+  },
+  {
+   "text": "survey",
+   "start": 6.022,
+   "end": 6.478
+  },
+  {
+   "text": "for",
+   "start": 6.49,
+   "end": 6.659
+  },
+  {
+   "text": "each",
+   "start": 6.779,
+   "end": 6.947
+  },
+  {
+   "text": "unit",
+   "start": 6.959,
+   "end": 7.32
+  }
+ ]
+}

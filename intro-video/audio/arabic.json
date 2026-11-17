@@ -1,0 +1,51 @@
+{
+ "key": "3014396bf81d",
+ "spoken": "And every screen works in Arabic, right to left.",
+ "words": [
+  {
+   "text": "And",
+   "start": 0.096,
+   "end": 0.216
+  },
+  {
+   "text": "every",
+   "start": 0.228,
+   "end": 0.457
+  },
+  {
+   "text": "screen",
+   "start": 0.469,
+   "end": 0.805
+  },
+  {
+   "text": "works",
+   "start": 0.817,
+   "end": 1.094
+  },
+  {
+   "text": "in",
+   "start": 1.106,
+   "end": 1.202
+  },
+  {
+   "text": "Arabic",
+   "start": 1.214,
+   "end": 1.671
+  },
+  {
+   "text": "right",
+   "start": 1.923,
+   "end": 2.079
+  },
+  {
+   "text": "to",
+   "start": 2.091,
+   "end": 2.163
+  },
+  {
+   "text": "left",
+   "start": 2.175,
+   "end": 2.572
+  }
+ ]
+}

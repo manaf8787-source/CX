@@ -1,0 +1,41 @@
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+
+export type ThemeMode = 'system' | 'light' | 'dark'
+
+interface ThemeValue {
+  mode: ThemeMode
+  cycle: () => void
+}
+
+const ThemeContext = createContext<ThemeValue | null>(null)
+const STORAGE_KEY = 'psicx.theme'
+const ORDER: ThemeMode[] = ['system', 'light', 'dark']
+
+export function ThemeProvider({ children }: { children: ReactNode }) {
+  const [mode, setMode] = useState<ThemeMode>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY) as ThemeMode | null
+      if (saved && ORDER.includes(saved)) return saved
+    } catch { /* ignore */ }
+    return 'system'
+  })
+
+  useEffect(() => {
+    if (mode === 'system') document.documentElement.removeAttribute('data-theme')
+    else document.documentElement.setAttribute('data-theme', mode)
+    try { localStorage.setItem(STORAGE_KEY, mode) } catch { /* ignore */ }
+  }, [mode])
+
+  const value = useMemo<ThemeValue>(() => ({
+    mode,
+    cycle: () => setMode((m) => ORDER[(ORDER.indexOf(m) + 1) % ORDER.length]),
+  }), [mode])
+
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
+}
+
+export function useTheme(): ThemeValue {
+  const ctx = useContext(ThemeContext)
+  if (!ctx) throw new Error('useTheme must be used inside ThemeProvider')
+  return ctx
+}

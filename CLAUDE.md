@@ -1,46 +1,48 @@
 # PSI CX Portal — project notes for Claude
 
-This repository is **documentation, not application code**. It holds the knowledge base, authority matrix and pilot plan for the PSI CX Portal programme. The actual interactive prototype is a Claude Artifact hosted at claude.ai (see links below) — the `.html` file here is a static export/snapshot of it, not a live app to build or run.
+This repository is **documentation, not application code**. It holds the knowledge base, plans and standards list for the PSI CX Portal programme. The interactive prototype is a Claude Artifact hosted at claude.ai; the `.html` file here is a static export of it (version 37), not a live app to build or run. The `frontend/` folder is a separate React scaffold and is not the prototype.
 
 ## Who this is for
 
-Owner: **Manaf Obeidat**, Delivery and CX Manager, PSI Real Estate (Amman). Audience: the PSI chairman ("Omar"), the CX team, and the developers who will eventually build the real (non-prototype) platform.
+Owner: **Manaf Obeidat**, Delivery and CX Manager, PSI Real Estate. Audience: PSI management, the CX team, L&D (George), Marketing, the AI and IT teams who will build the real platform.
 
-## What PSI CX Portal is
+## What PSI CX Portal is (as of 11 Nov 2026, v37)
 
-A single platform for PSI Real Estate's UAE business covering: mystery shopper programme, Voice of Customer / NPS / CSAT, five product spaces (Real Estate, After-Sales, PSI Club, Tour Estate, PSI Events — only Real Estate and After-Sales are *launched*), a survey engine with WhatsApp/SMS/email delivery, AI call center evaluation, and a full complaints/incidents workflow with SLA clocks and an authority matrix.
+An **omnichannel** customer experience platform: one record per person (lead or customer), every contact from every channel on one timeline, read by rules and AI. Five pages: Home (one search), Customers (the journey), Runaway customers (six types), Actions (corrective actions, with signals, AI insights and shopper cases as tabs), Personas and campaigns. Plus an AI assistant (voice or text, Arabic or English). The earlier modules (mystery shopper, standards register, voice of customer, L&D, teams, settings) sit under "Settings and reference". Six products: PSI Real Estate and After-Sales live; PSI Club, Tour Estate, PSI Events and PSI Wallet hidden until launch.
 
-Current status (as of 2 Nov 2026): prototype v19 on sample data, no backend, nothing is actually sent. An 8-week pilot plan exists for a single environment (proposed Dubai) and the two live products, pending management go-ahead.
+The rule: signals are counted, not worked; patterns over a threshold get one corrective action with an owner and a 30-day check; only a critical mystery shopper item opens a case directly.
 
 ## File map
 
 | File | What it is |
 |---|---|
-| `Documents/PSI-CX-Programme-Knowledge-Base.md` | **Start here.** Chronological project log: decisions, requirements, open questions, status. Owner's running record. |
-| `Documents/PSI-CX-Portal-Knowledge-Base-Modules.md` | **Reference.** Module-by-module spec: structure, the authority matrix (who can do what, 12 roles), every screen, data sources. This is the source of truth for permissions/roles. |
-| `Documents/PSI-CX-Portal-Knowledge-Base.docx` | Same content as the Modules file, illustrated with 51 screenshots, for distribution to people who won't open an `.md` file. |
-| `Documents/PSI-CX-Portal-Pilot-Plan.docx` | 8-week pilot plan for the management review: scope, timeline, success measures, risks. |
-| `Documents/KB.pdf` | PDF export, same content as the illustrated `.docx`. |
-| `Documents/PSI CX Portal.html` | Static export of the live prototype artifact (self-contained single-page app, bilingual EN/AR with RTL). |
-| `Documents/Claude outputs/` | Duplicate copy of the programme knowledge base — kept in sync manually; treat the root copy as canonical. |
+| `Documents/PSI-CX-Programme-Knowledge-Base.md` | **Start here.** Chronological project log: decisions, requirements, open questions. Sections 28 to 38 cover the omnichannel rebuild. |
+| `Documents/PSI-CX-Portal-Knowledge-Base-Modules.md` | **Reference.** v37 page by page: what each page is for, what each role sees, the rules, the data. Same content as the Word document without pictures. |
+| `Documents/PSI-CX-Portal-Knowledge-Base.docx` / `KB.pdf` | The illustrated knowledge base (36 screenshots), for people who will not open an `.md` file. |
+| `Documents/CX-Portal-Phase-One-Omnichannel-Integration-Plan.docx` | What the AI and IT teams need to build: per channel, the unified record, identity, integrations, the ten-week plan. |
+| `Documents/Standards-Documentation-List-for-LD.docx` | The 28 standards documents L&D is asked to write, with contents, writers, readers and the PSI Assets variants. |
+| `Documents/PSI-CX-Portal-Pilot-Plan.docx` | Earlier eight-week pilot plan (2 Nov); superseded in scope by the phase one plan but kept for the management review history. |
+| `Documents/PSI CX Portal.html` | Static export of the prototype, v37, bilingual EN/AR with RTL. |
+| `PSI CX Portal.html` (root) | Same v37 export as the one in `Documents/`, kept at the root for quick opening. |
+| `intro-video/`, `*.mp4` | The recorded walkthrough; the four-slide introduction deck and the video page live online (see section 37). |
 
-Live artifact links (private, shared individually, not fetchable from here): portal prototype, UAE visit checklist, illustrated web Knowledge Base — URLs are in `PSI-CX-Programme-Knowledge-Base.md` section 2 and section 26.
+Live links (private, shared individually) are in `PSI-CX-Programme-Knowledge-Base.md` section 37.
 
 ## Conventions used throughout the docs
 
-- **`[Proposed]`** marks anything Claude suggested that Manaf hasn't confirmed yet — never present a `[Proposed]` item as decided.
-- All figures/names in the prototype are **sample data** — never treat a number or name in the docs as real.
-- Working hours for SLA clocks: Monday–Friday, 09:00–18:00. Clocks pause while waiting on the customer.
-- "CX only, not QA" is a firm scope boundary (decided 28 Oct 2026) — call-quality/agent-compliance scoring is explicitly a separate, out-of-scope topic. Don't pull QA concepts back into CX features.
-- Titles are used for roles, never names; cases never go to top management, only to "the concerned people."
-- Bilingual English/Arabic with full RTL layout is a hard requirement for anything portal-facing.
+- **`[Proposed]`** marks anything Claude suggested that Manaf has not confirmed; never present it as decided.
+- All figures and names in the prototype are **sample data** (30 people, about 120 interactions); never treat a number or name as real.
+- Titles, not names, for roles; cases go to the concerned people, never to top management; heads and C-level are informed only.
+- Conversation text is readable by the CX team and CX manager only; agent names only by CX and the agent's own management.
+- The department for training and standards is **L&D** (Learning and Development), formerly written OD.
+- Bilingual English and Arabic with full RTL is a hard requirement for anything portal-facing.
+- "CX only, not QA" remains the scope boundary.
 
-## Open questions still unresolved
+## Open questions
 
-See `PSI-CX-Programme-Knowledge-Base.md` section 14 for the full list — notably: real CRM/phone system identity and API availability, real SLA targets (current ones are drafts), After-Sales real call script, calling-hours/consent/retry rules pending Legal, and real HR pool members/environment names (currently placeholders).
+See `PSI-CX-Programme-Knowledge-Base.md` section 38.
 
 ## Working with these docs
 
-- Don't invent or "confirm" decisions on Manaf's behalf — if something is marked open/proposed, flag it rather than resolving it silently.
-- When asked to draft new sections or update the knowledge base, match the existing terse, decision-log style (not marketing copy) and keep the "what Manaf decided vs what Claude proposed" distinction explicit.
-- The two knowledge-base markdown files have different jobs: the Programme KB is a chronological log (append new dated sections), the Modules KB is a structural reference (edit in place by section).
+- Don't invent or confirm decisions on Manaf's behalf; flag open items rather than resolving them silently.
+- The Programme KB is a chronological log (append dated sections); the Modules KB is a structural reference (edit in place by section).
