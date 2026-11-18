@@ -1,6 +1,6 @@
 # V40 foundation: the contract for workstreams A, B and C
 
-Date: 18 Nov 2026. Written by the foundation engineer (F0.1 and F0.2 delivered together). Read this instead of the code. The analysis is `docs/V40_DELTA.md` (section letters and F-numbers below refer to it). Everything is sample data. `[Proposed]` = suggested by the build, not confirmed by the owner.
+Date: 18 Nov 2026 (updated the same day for the owner's confirmed decisions). Written by the foundation engineer (F0.1 and F0.2 delivered together). Read this instead of the code. The analysis is `docs/V40_DELTA.md` (section letters and F-numbers below refer to it); where it says `[Proposed]` and the owner has since decided, **`docs/DECISIONS-2026-11-18.md` wins** (section 1a lists each decision and where it is built). Everything is sample data. `[Proposed]` = suggested by the build, not confirmed by the owner; what is still `[Proposed]` is listed in section 1b.
 
 **State at hand-over.** `npm run typecheck`, `npm run lint` (only the 3 known react-refresh warnings), `npm run test` (see section 12 for counts), `npm run build` are green. The e2e suite was run once at the end; section 12 lists what failed and why. Nothing is committed (the hourly task does it).
 
@@ -17,17 +17,37 @@ Date: 18 Nov 2026. Written by the foundation engineer (F0.1 and F0.2 delivered t
 | 3 | Public-mention **signals** have ids `PUB-351`, `PUB-352`, ... (prototype scheme `PUB-3nn`). The 16 rows of the Public mentions register (`PUBLIC_MENTIONS`, `PUB-301` to `PUB-316`) are a separate register. | No clash between `?sg=PUB-351` (a signal) and a mention row. `kind === 'public_mention'` now means `isPublic`, no `personId`, `eventIds = []`, `publicReplyDueAt` = occurrence + 48 h; nothing else is public. |
 | 4 | `Person.sourceOfLead` is a new `LeadSource` (`'app' \| 'website' \| 'whatsapp' \| 'club' \| 'crm'`), not `ChannelId`. | F29's source filter includes "CRM", which is not a channel. |
 | 5 | RP (report line of the trace) exists only for fixes with status `effective` or `failed` (V40_DELTA F10); a `partial` fix has a check (VR) but no report, and its next-step box reads "Closed with a reason; nothing further". | Literal reading of the delta. [Proposed] |
-| 6 | Weekly sample: judged by `cxmgr`, `cxteam`, `auditmkt`; customer names only for `cxmgr` and `cxteam` (`canJudgeSample`, `canViewNamesInSample`). Sample texts **never contain a name**: items about a person carry `personId` and the page resolves the name only for allowed roles. Composition follows the prototype (every fix, 18 signals, 12 loop rows, 10 people, padded with Agent 3 counts to 50). | F31 flags, [Proposed]. |
+| 6 | Weekly sample: judged by `cxmgr`, `cxteam`, `auditmkt` (`canJudgeSample`). Customer names follow the one rule `canViewCustomerNames` (everyone who works with people except `auditmkt`); sample texts **never contain a name**: items about a person carry `personId` and the page resolves the name with `personLabel(person, role)`. Composition follows the prototype (every fix, 18 signals, 12 loop rows, 10 people, padded with Agent 3 counts to 50). | Composition and who judges are my choices; the rest is decided (see 1a). |
 | 7 | Skipped surveys: six reasons that sum to the total (cap 2,210, not identified 640, opted out 290, DNCR 3, no consent 6, duplicate 9 = 3,158). v38's 3,140 became 3,158. DNCR = people flagged in the sample (a test keeps `DNCR_PEOPLE_IN_SAMPLE` equal to the mock). | F25. [Proposed] |
-| 8 | The working week is a rule item with `days: number[]` (JS weekdays, default Monday to Friday `[1,2,3,4,5]`) and `value = days.length`. `callFrom`, `callTo` are integers (hour of day, 9 and 18). All four items carry `proposed: true`. | Configuration, flagged in section E of the delta. |
+| 8 | The working week is a rule item with `days: number[]` (JS weekdays, `[1,2,3,4,5]`) and `value = days.length`. `callFrom`, `callTo` are integers (hour of day, 9 and 18). Since the 18 Nov decisions **none of these items is `[Proposed]`**; the two calling-hours items carry a `note` ("Legal to confirm the hours"), shown as a small note, not a badge. | Decided 1 and 5. |
 | 9 | Returning an investigation, when the pattern has no fix, proposes a fix of kind `training_gap`, owner `'L&D manager'`, by Agent 5 "from the investigation", with a title **derived from the pattern** (not the prototype's canned brochure sentence). | The canned text is sample-specific. |
-| 10 | The environment switch narrows **people, signals, shopper cases and patterns** only. Fixes, Close the loop, survey rows and indicators are not narrowed (prototype behaviour). A DNCR person is excluded from the call list whatever the switch says. | F14, needs owner confirmation. |
+| 10 | The environment switch narrows **everything that carries an environment** (decided 18 Nov): people, signals, patterns, shopper cases, **fixes, the close-the-loop list, investigations, hand-offs, public mentions** and the Home counts. A fix or an investigation takes the environments of its pattern's signals (its own `envId` when it has no pattern; none known = shown everywhere). Not narrowed, because the sample rows carry no environment: survey rows and the indicators built on them, the agents, the non-CRM feeds. A DNCR person is never on the call list whatever the switch says. | Decided 7. |
 | 11 | `AsOfBar`, `TraceHost`, the nine stub pages are **working minimal versions** (they read the real hooks), marked `// FOUNDATION STUB: owner = workstream X`. | Seams proven end to end; owners restyle or replace. |
 | 12 | Sign-in (F28) is done: six main role cards, the other six in a collapsed `<details>` "Other roles used in the demo". A still owns the polish (full description text, copy). | Brief listed "6 main roles on sign-in" under foundation. |
 | 13 | `/overview` renders `pages/OverviewPage.tsx` (a heading wrapper) around the existing `settings/Overview.tsx`, which gained a `hideHeader` prop. | The Overview page has no `h1` of its own. |
 | 14 | `components/ui/table.tsx`: the scroll container becomes a tab stop only while it actually overflows. | Fixes axe `scrollable-region-focusable` for any table in the narrower Settings layout (it hit `/settings/surveys`). New tables in Settings need nothing extra. |
 | 16 | Keep what is mounted in `Shell` light. `TraceHost` first ran five queries on every page and that stalled the sign-out transition (`startTransition(navigate + signOut)`: the click never returned in Playwright). It now reads only the URL and mounts the data hooks in an inner `SignalDialog` only while `?sg=` is present. `AsOfBar` runs one cached query and is fine. | Gotcha for A and B. A unit test (`TraceHost.test.tsx`) asserts "no `?sg=`, no query"; `e2e/auth.spec.ts` "signs out" catches a regression. |
 | 15 | The mock registers are edited **in place**, so a `useMemo` over a query's `data` does not recompute after a mutation. In derived hooks use `dataUpdatedAt` as a dependency (the V40 hooks do). | Gotcha, see section 7. |
+
+### 1a. The owner's decisions of 18 Nov and where they are built
+
+| # | Decision | Built in |
+|---|---|---|
+| 1 | Working week Monday to Friday | `rule_working_days` default `[1,2,3,4,5]`, no badge; `utils/workingDays.ts` |
+| 2 | Escalation matrix: one table per product, a row per fix kind (eight kinds plus the two case types); the per-complaint-category template is superseded; Real Estate has one table. **Layout is decided: no header badge.** Only a cell still at its default is `[Proposed]` (owners fill the cells by 28 Nov) | `data/escalationDefaults.ts` (the category template and its note are **removed**); `MATRIX_COPY.defaultCellsNote`; `MatrixRow.isDefault` drives the per-cell badge |
+| 3 | A fix's due date = the matrix "Resolve (h)" in **working hours from approval**; an empty cell falls back to Agent 5's 14 days. The 5-working-day approval window runs from the proposal; the 60-day check from "done" | `utils/fixClock.ts` (`fixDue`, `approvalDeadline`, `approvalDaysLeft`, `verificationDue`), `addWorkingHours` in `utils/workingDays.ts`, rules `rule_work_start`/`rule_work_end` (9, 18) and `rule_fix_fallback_days` (14). **Wired into the mutations:** `useDecideCorrectiveAction` with `approved` (and `useSetFixStatus` to `approved`) writes `dueDate` and `dueSource` ('matrix' or 'fallback'); `useSetFixStatus` to `verification` (marked done) writes `verificationDueAt` = now + 60 days. `useFixDue(fix)` previews the date before approval. Seeded fixes keep their sample due dates |
+| 4 | Public replies are Marketing's (channel owner), 48 hours from the approved wording; CX watches the clock and raises a signal when it is missed; the Internal Audit and Marketing Lead audits monthly. **No badge on the owner column** | `PUBLIC_REPLY_OWNER`; `PUBLIC_MENTIONS_COPY.ownerNote(hours)` and `.missedSignal`; `publicReplyBreaches()` and `usePublicReplyBreaches()`; `BriefInputs.publicMentions.overdue` |
+| 5 | Calling 09:00 to 18:00 UAE time, 3 attempts for the CX team list, next attempt the following working day, WhatsApp after the last; **2 no-answers** for an AI campaign before hand-off. Both are configuration. Decided, but Legal still confirms the hours: a small note, **not** a `[Proposed]` badge | `rule_call_from`, `rule_call_to` (with `note`), `rule_call_tries`, `rule_ai_no_answers` (`RulesBag.aiNoAnswers`, `CallRules.aiNoAnswers`); `CALL_COPY.hoursNote`, `CALL_COPY.aiHandOff(n)` |
+| 6 | Weekly sample: 50 outputs by Thursday, no customer names to Internal Audit, and a **"wrong" lowers the agent's pass rate** and becomes a supervisor test. No page-level badge | `utils/passRate.ts`; `useJudgeSample` writes the verdict, creates or removes the supervisor test (`MOCK_SUPERVISOR_TESTS`, `useSupervisorTests()`) and lowers or restores `AGENT_JDS[].approvalPct` in place, so **the agents page shows it with no change** (it reads `AGENT_JDS`); `useAgentPassRates()`; `AgentJobDescription.baseApprovalPct`, `wrongThisWeek`, `supervisorTests`. The formula is `[Proposed]` (see 1b) |
+| 7 | The environment switch narrows everything, fixes and the call list included; exports show mobiles only to roles that may see names | decision 10 above; `utils/envScope.ts`; `canViewCustomerNames`, `canViewMobiles`, `personLabel`, `peopleCsvRows(persons, role, lang, lastContact)` (the mobile column is left out of the file for a role without the right), `data/customersList.ts` |
+
+CRM mapping: aligned to `Documents/CRM-Field-Mapping.docx` (the AUH review of 17 Nov): `Bayut` (not `www.bayut.com`), the Media values it lists and no others (`Instagram` and `HubSpot Website` removed), the stage names it uses, and its communication and renewal-notice categories. `Website` and `www.psinv.net` stay two separate values. All rows remain `[Proposed]` until the CRM owner confirms them.
+
+### 1b. What is still `[Proposed]`
+
+Cells of the escalation matrix still at their default; the CRM mapping rows; survey question wording for PSI Club, Tour Estate and PSI Events; the KPI colour thresholds (no badge needed); the customer types (Buyer, Tenant, Owner, Investor, Member); the brief's line set per role; the weekly sample's composition and who judges; **the pass-rate formula** ("a wrong lowers the agent's pass rate": I take the wrong share of the agent's sampled outputs off its rate, relative, `round(base x (1 - wrong / sampled))`; the owner has not said by how much); the `RP` report line only for `effective`/`failed` fixes; sample consent flags. Removed from the `[Proposed]` list by the 18 Nov decisions: working week, matrix layout, calling hours and tries, the public reply owner, the weekly sample page, the environment switch scope.
+
+---
 
 ---
 
@@ -44,20 +64,22 @@ New file `types/v40.ts`; additions to `common.ts`, `domain.ts`, `reference.ts`, 
 | `Signal` += | domain | `envId`, `eventIds: string[]` |
 | `Pattern` += | domain | `key`, `traceId` (and `id` is now the key) |
 | `AuditEntry` | domain | `{ at: ISO, what: Bi, byRole: RoleId \| 'system' }` |
-| `CorrectiveAction` += | domain | `proposedAt: ISO`, `product: ProductId`, `auditLog: AuditEntry[]` (oldest first), `source?: { investigationId }`, `proposedBy?: Bi` |
-| `Investigation` += | domain | `result?: Bi`, `doneCount?: number`, `proposedFixId?: string` (`status` unchanged: `requested\|in_progress\|returned`) |
+| `CorrectiveAction` += | domain | `proposedAt: ISO`, `product: ProductId`, `auditLog: AuditEntry[]` (oldest first), `source?: { investigationId }`, `proposedBy?: Bi`, `dueSource?: 'matrix' \| 'fallback'` (set when approval wrote the due date), `envId?` (a fix with no pattern) |
+| `Investigation` += | domain | `result?: Bi`, `doneCount?: number`, `proposedFixId?: string`, `envId?` (`status` unchanged: `requested\|in_progress\|returned`) |
 | `CallStatus`, `DetractorCallItem` += | domain | `'to_do'\|'no_answer'\|'needs_human'\|'done'`; `attempts`, `status`, `nextAttemptOn?`, `dueOn?` (both `YYYY-MM-DD`) |
-| `RuleConfigItem` += | reference | `days?: number[]`, `proposed?: boolean` |
+| `RuleConfigItem` += | reference | `days?: number[]`, `proposed?: boolean`, `note?: Bi` (a small caveat, e.g. "Legal to confirm the hours") |
 | `RoleDef` += `envId?`; `MainRoleId` | roles | environment management has `envId: 'dub'` |
 | `StepId`, `StepDef`, `NextStep` | v40 | `StepId = 'ev'\|'sg'\|'pt'\|'ca'\|'vr'\|'rp'`; `NextStep { step, text: Bi, due?: Bi }` |
 | `TraceKind`, `TraceChain` (+ `TraceEventRef`, `TraceSignalRef`, `TracePatternRef`, `TraceFixRef`, `TraceCheckRef`, `TraceReportRef`) | v40 | `TraceChain { from, events[], signals[], pattern?, fix?, check?, report?, publicMention }`, each ref carries `traceId` |
 | `DataFeed`, `FeedStatus`, `FeedScope` | v40 | `DataFeed { id, env?, name, receivedAt, status: 'ok'\|'late'\|'down', rows, note }`; `FeedScope { asOf, lateCount, feeds }` |
 | `MappingKind`, `MappingOption`, `MappingRow`, `CrmMapping` | v40 | `kind: 'src'\|'stg'\|'act'`; `CrmMapping { rows, options }` |
-| `MatrixKind`, `MatrixField`, `MatrixCells`, `MatrixRow`, `FixMatrixLine`, `CategoryTemplateRow` | v40 | ten kinds; `MatrixRow { kind, label, cells, isDefault: Record<field, boolean> }`; hours are working hours (9 = one working day) |
+| `MatrixKind`, `MatrixField`, `MatrixCells`, `MatrixRow`, `FixMatrixLine` | v40 | ten kinds; `MatrixRow { kind, label, cells, isDefault: Record<field, boolean> }`; hours are working hours (9 = one working day) |
 | `SurveyQuestionSet` | v40 | `{ product, id, name, when, questions: Bi[], proposed? }` |
 | `InboxItem`, `InboxKind`, `DayChipState` | v40 | `InboxItem { id, kind, text, daysLeft: number\|null, unit: 'wd'\|'d', who: Bi\|null, priority: 0\|1\|2, target: string, critical? }` |
 | `WeeklySampleItem` | v40 | `{ id, agent, kind, text, ref, personId?, verdict: boolean\|null, judgedAt? }` |
-| `IndicatorSet`, `BriefInputs` | v40 | see sections 5 and 7 |
+| `IndicatorSet`, `BriefInputs` | v40 | see section 7 |
+| `FixDue`, `SupervisorTest`, `AgentPassRate` | v40 | `FixDue { dueAt, source: 'matrix' \| 'fallback', hours? }`; `SupervisorTest { id, fromSampleId, agent, text, createdAt }`; `AgentPassRate { agent, base, current, sampled, wrong, tests }` |
+| `AgentJobDescription` += | `data/v38Reference.ts` | `baseApprovalPct`, `wrongThisWeek`, `supervisorTests` (`approvalPct` is the current figure) |
 
 ---
 
@@ -69,11 +91,12 @@ New file `types/v40.ts`; additions to `common.ts`, `domain.ts`, `reference.ts`, 
 | `data/steps.ts` | `STEPS`, `stepById`, `NEXT_LABEL`, `HOME_COPY` (h1, lede, tag), `fixNext(status, {approveDays, verifyDays})`, `actionsNext('signals'\|'investigations'\|'other')`, `CLOSE_LOOP_NEXT`, `OVERVIEW_NEXT`, `MONTHLY_PACK_BUTTON`, `journeyNext({drifting, problems})`, `TRACE_NEXT`, `TRACE_COPY` |
 | `data/feeds.ts` | `FEEDS_COPY`, `FEED_STATUS` (label + tone), `lateFeedsLabel(n)`, `buildFeeds(now)`, `feedsInScope`, `summariseFeeds` |
 | `data/crmMapping.ts` | `CRM_MAPPING_COPY`, `CRM_MAPPING_OPTIONS`, `CRM_MAPPING_ROWS`, `buildCrmMapping`, `mappingCounts` (counts from the data, not the prototype's sentence) |
-| `data/escalationDefaults.ts` | `MATRIX_COPY`, `MATRIX_LINE_LABELS`, `MATRIX_KIND_LABEL`, `MATRIX_KINDS`, `MATRIX_FIELDS`, `MATRIX_KEY_BY_FIX_KIND`, `MATRIX_DEFAULTS`, `buildMatrix`, `ESCALATION_TEMPLATE_BY_CATEGORY` (Decision 4 template, kept), `TEMPLATE_PER_ENVIRONMENT_NOTE` |
+| `data/escalationDefaults.ts` | `MATRIX_COPY` (incl. `defaultCellsNote`, `hoursHint`), `MATRIX_LINE_LABELS`, `MATRIX_KIND_LABEL`, `MATRIX_KINDS`, `MATRIX_FIELDS`, `MATRIX_KEY_BY_FIX_KIND`, `MATRIX_DEFAULTS`, `buildMatrix`. The per-complaint-category template (`ESCALATION_TEMPLATE_BY_CATEGORY`) was **removed** (superseded 18 Nov) |
 | `data/surveyQuestions.ts` | `SURVEY_QUESTIONS_COPY`, `SURVEY_QUESTION_SETS` (9 sets), `questionSetsFor(product)` |
 | `data/indicators.ts` | `INDICATOR_THRESHOLDS` (NPS 30/0, CSAT 80/65, CES 75/60, [Proposed]), `INDICATOR_SENTENCE`, `INDICATOR_COPY` |
 | `data/whatIf.ts` | `WHAT_IF_CANDIDATES` (3, 4, 5, 6, 8 / 2, 3, 4, 5 / 14, 30, 45, 60), `RULES_POINTER_COPY` (pointer card and What if copy) |
-| `data/publicMentions.ts` | `PUBLIC_MENTIONS_COPY`, `replyState`, `replyLabel` |
+| `data/customersList.ts` | `CUSTOMERS_LIST_COPY` (S13: page title, tabs, "Everyone on record", filters, columns, count, export and its toast), `SEGMENT_LABEL` (six types), `SOURCE_LABEL` (five sources) |
+| `data/publicMentions.ts` | `PUBLIC_MENTIONS_COPY` (incl. `ownerNote(hours)`, `missedSignal`), `replyState`, `replyLabel`, `publicReplyBreaches(mentions, now, hours)` |
 | `data/weeklySample.ts` | `WEEKLY_SAMPLE_COPY` |
 | `data/roles.ts` | `MAIN_ROLE_IDS`, `FOLDED_ROLE_IDS`, `mainRoleDefs()`, `foldedRoleDefs()`, `SIGN_IN_COPY` |
 | `data/nav.ts` | `PRIMARY_NAV`, `CUSTOMERS_TABS`, `SETTINGS_NAV`, `LEGACY_REDIRECTS`, `legacyRedirect(pathname)` |
@@ -99,6 +122,11 @@ Mock store (`services/mockData.ts`, re-exports `mockDataV40.ts`): `MOCK_FEEDS`, 
 | `utils/indicators.ts` | `npsOf`, `csatOf`, `answersOf`, `fmtSigned`, `deltaFromTrend`, `indicatorsFor`, `liveIndicators`, `indicatorTone` (Overview now imports these) |
 | `utils/callSchedule.ts` | `CallRules`, `callRulesFrom(bag)`, `isInsideCallingHours`, `recordNoAnswer(item, now, rules)`, `attemptLine`, `isOpenCall` |
 | `utils/audit.ts` | `auditEntry`, `newestFirst`, `statusAudit`, `decisionAudit`, `proposedStamp({ product, byRole?, note?, at? })`, `productOfPattern` |
+| `utils/fixClock.ts` | The three clocks of a fix (decided 18 Nov): `fixDue(approvedAt, resolveH, rules)` -> `{ dueAt, source: 'matrix' \| 'fallback', hours? }` (matrix "Resolve (h)" in working hours, or Agent 5's 14 days for an empty cell), `approvalDeadline(proposedAt, rules)`, `approvalDaysLeft(proposedAt, today, rules)` (5 working days from the proposal), `verificationDue(doneAt, rules)` (60 days from done). `addWorkingHours(from, hours, cal)` in `utils/workingDays.ts` counts 09:00 to 18:00 Monday to Friday (9 = one day). |
+| `services/fixClockStore.ts` | `resolveHoursFor(fix)`, `applyApprovalClock(fix)`, `applyDoneClock(fix)`: what the mutations call; use them if you add a mutation that approves or completes a fix |
+| `utils/passRate.ts` | `passRate(base, sampled, wrong)`, `agentPassRates(sample, base)`, `supervisorTestFor`, `syncSampleEffects(sample, tests, jds)` (the weekly sample's effect; formula `[Proposed]`) |
+| `utils/envScope.ts` | `envsOfPattern`, `envsOfFix` (a fix or investigation takes its pattern's signals' environments; `null` = everywhere), `inScopeAny(scope, envs)` |
+| `utils/peopleExport.ts` | `personLabel(person, role)` (name or `P-005`), `peopleCsvRows(persons, role, lang, lastContact)` for `downloadCsv` (no mobile column without the right) |
 
 **Id schemes** (internal ids never change; display ids are computed): event `i-0012` -> `EV-12`; signal `sig-0007` -> `SG-7`, public mention `PUB-351` unchanged; pattern `PT-nnn` (`Pattern.traceId`); fix `ca-1` -> `CA-201`; check `VR-201` (same number as its fix); investigation `inv-3` -> `INV-3`; report `RP-2026-11` ("November pack" / "حزمة نوفمبر"). `isDisplayId` is case-sensitive: `ca-1` is an internal id, `CA-201` a display id.
 
@@ -111,11 +139,14 @@ Mock store (`services/mockData.ts`, re-exports `mockDataV40.ts`): `MOCK_FEEDS`, 
 | `sameAgent`, `sameIssue`, `envConcentration`, `window`, `minSample` | `rule_pattern_*` | 3, 5, 50, 30, 10 | existing; now drive `usePatterns()` |
 | `approveDays`, `verifyDays` | `rule_approval_days`, `rule_verification_days` | 5, 60 | the inbox footer and the next-step box read them |
 | `publicReply` | `rule_public_reply` | 48 | hours |
-| `workingDays` | `rule_working_days` | `[1,2,3,4,5]` | [Proposed]; `value` = count, `days` = weekdays; update with `useUpdateRuleConfig().mutate({ id, days })` or `{ id, value: n }` (first n weekdays from Monday) |
-| `callFrom`, `callTo` | `rule_call_from`, `rule_call_to` | 9, 18 | [Proposed]; hour of day, UAE time; the KB's placeholder says 20 |
-| `callTries` | `rule_call_tries` | 3 | [Proposed]; the AI-campaign rule is a different number (2) |
+| `workingDays` | `rule_working_days` | `[1,2,3,4,5]` | **Decided** (Monday to Friday), still a setting; `value` = count, `days` = weekdays; update with `useUpdateRuleConfig().mutate({ id, days })` or `{ id, value: n }` (first n weekdays from Monday) |
+| `workStart`, `workEnd` | `rule_work_start`, `rule_work_end` | 9, 18 | the working day behind "working hours" (matrix 9 = one working day) |
+| `fixFallbackDays` | `rule_fix_fallback_days` | 14 | a fix's due date when the matrix "Resolve (h)" cell is empty (Agent 5) |
+| `callFrom`, `callTo` | `rule_call_from`, `rule_call_to` | 9, 18 | **Decided**; hour of day, UAE time. The items carry `note` "Legal to confirm the hours": show it small, not as a badge |
+| `callTries` | `rule_call_tries` | 3 | **Decided**; attempts on the CX team's list before "needs a human" |
+| `aiNoAnswers` | `rule_ai_no_answers` | 2 | **Decided**; no-answers before an AI campaign hands over to a person (the campaign dialog's "twice" reads this) |
 
-The Rules page (B) lists these under "other" automatically; badge items with `proposed` and give the working week a weekday picker.
+The Rules page (B) lists these under "other" automatically (each item may carry a `note`); badge only items with `proposed` (none now) and give the working week a weekday picker.
 
 ---
 
@@ -138,7 +169,7 @@ The Rules page (B) lists these under "other" automatically; badge items with `pr
 
 Role homes (`RoleDef.home`): marketing `/home` (was `/personas`), auditmkt `/overview` (was `/settings/overview`).
 
-**Edit rights** (`auth/permissions.ts`): `canEditCrmMapping`, `canEditEscalationMatrix` (cxmgr, auditmkt); `canJudgeSample` (cxmgr, cxteam, auditmkt); `canViewNamesInSample` (cxmgr, cxteam); `canMarkMentionReplied` (cxmgr, cxteam, marketing); `canRecordCallAttempt` (cxmgr, cxteam). Feeds: nobody edits.
+**Edit rights and name rules** (`auth/permissions.ts`): `canEditCrmMapping`, `canEditEscalationMatrix` (cxmgr, auditmkt); `canJudgeSample` (cxmgr, cxteam, auditmkt); **`canViewCustomerNames`** (cxmgr, cxteam, envmgmt, teamlead, aslead, marketing, exec: everyone who works with people except auditmkt; "no customer names to Internal Audit"), `canViewMobiles` and `canViewNamesInSample` follow it (exports show mobiles only to roles that may see names); `canMarkMentionReplied` (cxmgr, cxteam, marketing); `canRecordCallAttempt` (cxmgr, cxteam). Feeds: nobody edits. **C: the Customers list, Who is leaving and every other place a customer name appears must show `personLabel(person, role)` so the Internal Audit and Marketing Lead sees `P-005`, not a name** (it can open `/customers` and `/runaway`).
 
 **Stub pages** (each overwritten by its owner; each is a working page over the real hooks):
 
@@ -168,13 +199,13 @@ Import from `@/services/queriesV40` unless stated. All reads go through the mock
 
 ### Environment scope
 - `useEnvScope(): { env: EnvScope; setEnv(env); allowed: EnvId[]; fixed: EnvId | null }`. `env` is the effective scope (the role's own environment when `fixed`, which is environment management, `'dub'`). Persisted in `localStorage` `psicx.env`. Outside a provider the scope is `'all'`.
-- Env-aware (edited, in `services/queries.ts`; the scope is part of the key): `usePersons()` `['persons', env]`, `useSignals()` `['signals', env]`, `useShopperCases()` `['shopper-cases', env]`, `usePatterns()` `['patterns', env]`. Whole-register variants that ignore the switch: `usePersonsAll()`, `useSignalsAll()`, `usePatternsAll()`. While the scope changes `data` is `undefined` for ~180 ms (no placeholder): show the skeleton.
+- Env-aware (edited, in `services/queries.ts` and `referenceQueries.ts`; the scope is part of the key; **the switch narrows everything that carries an environment, decided 18 Nov**): `usePersons()` `['persons', env]`, `useSignals()` `['signals', env]`, `useShopperCases()` `['shopper-cases', env]`, `usePatterns()` `['patterns', env]`, **`useCorrectiveActions()` `['corrective-actions', env]`, `useDetractorCallItems()` `['detractor-call-items', env]`, `useInvestigations()`, `useHandoffs()`, `usePublicMentions()`, `useHomeSummary()`** (all `[name, env]`). Whole-register variants that ignore the switch: `usePersonsAll()`, `useSignalsAll()`, `usePatternsAll()`, `useCorrectiveActionsAll()`. Not narrowed, because the sample rows carry no environment: survey rows and the indicators (`useVocRows`, `useIndicators`), agents, weekly sample, non-CRM feeds. While the scope changes `data` is `undefined` for ~180 ms (no placeholder): show the skeleton.
 - `usePatterns()` computes from the rules at read time (memoised): editing a threshold with `useUpdateRuleConfig()` invalidates `['rules-config']` and `['patterns']` and the cards recompute. Ids stay stable.
 
 ### Rules, indicators, brief, inbox
 | Hook | Args | Returns |
 |---|---|---|
-| `useRules()` | - | `RulesBag` (`patterns`, `approveDays`, `verifyDays`, `publicReplyHours`, `workingDays`, `callFrom`, `callTo`, `callTries`); defaults while loading |
+| `useRules()` | - | `RulesBag` (`patterns`, `approveDays`, `verifyDays`, `publicReplyHours`, `workingDays`, `workStart`, `workEnd`, `fixFallbackDays`, `callFrom`, `callTo`, `callTries`, `aiNoAnswers`); defaults while loading |
 | `useIndicators()` | - | `{ data: IndicatorSet[], isLoading }`, one set per **live** product: `{ productId, nps, csat, ces, answers, deltaVsLastMonth }`. The tile and the brief must both read this (one source). NPS and CSAT come from the survey rows, `ces` from the sample table (null = `–`), delta = last minus previous point of the monthly series |
 | `useBriefInputs()` | - | `{ data: BriefInputs, isLoading }`: `signals { inWindow, patternsOverLine, patternsWaitingForFix }`, `fixes { proposed, inProgress, late, effective, failed }`, `shopper { open, late }`, `loop { open, critical, recoveredByPhonePct, recoveredByAiPct }` (null = too early), `people { drifting, total }`, `publicMentions { last30, negativePct, avgReplyHours, target }`, `ldFixes`, `conductNotes`, `sample { toRead, read }`. A builds the sentences (`utils/brief.ts`); link a line only when `canAccessPath` |
 | `useInbox()` | - | `{ data: InboxItem[], isLoading, stats: { total, urgent } }` for the signed-in role, sorted (priority desc, fewest days, undated last). `stats` feeds "Your work today". Items: approve, do, verify, call (CX only, DNCR never), inv (CX only), sample (auditmkt only). Targets: `/actions/corrective?fix=CA-201`, `/close-the-loop?item=dcl-3`, `/actions/investigations?inv=INV-1`, `/settings/weekly-sample`. Pages must read those search params |
@@ -192,6 +223,7 @@ Import from `@/services/queriesV40` unless stated. All reads go through the mock
 - `useReturnInvestigation()` mutate `{ id, resultSummary }` -> the `Investigation`: sets `status 'returned'`, `result`, `resultSummary`, `doneCount = requestedCount`; if its pattern has no fix, creates a `proposed` fix by Agent 5 (kind `training_gap`, owner `L&D manager`, `source`, `proposedBy`, `proposedAt` now, one audit line by `system`) and sets `proposedFixId`. **Page toast rule: if `inv.proposedFixId` is set show "Result recorded as evidence; a fix was proposed for approval.", else show "evidence" only.** Invalidates investigations, fixes, home summary.
 - `useInvestigationEvidence()` -> `{ data: Record<patternId, { investigationId, traceId: 'INV-1', result: Bi }> }`: the green "Evidence from investigation · INV-1: ..." line on a pattern card.
 - `useFixMatrixLine(fix)` -> `FixMatrixLine | undefined` (`{ product, kind, row }`): the "From the matrix (product): receiver ... [Matrix]" line.
+- **`useFixDue(fix)`** -> `{ dueAt, source: 'matrix' | 'fallback', preview: boolean } | undefined`: the due date of a fix. Once approved it is the stored `dueDate` (`fix.dueSource` set, `preview: false`); before approval it previews what approval now would give (matrix "Resolve (h)" for its product and kind in working hours, or the 14-day fallback). Approval (`useDecideCorrectiveAction` with `approved`, or `useSetFixStatus` to `approved`) writes `dueDate` and `dueSource`; marking done (`useSetFixStatus` to `verification`) starts the 60-day check. The "Next step" box for a fix can show `useFixDue(fix)`.
 
 ### Registers
 | Hook | Args | Returns / mutation |
@@ -204,8 +236,11 @@ Import from `@/services/queriesV40` unless stated. All reads go through the mock
 | `useSaveMatrixCell()` | `{ product, kind, field, value: string \| number \| null, lang? }` | text typed in `lang`: the other language keeps its default; clocks take a number or null; the cell stops being a default |
 | `useQuestionSets(product?)` | product | `SurveyQuestionSet[]` (empty list for Wallet: show the empty state) |
 | `useWeeklySample()` | - | `{ items, size: 50, read, wrong, accuracyPct, due }` (`due` = next Thursday) |
-| `useJudgeSample()` | `{ id, right }` | wrong counts as a test |
-| `usePublicMentions()` (`referenceQueries`) | - | copies of the 16 mentions, with `owner` |
+| `useJudgeSample()` | `{ id, right }` | writes the verdict, **creates or removes the supervisor test** and **lowers or restores the agent's pass rate** (`AGENT_JDS[].approvalPct`, read by the agents page directly; `useAgentJobDescriptions()` returns it too). Re-judging an output gives the points and the test back |
+| `useAgentPassRates()` | - | `AgentPassRate[]`: `{ agent, base, current, sampled, wrong, tests }` per agent in the sample |
+| `useSupervisorTests()` | - | `SupervisorTest[]`: the tests the supervisor gained from "wrong" verdicts |
+| `usePublicMentions()` (`referenceQueries`) | - | copies of the mentions in the current scope (16 for All), with `owner` (Marketing, channel owner) |
+| `usePublicReplyBreaches()` | - | `{ data: PublicMention[] }`: mentions with no reply past the reply clock (`rule_public_reply`, 48 h): CX raises a signal for each; also `BriefInputs.publicMentions.overdue` |
 | `useMarkReplied()` | `{ id }` | sets `replied`, `replyHours = max(1, days since x 24)`, `repliedAt` |
 | `useRecordNoAnswer()` | `{ id }` | resolves `{ item, result: NoAnswerResult, toast: Bi }`; rejects a DNCR person and a done row. Attempt n+1, next attempt = following working day; at `callTries` the status is `needs_human` (still open) |
 | `useRecordInterview()` (edited) | as before | now also sets `attempts >= 1`, `status 'done'` |
@@ -234,17 +269,18 @@ Two non-primitive mounts: `components/layout/AsOfBar.tsx` (A), `components/trace
 
 - 30 people, 120 interactions, same seed as before; three environments (45 / 30 / 25 % of people); signals skew: Dubai slow replies, PSI Assets repeat contacts.
 - Consent: DNCR for people 4, 13, 22 (`p-005`, `p-014`, `p-023`); WhatsApp off for 3, 10, 17, 24; email off for every fifth from 2; SMS always on. DNCR people are not on the close-the-loop list (12 rows, built from the other people).
-- Close the loop: rows 3, 6, 9, 12 are open: one `to_do` (0 attempts), two `no_answer` (1 and 2 attempts, next attempt a working day), one `needs_human` (3). The rest are `done`.
+- Close the loop: rows 3, 6, 9, 12 are open: one `to_do` (0 attempts), two `no_answer` (1 and 2 attempts, next attempt a working day), one `needs_human` (3, the CX list's limit). The rest are `done`.
 - Signals: each lists 1 event (every third lists 2: the nearest other event of the same person, same environment and product). A public mention (`PUB-351`...) has no person and no events.
 - Fixes: 4 to 6, each with `proposedAt` (proposed ones 2 to 8 days ago so some are close to the 5-working-day window), `product`, and an audit trail of 1 to 5 lines.
 - Feeds: 8 (Abu Dhabi, Dubai, PSI Assets CRM; WhatsApp, AI caller and IVR, app and website, surveys, public channels). PSI Assets is the one **late** feed ("1 feed late or missing").
-- Weekly sample: 50 outputs, none read, no customer name in any text.
+- Weekly sample: 50 outputs, none read, no customer name in any text. Judging one wrong drops that agent's pass rate on the agents page and adds a supervisor test.
+- Matrix: ten rows per product for all six products, every cell a default. Approval of a seeded or new fix writes its due date from the row's "Resolve (h)" (service and behaviour 45 working hours, training gap 90, ...).
 
 ---
 
 ## 10. Tests that exist (for your own work)
 
-Unit (`npm run test`): `utils/workingDays`, `trace`, `inbox`, `indicators`, `callSchedule`, `ruleValues`, `patterns` (rule overrides, stable ids, cache, What if), `components/trace/TraceHost`, `services/mockDataV40` (environments, consent, attempts, audit seeds, feeds, mapping, matrix, questions, sample, skipped reasons), `services/queriesV40` (hook seams with `renderHookWithProviders`), `data/steps`, `components/common/v40`, `routes/pages`, `auth/permissions` (every new route per role), `pages/Login`. Helpers in `src/test/render.tsx`: `renderHookWithProviders(hook, { role, lang, route })`; `renderWithProviders` now also returns the `client`.
+Unit (`npm run test`): `utils/workingDays`, `trace`, `inbox`, `indicators`, `callSchedule`, `ruleValues`, `patterns` (rule overrides, stable ids, cache, What if), `utils/fixClock` (working hours, due date, the three clocks), `utils/passRate`, `utils/envScope`, `utils/peopleExport`, `components/trace/TraceHost`, `services/mockDataV40` (environments, consent, attempts, audit seeds, feeds, mapping, matrix, questions, sample, skipped reasons), `services/queriesV40` (hook seams with `renderHookWithProviders`), `data/steps`, `components/common/v40`, `routes/pages`, `auth/permissions` (every new route per role), `pages/Login`. Helpers in `src/test/render.tsx`: `renderHookWithProviders(hook, { role, lang, route })`; `renderWithProviders` now also returns the `client`.
 
 E2E helpers (`e2e/helpers.ts`): `ROUTES` (now includes the new routes, so the axe scan, route and RTL checks cover them), `MAIN_ROLES`, `FOLDED_ROLES`, `ROLE_HOME`, `LEGACY_ROUTES`, `signInAs(page, role, lang)`. Note: `signInAs` seeds once per page; use a new page (or `browser.newPage()`) per role. New spec: `e2e/v40-foundation.spec.ts` (merged menu in EN and AR, per-role menus, landing pages, legacy redirects, role gating, the bar and the environment switch, the signal dialog, inbox, sign-in folding).
 
@@ -264,12 +300,13 @@ E2E helpers (`e2e/helpers.ts`): `ROUTES` (now includes the new routes, so the ax
 | `components/ai/assistantIntents.ts` | none | environment words: Dubai, Abu Dhabi, PSI Assets (Amman and Sharjah removed) |
 | `components/customers/Timeline.test.tsx` | B | fixture gets `envId` |
 | `components/ui/table.tsx` | shared | focusable when overflowing (decision 14) |
+| `pages/actions/*`, `pages/CloseTheLoop.tsx`, `pages/Home.tsx`, `pages/Runaway.tsx`, `pages/Customers.tsx` | B, C, A | **no edits**; they read the env-aware hooks, so the switch already narrows them. They must adopt `personLabel` (C), `useFixDue` / `fixNext` (B), `CALL_COPY.hoursNote` and `aiNoAnswers` (C) |
 
 ---
 
 ## 12. Results and what A, B, C should expect to change
 
-**Counts.** Unit: 322 tests in 25 files (was 141 in 13). E2E (`npm run test:e2e`, one run at the end, fresh build): **188 passed, 0 failed** (was 135: the 7 new routes add 28 axe checks, plus 1 signal-dialog scan and the 24 tests of `v40-foundation.spec.ts`). Lint: the 3 known react-refresh warnings only.
+**Counts.** Unit: 355 tests in 29 files (was 141 in 13). E2E (`npm run test:e2e`, one run at the end, fresh build): **188 passed, 0 failed** (was 135: the 7 new routes add 28 axe checks, plus 1 signal-dialog scan and the 24 tests of `v40-foundation.spec.ts`). Lint: the 3 known react-refresh warnings only.
 
 **Nothing currently fails only because a page awaits A, B or C.** These specs and tests pass today but assert behaviour that a workstream will change, so the owner must update them in the same pull request:
 

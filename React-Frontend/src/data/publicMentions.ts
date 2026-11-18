@@ -26,6 +26,14 @@ export const PUBLIC_MENTIONS_COPY = {
   action: b('Mark replied', 'تعليم كمردود'),
   toast: b('Marked replied; the index updates.', 'عُلّم كمردود؛ يتحدث المؤشر.'),
   reputationButton: b('Work the mentions', 'اعمل على الإشارات'),
+  /** Decided 18 Nov: Marketing owns the reply; CX watches the clock; the Internal Audit and Marketing Lead audits monthly. */
+  ownerNote: (hours: number): Bi =>
+    b(
+      `Marketing (the channel owner) replies within ${hours} hours from the approved wording. The CX team watches the clock and raises a signal when it is missed; the Internal Audit and Marketing Lead audits it monthly.`,
+      `التسويق (مسؤول القناة) يرد خلال ${hours} ساعة بالصيغة المعتمدة. فريق CX يراقب المهلة ويرفع إشارة عند تفويتها؛ ومسؤول التدقيق الداخلي والتسويق يدقق شهرياً.`,
+    ),
+  /** The signal CX raises for a missed reply. */
+  missedSignal: b('Reply clock missed: signal raised for the CX team', 'فُوّتت مهلة الرد: رُفعت إشارة لفريق CX'),
 }
 
 export type ReplyState = 'replied' | 'overdue' | 'awaiting'
@@ -34,6 +42,11 @@ export type ReplyState = 'replied' | 'overdue' | 'awaiting'
 export function replyState(m: Pick<PublicMention, 'replied' | 'date'>, now: number = Date.now(), clockHours = 48): ReplyState {
   if (m.replied) return 'replied'
   return now - Date.parse(m.date) > clockHours * 3_600_000 ? 'overdue' : 'awaiting'
+}
+
+/** Mentions with no reply past the reply clock: CX raises a signal for each (decided 18 Nov). */
+export function publicReplyBreaches<T extends Pick<PublicMention, 'replied' | 'date'>>(mentions: readonly T[], now: number = Date.now(), clockHours = 48): T[] {
+  return mentions.filter((m) => replyState(m, now, clockHours) === 'overdue')
 }
 
 /** Reply chip text (v40 S14): "Replied in {n} h" / "No reply, over {48} h" / "Awaiting reply". */

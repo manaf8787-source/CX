@@ -16,6 +16,8 @@ import {
   canMarkMentionReplied,
   canRecordCallAttempt,
   canViewNamesInSample,
+  canViewCustomerNames,
+  canViewMobiles,
   isInformedOnly,
   resolveAgentDisplay,
 } from './permissions'
@@ -172,10 +174,15 @@ describe('v40 edit rights (F35, F31, F30, F27)', () => {
     expect(allowed(canEditCrmMapping)).toEqual(sorted('cxmgr', 'auditmkt'))
     expect(allowed(canEditEscalationMatrix)).toEqual(sorted('cxmgr', 'auditmkt'))
   })
-  it('weekly sample [Proposed]: judged by CX manager, CX team and the Internal Audit and Marketing Lead; names only for the CX manager and CX team', () => {
+  it('weekly sample: judged by CX manager, CX team and the Internal Audit and Marketing Lead; no customer names to Internal Audit (decided 18 Nov)', () => {
     expect(allowed(canJudgeSample)).toEqual(sorted('cxmgr', 'cxteam', 'auditmkt'))
-    expect(allowed(canViewNamesInSample)).toEqual(sorted('cxmgr', 'cxteam'))
-    expect(canViewNamesInSample('auditmkt')).toBe(false) // no customer names for Internal Audit
+    expect(allowed(canViewNamesInSample)).toEqual(allowed(canViewCustomerNames))
+    expect(canViewNamesInSample('auditmkt')).toBe(false)
+  })
+  it('customer names and, with them, exported mobiles: every role that works with people except the Internal Audit and Marketing Lead (decided 18 Nov)', () => {
+    expect(allowed(canViewCustomerNames)).toEqual(sorted('cxmgr', 'cxteam', 'envmgmt', 'teamlead', 'aslead', 'marketing', 'exec'))
+    expect(allowed(canViewMobiles)).toEqual(allowed(canViewCustomerNames))
+    for (const r of ['auditmkt', 'ld', 'hrspec', 'hrmgr', 'shopper'] as RoleId[]) expect(canViewMobiles(r), r).toBe(false)
   })
   it('mark a mention replied: CX roles and Marketing; record a call attempt: CX roles', () => {
     expect(allowed(canMarkMentionReplied)).toEqual(sorted('cxmgr', 'cxteam', 'marketing'))

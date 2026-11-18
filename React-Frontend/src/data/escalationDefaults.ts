@@ -1,4 +1,4 @@
-import type { Bi, CategoryTemplateRow, CorrectiveActionKind, MatrixCells, MatrixField, MatrixKind, MatrixRow, ProductId } from '../types'
+import type { Bi, CorrectiveActionKind, MatrixCells, MatrixField, MatrixKind, MatrixRow, ProductId } from '../types'
 
 const b = (en: string, ar: string): Bi => ({ en, ar })
 
@@ -21,7 +21,11 @@ export const MATRIX_COPY = {
     "Principles: the receiver is the person who can fix it, never top management; heads and C-level are informed only; an employee kind goes to the direct manager and nowhere else; legal goes to Legal first; anything touching a customer's contact goes through the CX team. Values marked with defaults are proposals until the owners confirm them.",
     'المبادئ: المستلم هو من يستطيع الإصلاح، لا الإدارة العليا؛ الرؤساء والإدارة التنفيذية يُبلَّغون فقط؛ نوع الموظف يذهب للمدير المباشر ولا غيره؛ القانوني يذهب للقانونية أولاً؛ كل ما يمس تواصل الزبون يمر بفريق CX. القيم الافتراضية مقترحات حتى يؤكدها المالكون.',
   ),
-  defaultsAreProposals: b('Defaults are proposals', 'القيم الافتراضية مقترحات'),
+  /** The layout (one table per product, a row per fix kind) is decided (18 Nov). Only a cell still at its default is a proposal: owners fill the cells by 28 November. */
+  defaultCellsNote: b(
+    'Cells still at their default are proposals until the owners confirm them (by 28 November).',
+    'الخلايا التي ما زالت على قيمتها الافتراضية مقترحات حتى يؤكدها المالكون (قبل 28 نوفمبر).',
+  ),
   /** Hours are working hours; 9 = one working day (09:00 to 18:00). */
   hoursHint: b('Hours are working hours: 9 = one working day, 09:00 to 18:00.', 'الساعات هي ساعات عمل: 9 = يوم عمل واحد، من 09:00 إلى 18:00.'),
   matrixButton: b('Matrix', 'المصفوفة'),
@@ -105,23 +109,3 @@ export function buildMatrix(): Record<ProductId, MatrixRow[]> {
   return Object.fromEntries(PRODUCT_IDS.map((p) => [p, MATRIX_KINDS.map(defaultRow)])) as Record<ProductId, MatrixRow[]>
 }
 
-/**
- * The Rules and Definitions Decision 4 template, per complaint category (Owner, Backup,
- * Informed, Routing). It conflicts with the v40 page, which is per kind and adds the clocks,
- * and the document says Real Estate keeps one matrix per environment (V40_DELTA B16): the
- * owner decides which is the contract, so both are kept. Cells are blank in the document,
- * except Legal and privacy (owner Legal, routing automatic).
- */
-export const ESCALATION_TEMPLATE_BY_CATEGORY: CategoryTemplateRow[] = [
-  { id: 'behaviour', category: b('Behaviour and attitude', 'السلوك والموقف'), owner: null, backup: null, informed: null, routing: null },
-  { id: 'process', category: b('Process and follow-up', 'العملية والمتابعة'), owner: null, backup: null, informed: null, routing: null },
-  { id: 'knowledge', category: b('Knowledge and wrong information', 'المعرفة والمعلومات الخاطئة'), owner: null, backup: null, informed: null, routing: null },
-  { id: 'app', category: b('App and digital', 'التطبيق والرقمي'), owner: null, backup: null, informed: null, routing: null },
-  { id: 'legal', category: b('Legal and privacy', 'قانوني وخصوصية'), owner: b('Legal', 'القانونية'), backup: null, informed: null, routing: b('Automatic', 'تلقائي') },
-]
-
-/** Real Estate has one matrix per environment in the Rules document; the v40 page has one per product. */
-export const TEMPLATE_PER_ENVIRONMENT_NOTE = b(
-  'The Rules and Definitions document asks for one matrix per environment for Real Estate; the v40 page keeps one per product. The owner decides.',
-  'يطلب مستند القواعد والتعريفات مصفوفة لكل بيئة في العقارات؛ أما صفحة النموذج فتحتفظ بواحدة لكل منتج. القرار للمالك.',
-)

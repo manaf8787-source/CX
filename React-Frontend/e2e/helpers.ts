@@ -55,6 +55,9 @@ export function collectErrors(page: Page): string[] {
 export async function expectPageReady(page: Page) {
   await expect(page.locator('main h1').first(), `no page heading at ${page.url()}`).toBeVisible({ timeout: 15_000 })
   await expect(page.locator('[aria-busy="true"]')).toHaveCount(0, { timeout: 10_000 })
+  // Data loaded too: no loading rows or skeleton tiles left in the page (content that fades in late made the axe scan flaky under load).
+  // Recharts keeps a hidden `role="status"` tooltip wrapper in every chart: not a loading indicator.
+  await expect(page.locator('main [role="status"]:not([class*="recharts"]), main [data-slot="skeleton"]')).toHaveCount(0, { timeout: 15_000 })
 }
 
 export const ROUTES = [

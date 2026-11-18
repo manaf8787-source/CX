@@ -1,116 +1,110 @@
-import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { DeferredRender } from '@/components/common/DeferredRender'
-import { ArrowRight, BrainCircuit, ListChecks, PhoneCall, Search, ShieldAlert, Target, Users, UserX } from 'lucide-react'
+import { useState } from 'react'
+import { FlaskConical, Info, Search } from 'lucide-react'
 import { useI18n } from '@/i18n'
-import { useNow } from '@/hooks/useNow'
+import { useRole } from '@/auth/RoleContext'
 import { usePersonSearch } from '@/hooks/usePersonSearch'
 import { useAssistant } from '@/components/ai/AssistantContext'
-import { useRole } from '@/auth/RoleContext'
-import { canAccessPath } from '@/auth/access'
 import { SUGGESTED_QUERIES } from '@/components/ai/assistantEngine'
-import {
-  useAgentActivity,
-  useCorrectiveActions,
-  useHomeSummary,
-  usePatterns,
-  useShopperCases,
-  useSignals,
-} from '@/services/queries'
-import { AGENT_REGISTRY } from '@/data/agentRegistry'
-import { liveProducts } from '@/data/products'
-import { AGENT_VERDICT_TONE, CORRECTIVE_STATUS_LABEL, CORRECTIVE_STATUS_TONE } from '@/lib/status'
-import { formatMonth, formatRelative } from '@/lib/format'
+import { HOME_COPY } from '@/data/steps'
+import { INDICATOR_COPY } from '@/data/indicators'
+import { useProducts } from '@/services/queries'
+import { useEnvScope, useIndicators } from '@/services/queriesV40'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Progress } from '@/components/ui/progress'
 import { Card, CardContent } from '@/components/ui/card'
-import { PageHeader } from '@/components/common/PageHeader'
-import { KpiTile } from '@/components/common/KpiTile'
-import { SectionCard } from '@/components/common/SectionCard'
+import { Input } from '@/components/ui/input'
+import { Skeleton } from '@/components/ui/skeleton'
 import { StatusBadge } from '@/components/common/StatusBadge'
-import { ProductTag } from '@/components/common/Chip'
 import { EmptyState } from '@/components/common/EmptyState'
-import { LoadingState } from '@/components/common/LoadingState'
-import { useChartMotion } from '@/hooks/useChartMotion'
-import { signalCategoryLabel } from './actions/components/labels'
+import { TermsButton } from '@/components/common/TermHelp'
+import { DailyBrief } from '@/components/home/DailyBrief'
+import { IndicatorCard } from '@/components/home/IndicatorCard'
+import { StartHere } from '@/components/home/StartHere'
+import { StepLine } from '@/components/home/StepLine'
+import { WorkToday } from '@/components/home/WorkToday'
 
-function SeeAll({ to, label }: { to: string; label: string }) {
-  const { role } = useRole()
-  // KB §2: a role only gets links to its own pages.
-  if (!canAccessPath(role.id, to)) return null
-  return (
-    <Button variant="ghost" size="sm" asChild className="text-primary">
-      <Link to={to}>
-        {label}
-        <ArrowRight aria-hidden className="rtl:rotate-180" />
-      </Link>
-    </Button>
-  )
-}
-
-/** FR-1.1–1.5: one search box, then the day's picture built only from the mock repository. */
+/**
+ * Home as v40 builds it (docs/V40_DELTA.md F01), top to bottom: the header with the six-step line, the Daily brief,
+ * "New here? Three things to know", the indicators per live product, "Your work today", and the one search.
+ * Everything here reads the same registers as the pages it links to, narrowed by the environment switch where it carries one.
+ */
 export default function Home() {
-  const chartMotion = useChartMotion()
-  const { t, L, lang } = useI18n()
-  const now = useNow()
+  const { t, L } = useI18n()
+  const { role } = useRole()
+  const { env } = useEnvScope()
   const search = usePersonSearch()
   const assistant = useAssistant()
-  const { role } = useRole()
-  const linkIf = (path: string) => (canAccessPath(role.id, path) ? path : undefined)
-  const seesActions = canAccessPath(role.id, '/actions')
   const [query, setQuery] = useState('')
+  const { data: sets, isLoading } = useIndicators()
+  const { data: products } = useProducts()
 
-  const { data: summary, isLoading: summaryLoading } = useHomeSummary()
-  const { data: signals, isLoading: signalsLoading } = useSignals()
-  const { data: patterns, isLoading: patternsLoading } = usePatterns()
-  const { data: actions, isLoading: actionsLoading } = useCorrectiveActions()
-  const { data: cases, isLoading: casesLoading } = useShopperCases()
-  const { data: activity, isLoading: activityLoading } = useAgentActivity()
+  // One card per live product. A role with a product of its own (environment management, team leads, After-Sales) reads only that one.
+  const cards = (sets ?? []).filter((s) => !role.product || s.productId === role.product).flatMap((set) => {
+    const product = products?.find((p) => p.id === set.productId)
+    return product ? [{ set, product }] : []
+  })
 
-  const { live, signalsByMonth } = useMemo(() => {
-    const live = liveProducts()
-    const months = Array.from({ length: 6 }, (_, i) => {
-      const d = new Date(now)
-      d.setDate(1)
-      d.setMonth(d.getMonth() - (5 - i))
-      return d
-    })
-    const signalsByMonth = months.map((m) => {
-      const row: Record<string, string | number> = { month: formatMonth(m, lang) }
-      for (const p of live) {
-        row[p.id] = (signals ?? []).filter((s) => {
-          const d = new Date(s.occurredAt)
-          return s.product === p.id && d.getFullYear() === m.getFullYear() && d.getMonth() === m.getMonth()
-        }).length
-      }
-      return row
-    })
-    return { live, signalsByMonth }
-  }, [signals, now, lang])
-
-  const criticalOpenCases = (cases ?? []).filter((c) => c.severity === 'critical' && c.status !== 'closed')
-  const overdueActions = (actions ?? []).filter(
-    (a) => new Date(a.dueDate).getTime() < now && !['effective', 'partial', 'failed', 'verification'].includes(a.status),
-  )
-  const patternsByProgress = [...(patterns ?? [])].sort((a, b) => b.currentValue / b.thresholdTarget - a.currentValue / a.thresholdTarget)
-  const recentActivity = [...(activity ?? [])].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 5)
+  const searchTitle = assistant.available ? t('Find a person, or ask', 'ابحث عن شخص، أو اسأل') : t('Find a person', 'ابحث عن شخص')
 
   return (
-    <div className="flex flex-col gap-6">
-      <PageHeader
-        title={t('Home', 'الرئيسية')}
-        description={t(
-          'One search box. A name, mobile, ID or unit opens a person; below is today’s picture.',
-          'مربع بحث واحد. اسم أو رقم جوال أو هوية أو وحدة يفتح ملف الشخص؛ وفي الأسفل صورة اليوم.',
+    <div className="mx-auto flex w-full max-w-[1100px] flex-col gap-6">
+      <header>
+        <Card className="gap-4 py-5">
+          <CardContent className="flex flex-col gap-4 px-5">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="flex min-w-0 flex-col gap-1">
+                <h1 className="text-2xl font-semibold tracking-tight text-foreground">{L(HOME_COPY.h1)}</h1>
+                <p className="max-w-[72ch] text-base text-muted-foreground">{L(HOME_COPY.lede)}</p>
+              </div>
+              <StatusBadge tone="warning" icon={<FlaskConical aria-hidden />}>
+                {L(HOME_COPY.tag)}
+              </StatusBadge>
+            </div>
+            <StepLine />
+          </CardContent>
+        </Card>
+      </header>
+
+      <DailyBrief />
+
+      <StartHere />
+
+      <section aria-labelledby="home-indicators" className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 id="home-indicators" className="text-lg font-semibold">
+            {L(INDICATOR_COPY.heading)}
+          </h2>
+          <TermsButton />
+        </div>
+        {env !== 'all' && (
+          <p className="flex items-start gap-2 text-sm text-muted-foreground">
+            <Info aria-hidden className="mt-0.5 size-4 shrink-0" />
+            {L(INDICATOR_COPY.envHint)}
+          </p>
         )}
-      />
+        {isLoading || !sets ? (
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <Skeleton className="h-52 rounded-xl" />
+            <Skeleton className="h-52 rounded-xl" />
+          </div>
+        ) : cards.length === 0 ? (
+          <EmptyState title={t('No live product to show.', 'لا منتج فعّال لعرضه.')} />
+        ) : (
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            {cards.map(({ set, product }) => (
+              <IndicatorCard key={set.productId} set={set} product={product} />
+            ))}
+          </div>
+        )}
+      </section>
+
+      <WorkToday />
 
       <Card className="py-5">
-        <CardContent className="px-5">
+        <CardContent className="flex flex-col gap-3 px-5">
+          <h2 className="text-lg font-semibold">{searchTitle}</h2>
           <form
             role="search"
+            aria-label={searchTitle}
             className="flex flex-col gap-2 sm:flex-row"
             onSubmit={(e) => {
               e.preventDefault()
@@ -124,23 +118,29 @@ export default function Home() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 aria-label={t('Search for a person', 'ابحث عن شخص')}
-                placeholder={t('Name, mobile, ID or unit', 'اسم، جوال، هوية أو وحدة')}
+                placeholder={
+                  assistant.available
+                    ? t('A name, a mobile, an ID, or a question: who left from Dubai this month?', 'اسم، جوال، هوية، أو سؤال: مين طلع من دبي هالشهر؟')
+                    : t('A name, a mobile or an ID', 'اسم أو جوال أو هوية')
+                }
                 className="h-12 ps-10 text-base md:text-base"
               />
             </div>
             <Button type="submit" size="lg" className="h-12 px-6">
-              {t('Search', 'بحث')}
+              {t('Go', 'ابحث')}
             </Button>
           </form>
-          <p className="mt-2 text-sm text-muted-foreground">
-            {assistant.available
-              ? t('A name, mobile, ID or unit opens the person; a question in your own words goes to the assistant.', 'الاسم أو الجوال أو الهوية أو الوحدة يفتح ملف الشخص؛ والسؤال بكلماتك يذهب إلى المساعد.')
-              : t('A match opens the person’s journey; anything else lists matching customers.', 'المطابقة تفتح رحلة الشخص؛ وغير ذلك يعرض العملاء المطابقين.')}
-          </p>
           {assistant.available && (
-            <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label={t('Example requests', 'أمثلة على الطلبات')}>
+            <div className="flex flex-wrap gap-2" role="group" aria-label={t('Example requests', 'أمثلة على الطلبات')}>
               {SUGGESTED_QUERIES.slice(0, 3).map((q) => (
-                <Button key={q.en} type="button" variant="outline" size="sm" className="h-auto min-h-8 max-w-full rounded-full py-1 text-start font-normal whitespace-normal" onClick={() => assistant.open(L(q))}>
+                <Button
+                  key={q.en}
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-auto min-h-8 max-w-full rounded-full py-1 text-start font-normal whitespace-normal"
+                  onClick={() => assistant.open(L(q))}
+                >
                   {L(q)}
                 </Button>
               ))}
@@ -148,255 +148,6 @@ export default function Home() {
           )}
         </CardContent>
       </Card>
-
-      <section aria-label={t('Today at a glance', 'نظرة سريعة على اليوم')} className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5">
-        <KpiTile
-          label={t('Runaway customers', 'العملاء الهاربون')}
-          term="Runaway"
-          value={summary?.runawayCount}
-          sub={t('No contact for 30+ days', 'لا تواصل منذ أكثر من 30 يوماً')}
-          accent="var(--destructive)"
-          icon={<UserX />}
-          to={linkIf('/runaway')}
-          loading={summaryLoading}
-        />
-        <KpiTile
-          label={t('Open corrective actions', 'الإجراءات التصحيحية المفتوحة')}
-          term="Corrective action"
-          value={summary?.openActions}
-          sub={t('Not yet verified', 'لم يتم التحقق بعد')}
-          accent="var(--warning)"
-          icon={<ListChecks />}
-          to={linkIf('/actions/corrective')}
-          loading={summaryLoading}
-        />
-        <KpiTile
-          label={t('Detractors to call', 'منتقدون للاتصال')}
-          term="Close the loop"
-          value={summary?.toCall}
-          sub={t('Close-the-loop list', 'قائمة إغلاق الحلقة')}
-          accent="var(--success)"
-          icon={<PhoneCall />}
-          to={linkIf('/close-the-loop')}
-          loading={summaryLoading}
-        />
-        <KpiTile
-          label={t('People on record', 'الأشخاص المسجلون')}
-          value={summary?.journeysViewed}
-          sub={t('One journey each', 'رحلة واحدة لكل شخص')}
-          accent="var(--chart-4)"
-          icon={<Users />}
-          to={linkIf('/customers')}
-          loading={summaryLoading}
-        />
-        <KpiTile
-          label={t('Personas', 'الشخصيات')}
-          term="Persona"
-          value={summary?.personaCount}
-          sub={t('Rule-built segments', 'شرائح مبنية بالقواعد')}
-          accent="var(--chart-1)"
-          icon={<Target />}
-          to={linkIf('/personas')}
-          loading={summaryLoading}
-          className="col-span-2 md:col-span-1"
-        />
-      </section>
-
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-6">
-        {seesActions && (
-        <SectionCard
-          className="lg:col-span-3"
-          title={t('Needs attention', 'يحتاج إلى انتباه')}
-          description={t('Critical shopper cases still open, and corrective actions past their due date.', 'حالات التسوق السري الحرجة المفتوحة، والإجراءات التصحيحية المتأخرة.')}
-        >
-          {casesLoading || actionsLoading ? (
-            <LoadingState rows={3} />
-          ) : criticalOpenCases.length + overdueActions.length === 0 ? (
-            <EmptyState title={t('Nothing urgent right now', 'لا شيء عاجل الآن')} />
-          ) : (
-            <ul className="flex flex-col divide-y">
-              {criticalOpenCases.slice(0, 3).map((c) => (
-                <li key={c.id} className="flex items-center gap-3 py-2.5 first:pt-0">
-                  <span aria-hidden className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-destructive/12 text-danger-text">
-                    <ShieldAlert className="size-4" />
-                  </span>
-                  <div className="flex min-w-0 flex-1 flex-col">
-                    <span className="truncate text-sm font-medium">
-                      {t('Critical shopper finding', 'نتيجة تسوق سري حرجة')} · {c.environment}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {t('Respond', 'الرد')} {formatRelative(c.respondDueAt, now, lang)}
-                    </span>
-                  </div>
-                  <ProductTag productId={c.product} lang={lang} />
-                </li>
-              ))}
-              {overdueActions.slice(0, 3).map((a) => (
-                <li key={a.id} className="flex items-center gap-3 py-2.5 first:pt-0">
-                  <span aria-hidden className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-warning/12 text-warning-text">
-                    <ListChecks className="size-4" />
-                  </span>
-                  <div className="flex min-w-0 flex-1 flex-col">
-                    <span className="truncate text-sm font-medium">{L(a.title)}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {a.owner} · {t('due', 'الاستحقاق')} {formatRelative(a.dueDate, now, lang)}
-                    </span>
-                  </div>
-                  <StatusBadge tone={CORRECTIVE_STATUS_TONE[a.status]}>{L(CORRECTIVE_STATUS_LABEL[a.status])}</StatusBadge>
-                </li>
-              ))}
-            </ul>
-          )}
-          <div className="mt-3 flex flex-wrap gap-1">
-            <SeeAll to="/actions/shopper-cases" label={t('Shopper cases', 'حالات التسوق السري')} />
-            <SeeAll to="/actions/corrective" label={t('Corrective actions', 'الإجراءات التصحيحية')} />
-          </div>
-        </SectionCard>
-        )}
-
-        <SectionCard
-          className="lg:col-span-3"
-          title={t('Signals by month', 'الإشارات حسب الشهر')}
-          term="Signal"
-          description={t('Counted, not worked — live products, last six months.', 'تُحتسب ولا تُعالج فردياً — المنتجات الفعالة، آخر ستة أشهر.')}
-        >
-          {signalsLoading ? (
-            <LoadingState rows={3} />
-          ) : (
-            <div className="h-56" dir="ltr">
-              <DeferredRender>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={lang === 'ar' ? [...signalsByMonth].reverse() : signalsByMonth} margin={lang === 'ar' ? { top: 4, right: -20, bottom: 0, left: 4 } : { top: 4, right: 4, bottom: 0, left: -20 }}>
-                    <CartesianGrid vertical={false} stroke="var(--border)" />
-                    <XAxis dataKey="month" tickLine={false} axisLine={false} tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }} />
-                    <YAxis
-                      allowDecimals={false}
-                      orientation={lang === 'ar' ? 'right' : 'left'}
-                      tickLine={false}
-                      axisLine={false}
-                      tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }}
-                    />
-                    <Tooltip
-                      cursor={{ fill: 'var(--muted)' }}
-                      contentStyle={{ background: 'var(--popover)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--popover-foreground)', fontSize: 12 }}
-                    />
-                    <Legend
-                      wrapperStyle={{ fontSize: 12 }}
-                      iconType="circle"
-                      iconSize={8}
-                      formatter={(value) => <span style={{ color: 'var(--muted-foreground)' }}>{value}</span>}
-                    />
-                    {live.map((p, i) => (
-                      <Bar
-                        key={p.id}
-                        dataKey={p.id}
-                        name={L(p.name)}
-                        stackId="signals"
-                        fill={`var(${p.colorVar})`}
-                        radius={i === live.length - 1 ? [4, 4, 0, 0] : 0}
-                        maxBarSize={36}
-                        {...chartMotion}
-                      />
-                    ))}
-                  </BarChart>
-                </ResponsiveContainer>
-              </DeferredRender>
-            </div>
-          )}
-          <div className="mt-3">
-            <SeeAll to="/actions/signals" label={t('Signals and patterns', 'الإشارات والأنماط')} />
-          </div>
-        </SectionCard>
-
-        <SectionCard
-          className="lg:col-span-3"
-          title={t('Patterns against threshold', 'الأنماط مقابل الحد')}
-          term="Pattern"
-          description={t('A pattern past its threshold gets one corrective action with an owner.', 'النمط الذي يتجاوز حده يحصل على إجراء تصحيحي واحد بمالك.')}
-        >
-          {patternsLoading ? (
-            <LoadingState rows={3} />
-          ) : patternsByProgress.length === 0 ? (
-            <EmptyState title={t('No patterns yet', 'لا أنماط بعد')} />
-          ) : (
-            <ul className="flex flex-col gap-3">
-              {patternsByProgress.slice(0, 4).map((p) => {
-                const pct = Math.min(100, Math.round((p.currentValue / p.thresholdTarget) * 100))
-                const crossed = p.currentValue >= p.thresholdTarget
-                const unit = p.thresholdKind === 'environment_concentration' ? '%' : ''
-                return (
-                  <li key={p.id} className="flex flex-col gap-1.5">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="truncate text-sm font-medium">
-                        {L(signalCategoryLabel(p.category))} <span className="font-normal text-muted-foreground">· {p.team}</span>
-                      </span>
-                      <bdi dir="ltr" className="shrink-0 text-xs text-muted-foreground tabular-nums">
-                        {p.currentValue}
-                        {unit} / {p.thresholdTarget}
-                        {unit}
-                      </bdi>
-                    </div>
-                    <Progress
-                      value={pct}
-                      aria-label={`${p.category} ${pct}%`}
-                      className={crossed ? '[&>[data-slot=progress-indicator]]:bg-destructive' : '[&>[data-slot=progress-indicator]]:bg-warning'}
-                    />
-                    {crossed && (
-                      <StatusBadge tone="danger" className="self-start">
-                        {t('Past threshold', 'تجاوز الحد')}
-                      </StatusBadge>
-                    )}
-                  </li>
-                )
-              })}
-            </ul>
-          )}
-        </SectionCard>
-
-        <SectionCard
-          className="lg:col-span-3"
-          term="Intelligent CX team" title={t('AI team activity', 'نشاط الفريق الذكي')}
-          description={t('Latest runs and the supervisor’s verdict on each.', 'أحدث التشغيلات وحكم المشرف على كل منها.')}
-        >
-          {activityLoading ? (
-            <LoadingState rows={3} />
-          ) : recentActivity.length === 0 ? (
-            <EmptyState title={t('No runs yet', 'لا تشغيلات بعد')} />
-          ) : (
-            <ol className="flex flex-col gap-3">
-              {recentActivity.map((entry) => {
-                const agent = AGENT_REGISTRY.find((a) => a.key === entry.agentKey)
-                return (
-                  <li key={entry.id} className="flex gap-3">
-                    <span aria-hidden className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                      <BrainCircuit className="size-4" />
-                    </span>
-                    <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-sm font-medium">{agent ? L(agent.name) : entry.agentKey}</span>
-                        <StatusBadge tone={AGENT_VERDICT_TONE[entry.supervisorVerdict]}>
-                          {
-                            {
-                              approved: t('Approved', 'معتمد'),
-                              returned: t('Returned', 'مُعاد'),
-                              escalated: t('Escalated', 'مُصعّد'),
-                            }[entry.supervisorVerdict]
-                          }
-                        </StatusBadge>
-                        <span className="text-xs text-muted-foreground">{formatRelative(entry.createdAt, now, lang)}</span>
-                      </div>
-                      <p className="line-clamp-2 text-sm text-muted-foreground">{L(entry.subjectSummary)}</p>
-                    </div>
-                  </li>
-                )
-              })}
-            </ol>
-          )}
-          <div className="mt-3">
-            <SeeAll to="/intelligent-cx-team" label={t('Intelligent CX team', 'فريق تجربة العملاء الذكي')} />
-          </div>
-        </SectionCard>
-      </div>
     </div>
   )
 }

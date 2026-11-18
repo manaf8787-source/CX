@@ -85,14 +85,30 @@ export function canEditEscalationMatrix(role: RoleId): boolean {
   return role === 'cxmgr' || role === 'auditmkt'
 }
 
-/** v40 (F31) [Proposed]: the weekly sample is judged by the CX manager, the CX team and the Internal Audit and Marketing Lead; Executive reads. */
+/** v40 (F31): the weekly sample is judged by the CX manager, the CX team and the Internal Audit and Marketing Lead (the spec: "the CX team and the Internal Audit and Marketing Lead"); Executive reads. */
 export function canJudgeSample(role: RoleId): boolean {
   return role === 'cxmgr' || role === 'cxteam' || role === 'auditmkt'
 }
 
-/** v40 (F31) [Proposed]: customer names in the weekly sample only for the CX manager and the CX team; everyone else sees the reference (`P-005`), never a name. */
+/**
+ * Customer names (decided 18 Nov: "no customer names to Internal Audit"): every role that works with people may see them,
+ * except the Internal Audit and Marketing Lead, who sees aggregates and the reference (`P-005`) instead. The Customers list,
+ * Who is leaving, the weekly sample and the exports all follow this one rule (`personLabel` in `utils/peopleExport.ts`).
+ */
+const CUSTOMER_NAME_ROLES: ReadonlySet<RoleId> = new Set(['cxmgr', 'cxteam', 'envmgmt', 'teamlead', 'aslead', 'marketing', 'exec'])
+
+export function canViewCustomerNames(role: RoleId): boolean {
+  return CUSTOMER_NAME_ROLES.has(role)
+}
+
+/** Decided 18 Nov: exports show mobiles only to roles that may see names. */
+export function canViewMobiles(role: RoleId): boolean {
+  return canViewCustomerNames(role)
+}
+
+/** Names in the weekly sample follow the customer-names rule: not for the Internal Audit and Marketing Lead. */
 export function canViewNamesInSample(role: RoleId): boolean {
-  return role === 'cxmgr' || role === 'cxteam'
+  return canViewCustomerNames(role)
 }
 
 /** v40 (F30): "Mark replied" on a public mention: CX roles and Marketing. */

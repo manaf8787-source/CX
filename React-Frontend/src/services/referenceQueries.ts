@@ -19,6 +19,8 @@ import type { CampaignBriefDraft, PlanLine } from '../components/ai/assistantInt
 import type { Bi, CorrectiveAction, CorrectiveActionKind, Investigation } from '../types'
 import { isTopManagementTitle } from '../auth/permissions'
 import { useRole } from '../auth/RoleContext'
+import { useEnvScope } from './envScope'
+import { inEnvScope, envIdFromShort } from '../data/environments'
 import { auditEntry, proposedStamp } from '../utils/audit'
 import { invId } from '../utils/trace'
 import { suggestionSentence, type InsightSuggestion } from '../data/insightSuggestions'
@@ -37,8 +39,14 @@ async function read<T>(value: T): Promise<T> {
 }
 
 export const useStandardsRegister = () => useQuery({ queryKey: ['standards-register'], queryFn: () => read(STANDARDS_REGISTER) })
-/** v40 (F30): a mutable list (`useMarkReplied` in queriesV40.ts), returned as copies so a change re-renders. */
-export const usePublicMentions = () => useQuery({ queryKey: ['public-mentions'], queryFn: () => read(PUBLIC_MENTIONS.map((m) => ({ ...m }))) })
+/** v40 (F30): a mutable list (`useMarkReplied` in queriesV40.ts), returned as copies so a change re-renders; narrowed by the environment switch. */
+export const usePublicMentions = () => {
+  const { env } = useEnvScope()
+  return useQuery({
+    queryKey: ['public-mentions', env],
+    queryFn: () => read(PUBLIC_MENTIONS.filter((m) => env === 'all' || inEnvScope(env, envIdFromShort(m.environment) ?? env)).map((m) => ({ ...m }))),
+  })
+}
 export const useNpsTrend = () => useQuery({ queryKey: ['nps-trend'], queryFn: () => read(NPS_TREND) })
 export const useDetractorReasons = () => useQuery({ queryKey: ['detractor-reasons'], queryFn: () => read(DETRACTOR_REASONS) })
 export const useSurveyInstruments = () => useQuery({ queryKey: ['survey-instruments'], queryFn: () => read(SURVEY_INSTRUMENTS) })
@@ -46,7 +54,8 @@ export const useSurveyDelivery = () => useQuery({ queryKey: ['survey-delivery'],
 export const useProductSurveyRules = () => useQuery({ queryKey: ['product-survey-rules'], queryFn: () => read(PRODUCT_SURVEY_RULES) })
 export const useProductRouting = () => useQuery({ queryKey: ['product-routing'], queryFn: () => read(PRODUCT_ROUTING) })
 export const useCrmFields = () => useQuery({ queryKey: ['crm-fields'], queryFn: () => read(CRM_FIELDS) })
-export const useAgentJobDescriptions = () => useQuery({ queryKey: ['agent-jds'], queryFn: () => read(AGENT_JDS) })
+/** Copies of the agent job descriptions; `approvalPct` already carries the weekly sample's "wrong" verdicts. */
+export const useAgentJobDescriptions = () => useQuery({ queryKey: ['agent-jds'], queryFn: () => read(AGENT_JDS.map((j) => ({ ...j }))) })
 
 /** KB §15: only the CX manager approves a standard for scoring. */
 export function useSetRegisterStatus() {
@@ -140,6 +149,7 @@ export function useProposeFromInsight() {
         status: 'proposed',
         verificationDueAt: new Date(new Date(`${input.dueDate}T12:00:00`).getTime() + 60 * 86_400_000).toISOString(),
         ...proposedStamp({ product: 're', byRole: role.id, note: { en: 'Proposed from an AI Insights suggestion', ar: 'اقتُرح من اقتراح رؤى الذكاء الاصطناعي' } }),
+        envId: envIdFromShort(input.environment),
         fromInsight: { subjectId: input.insightSubjectId, suggestionId: input.suggestion.id, recovery: suggestionSentence(input.suggestion) },
       }
       mock.MOCK_CORRECTIVE_ACTIONS.push(action)

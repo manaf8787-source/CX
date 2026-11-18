@@ -4,7 +4,8 @@ import { buildWeeklySample, seedAuditLog, seedCallAttempts } from './mockDataV40
 import { ENV_IDS, ENVIRONMENTS, envIdFromShort, envName, envNameFromShort, inEnvScope } from '@/data/environments'
 import { buildFeeds, feedsInScope, lateFeedsLabel, summariseFeeds } from '@/data/feeds'
 import { CRM_MAPPING_OPTIONS, CRM_MAPPING_ROWS, mappingCounts } from '@/data/crmMapping'
-import { MATRIX_KEY_BY_FIX_KIND, MATRIX_KINDS, MATRIX_DEFAULTS, ESCALATION_TEMPLATE_BY_CATEGORY, buildMatrix } from '@/data/escalationDefaults'
+import * as escalation from '@/data/escalationDefaults'
+import { MATRIX_KEY_BY_FIX_KIND, MATRIX_KINDS, MATRIX_DEFAULTS, buildMatrix } from '@/data/escalationDefaults'
 import { SURVEY_QUESTION_SETS, questionSetsFor } from '@/data/surveyQuestions'
 import { DNCR_PEOPLE_IN_SAMPLE, PUBLIC_MENTIONS, SURVEY_DELIVERY_LAST_MONTH, AGENT_JDS } from '@/data/v38Reference'
 import { PRODUCTS } from '@/data/products'
@@ -175,14 +176,27 @@ describe('data feeds (v40 F13, F14)', () => {
 describe('CRM mapping (v40 F15)', () => {
   it('has the prototype rows, every portal value is a real option, and counts come from the data', () => {
     const rows = (k: string) => CRM_MAPPING_ROWS.filter((r) => r.kind === k)
-    expect(rows('src')).toHaveLength(15)
+    expect(rows('src')).toHaveLength(13)
     expect(rows('stg')).toHaveLength(14) // the prototype's sentence says 13; its table lists 14
-    expect(rows('act')).toHaveLength(12)
+    expect(rows('act')).toHaveLength(17)
     for (const r of CRM_MAPPING_ROWS) expect(CRM_MAPPING_OPTIONS[r.kind].some((o) => o.id === r.portalValue), `${r.kind} ${r.crmValue}`).toBe(true)
     for (const kind of ['src', 'stg', 'act'] as const) expect(CRM_MAPPING_OPTIONS[kind].at(-1)?.id).toBe('ignore')
-    expect(mappingCounts()).toEqual({ sources: { crm: 15, portal: 9 }, stages: { crm: 14, portal: 6 }, events: { crm: 12, portal: 10 } })
+    expect(mappingCounts()).toEqual({ sources: { crm: 13, portal: 9 }, stages: { crm: 14, portal: 6 }, events: { crm: 17, portal: 10 } })
     expect(mock.MOCK_MAPPING.rows.find((r) => r.crmValue === 'Property Finder')?.portalValue).toBe('portal')
+    expect(mock.MOCK_MAPPING.rows.find((r) => r.crmValue === 'Bayut')?.portalValue).toBe('portal')
     expect(mock.MOCK_MAPPING.rows.find((r) => r.crmValue === 'Automatic')?.portalValue).toBe('ignore')
+  })
+
+  it('is aligned to CRM-Field-Mapping.docx: the Media values it lists, the stage names, the communication and renewal categories', () => {
+    const has = (kind: string, v: string) => CRM_MAPPING_ROWS.some((r) => r.kind === kind && r.crmValue === v)
+    for (const media of ['PSI Mobile App', 'Website', 'www.psinv.net', "What's App", 'Facebook', 'Property Finder', 'Bayut', 'Walk In', 'Auto Generated – Post Transaction']) expect(has('src', media), media).toBe(true)
+    // "Website and www.psinv.net are two separate values".
+    expect(CRM_MAPPING_ROWS.filter((r) => r.kind === 'src' && /^Website$|^www\.psinv\.net$/.test(r.crmValue))).toHaveLength(2)
+    // Values the review does not list are not shown as "seen".
+    for (const v of ['Instagram', 'www.bayut.com', 'HubSpot Website']) expect(has('src', v), v).toBe(false)
+    for (const stage of ['New', 'Contacted', 'Viewing', 'Opportunity', 'Negotiation', 'Reservation (with developer)', 'Contract signed', 'Closed won', 'Closed lost']) expect(has('stg', stage), stage).toBe(true)
+    for (const act of ['Calls', 'Incoming Call – Communication', 'WhatsApp Communication', 'Chatbot Communication', 'After Sales · Handover Workflow', 'Client Complaint Category', 'Lease Renewal', 'Renewal Notice', 'Non-Renewal Notice', 'Survey Completed']) expect(has('act', act), act).toBe(true)
+    expect(CRM_MAPPING_ROWS.find((r) => r.crmValue === 'Non-Renewal Notice')?.portalValue).toBe('renewal')
   })
 
   it('every option has an Arabic label', () => {
@@ -218,9 +232,13 @@ describe('escalation matrix (v40 F22)', () => {
     expect(MATRIX_KEY_BY_FIX_KIND.legal_privacy).toBe('legal')
   })
 
-  it('keeps the per-complaint-category template of the Rules document too (B16)', () => {
-    expect(ESCALATION_TEMPLATE_BY_CATEGORY.map((r) => r.category.en)).toEqual(['Behaviour and attitude', 'Process and follow-up', 'Knowledge and wrong information', 'App and digital', 'Legal and privacy'])
-    expect(ESCALATION_TEMPLATE_BY_CATEGORY.at(-1)).toMatchObject({ owner: { en: 'Legal' }, routing: { en: 'Automatic' } })
+  it('one table per product with a row per fix kind is the contract: the per-complaint-category template is gone (decided 18 Nov)', () => {
+    expect(Object.keys(escalation).filter((k) => /TEMPLATE|CATEGORY/.test(k))).toEqual([])
+    expect(MATRIX_KINDS).toHaveLength(10) // eight fix kinds plus the two case types
+    // Real Estate has one table, not one per environment.
+    expect(Object.keys(mock.MOCK_MATRIX.re)).toHaveLength(10)
+    expect(Array.isArray(mock.MOCK_MATRIX.re)).toBe(true)
+    expect(escalation.MATRIX_COPY.defaultCellsNote.en).toContain('Cells still at their default are proposals')
   })
 })
 
@@ -296,14 +314,16 @@ describe('weekly sample (v40 F31)', () => {
 })
 
 describe('rules configuration carries the v40 keys', () => {
-  it('lists the working week and the calling rules as [Proposed] items with Arabic labels', () => {
-    const ids = ['rule_working_days', 'rule_call_from', 'rule_call_to', 'rule_call_tries']
+  it('lists the working week, the working day, the fix fallback and the calling rules as decided items with Arabic labels', () => {
+    const ids = ['rule_working_days', 'rule_work_start', 'rule_work_end', 'rule_fix_fallback_days', 'rule_call_from', 'rule_call_to', 'rule_call_tries', 'rule_ai_no_answers']
     for (const id of ids) {
       const r = mock.MOCK_RULES_CONFIG.find((x) => x.id === id)
       expect(r, id).toBeDefined()
-      expect(r!.proposed).toBe(true)
+      expect(r!.proposed).toBeUndefined()
       expect(r!.label.ar).toMatch(/[؀-ۿ]/)
     }
+    expect(mock.MOCK_RULES_CONFIG.find((r) => r.id === 'rule_ai_no_answers')?.value).toBe(2)
+    expect(mock.MOCK_RULES_CONFIG.find((r) => r.id === 'rule_fix_fallback_days')?.value).toBe(14)
     expect(mock.MOCK_RULES_CONFIG.find((r) => r.id === 'rule_call_to')?.value).toBe(18)
   })
 })

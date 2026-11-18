@@ -527,6 +527,18 @@ Manaf's feedback on 17 Nov: the portal had grown page by page and he could not f
 
 Still sample data; nothing is sent. The knowledge base documents (Modules, Word, PDF) describe v38 and will be regenerated once Manaf has reviewed v40.
 
+### Decisions confirmed on 18 November (after the React team's questions)
+
+1. **Working week: Monday to Friday.** Working-day counts skip Saturday and Sunday (the prototype had Friday and Saturday; fixed in v40 on 18 Nov).
+2. **Escalation matrix: one table per product, rows per fix kind** (the eight kinds plus the two case types). The earlier per-complaint-category template in the Rules doc is superseded; categories are what Agent 2 gives a signal, kinds are what Agent 5 gives a fix, and the matrix routes fixes. Real Estate has one table, not one per environment.
+3. **A fix's due date comes from the matrix "Resolve (h)"**, in working hours from approval; Agent 5's 14 days is the fallback for an empty cell. The 5-working-day approval window runs from the proposal; the 60-day check from "done".
+4. **Public replies are Marketing's** (channel owner), within 48 hours from the approved wording; the CX team watches the clock and raises a signal when missed; the Internal Audit and Marketing Lead audits monthly.
+5. **Calling: 09:00 to 18:00 UAE time, 3 attempts** for the CX team list, next attempt the following working day, WhatsApp after the last; **2 no-answers** for an AI campaign before hand-off. Both configuration; Legal confirmation of hours still pending.
+6. **Weekly sample: 50 outputs by Thursday, no customer names to Internal Audit; a "wrong" lowers the agent's pass rate** and becomes a supervisor test.
+7. **The environment switch narrows everything**, fixes and the call list included; **exports show mobiles only to roles that may see names.**
+
+Written into "CX Portal: Rules and Definitions" as the section "Decisions added on 18 November 2026". The React build lives in `React-Frontend/` with its own docs (`docs/V40_DELTA.md`, `docs/V40_FOUNDATION_API.md`); it badges anything still `[Proposed]` in the UI.
+
 ## 42. Files and links (17 Nov 2026)
 
 | Item | Where |
@@ -554,21 +566,3 @@ Still sample data; nothing is sent. The knowledge base documents (Modules, Word,
 7. The Jira CXP project: Manaf creates it, then the backlog draft is reviewed before posting.
 8. PSI brand colours, fonts and logo files; real HR pool members and environment names; real SLA targets; call recording as a policy decision; retention periods with Legal.
 9. Earlier open questions in section 14 that are still open: After-Sales real call script, calling hours and consent rules, data residency, the real mailboxes.
-
-## 45. React build of the portal (17 Nov 2026, updated 18 Nov)
-
-A working React version of the portal lives in `React-Frontend/`, built from this knowledge base and the Modules KB. It is a front end on sample data only; there is no backend yet, and nothing in it is real data. It was built against v38; v39 and v40 (section 44) are being reflected in it next.
-
-| Decision (Manaf, 17 Nov) | Detail |
-|---|---|
-| Build a new React front end | In `React-Frontend/`; the older `frontend/` scaffold is kept as reference only. |
-| UI library | First "no library", then changed the same day to **shadcn/ui + Tailwind**; the ui-ux-pro-max design skill is used for design guidance. |
-| AI assistant | Mock only for now: answers come from the sample data, no live AI call. |
-| Login screen and animation | Added. The login is a sample sign-in: choose a role, no passwords. |
-| Git | All work is committed and pushed to GitHub every hour (scheduled task CX-AutoPush). |
-
-What it covers (v38): the seven pages, the five Actions tabs, the assistant, the intelligent CX team page and the Settings and reference pages (including an Admin page); English and Arabic with full RTL; light and dark; role-based access. A page-by-page check against the Modules KB (`React-Frontend/docs/FIDELITY_REVIEW.md`) found all 104 requirements done. It has 141 unit tests, 135 browser tests, and a clean accessibility audit (WCAG 2.1 AA).
-
-**[Proposed]** by Claude, not yet confirmed: the navy #12385B and gold #C8963E colours and the IBM Plex fonts (placeholders until the PSI brand files arrive, see 43.8); the role-picker sign-in; the motion rules; the sample data reshaped so the 30-day pattern window produces four corrective actions; when a 60-day window holds two kinds of event the latest wins; the mapping from shopper checklist categories to AI insight categories; Wallet notices shown as awaiting decision.
-
-Open items from the build, added to the questions above: who owns the standards register (L&D in this KB, other owners in the prototype); 28 or 33 L&D standards documents; whether Marketing sees Surveys and triggers; finer scoping inside Actions for team leads and HR.

@@ -1,136 +1,73 @@
-import { useMemo } from 'react'
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import type { ColumnDef } from '@tanstack/react-table'
-import { AlertTriangle, ArrowLeft, CalendarClock, ChevronDown, Crown, Layers, MessagesSquare, Radio } from 'lucide-react'
+import { useEffect, useMemo } from 'react'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
+import { AlertTriangle, ArrowLeft, CalendarClock, ChevronDown, Layers, MessagesSquare, Radio } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { useRole } from '@/auth/RoleContext'
 import { useAiJourneyReading, usePersonEffort, usePersonInteractions, usePersons } from '@/services/queries'
+import { CUSTOMERS_LIST_COPY } from '@/data/customersList'
+import { journeyNext } from '@/data/steps'
 import { JOURNEY_RULES } from '@/utils/journeyRules'
-import type { Person } from '@/types'
+import { personLabel } from '@/utils/peopleExport'
 import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Card } from '@/components/ui/card'
 import { PageHeader } from '@/components/common/PageHeader'
-import { SectionCard } from '@/components/common/SectionCard'
 import { KpiTile } from '@/components/common/KpiTile'
-import { StatusBadge } from '@/components/common/StatusBadge'
-import { DataTable, SortableHeader } from '@/components/common/DataTable'
+import { NextBox } from '@/components/common/NextBox'
 import { EmptyState } from '@/components/common/EmptyState'
 import { LoadingState } from '@/components/common/LoadingState'
 import { ProfileCard } from '@/components/customers/ProfileCard'
+import { ConsentRow } from '@/components/customers/ConsentRow'
 import { AiReadingCard } from '@/components/customers/AiReadingCard'
 import { Timeline } from '@/components/customers/Timeline'
 import { SourceBadge } from '@/components/customers/SourceBadge'
-import { CHANNEL_LABEL } from '@/components/customers/channels'
+import { CustomersTabs } from '@/components/customers/CustomersTabs'
+import { CustomerList } from '@/components/customers/CustomerList'
+import { usePeopleFacts } from '@/components/customers/usePeopleFacts'
 
+/** "1 · Customers" (v40 F17): Find a person, Who is leaving and Personas and campaigns are tabs of one page (three URLs). */
 export default function Customers() {
   const { personId } = useParams()
   if (personId) return <CustomerDetail personId={personId} />
-  return <CustomerList />
+  return <CustomersHome />
 }
 
-/** FR-2.1 — the search list behind Home's "no exact match" fallback
- * (`/customers?q=...`); FR-1.4 — environment management sees only their own
- * environment here too, not just from Home's search. */
-function CustomerList() {
-  const { t, L } = useI18n()
-  const navigate = useNavigate()
-  const { role } = useRole()
+/** FR-2.1: the search and the browsable list behind Home's "no exact match" fallback (`/customers?q=...`). */
+function CustomersHome() {
+  const { L } = useI18n()
   const [params] = useSearchParams()
-  const q = (params.get('q') ?? '').trim().toLowerCase()
-  const { data: persons, isLoading } = usePersons()
-
-  const visible = useMemo(() => {
-    let list = persons ?? []
-    if (role.id === 'envmgmt' && role.environment) list = list.filter((p) => p.environment === role.environment)
-    if (q) list = list.filter((p) => p.name.toLowerCase().includes(q) || p.identity.mobile?.includes(q) || p.identity.emiratesId?.toLowerCase().includes(q))
-    return list
-  }, [persons, role, q])
-
-  const columns: ColumnDef<Person>[] = [
-    {
-      id: 'name',
-      accessorKey: 'name',
-      header: ({ column }) => <SortableHeader column={column}>{t('Name', 'الاسم')}</SortableHeader>,
-      cell: ({ row }) => (
-        <span className="inline-flex items-center gap-2 font-medium">
-          {row.original.name}
-          {row.original.vip && (
-            <StatusBadge tone="warning" icon={<Crown aria-hidden />}>
-              VIP
-            </StatusBadge>
-          )}
-        </span>
-      ),
-    },
-    {
-      id: 'type',
-      accessorFn: (p) => (p.type === 'customer' ? t('Customer', 'عميل') : t('Lead', 'عميل محتمل')),
-      header: ({ column }) => <SortableHeader column={column}>{t('Type', 'النوع')}</SortableHeader>,
-    },
-    {
-      id: 'environment',
-      accessorKey: 'environment',
-      header: ({ column }) => <SortableHeader column={column}>{t('Environment', 'البيئة')}</SortableHeader>,
-    },
-    {
-      id: 'channel',
-      accessorFn: (p) => L(CHANNEL_LABEL[p.preferredChannel]),
-      header: t('Preferred channel', 'القناة المفضلة'),
-      cell: ({ row }) => <SourceBadge channel={row.original.preferredChannel} />,
-    },
-    {
-      id: 'units',
-      accessorKey: 'unitsOrDeals',
-      header: ({ column }) => <SortableHeader column={column}>{t('Units/deals', 'الوحدات/الصفقات')}</SortableHeader>,
-      meta: { align: 'end' },
-    },
-  ]
-
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader
-        term="Omnichannel" title={t('Customers', 'العملاء')}
-        description={t('One record per person: CRM profile, effort tiles, AI reading, and a channel timeline.', 'سجل واحد لكل شخص: الملف الشخصي، مؤشرات الجهد، قراءة الذكاء الاصطناعي، والجدول الزمني.')}
-      />
-
-      {role.id === 'envmgmt' && role.environment && (
-        <StatusBadge tone="info" className="self-start">
-          {t('Scoped to your environment:', 'محصور ببيئتك:')} {role.environment}
-        </StatusBadge>
-      )}
-
-      <SectionCard
-        title={t('People', 'الأشخاص')}
-        description={q ? `${t('Matching', 'مطابق لـ')} “${params.get('q')}”` : undefined}
-        actions={
-          <span className="text-sm text-muted-foreground tabular-nums">
-            {visible.length} {t('records', 'سجل')}
-          </span>
-        }
-      >
-        <DataTable
-          columns={columns}
-          data={visible}
-          isLoading={isLoading}
-          searchPlaceholder={t('Filter by name, type or environment', 'تصفية بالاسم أو النوع أو البيئة')}
-          onRowClick={(p) => navigate(`/customers/${p.id}`)}
-          getRowId={(p) => p.id}
-          emptyTitle={q ? `${t('No match for', 'لا توجد نتيجة لـ')} “${params.get('q')}”` : t('No records in scope.', 'لا توجد سجلات ضمن النطاق.')}
-          pageSize={12}
-        />
-      </SectionCard>
+      <PageHeader term="Omnichannel" title={L(CUSTOMERS_LIST_COPY.pageTitle)} description={L(CUSTOMERS_LIST_COPY.pageDescription)} />
+      <CustomersTabs />
+      {/* Keyed on the search so a new `?q=` from Home starts a new filter. */}
+      <CustomerList key={params.get('q') ?? ''} />
     </div>
   )
 }
 
+/** The trace links of the other pages land here with `?ev=EV-12`: bring that event into view when the timeline marks it. */
+function useScrollToEvent(ready: boolean) {
+  const [params] = useSearchParams()
+  const ev = params.get('ev')
+  useEffect(() => {
+    if (!ev || !ready) return
+    const el = document.getElementById(ev) ?? document.querySelector(`[data-trace-id="${CSS.escape(ev)}"]`)
+    el?.scrollIntoView({ block: 'center' })
+  }, [ev, ready])
+}
+
 function CustomerDetail({ personId }: { personId: string }) {
   const { t, L } = useI18n()
+  const { role } = useRole()
   const { data: persons, isLoading: personsLoading } = usePersons()
   const { data: effort, isLoading: effortLoading } = usePersonEffort(personId)
   const { data: interactions } = usePersonInteractions(personId)
   const { data: reading } = useAiJourneyReading(personId)
   const person = persons?.find((p) => p.id === personId)
+  const onePerson = useMemo(() => (person ? [person] : undefined), [person])
+  const { facts, isLoading: factsLoading } = usePeopleFacts(onePerson)
+  useScrollToEvent(!!interactions)
 
   const problemCounts = useMemo(() => {
     const counts = new Map<string, number>()
@@ -152,20 +89,29 @@ function CustomerDetail({ personId }: { personId: string }) {
   if (!person) {
     return (
       <div className="flex flex-col gap-6">
+        <CustomersTabs />
         {back}
         {personsLoading ? <LoadingState rows={6} /> : <EmptyState title={t('No such record.', 'لا يوجد سجل كهذا.')} />}
       </div>
     )
   }
 
+  const next = journeyNext({ drifting: facts.drifting.has(person.id), problems: effort?.problemsFound ?? totalProblems })
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-2">
         {back}
-        <PageHeader title={person.name} description={t('One record, every channel, newest first.', 'سجل واحد، كل القنوات، الأحدث أولاً.')} />
+        <PageHeader title={personLabel(person, role.id)} description={t('One record, every channel, newest first.', 'سجل واحد، كل القنوات، الأحدث أولاً.')} />
       </div>
+      <CustomersTabs />
+
+      {/* Where you are, what happens next (F07): step 2 when the person drifts or has problems, else step 1. */}
+      {!effortLoading && !factsLoading && <NextBox next={next} />}
 
       <ProfileCard person={person} />
+
+      <ConsentRow person={person} />
 
       <section aria-label={t('Effort', 'الجهد')} className="grid grid-cols-2 gap-4 xl:grid-cols-4">
         <KpiTile label={t('Interactions', 'التفاعلات')} value={effort?.interactions ?? '—'} accent="var(--chart-1)" icon={<MessagesSquare />} loading={effortLoading} />

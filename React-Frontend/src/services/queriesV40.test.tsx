@@ -38,7 +38,7 @@ import {
 } from './queries'
 import { useEnvScope } from './envScope'
 import { usePublicMentions } from './referenceQueries'
-import { PUBLIC_MENTIONS } from '@/data/v38Reference'
+import { AGENT_JDS, PUBLIC_MENTIONS } from '@/data/v38Reference'
 import { RULE_IDS } from '@/utils/ruleValues'
 import { MON_FRI } from '@/utils/workingDays'
 
@@ -371,5 +371,168 @@ describe('registers: mapping, matrix, questions, sample, mentions, no answer', (
     mock.MOCK_DETRACTOR_CALL_ITEMS.push(probe)
     await expect(result.current.mutateAsync({ id: 'dcl-probe' })).rejects.toThrow('DNCR')
     mock.MOCK_DETRACTOR_CALL_ITEMS.pop()
+  })
+})
+
+describe('the environment switch narrows everything (decided 18 Nov)', () => {
+  it('fixes, the call list, investigations, hand-offs, public mentions and the Home counts follow the switch', async () => {
+    const { envsOfFix, inScopeAny } = await import('@/utils/envScope')
+    const { useDetractorCallItems, useHandoffs, useHomeSummary } = await import('./queries')
+    const { result } = renderHookWithProviders(() => ({
+      scope: useEnvScope(),
+      fixes: useCorrectiveActions(),
+      loop: useDetractorCallItems(),
+      investigations: useInvestigations(),
+      handoffs: useHandoffs(),
+      mentions: usePublicMentions(),
+      home: useHomeSummary(),
+    }))
+    await waitFor(() => ready(result.current.fixes))
+    await waitFor(() => ready(result.current.loop))
+    const allFixes = result.current.fixes.data!.length
+    const allLoop = result.current.loop.data!.length
+    expect(allFixes).toBe(mock.MOCK_CORRECTIVE_ACTIONS.length)
+    expect(allLoop).toBe(mock.MOCK_DETRACTOR_CALL_ITEMS.length)
+    expect(result.current.mentions.data).toHaveLength(16)
+
+    act(() => result.current.scope.setEnv('ast'))
+    const patternById = new Map(mock.MOCK_PATTERNS.map((p) => [p.id, p]))
+    const signalById = new Map(mock.MOCK_SIGNALS.map((s) => [s.id, s]))
+    await waitFor(() => expect(result.current.loop.data?.every((l) => l.envId === 'ast')).toBe(true))
+    expect(result.current.loop.data!.length).toBe(mock.MOCK_DETRACTOR_CALL_ITEMS.filter((l) => l.envId === 'ast').length)
+    await waitFor(() => ready(result.current.fixes))
+    const expectedFixes = mock.MOCK_CORRECTIVE_ACTIONS.filter((f) => inScopeAny('ast', envsOfFix(f, patternById, signalById)))
+    await waitFor(() => expect(result.current.fixes.data?.map((f) => f.id)).toEqual(expectedFixes.map((f) => f.id)))
+    await waitFor(() => expect(result.current.investigations.data?.every((i) => inScopeAny('ast', envsOfFix(i, patternById, signalById)))).toBe(true))
+    await waitFor(() => expect(result.current.mentions.data?.every((m) => m.environment === 'PSI Assets')).toBe(true))
+    expect(result.current.mentions.data!.length).toBe(PUBLIC_MENTIONS.filter((m) => m.environment === 'PSI Assets').length)
+    const personEnv = new Map(mock.MOCK_PERSONS.map((p) => [p.id, p.envId]))
+    await waitFor(() => expect(result.current.handoffs.data?.every((h) => personEnv.get(h.personId) === 'ast')).toBe(true))
+    await waitFor(() => expect(result.current.home.data?.journeysViewed).toBe(mock.MOCK_PERSONS.filter((p) => p.envId === 'ast').length))
+    expect(result.current.home.data!.toCall).toBeLessThanOrEqual(allLoop)
+
+    act(() => result.current.scope.setEnv('all'))
+    await waitFor(() => expect(result.current.fixes.data).toHaveLength(allFixes))
+  })
+
+  it('an environment manager sees only its own environment in every register', async () => {
+    const { useDetractorCallItems } = await import('./queries')
+    const { result } = renderHookWithProviders(() => ({ loop: useDetractorCallItems(), fixes: useCorrectiveActions(), mentions: usePublicMentions() }), { role: 'envmgmt' })
+    await waitFor(() => ready(result.current.loop))
+    await waitFor(() => ready(result.current.mentions))
+    expect(result.current.loop.data!.every((l) => l.envId === 'dub')).toBe(true)
+    expect(result.current.mentions.data!.every((m) => m.environment === 'Dubai')).toBe(true)
+    expect(result.current.fixes.data!.length).toBeLessThanOrEqual(mock.MOCK_CORRECTIVE_ACTIONS.length)
+  })
+})
+
+describe('a fix\'s clocks (decided 18 Nov)', () => {
+  const probe = (id: string): import('@/types').CorrectiveAction => ({
+    id,
+    kind: 'service_behaviour',
+    title: { en: 'Probe', ar: 'اختبار' },
+    owner: 'Team manager',
+    dueDate: new Date(Date.now() + 86_400_000).toISOString(),
+    status: 'proposed',
+    verificationDueAt: new Date(Date.now() + 70 * 86_400_000).toISOString(),
+    proposedAt: new Date().toISOString(),
+    product: 're',
+    auditLog: [],
+  })
+
+  it('approval sets the due date from the matrix Resolve (h) in working hours; marking done starts the 60-day check', async () => {
+    const { isWorkingDay } = await import('@/utils/workingDays')
+    const fix = probe('ca-probe-1')
+    mock.MOCK_CORRECTIVE_ACTIONS.push(fix)
+    const { result } = renderHookWithProviders(() => ({ decide: useDecideCorrectiveAction(), status: useSetFixStatus() }), { role: 'cxmgr' })
+    const before = Date.now()
+    await act(() => result.current.decide.mutateAsync({ id: fix.id, decision: 'approved' }))
+    expect(fix.dueSource).toBe('matrix') // service and behaviour: 45 working hours for every product by default
+    const due = new Date(fix.dueDate)
+    expect(due.getTime()).toBeGreaterThan(before + 4 * 86_400_000) // 45 working hours is five working days, at least four calendar days
+    expect(isWorkingDay(due)).toBe(true)
+    expect(due.getHours() + due.getMinutes() / 60).toBeGreaterThanOrEqual(9)
+    expect(due.getHours() + due.getMinutes() / 60).toBeLessThanOrEqual(18)
+
+    await act(() => result.current.status.mutateAsync({ id: fix.id, status: 'verification' }))
+    const check = Date.parse(fix.verificationDueAt)
+    expect(Math.abs(check - (Date.now() + 60 * 86_400_000))).toBeLessThan(60_000) // 60 days from "done"
+  })
+
+  it('an empty Resolve (h) cell falls back to Agent 5\'s 14 days', async () => {
+    const fix = probe('ca-probe-2')
+    mock.MOCK_CORRECTIVE_ACTIONS.push(fix)
+    const { result } = renderHookWithProviders(() => ({ decide: useDecideCorrectiveAction(), save: useSaveMatrixCell() }), { role: 'cxmgr' })
+    await act(() => result.current.save.mutateAsync({ product: 're', kind: 'service', field: 'resolveH', value: null }))
+    try {
+      await act(() => result.current.decide.mutateAsync({ id: fix.id, decision: 'approved' }))
+      expect(fix.dueSource).toBe('fallback')
+      expect(Math.abs(Date.parse(fix.dueDate) - (Date.now() + 14 * 86_400_000))).toBeLessThan(60_000)
+    } finally {
+      await act(() => result.current.save.mutateAsync({ product: 're', kind: 'service', field: 'resolveH', value: 45 }))
+    }
+  })
+
+  it('a decision that is not an approval leaves the due date alone', async () => {
+    const fix = probe('ca-probe-3')
+    mock.MOCK_CORRECTIVE_ACTIONS.push(fix)
+    const due = fix.dueDate
+    const { result } = renderHookWithProviders(() => useDecideCorrectiveAction(), { role: 'cxmgr' })
+    await act(() => result.current.mutateAsync({ id: fix.id, decision: 'rejected', reason: 'Not now' }))
+    expect(fix.dueDate).toBe(due)
+    expect(fix.dueSource).toBeUndefined()
+  })
+
+  it('useFixDue previews the due date before approval and shows the stored one after', async () => {
+    const { useFixDue } = await import('./queriesV40')
+    const { result: fresh } = renderHookWithProviders(() => useFixDue({ kind: 'training_gap', product: 're', dueDate: new Date().toISOString(), dueSource: undefined }))
+    await waitFor(() => expect(fresh.current).toBeDefined())
+    expect(fresh.current).toMatchObject({ source: 'matrix', preview: true, hours: 90 }) // training gap: 90 working hours
+    const stored = '2026-12-01T10:00:00.000Z'
+    const { result: after } = renderHookWithProviders(() => useFixDue({ kind: 'training_gap', product: 're', dueDate: stored, dueSource: 'fallback' }))
+    expect(after.current).toEqual({ dueAt: stored, source: 'fallback', preview: false })
+  })
+})
+
+describe('the weekly sample\'s effect on the supervisor and the agents page (decided 18 Nov)', () => {
+  it('a wrong lowers the agent\'s pass rate and becomes a supervisor test; judging it right again gives both back', async () => {
+    const { useAgentPassRates, useSupervisorTests } = await import('./queriesV40')
+    const { useAgentJobDescriptions } = await import('./referenceQueries')
+    const { result } = renderHookWithProviders(() => ({ sample: useWeeklySample(), judge: useJudgeSample(), rates: useAgentPassRates(), tests: useSupervisorTests(), jds: useAgentJobDescriptions() }))
+    await waitFor(() => ready(result.current.sample))
+    await waitFor(() => ready(result.current.rates))
+    const item = result.current.sample.data!.items.find((i) => i.agent === 2 && i.verdict === null)!
+    const jd2 = AGENT_JDS.find((j) => j.id === 2)!
+    const base = jd2.baseApprovalPct as number
+    expect(jd2.approvalPct).toBe(base)
+
+    await act(() => result.current.judge.mutateAsync({ id: item.id, right: false }))
+    await waitFor(() => expect(result.current.tests.data?.some((t) => t.fromSampleId === item.id)).toBe(true))
+    await waitFor(() => expect(result.current.rates.data!.find((r) => r.agent === 2)!.wrong).toBe(1))
+    expect(result.current.rates.data!.find((r) => r.agent === 2)!.base).toBe(base)
+    expect(jd2.approvalPct).toBeLessThan(base) // what the agents page reads
+    expect(jd2).toMatchObject({ wrongThisWeek: 1, supervisorTests: 1 })
+    await waitFor(() => expect(result.current.jds.data?.find((j) => j.id === 2)?.approvalPct).toBe(jd2.approvalPct))
+
+    await act(() => result.current.judge.mutateAsync({ id: item.id, right: true }))
+    await waitFor(() => expect(result.current.tests.data?.some((t) => t.fromSampleId === item.id)).toBe(false))
+    expect(jd2.approvalPct).toBe(base)
+    expect(jd2).toMatchObject({ wrongThisWeek: 0, supervisorTests: 0 })
+  })
+})
+
+describe('public replies (decided 18 Nov): Marketing owns them, CX watches the clock', () => {
+  it('every mention names Marketing as the owner, and a mention past 48 hours without a reply is a breach CX raises a signal for', async () => {
+    const { usePublicReplyBreaches } = await import('./queriesV40')
+    const { result } = renderHookWithProviders(() => ({ breaches: usePublicReplyBreaches(), brief: useBriefInputs(), mark: useMarkReplied() }))
+    await waitFor(() => ready(result.current.breaches))
+    await waitFor(() => ready(result.current.brief))
+    const unreplied = PUBLIC_MENTIONS.filter((m) => !m.replied)
+    expect(result.current.breaches.data!.length).toBe(unreplied.length) // the sample's mentions are all older than 48 hours
+    expect(result.current.brief.data!.publicMentions.overdue).toBe(unreplied.length)
+    for (const m of PUBLIC_MENTIONS) expect(m.owner.en).toBe('Marketing · channel owner')
+    const first = unreplied[0]
+    await act(() => result.current.mark.mutateAsync({ id: first.id }))
+    await waitFor(() => expect(result.current.breaches.data!.some((m) => m.id === first.id)).toBe(false))
   })
 })

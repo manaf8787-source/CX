@@ -1,13 +1,18 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
 import { ClipboardCheck, Info, MessagesSquare, Send, UserSearch } from 'lucide-react'
 import { useI18n } from '@/i18n'
+import { useRole } from '@/auth/RoleContext'
+import { canAccessPath } from '@/auth/access'
 import { useInvestigations, usePatterns, useRequestInvestigation, useReturnInvestigation } from '@/services/queries'
 import { INVESTIGATION_STATUS_TONE } from '@/lib/status'
-import type { Pattern } from '@/types'
+import { caId, invId } from '@/utils/trace'
+import { cn } from '@/lib/utils'
+import type { Investigation, Pattern } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -19,6 +24,7 @@ import { SectionCard } from '@/components/common/SectionCard'
 import { StatusBadge } from '@/components/common/StatusBadge'
 import { EmptyState } from '@/components/common/EmptyState'
 import { LoadingState } from '@/components/common/LoadingState'
+import { TraceId } from '@/components/common/TraceId'
 import { signalCategoryLabel } from './components/labels'
 
 const STATUS_LABEL: Record<'requested' | 'in_progress' | 'returned', { en: string; ar: string }> = {
@@ -32,13 +38,15 @@ const KIND_LABEL: Record<'customer_interviews' | 'mystery_shopper_check', { en: 
   mystery_shopper_check: { en: 'Mystery shopper check', ar: 'فحص تسوق سري' },
 }
 
-
 export default function Investigations() {
-  const { t, L } = useI18n()
+  const { t } = useI18n()
   const { data: investigations, isLoading } = useInvestigations()
   const { data: patterns } = usePatterns()
   const returnInv = useReturnInvestigation()
   const [returningId, setReturningId] = useState<string | null>(null)
+  const [params] = useSearchParams()
+  // `?inv=INV-1` (the inbox, a proposed fix's "Evidence" tag): that investigation is highlighted and scrolled to.
+  const selectedInv = params.get('inv')
 
   const thinPatterns = (patterns ?? []).filter((p) => !p.hasMinimumSample && !investigations?.some((i) => i.patternId === p.id))
 
@@ -67,50 +75,15 @@ export default function Investigations() {
         <EmptyState title={t('No investigations needed right now — every pattern has enough evidence.', 'لا حاجة لتحقيقات الآن — كل الأنماط لديها أدلة كافية.')} />
       ) : (
         <ul className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          {investigations?.map((inv) => {
-            const pattern = patterns?.find((p) => p.id === inv.patternId)
-            const Icon = inv.kind === 'customer_interviews' ? MessagesSquare : UserSearch
-            return (
-              <li key={inv.id} className="min-w-0">
-                <Card className="h-full gap-0 py-0">
-                  <CardContent className="flex h-full flex-col gap-3 p-5">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex min-w-0 items-start gap-3">
-                        <span aria-hidden className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                          <Icon className="size-4" />
-                        </span>
-                        <div className="flex min-w-0 flex-col gap-0.5">
-                          <h2 className="text-base font-semibold">{L(KIND_LABEL[inv.kind])}</h2>
-                          <span className="text-sm text-muted-foreground">
-                            <span>{pattern ? `${L(signalCategoryLabel(pattern.category))} — ${pattern.team}` : inv.environment}</span>
-                            {inv.requestedCount ? ` · ${inv.requestedCount} ${t('interviews', 'مقابلات')}` : ''}
-                            {inv.scenario ? ` · ${L(inv.scenario)}` : ''}
-                          </span>
-                          {inv.lookFor && (
-                            <span className="text-sm">
-                              <span className="text-muted-foreground">{t('Look for', 'ما يُبحث عنه')}:</span> {L(inv.lookFor)}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <StatusBadge tone={INVESTIGATION_STATUS_TONE[inv.status]} dot>
-                        {L(STATUS_LABEL[inv.status])}
-                      </StatusBadge>
-                    </div>
-                    {inv.resultSummary && <p className="rounded-lg bg-muted/50 px-3 py-2 text-sm">{L(inv.resultSummary)}</p>}
-                    {inv.status !== 'returned' && (
-                      <div className="mt-auto flex justify-end">
-                        <Button variant="outline" size="sm" className="h-9" onClick={() => setReturningId(inv.id)}>
-                          <ClipboardCheck aria-hidden />
-                          {t('Record evidence returned', 'تسجيل عودة الأدلة')}
-                        </Button>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </li>
-            )
-          })}
+          {investigations?.map((inv) => (
+            <InvestigationCard
+              key={inv.id}
+              inv={inv}
+              pattern={patterns?.find((p) => p.id === inv.patternId)}
+              selected={!!selectedInv && (selectedInv === invId(inv.id) || selectedInv === inv.id)}
+              onRecord={setReturningId}
+            />
+          ))}
         </ul>
       )}
 
@@ -118,13 +91,117 @@ export default function Investigations() {
         <ReturnDialog
           onCancel={() => setReturningId(null)}
           onSubmit={(summary) => {
-            returnInv.mutate({ id: returningId, resultSummary: summary })
+            // v40 F26: the result becomes evidence on the pattern; when the pattern had no fix, one is proposed for approval.
+            returnInv.mutate(
+              { id: returningId, resultSummary: summary },
+              {
+                onSuccess: (inv) =>
+                  toast.success(
+                    inv.proposedFixId
+                      ? t('Result recorded as evidence; a fix was proposed for approval.', 'سُجّلت النتيجة كدليل؛ واقتُرح حل للاعتماد.')
+                      : t('Result recorded as evidence.', 'سُجّلت النتيجة كدليل.'),
+                  ),
+              },
+            )
             setReturningId(null)
-            toast.success(t('Evidence recorded', 'تم تسجيل الأدلة'))
           }}
         />
       )}
     </div>
+  )
+}
+
+/** One investigation: its id, what was asked, and once the result is recorded the result, the pattern it is now evidence on and the fix it proposed. */
+function InvestigationCard({ inv, pattern, selected, onRecord }: { inv: Investigation; pattern?: Pattern; selected: boolean; onRecord: (id: string) => void }) {
+  const { t, L } = useI18n()
+  const { role } = useRole()
+  const ref = useRef<HTMLLIElement>(null)
+  const Icon = inv.kind === 'customer_interviews' ? MessagesSquare : UserSearch
+
+  useEffect(() => {
+    if (selected) ref.current?.scrollIntoView?.({ block: 'center' })
+  }, [selected])
+
+  const canOpenFix = canAccessPath(role.id, '/actions/corrective')
+  return (
+    <li ref={ref} id={`inv-${invId(inv.id)}`} data-inv={invId(inv.id)} className="min-w-0 scroll-mt-24">
+      <Card className={cn('h-full gap-0 py-0', selected && 'ring-2 ring-primary')}>
+        <CardContent className="flex h-full flex-col gap-3 p-5">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex min-w-0 items-start gap-3">
+              <span aria-hidden className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <Icon className="size-4" />
+              </span>
+              <div className="flex min-w-0 flex-col gap-0.5">
+                <h2 className="flex flex-wrap items-center gap-2 text-base font-semibold">
+                  <span className="inline-flex shrink-0 items-center rounded-md border bg-muted px-1.5 py-0.5 font-mono text-xs font-normal text-muted-foreground">
+                    <bdi dir="ltr">{invId(inv.id)}</bdi>
+                  </span>
+                  {L(KIND_LABEL[inv.kind])}
+                </h2>
+                <span className="text-sm text-muted-foreground">
+                  <span>{pattern ? `${L(signalCategoryLabel(pattern.category))} — ${pattern.team}` : inv.environment}</span>
+                  {inv.requestedCount ? (
+                    <>
+                      {' · '}
+                      <bdi dir="ltr" className="tabular-nums">
+                        {inv.status === 'returned' && inv.doneCount !== undefined ? `${inv.doneCount}/${inv.requestedCount}` : inv.requestedCount}
+                      </bdi>{' '}
+                      {t('interviews', 'مقابلات')}
+                    </>
+                  ) : null}
+                  {inv.scenario ? ` · ${L(inv.scenario)}` : ''}
+                </span>
+                {inv.lookFor && (
+                  <span className="text-sm">
+                    <span className="text-muted-foreground">{t('Look for', 'ما يُبحث عنه')}:</span> {L(inv.lookFor)}
+                  </span>
+                )}
+              </div>
+            </div>
+            <StatusBadge tone={INVESTIGATION_STATUS_TONE[inv.status]} dot>
+              {L(STATUS_LABEL[inv.status])}
+            </StatusBadge>
+          </div>
+          {inv.resultSummary && (
+            <p className="rounded-lg bg-muted/50 px-3 py-2 text-sm" data-testid="inv-result">
+              <span className="font-medium">{t('Result', 'النتيجة')}:</span> {L(inv.resultSummary)}
+            </p>
+          )}
+          {inv.status === 'returned' && (pattern || inv.proposedFixId) && (
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+              {pattern && (
+                <span className="inline-flex items-center gap-1.5">
+                  {t('Evidence on pattern', 'دليل على النمط')} <TraceId kind="pattern" id={pattern.traceId} />
+                </span>
+              )}
+              {inv.proposedFixId && (
+                <span className="inline-flex items-center gap-1.5" data-testid="inv-proposed-fix">
+                  {t('Fix proposed', 'الحل المقترح')}:{' '}
+                  {canOpenFix ? (
+                    <Link to={`/actions/corrective?fix=${caId(inv.proposedFixId)}`} className="font-mono text-xs text-primary underline-offset-4 hover:underline">
+                      <bdi dir="ltr">{caId(inv.proposedFixId)}</bdi>
+                    </Link>
+                  ) : (
+                    <bdi dir="ltr" className="font-mono text-xs">
+                      {caId(inv.proposedFixId)}
+                    </bdi>
+                  )}
+                </span>
+              )}
+            </div>
+          )}
+          {inv.status !== 'returned' && (
+            <div className="mt-auto flex justify-end">
+              <Button size="sm" className="h-9" onClick={() => onRecord(inv.id)}>
+                <ClipboardCheck aria-hidden />
+                {t('Record the result', 'سجّل النتيجة')}
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </li>
   )
 }
 
@@ -200,8 +277,8 @@ function ReturnDialog({ onCancel, onSubmit }: { onCancel: () => void; onSubmit: 
       <DialogContent className="sm:max-w-lg">
         <form onSubmit={handleSubmit((v) => onSubmit(v.summary.trim()))} className="flex flex-col gap-5">
           <DialogHeader>
-            <DialogTitle>{t('Record what came back', 'تسجيل ما عاد من نتائج')}</DialogTitle>
-            <DialogDescription>{t('A short summary is enough; it becomes the evidence for the next proposal.', 'يكفي ملخص قصير؛ يصبح دليلاً للاقتراح التالي.')}</DialogDescription>
+            <DialogTitle>{t('Record the result', 'سجّل النتيجة')}</DialogTitle>
+            <DialogDescription>{t('A short summary is enough. It becomes evidence on the pattern, and a fix is proposed for approval when the pattern has none.', 'يكفي ملخص قصير. يصبح دليلاً على النمط، ويُقترح حل للاعتماد إن لم يكن للنمط حل.')}</DialogDescription>
           </DialogHeader>
           <Field data-invalid={!!errors.summary}>
             <FieldLabel htmlFor="inv-summary">{t('What came back', 'ما عاد من نتائج')}</FieldLabel>
@@ -209,7 +286,7 @@ function ReturnDialog({ onCancel, onSubmit }: { onCancel: () => void; onSubmit: 
               id="inv-summary"
               rows={4}
               aria-invalid={!!errors.summary}
-              placeholder={t('Root cause confirmed, action proposed...', 'تم تأكيد السبب الجذري، واقتُرح إجراء...')}
+              placeholder={t('Interviews confirm the cause...', 'تؤكد المقابلات السبب...')}
               {...register('summary')}
             />
             {errors.summary && <FieldError>{t('Summarize what came back (at least 5 characters).', 'لخّص ما عاد من نتائج (5 أحرف على الأقل).')}</FieldError>}

@@ -1,8 +1,13 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { BrainCircuit, ChevronDown } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { useRole } from '@/auth/RoleContext'
+import { canAccessPath } from '@/auth/access'
 import { resolveAgentDisplay } from '@/auth/permissions'
+import { WHO_DOES_WHAT } from '@/lib/agents'
+import { AgentChip } from '@/components/common/AgentChip'
+import { Button } from '@/components/ui/button'
 import { useAgentDirectory, useCorrectiveRationale } from '@/services/queries'
 import type { Pattern } from '@/types'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
@@ -12,13 +17,18 @@ import { cn } from '@/lib/utils'
  * fired with its threshold, where, who (role-gated), why this team, why
  * this action (recovery figure in full sentence form), and what the AI did
  * not do. Reads the AgentOutputEnvelope's `evidence`/`rulesApplied` fields
- * directly (NFR-7) rather than a bespoke shape. */
-export function HowAiFoundThis({ actionId, pattern }: { actionId: string; pattern?: Pattern }) {
+ * directly (NFR-7) rather than a bespoke shape.
+ *
+ * v40 (F33, S17): a line of agent chips under the heading: Agent 3 (counted it), Agent 5 when the AI made the suggestion,
+ * "CX Supervisor: 6 checks passed", and a "Who does what" button to the AI team page (only for roles that may open it).
+ * The chips carry the agent name in the active language. */
+export function HowAiFoundThis({ actionId, pattern, aiMade = true }: { actionId: string; pattern?: Pattern; aiMade?: boolean }) {
   const { t, L, lang } = useI18n()
   const { role } = useRole()
   const [open, setOpen] = useState(false)
   const { data: envelope } = useCorrectiveRationale(actionId)
   const { data: directory } = useAgentDirectory()
+  const canSeeTeam = canAccessPath(role.id, '/intelligent-cx-team')
 
   const agentDisplay = pattern?.agentRef && directory
     ? resolveAgentDisplay(pattern.agentRef, role.id, directory, { en: 'Agent (name withheld)', ar: 'وكيل (الاسم محجوب)' }, lang)
@@ -33,6 +43,16 @@ export function HowAiFoundThis({ actionId, pattern }: { actionId: string; patter
         </span>
         <ChevronDown aria-hidden className={cn('size-4 text-muted-foreground transition-transform duration-200', open && 'rotate-180')} />
       </CollapsibleTrigger>
+      <div className="flex flex-wrap items-center gap-1.5 px-3 pb-2" data-testid="found-agents">
+        <AgentChip agent={3} />
+        {aiMade && <AgentChip agent={5} />}
+        <AgentChip agent="supervisor" />
+        {canSeeTeam && (
+          <Button variant="outline" size="sm" asChild className="h-7 px-2 text-xs">
+            <Link to="/intelligent-cx-team">{L(WHO_DOES_WHAT)}</Link>
+          </Button>
+        )}
+      </div>
       <CollapsibleContent className="px-3 pb-3">
         <dl className="grid grid-cols-1 gap-x-4 gap-y-2 border-t pt-3 text-sm sm:grid-cols-[minmax(8rem,auto)_1fr]">
           <Row label={t('Where', 'أين')} value={pattern?.team ?? '—'} />

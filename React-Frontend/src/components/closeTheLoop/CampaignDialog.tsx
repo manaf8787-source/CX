@@ -3,6 +3,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { ShieldAlert } from 'lucide-react'
 import { useI18n } from '@/i18n'
+import { envNameFromShort } from '@/data/environments'
 import type { DetractorCallItem } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -33,10 +34,13 @@ const SEVERITY_LABEL = {
  */
 export function CampaignDialog({
   eligibleItems,
+  noAnswers = 2,
   onCancel,
   onCreate,
 }: {
   eligibleItems: DetractorCallItem[]
+  /** No-answers before the campaign hands over to a person (decided 18 Nov: 2; the rule `rule_ai_no_answers`). */
+  noAnswers?: number
   onCancel: () => void
   onCreate: (v: CampaignFormValues) => void
 }) {
@@ -46,6 +50,8 @@ export function CampaignDialog({
     defaultValues: { name: '', segmentDescription: '', scriptEn: '', scriptAr: '', memberIds: [] },
   })
   const required = t('Required', 'مطلوب')
+  const timesEn = noAnswers === 2 ? 'twice' : `${noAnswers} times`
+  const timesAr = noAnswers === 2 ? 'مرتين' : `${noAnswers} مرات`
 
   return (
     <Dialog open onOpenChange={(open) => !open && onCancel()}>
@@ -87,7 +93,9 @@ export function CampaignDialog({
 
             <div className="flex flex-col gap-1 rounded-lg border bg-muted/40 p-3 text-sm">
               <span className="font-semibold">{t('Hand-off rules (always on)', 'قواعد التحويل (مفعّلة دائماً)')}</span>
-              <span>{t('Hangs up or does not answer twice → needs a human', 'أغلق الخط أو لم يرد مرتين ← يحتاج شخصاً')}</span>
+              <span>
+                {t(`Hangs up or does not answer ${timesEn} → needs a human`, `أغلق الخط أو لم يرد ${timesAr} ← يحتاج شخصاً`)}
+              </span>
               <span>{t('Asks for a person or says anything critical → a human the same day', 'طلب شخصاً أو قال أمراً حرجاً ← شخص في نفس اليوم')}</span>
               <span>{t('Declines → no retry', 'رفض ← دون إعادة محاولة')}</span>
             </div>
@@ -100,7 +108,7 @@ export function CampaignDialog({
                     <input type="checkbox" value={i.id} className="size-4 shrink-0 cursor-pointer accent-primary" {...register('memberIds')} />
                     <span className="font-mono text-xs text-muted-foreground">{i.id}</span>
                     <span>{L(SEVERITY_LABEL[i.severity])}</span>
-                    <span className="text-muted-foreground">· {i.environment}</span>
+                    <span className="text-muted-foreground">· {L(envNameFromShort(i.environment))}</span>
                   </label>
                 ))}
                 {!eligibleItems.length && <p className="p-3 text-sm text-muted-foreground">{t('No eligible members right now.', 'لا يوجد أعضاء مؤهلون حالياً.')}</p>}

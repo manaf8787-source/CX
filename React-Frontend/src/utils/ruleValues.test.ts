@@ -11,13 +11,20 @@ describe('rules read as values', () => {
     expect(DEFAULT_RULES_BAG.patterns).toEqual({ ...PATTERN_RULES })
   })
 
-  it('the v40 keys (working week, calling hours, tries) are configuration items marked [Proposed]', () => {
-    for (const id of [RULE_IDS.workingDays, RULE_IDS.callFrom, RULE_IDS.callTo, RULE_IDS.callTries]) {
-      expect(MOCK_RULES_CONFIG.find((r) => r.id === id)?.proposed, id).toBe(true)
+  it('the v40 keys are decided (18 Nov), so none is marked [Proposed]; only the calling hours carry a "Legal to confirm" note', () => {
+    for (const id of [RULE_IDS.workingDays, RULE_IDS.workStart, RULE_IDS.workEnd, RULE_IDS.fixFallbackDays, RULE_IDS.callFrom, RULE_IDS.callTo, RULE_IDS.callTries, RULE_IDS.aiNoAnswers]) {
+      expect(MOCK_RULES_CONFIG.find((r) => r.id === id)?.proposed, id).toBeUndefined()
     }
+    for (const id of [RULE_IDS.callFrom, RULE_IDS.callTo]) expect(MOCK_RULES_CONFIG.find((r) => r.id === id)?.note).toEqual({ en: 'Legal to confirm the hours', ar: 'القانونية تؤكد الساعات' })
+    for (const id of [RULE_IDS.callTries, RULE_IDS.aiNoAnswers, RULE_IDS.workingDays]) expect(MOCK_RULES_CONFIG.find((r) => r.id === id)?.note, id).toBeUndefined()
     const week = MOCK_RULES_CONFIG.find((r) => r.id === RULE_IDS.workingDays)!
-    expect(week.days).toEqual([1, 2, 3, 4, 5])
+    expect(week.days).toEqual([1, 2, 3, 4, 5]) // Monday to Friday
     expect(week.value).toBe(week.days!.length)
+  })
+
+  it('has the decided values: 3 attempts for the CX list, 2 no-answers for an AI campaign, 09:00 to 18:00, 14 days when the matrix cell is empty', () => {
+    expect(DEFAULT_RULES_BAG).toMatchObject({ callFrom: 9, callTo: 18, callTries: 3, aiNoAnswers: 2, workStart: 9, workEnd: 18, fixFallbackDays: 14, approveDays: 5, verifyDays: 60, publicReplyHours: 48 })
+    expect(calendarFromRules(DEFAULT_RULES_BAG)).toMatchObject({ days: [1, 2, 3, 4, 5], startHour: 9, endHour: 18 })
   })
 
   it('follows an edit and falls back to defaults for a missing item', () => {

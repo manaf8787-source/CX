@@ -5,6 +5,8 @@ import { latency, mock } from './mockStore'
 import {
   useAllInteractions,
   useCorrectiveActions,
+  useCorrectiveActionsAll,
+  usePersons,
   useDetractorCallItems,
   useEffortSummaries,
   useInvestigations,
@@ -24,7 +26,11 @@ import { useEnvScope } from './envScope'
 import { useRole } from '../auth/RoleContext'
 import { canAccessPath } from '../auth/access'
 import { useNow } from '../hooks/useNow'
-import { CES_SAMPLE } from '../data/v38Reference'
+import { AGENT_JDS, CES_SAMPLE } from '../data/v38Reference'
+import { publicReplyBreaches } from '../data/publicMentions'
+import { applyApprovalClock, applyDoneClock } from './fixClockStore'
+import { fixDue } from '../utils/fixClock'
+import { agentPassRates, syncSampleEffects } from '../utils/passRate'
 import { summariseFeeds } from '../data/feeds'
 import { MATRIX_KEY_BY_FIX_KIND } from '../data/escalationDefaults'
 import { classifyRunaway } from '../utils/runaway'
@@ -44,7 +50,9 @@ import type {
   CorrectiveActionStatus,
   CrmMapping,
   DataFeed,
+  AgentPassRate,
   FeedScope,
+  FixDue,
   FixMatrixLine,
   IndicatorSet,
   InboxItem,
@@ -54,6 +62,7 @@ import type {
   MatrixRow,
   ProductId,
   RoleId,
+  SupervisorTest,
   SurveyQuestionSet,
   TraceChain,
   TraceKind,
@@ -211,7 +220,8 @@ export function useBriefInputs(): { data: BriefInputs | undefined; isLoading: bo
   const { data: fixes, isLoading: l3, dataUpdatedAt: t3 } = useCorrectiveActions()
   const { data: cases, isLoading: l4, dataUpdatedAt: t4 } = useShopperCases()
   const { data: loop, isLoading: l5, dataUpdatedAt: t5 } = useDetractorCallItems()
-  const { data: persons, isLoading: l6 } = usePersonsAll()
+  const { data: persons, isLoading: l6 } = usePersons()
+  const { data: allPersons } = usePersonsAll()
   const { data: interactions, isLoading: l7 } = useAllInteractions()
   const { data: effort, isLoading: l8 } = useEffortSummaries()
   const { data: mentions, isLoading: l9, dataUpdatedAt: t9 } = usePublicMentions()
@@ -220,11 +230,11 @@ export function useBriefInputs(): { data: BriefInputs | undefined; isLoading: bo
   const stamp = [t1, t2, t3, t4, t5, t9].join('.')
 
   const data = useMemo<BriefInputs | undefined>(() => {
-    if (!signals || !patterns || !fixes || !cases || !loop || !persons || !interactions || !effort || !mentions || !sample) return undefined
+    if (!signals || !patterns || !fixes || !cases || !loop || !persons || !allPersons || !interactions || !effort || !mentions || !sample) return undefined
     const windowDays = rules.patterns.windowDays
     const closed = (s: CorrectiveActionStatus) => s === 'effective' || s === 'partial' || s === 'failed'
     const patternIdsWithFix = new Set(fixes.map((f) => f.patternId).filter(Boolean))
-    const open = loop.filter((l) => l.status !== 'done' && !persons.find((p) => p.id === l.personId)?.consent.dncr)
+    const open = loop.filter((l) => l.status !== 'done' && !allPersons.find((p) => p.id === l.personId)?.consent.dncr)
     const byPerson = new Map<string, typeof interactions>()
     for (const i of interactions) byPerson.set(i.personKey, [...(byPerson.get(i.personKey) ?? []), i])
     const drifting = persons.filter((p) => classifyRunaway(p, effort.find((e) => e.personId === p.id), byPerson.get(p.id) ?? [])).length
@@ -257,6 +267,7 @@ export function useBriefInputs(): { data: BriefInputs | undefined; isLoading: bo
       people: { drifting, total: persons.length },
       publicMentions: {
         last30: mentions.length,
+        overdue: publicReplyBreaches(mentions, now, rules.publicReplyHours).length,
         negativePct: mentions.length ? Math.round((negative / mentions.length) * 100) : null,
         avgReplyHours: replied.length ? Math.round(replied.reduce((s, m) => s + (m.replyHours as number), 0) / replied.length) : null,
         target: rules.publicReplyHours,
@@ -266,7 +277,7 @@ export function useBriefInputs(): { data: BriefInputs | undefined; isLoading: bo
       sample: { toRead: sample.size, read: sample.read },
     }
     // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, [signals, patterns, fixes, cases, loop, persons, interactions, effort, mentions, sample, rules, now, stamp])
+  }, [signals, patterns, fixes, cases, loop, persons, allPersons, interactions, effort, mentions, sample, rules, now, stamp])
 
   return { data, isLoading: l1 || l2 || l3 || l4 || l5 || l6 || l7 || l8 || l9 || l10 }
 }
@@ -317,7 +328,7 @@ export function useTraceIndex() {
   const interactions = useAllInteractions()
   const signals = useSignalsAll()
   const patterns = usePatternsAll()
-  const fixes = useCorrectiveActions()
+  const fixes = useCorrectiveActionsAll()
   const index = useMemo(
     () =>
       interactions.data && signals.data && patterns.data && fixes.data
@@ -420,6 +431,9 @@ export function useSetFixStatus() {
       const fix = mock.MOCK_CORRECTIVE_ACTIONS.find((f) => f.id === input.id)
       if (!fix) throw new Error('Corrective action not found')
       fix.status = input.status
+      // Approval starts the due-date clock (matrix Resolve (h) in working hours); marking done starts the 60-day check.
+      if (input.status === 'approved') applyApprovalClock(fix)
+      if (input.status === 'verification') applyDoneClock(fix)
       if (input.status === 'effective' || input.status === 'partial' || input.status === 'failed') fix.verificationResult = input.status
       fix.auditLog.push(statusAudit(input.status, input.byRole ?? role.id))
       return fix
@@ -488,13 +502,69 @@ export function useJudgeSample() {
       if (!item) throw new Error('Sample item not found')
       item.verdict = input.right
       item.judgedAt = new Date().toISOString()
+      // A "wrong" lowers that agent's pass rate and becomes a supervisor test (decided 18 Nov); a changed verdict gives them back.
+      syncSampleEffects(mock.MOCK_WEEKLY_SAMPLE, mock.MOCK_SUPERVISOR_TESTS, AGENT_JDS)
       return { ...item }
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['weekly-sample'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['weekly-sample'] })
+      qc.invalidateQueries({ queryKey: ['agent-pass-rates'] })
+      qc.invalidateQueries({ queryKey: ['supervisor-tests'] })
+      qc.invalidateQueries({ queryKey: ['agent-jds'] })
+    },
   })
 }
 
+/** Pass rate per agent in the sample: before and after the week's "wrong" verdicts (see `utils/passRate.ts`). The agents page reads the same figure from `AGENT_JDS`. */
+export const useAgentPassRates = () =>
+  useQuery({
+    queryKey: ['agent-pass-rates'],
+    queryFn: async (): Promise<AgentPassRate[]> => {
+      await latency(LATENCY_MS)
+      const base: Record<number, number | null> = {}
+      for (const jd of AGENT_JDS) base[jd.id] = jd.baseApprovalPct ?? jd.approvalPct
+      return agentPassRates(mock.MOCK_WEEKLY_SAMPLE, base)
+    },
+  })
+
+/** The tests the supervisor gained from "wrong" verdicts, newest last. */
+export const useSupervisorTests = () =>
+  useQuery({
+    queryKey: ['supervisor-tests'],
+    queryFn: async (): Promise<SupervisorTest[]> => {
+      await latency(LATENCY_MS)
+      return mock.MOCK_SUPERVISOR_TESTS.map((t) => ({ ...t }))
+    },
+  })
+
+// --- Fix clocks (decided 18 Nov) -------------------------------------------------------------------------------------
+
+/**
+ * The due date of a fix. Once approved it is the stored one (`dueSource` 'matrix' or 'fallback'); before that, a preview
+ * of what approval now would give: the matrix "Resolve (h)" for its product and kind in working hours, or Agent 5's 14 days
+ * when the cell is empty. `preview` says which. Undefined until the matrix has loaded.
+ */
+export function useFixDue(fix?: Pick<CorrectiveAction, 'kind' | 'product' | 'dueDate' | 'dueSource'>): (FixDue & { preview: boolean }) | undefined {
+  const rules = useRules()
+  const now = useNow()
+  const { data: rows } = useMatrix(fix?.product ?? 're')
+  if (!fix) return undefined
+  if (fix.dueSource) return { dueAt: fix.dueDate, source: fix.dueSource, preview: false }
+  if (!rows) return undefined
+  const resolveH = rows.find((r) => r.kind === MATRIX_KEY_BY_FIX_KIND[fix.kind])?.cells.resolveH ?? null
+  return { ...fixDue(now, resolveH, rules), preview: true }
+}
+
 // --- Public mentions (F30) -------------------------------------------------------------------------------------------
+
+/** Mentions with no reply past the reply clock (48 h): CX raises a signal for each (decided 18 Nov). Marketing owns the reply. */
+export function usePublicReplyBreaches() {
+  const { data, isLoading } = usePublicMentions()
+  const rules = useRules()
+  const now = useNow()
+  const breaches = useMemo(() => (data ? publicReplyBreaches(data, now, rules.publicReplyHours) : undefined), [data, now, rules.publicReplyHours])
+  return { data: breaches, isLoading }
+}
 
 /** "Mark replied": reply hours = days since the mention x 24, at least 1 (the prototype's rule); the reputation index updates. CX roles and Marketing only. */
 export function useMarkReplied() {

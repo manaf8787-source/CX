@@ -1,11 +1,14 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { ArrowDownLeft, ArrowUpRight, PhoneOff } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { useRole } from '@/auth/RoleContext'
 import { canViewAgentNames, canViewConversationText, resolveAgentDisplay } from '@/auth/permissions'
-import { useAgentDirectory } from '@/services/queries'
+import { useAgentDirectory, useSignalsAll } from '@/services/queries'
+import { evId } from '@/utils/trace'
+import { TraceId } from '@/components/common/TraceId'
 import { JOURNEY_RULES } from '@/utils/journeyRules'
-import type { ChannelId, Interaction } from '@/types'
+import type { ChannelId, Interaction, Signal } from '@/types'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { SectionCard } from '@/components/common/SectionCard'
 import { StatusBadge } from '@/components/common/StatusBadge'
@@ -20,12 +23,26 @@ const ALL_CHANNELS: ChannelId[] = [
 
 /** FR-2.5/2.6/2.9 — newest first, filterable by channel, problem events
  * highlighted, agent calls never show a transcript, and conversation
- * text/agent names stay behind the role gates from `auth/permissions.ts`. */
+ * text/agent names stay behind the role gates from `auth/permissions.ts`.
+ *
+ * v40 (F12): every row carries its grey `EV-n` tag and one `SG-n` button per signal the event produced (opens the signal
+ * detail dialog). The row named by `?ev=EV-12` (a Trace id on another page) is highlighted and scrolled into view. */
 export function Timeline({ interactions }: { interactions: Interaction[] }) {
   const { t, L, lang } = useI18n()
   const { role } = useRole()
   const { data: directory } = useAgentDirectory()
+  const { data: allSignals } = useSignalsAll()
+  const [params] = useSearchParams()
+  const targetEvent = params.get('ev')
+  const targetRef = useRef<HTMLLIElement>(null)
   const [channelFilter, setChannelFilter] = useState<'all' | ChannelId>('all')
+
+  // event id -> the signals it produced (a public mention has no events, so it never appears here)
+  const signalsByEvent = useMemo(() => {
+    const map = new Map<string, Signal[]>()
+    for (const s of allSignals ?? []) for (const e of s.eventIds) map.set(e, [...(map.get(e) ?? []), s])
+    return map
+  }, [allSignals])
 
   const usedChannels = useMemo(() => ALL_CHANNELS.filter((c) => interactions.some((i) => i.channel === c)), [interactions])
   const sorted = useMemo(
@@ -37,6 +54,11 @@ export function Timeline({ interactions }: { interactions: Interaction[] }) {
   )
   const canSeeText = canViewConversationText(role.id)
   const canSeeAgents = canViewAgentNames(role.id)
+  const isTarget = (i: Interaction) => !!targetEvent && (targetEvent === evId(i.id) || targetEvent === i.id)
+  const hasTarget = interactions.some(isTarget)
+  useEffect(() => {
+    if (hasTarget) targetRef.current?.scrollIntoView?.({ block: 'center' })
+  }, [hasTarget])
 
   return (
     <SectionCard
@@ -73,8 +95,10 @@ export function Timeline({ interactions }: { interactions: Interaction[] }) {
             const Icon = CHANNEL_ICON[i.channel]
             const isLast = idx === sorted.length - 1
             const when = new Date(i.occurredAt)
+            const target = isTarget(i)
+            const produced = signalsByEvent.get(i.id) ?? []
             return (
-              <li key={i.id} className="relative flex gap-3 pb-5 last:pb-0">
+              <li key={i.id} ref={target ? targetRef : undefined} id={`ev-${evId(i.id)}`} data-ev={evId(i.id)} data-highlighted={target ? 'true' : undefined} className="relative flex scroll-mt-24 gap-3 pb-5 last:pb-0">
                 {!isLast && <span aria-hidden className="absolute start-4 top-9 bottom-0 w-px -translate-x-1/2 bg-border rtl:translate-x-1/2" />}
                 <span
                   aria-hidden
@@ -93,9 +117,14 @@ export function Timeline({ interactions }: { interactions: Interaction[] }) {
                   className={cn(
                     'flex min-w-0 flex-1 flex-col gap-1.5 rounded-lg px-3 py-2',
                     hasProblem ? 'border border-destructive/25 bg-destructive/5' : 'bg-muted/40',
+                    target && 'ring-2 ring-primary',
                   )}
                 >
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+                    <TraceId kind="event" id={i.id} plain />
+                    {produced.map((s) => (
+                      <TraceId key={s.id} kind="signal" id={s.id} />
+                    ))}
                     <span className="font-medium">{L(CHANNEL_LABEL[i.channel])}</span>
                     <time dateTime={i.occurredAt} className="text-muted-foreground tabular-nums">
                       {when.toLocaleDateString(lang, { day: 'numeric', month: 'short', year: 'numeric' })} ·{' '}

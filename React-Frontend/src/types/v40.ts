@@ -177,16 +177,6 @@ export interface FixMatrixLine {
   row: MatrixRow
 }
 
-/** Rules and Definitions Decision 4 template: one row per complaint category. Kept beside the v40 per-kind matrix because the two layouts conflict (B16). */
-export interface CategoryTemplateRow {
-  id: string
-  category: Bi
-  owner: Bi | null
-  backup: Bi | null
-  informed: Bi | null
-  routing: Bi | null
-}
-
 // --- Survey questions (F23) --------------------------------------------------
 
 export interface SurveyQuestionSet {
@@ -240,6 +230,41 @@ export interface WeeklySampleItem {
   judgedAt?: string
 }
 
+// --- Fix clocks (decided 18 Nov) -------------------------------------------------
+
+export interface FixDue {
+  /** ISO. */
+  dueAt: string
+  /** 'matrix' = the matrix "Resolve (h)" in working hours from approval; 'fallback' = Agent 5's 14 days (the cell was empty). */
+  source: 'matrix' | 'fallback'
+  /** The working hours used, when the matrix gave them. */
+  hours?: number
+}
+
+// --- Weekly sample effect on the supervisor (decided 18 Nov) ------------------------
+
+/** A "wrong" verdict becomes a test case for the supervisor. */
+export interface SupervisorTest {
+  id: string
+  /** The sample item that failed. */
+  fromSampleId: string
+  agent: number
+  text: Bi
+  createdAt: string
+}
+
+export interface AgentPassRate {
+  agent: number
+  /** The pass rate before the week's verdicts (the sample figure on the agents page); null = not running. */
+  base: number | null
+  /** After the week's "wrong" verdicts. */
+  current: number | null
+  /** Outputs of this agent in the week's sample. */
+  sampled: number
+  wrong: number
+  tests: number
+}
+
 // --- Indicators and brief inputs (F03, F09) ---------------------------------
 
 export interface IndicatorSet {
@@ -263,7 +288,8 @@ export interface BriefInputs {
   shopper: { open: number; late: number }
   loop: { open: number; critical: number; recoveredByPhonePct: number | null; recoveredByAiPct: number | null }
   people: { drifting: number; total: number }
-  publicMentions: { last30: number; negativePct: number | null; avgReplyHours: number | null; target: number }
+  /** `overdue` = mentions with no reply past the reply clock: CX raises a signal for each (decided 18 Nov). */
+  publicMentions: { last30: number; overdue: number; negativePct: number | null; avgReplyHours: number | null; target: number }
   ldFixes: number
   conductNotes: number
   sample: { toRead: number; read: number }

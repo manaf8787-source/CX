@@ -4,6 +4,8 @@ import { INTERVIEW_OUTCOME_LABEL, REASON_CODE_LABEL, recoveryStatus } from '../u
 import { scoreChecklist } from '../utils/mysteryShopper'
 import { PRODUCTS } from '../data/products'
 import { inEnvScope } from '../data/environments'
+import { envsOfFix, inScopeAny } from '../utils/envScope'
+import { applyApprovalClock } from './fixClockStore'
 import { useRole } from '../auth/RoleContext'
 import { decisionAudit, proposedStamp, productOfPattern } from '../utils/audit'
 import { detectPatternsCached } from '../utils/patterns'
@@ -73,9 +75,29 @@ async function fetchPatterns(env: EnvScope = 'all') {
   return detectPatternsCached(env, signals, rules.patterns)
 }
 
-async function fetchCorrectiveActions() {
+/**
+ * The environment switch narrows everything that carries an environment (decided 18 Nov), fixes and the call list included.
+ * A fix or an investigation takes the environments of its pattern's signals; one with none known shows everywhere.
+ */
+function scopeIndex() {
+  const rules = rulesFromConfig(mock.MOCK_RULES_CONFIG)
+  const patterns = detectPatternsCached('all', mock.MOCK_SIGNALS, rules.patterns)
+  return { patternById: new Map(patterns.map((p) => [p.id, p])), signalById: new Map(mock.MOCK_SIGNALS.map((s) => [s.id, s])) }
+}
+
+function scopedFixes(env: EnvScope): CorrectiveAction[] {
+  if (env === 'all') return mock.MOCK_CORRECTIVE_ACTIONS
+  const { patternById, signalById } = scopeIndex()
+  return mock.MOCK_CORRECTIVE_ACTIONS.filter((f) => inScopeAny(env, envsOfFix(f, patternById, signalById)))
+}
+
+function scopedLoop(env: EnvScope) {
+  return env === 'all' ? mock.MOCK_DETRACTOR_CALL_ITEMS : mock.MOCK_DETRACTOR_CALL_ITEMS.filter((d) => inEnvScope(env, d.envId))
+}
+
+async function fetchCorrectiveActions(env: EnvScope = 'all') {
   await latency(LATENCY_MS)
-  return mock.MOCK_CORRECTIVE_ACTIONS
+  return scopedFixes(env)
 }
 
 async function fetchShopperCases(env: EnvScope = 'all') {
@@ -83,14 +105,16 @@ async function fetchShopperCases(env: EnvScope = 'all') {
   return env === 'all' ? mock.MOCK_SHOPPER_CASES : mock.MOCK_SHOPPER_CASES.filter((c) => inEnvScope(env, c.envId))
 }
 
-async function fetchInvestigations() {
+async function fetchInvestigations(env: EnvScope = 'all') {
   await latency(LATENCY_MS)
-  return mock.MOCK_INVESTIGATIONS
+  if (env === 'all') return mock.MOCK_INVESTIGATIONS
+  const { patternById, signalById } = scopeIndex()
+  return mock.MOCK_INVESTIGATIONS.filter((i) => inScopeAny(env, envsOfFix(i, patternById, signalById)))
 }
 
-async function fetchDetractorCallItems() {
+async function fetchDetractorCallItems(env: EnvScope = 'all') {
   await latency(LATENCY_MS)
-  return mock.MOCK_DETRACTOR_CALL_ITEMS
+  return scopedLoop(env)
 }
 
 async function fetchAllInteractions() {
@@ -143,9 +167,12 @@ async function fetchAgentDirectory() {
   return mock.MOCK_AGENT_DIRECTORY
 }
 
-async function fetchHandoffs() {
+/** A hand-off is in the environment of its person. */
+async function fetchHandoffs(env: EnvScope = 'all') {
   await latency(LATENCY_MS)
-  return mock.MOCK_HANDOFFS
+  if (env === 'all') return mock.MOCK_HANDOFFS
+  const personEnv = new Map(mock.MOCK_PERSONS.map((p) => [p.id, p.envId]))
+  return mock.MOCK_HANDOFFS.filter((h) => inEnvScope(env, personEnv.get(h.personId) ?? env))
 }
 
 async function fetchAiInsights() {
@@ -251,6 +278,8 @@ async function decideCorrectiveAction(input: DecideInput) {
   action.decision = input.decision
   action.decisionReason = { en: input.reason || '—', ar: input.reason || '—' }
   action.status = input.decision === 'approved' ? 'approved' : action.status
+  // Approval starts the due-date clock: the matrix "Resolve (h)" in working hours, Agent 5's 14 days when the cell is empty.
+  if (input.decision === 'approved') applyApprovalClock(action)
   action.auditLog.push(decisionAudit(input.decision, input.reason, input.byRole ?? 'system'))
   return action
 }
@@ -536,22 +565,28 @@ async function toggleProductLaunch(input: { id: ProductId }) {
   return product
 }
 
-async function fetchHomeSummary() {
+async function fetchHomeSummary(env: EnvScope = 'all') {
   await latency(LATENCY_MS)
-  const runawayCount = mock.MOCK_EFFORT_SUMMARIES.filter((e) => e.daysSinceLastContact > 30).length
-  const openActions = mock.MOCK_CORRECTIVE_ACTIONS.filter((a) => a.status !== 'effective' && a.status !== 'failed').length
+  const persons = env === 'all' ? mock.MOCK_PERSONS : mock.MOCK_PERSONS.filter((p) => inEnvScope(env, p.envId))
+  const ids = new Set(persons.map((p) => p.id))
+  const runawayCount = mock.MOCK_EFFORT_SUMMARIES.filter((e) => ids.has(e.personId) && e.daysSinceLastContact > 30).length
+  const openActions = scopedFixes(env).filter((a) => a.status !== 'effective' && a.status !== 'failed').length
+  const loop = scopedLoop(env)
   return {
     runawayCount,
     openActions,
     personaCount: mock.MOCK_PERSONAS.length,
-    journeysViewed: mock.MOCK_PERSONS.length,
-    toCall: mock.MOCK_DETRACTOR_CALL_ITEMS.filter((d) => !d.outcome).length || mock.MOCK_DETRACTOR_CALL_ITEMS.length,
+    journeysViewed: persons.length,
+    toCall: loop.filter((d) => !d.outcome).length || loop.length,
   }
 }
 
 // --- Hooks -------------------------------------------------------------
 
-export const useHomeSummary = () => useQuery({ queryKey: ['home-summary'], queryFn: fetchHomeSummary })
+export const useHomeSummary = () => {
+  const { env } = useEnvScope()
+  return useQuery({ queryKey: ['home-summary', env], queryFn: () => fetchHomeSummary(env) })
+}
 /** Env-aware: the environment switch is part of the key (docs/V40_FOUNDATION_API.md). */
 export const usePersons = () => {
   const { env } = useEnvScope()
@@ -580,13 +615,25 @@ export const usePatterns = () => {
   return useQuery({ queryKey: ['patterns', env], queryFn: () => fetchPatterns(env) })
 }
 export const usePatternsAll = () => useQuery({ queryKey: ['patterns', 'all'], queryFn: () => fetchPatterns('all') })
-export const useCorrectiveActions = () => useQuery({ queryKey: ['corrective-actions'], queryFn: fetchCorrectiveActions })
+/** Env-aware: narrowed by the environment switch (fixes included, decided 18 Nov). `useCorrectiveActionsAll` ignores the switch. */
+export const useCorrectiveActions = () => {
+  const { env } = useEnvScope()
+  return useQuery({ queryKey: ['corrective-actions', env], queryFn: () => fetchCorrectiveActions(env) })
+}
+export const useCorrectiveActionsAll = () => useQuery({ queryKey: ['corrective-actions', 'all'], queryFn: () => fetchCorrectiveActions('all') })
 export const useShopperCases = () => {
   const { env } = useEnvScope()
   return useQuery({ queryKey: ['shopper-cases', env], queryFn: () => fetchShopperCases(env) })
 }
-export const useInvestigations = () => useQuery({ queryKey: ['investigations'], queryFn: fetchInvestigations })
-export const useDetractorCallItems = () => useQuery({ queryKey: ['detractor-call-items'], queryFn: fetchDetractorCallItems })
+export const useInvestigations = () => {
+  const { env } = useEnvScope()
+  return useQuery({ queryKey: ['investigations', env], queryFn: () => fetchInvestigations(env) })
+}
+/** The close-the-loop list, narrowed by the environment switch (decided 18 Nov). A DNCR person is never on it. */
+export const useDetractorCallItems = () => {
+  const { env } = useEnvScope()
+  return useQuery({ queryKey: ['detractor-call-items', env], queryFn: () => fetchDetractorCallItems(env) })
+}
 export const useAllInteractions = () => useQuery({ queryKey: ['interactions-all'], queryFn: fetchAllInteractions })
 export const useEffortSummaries = () => useQuery({ queryKey: ['effort-summaries'], queryFn: fetchEffortSummaries })
 export const useAiJourneyReading = (personId: string) =>
@@ -598,7 +645,10 @@ export const useSurveyTriggers = () => useQuery({ queryKey: ['survey-triggers'],
 export const useLeadFunnel = () => useQuery({ queryKey: ['lead-funnel'], queryFn: fetchLeadFunnel })
 export const useProductSurveyMoments = () => useQuery({ queryKey: ['product-survey-moments'], queryFn: fetchProductSurveyMoments })
 export const useAgentDirectory = () => useQuery({ queryKey: ['agent-directory'], queryFn: fetchAgentDirectory })
-export const useHandoffs = () => useQuery({ queryKey: ['handoffs'], queryFn: fetchHandoffs })
+export const useHandoffs = () => {
+  const { env } = useEnvScope()
+  return useQuery({ queryKey: ['handoffs', env], queryFn: () => fetchHandoffs(env) })
+}
 export const useAiInsights = () => useQuery({ queryKey: ['ai-insights'], queryFn: fetchAiInsights })
 export const useCorrectiveRationale = (actionId: string) =>
   useQuery({ queryKey: ['corrective-rationale', actionId], queryFn: () => fetchCorrectiveRationale(actionId), enabled: !!actionId })

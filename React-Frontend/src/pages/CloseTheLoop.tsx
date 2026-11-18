@@ -1,18 +1,21 @@
 import { REASON_CODE_LABEL } from '@/utils/closeTheLoop'
 import { useMemo, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import type { ColumnDef } from '@tanstack/react-table'
 import { toast } from 'sonner'
-import { Bot, Phone, Plus, TrendingUp } from 'lucide-react'
+import { Bot, ClockAlert, PhoneMissed, Phone, Plus, TrendingUp, X } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { useRole } from '@/auth/RoleContext'
+import { canRecordCallAttempt } from '@/auth/permissions'
 import {
   useAiCampaigns,
   useCreateAiCampaign,
   useDetractorCallItems,
-  usePersons,
+  usePersonsAll,
   useRecordInterview,
   useRecordResurvey,
 } from '@/services/queries'
+import { useRecordNoAnswer, useRules } from '@/services/queriesV40'
 import {
   CLOSE_LOOP_DEFAULTS,
   INTERVIEW_OUTCOME_LABEL,
@@ -25,6 +28,10 @@ import {
   recoveryStatus,
   sampleToCapacity,
 } from '@/utils/closeTheLoop'
+import { CALL_COPY, attemptLine, callRulesFrom } from '@/utils/callSchedule'
+import { personLabel } from '@/utils/peopleExport'
+import { envNameFromShort } from '@/data/environments'
+import { CLOSE_LOOP_NEXT } from '@/data/steps'
 import { useNow } from '@/hooks/useNow'
 import { SEVERITY_TONE } from '@/lib/status'
 import type { DetractorCallItem } from '@/types'
@@ -35,6 +42,7 @@ import { Progress } from '@/components/ui/progress'
 import { PageHeader } from '@/components/common/PageHeader'
 import { SectionCard } from '@/components/common/SectionCard'
 import { StatusBadge } from '@/components/common/StatusBadge'
+import { NextBox } from '@/components/common/NextBox'
 import { DataTable, SortableHeader } from '@/components/common/DataTable'
 import { EmptyState } from '@/components/common/EmptyState'
 import { LoadingState } from '@/components/common/LoadingState'
@@ -53,16 +61,29 @@ const CAMPAIGN_STATUS: Record<string, { label: { en: string; ar: string }; tone:
   draft: { label: { en: 'Draft', ar: 'مسودة' }, tone: 'warning' },
 }
 
+/** "مرتين" for two, "n مرات" otherwise (the English text says "2x"). */
+function timesAr(n: number) {
+  return n === 2 ? 'مرتين' : `${n} مرات`
+}
+
 /** FR-5.1–5.6 — the monthly detractor call list with real capacity math,
  * the four-question interview, re-survey/recovery delta, and AI interview
- * campaigns with the critical-exclusion hard rule. */
+ * campaigns with the critical-exclusion hard rule.
+ * v40 (F27): calling hours (config), up to three attempts with the next one on the following working day,
+ * a "No answer" action, WhatsApp after the last attempt, then "needs a human" for the CX manager. A DNCR person
+ * is never on the list. The next-step box says where this page sits in the six steps. */
 export default function CloseTheLoop() {
-  const { t, L } = useI18n()
+  const { t, L, lang } = useI18n()
   const { role } = useRole()
-  const { data: items, isLoading: itemsLoading } = useDetractorCallItems()
-  const { data: persons } = usePersons()
+  const rules = useRules()
+  const callRules = useMemo(() => callRulesFrom(rules), [rules])
+  const [params, setParams] = useSearchParams()
+  // The call-list register is edited in place: `dataUpdatedAt` is what tells this page that a row changed.
+  const { data: items, isLoading: itemsLoading, dataUpdatedAt } = useDetractorCallItems()
+  const { data: persons } = usePersonsAll()
   const { data: campaigns, isLoading: campaignsLoading } = useAiCampaigns()
   const recordInterview = useRecordInterview()
+  const recordNoAnswer = useRecordNoAnswer()
   const recordResurvey = useRecordResurvey()
   const createCampaign = useCreateAiCampaign()
 
@@ -74,15 +95,30 @@ export default function CloseTheLoop() {
   const [creatingCampaign, setCreatingCampaign] = useState(false)
 
   const capacity = computeMonthlyCapacity(people, hoursPerDay, workingDays)
-  const sorted = useMemo(() => [...(items ?? [])].sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]), [items])
+  // A DNCR person is never callable and never on this list, whatever the environment switch says.
+  const dncrIds = useMemo(() => new Set((persons ?? []).filter((p) => p.consent.dncr).map((p) => p.id)), [persons])
+  const sorted = useMemo(
+    () =>
+      (items ?? [])
+        .filter((i) => !dncrIds.has(i.personId))
+        .sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]),
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+    [items, dataUpdatedAt, dncrIds],
+  )
   const { selected, excluded } = useMemo(() => sampleToCapacity(sorted, capacity), [sorted, capacity])
   const usedPct = sorted.length ? Math.min(100, Math.round((selected.length / sorted.length) * 100)) : 0
   const canCreateCampaign = role.id === 'cxmgr' || role.id === 'cxteam'
+  const canRecordAttempt = canRecordCallAttempt(role.id)
   const now = useNow()
-  const rate = useMemo(() => recoveryRate(items ?? [], now), [items, now])
+  // oxlint-disable-next-line react-hooks/exhaustive-deps
+  const rate = useMemo(() => recoveryRate(items ?? [], now), [items, now, dataUpdatedAt])
+
+  const locale = lang === 'ar' ? 'ar-AE' : 'en-GB'
+  const fmtDay = (key: string) => new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short' }).format(new Date(`${key}T00:00:00`))
 
   function personName(id: string) {
-    return persons?.find((p) => p.id === id)?.name ?? id
+    const p = persons?.find((x) => x.id === id)
+    return p ? personLabel(p, role.id) : id
   }
 
   function saveResurvey(item: DetractorCallItem) {
@@ -96,6 +132,17 @@ export default function CloseTheLoop() {
     }
     recordResurvey.mutate({ id, secondScore: v })
     toast.success(t('Re-survey saved', 'تم حفظ إعادة الاستبيان'))
+  }
+
+  /** "No answer": attempt + 1, the next one the following working day; after the last, WhatsApp goes out and the row needs a human. */
+  function noAnswer(item: DetractorCallItem) {
+    recordNoAnswer.mutate(
+      { id: item.id },
+      {
+        onSuccess: (res) => toast(L(res.toast)),
+        onError: (e) => toast.error(e instanceof Error ? e.message : t('Could not record the attempt.', 'تعذّر تسجيل المحاولة.')),
+      },
+    )
   }
 
   const columns: ColumnDef<DetractorCallItem>[] = [
@@ -115,7 +162,7 @@ export default function CloseTheLoop() {
       header: ({ column }) => <SortableHeader column={column}>{t('Person', 'الشخص')}</SortableHeader>,
       cell: ({ getValue }) => <span className="font-medium">{getValue<string>()}</span>,
     },
-    { id: 'environment', accessorKey: 'environment', header: t('Environment', 'البيئة') },
+    { id: 'environment', accessorFn: (i) => L(envNameFromShort(i.environment)), header: t('Environment', 'البيئة') },
     {
       id: 'channel',
       accessorFn: (i) => i.channel,
@@ -153,15 +200,45 @@ export default function CloseTheLoop() {
         row.original.reasonCode ? L(REASON_CODE_LABEL[row.original.reasonCode]) : <span className="text-muted-foreground">—</span>,
     },
     {
+      id: 'due',
+      accessorFn: (i) => i.nextAttemptOn ?? i.dueOn ?? '',
+      header: ({ column }) => <SortableHeader column={column}>{t('Due', 'المهلة')}</SortableHeader>,
+      cell: ({ row }) => {
+        const i = row.original
+        const line = attemptLine(i, callRules)
+        return (
+          <span className="inline-flex flex-col leading-tight">
+            {i.dueOn ? <bdi dir="ltr" className="tabular-nums">{fmtDay(i.dueOn)}</bdi> : <span className="text-muted-foreground">–</span>}
+            {line && (
+              <span className="text-xs text-muted-foreground">
+                {L(CALL_COPY.rowSuffix(line.attempt, line.of, line.next ? fmtDay(line.next) : undefined))}
+              </span>
+            )}
+          </span>
+        )
+      },
+    },
+    {
       id: 'outcome',
-      accessorFn: (i) => (i.outcome ? L(INTERVIEW_OUTCOME_LABEL[i.outcome]) : ''),
-      header: t('Outcome', 'النتيجة'),
-      cell: ({ row }) =>
-        row.original.outcome ? (
-          L(INTERVIEW_OUTCOME_LABEL[row.original.outcome])
-        ) : (
-          <span className="text-muted-foreground">{t('Not called yet', 'لم يُتصل به بعد')}</span>
-        ),
+      accessorFn: (i) => (i.outcome ? L(INTERVIEW_OUTCOME_LABEL[i.outcome]) : i.status),
+      header: t('Status', 'الحالة'),
+      cell: ({ row }) => {
+        const i = row.original
+        if (i.status === 'done' || i.outcome) return i.outcome ? L(INTERVIEW_OUTCOME_LABEL[i.outcome]) : <span className="text-muted-foreground">—</span>
+        if (i.status === 'needs_human')
+          return (
+            <StatusBadge tone="danger" dot>
+              {L(CALL_COPY.needsHuman)}
+            </StatusBadge>
+          )
+        if (i.status === 'no_answer')
+          return (
+            <StatusBadge tone="warning" icon={<PhoneMissed aria-hidden />}>
+              {L(CALL_COPY.noAnswerButton)}
+            </StatusBadge>
+          )
+        return <span className="text-muted-foreground">{t('Not called yet', 'لم يُتصل به بعد')}</span>
+      },
     },
     {
       id: 'resurvey',
@@ -233,18 +310,37 @@ export default function CloseTheLoop() {
     },
     {
       id: 'call',
-      header: () => <span className="sr-only">{t('Call', 'اتصال')}</span>,
+      header: () => <span className="sr-only">{t('Actions', 'الإجراءات')}</span>,
       enableSorting: false,
       meta: { align: 'end' },
-      cell: ({ row }) =>
-        !row.original.outcome && (
-          <Button size="sm" className="h-9" onClick={() => setInterviewing(row.original)}>
-            <Phone aria-hidden />
-            {t('Call', 'اتصال')}
-          </Button>
-        ),
+      cell: ({ row }) => rowActions(row.original),
     },
   ]
+
+  /** Call (the four-question interview) and, for the CX team's own list, "No answer". An AI campaign row hands over by its own rule. */
+  // A plain function (not a component): the table rebuilds its columns every render, and a component defined here would remount its buttons and lose focus.
+  function rowActions(item: DetractorCallItem) {
+    if (item.outcome || item.status === 'done') return null
+    const canNoAnswer = canRecordAttempt && item.channel === 'human' && item.status !== 'needs_human'
+    return (
+      <span className="inline-flex items-center justify-end gap-1.5">
+        {canNoAnswer && (
+          <Button variant="outline" size="sm" className="h-9" onClick={() => noAnswer(item)} disabled={recordNoAnswer.isPending}>
+            <PhoneMissed aria-hidden />
+            {L(CALL_COPY.noAnswerButton)}
+          </Button>
+        )}
+        <Button size="sm" className="h-9" onClick={() => setInterviewing(item)}>
+          <Phone aria-hidden />
+          {t('Call', 'اتصال')}
+        </Button>
+      </span>
+    )
+  }
+
+  // `?item=dcl-3` (My inbox "call" rows): show that row first, with its actions, whatever page of the table it is on.
+  const focusId = params.get('item')
+  const focusItem = focusId ? sorted.find((i) => i.id === focusId) : undefined
 
   return (
     <div className="flex flex-col gap-6">
@@ -253,6 +349,8 @@ export default function CloseTheLoop() {
         term="Close the loop"
         description={t('Every detractor gets a human call, a reason code and a re-survey. Critical cases first.', 'كل منتقد يحصل على مكالمة بشرية ورمز سبب وإعادة استبيان. الحالات الحرجة أولاً.')}
       />
+
+      <NextBox next={CLOSE_LOOP_NEXT} />
 
       <SectionCard
         title={t('Monthly capacity', 'السعة الشهرية')}
@@ -292,7 +390,7 @@ export default function CloseTheLoop() {
         term="Recovered"
         description={t(
           'Recovered: within 60 days a CSAT or CES of 4 or 5, an NPS promoter or passive, a transaction, renewal or new lead, or a new contact without a complaint. Not recovered: silent, a detractor again, cancelled or a runaway. Before 60 days: too early.',
-          'التعافي: خلال 60 يوماً تقييم CSAT أو CES بـ 4 أو 5، أو مروّج أو محايد في NPS، أو معاملة أو تجديد أو عميل محتمل جديد، أو تواصل جديد دون شكوى. عدم التعافي: الصمت، أو منتقد مجدداً، أو الإلغاء، أو الهروب. قبل 60 يوماً: مبكر.',
+          'التعافي: خلال 60 يوماً تقييم CSAT أو CES بـ 4 أو 5، أو مروّج أو محايد في NPS، أو معاملة أو تجديد أو عميل محتمل جديد، أو تواصل دون شكوى. عدم التعافي: الصمت، أو منتقد مجدداً، أو الإلغاء، أو الهروب. قبل 60 يوماً: مبكر.',
         )}
       >
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -322,7 +420,48 @@ export default function CloseTheLoop() {
       <SectionCard
         title={t("This month's call list", 'قائمة الاتصال لهذا الشهر')}
         actions={<span className="text-sm text-muted-foreground tabular-nums">{selected.length}</span>}
+        contentClassName="flex flex-col gap-4"
       >
+        {/* The calling rules (F27): hours, attempts, next attempt, WhatsApp, "needs a human". Configuration, from Settings → Rules. */}
+        <div className="flex flex-col gap-1 rounded-lg border bg-muted/40 px-3 py-2.5 text-sm" data-testid="calling-rules">
+          <p className="flex items-start gap-2">
+            <ClockAlert aria-hidden className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+            <span>{L(CALL_COPY.hint(callRules))}</span>
+          </p>
+          <p className="ps-6 text-xs text-muted-foreground">
+            {L(CALL_COPY.hoursNote)} · {L(CALL_COPY.aiHandOff(rules.aiNoAnswers))} · {L(CALL_COPY.dncrNever)}
+          </p>
+        </div>
+
+        {focusId && (
+          <div role="region" aria-label={t('From your inbox', 'من صندوقك')} className="flex flex-wrap items-center gap-3 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2.5 text-sm">
+            <span className="font-semibold">{t('From your inbox', 'من صندوقك')}</span>
+            {focusItem ? (
+              <>
+                <StatusBadge tone={SEVERITY_TONE[focusItem.severity]} dot>
+                  {L(SEVERITY_LABEL[focusItem.severity])}
+                </StatusBadge>
+                <span className="font-medium">{personName(focusItem.personId)}</span>
+                <span className="text-muted-foreground">
+                  {focusItem.reasonCode ? L(REASON_CODE_LABEL[focusItem.reasonCode]) : t('Reason not coded yet', 'السبب لم يُرمَّز بعد')}
+                </span>
+                {(() => {
+                  const line = attemptLine(focusItem, callRules)
+                  return line ? <span className="text-muted-foreground">{L(CALL_COPY.rowSuffix(line.attempt, line.of, line.next ? fmtDay(line.next) : undefined))}</span> : null
+                })()}
+                <span className="ms-auto flex items-center gap-1.5">
+                  {rowActions(focusItem)}
+                </span>
+              </>
+            ) : (
+              <span className="text-muted-foreground">{itemsLoading ? t('Loading…', 'جارٍ التحميل…') : t('That row is not on the list in the current scope.', 'هذا السطر ليس في القائمة ضمن النطاق الحالي.')}</span>
+            )}
+            <Button variant="ghost" size="sm" className="h-8" onClick={() => setParams({}, { replace: true })} aria-label={t('Close this row', 'إغلاق هذا السطر')}>
+              <X aria-hidden />
+            </Button>
+          </div>
+        )}
+
         <DataTable
           columns={columns}
           data={selected}
@@ -336,8 +475,8 @@ export default function CloseTheLoop() {
       <SectionCard
         term="Close the loop" title={t('AI interview campaigns', 'حملات المقابلات بالذكاء الاصطناعي')}
         description={t(
-          'Humans call by default. Hand-off rules: 2x no-answer/hang-up → human; asks for a person or says anything critical → human the same day; declines → no retry. Critical detractors are never in a campaign.',
-          'الاتصال بشري افتراضياً. قواعد التسليم: عدم الرد مرتين → بشري؛ طلب شخص أو قول أمر حرج → بشري بنفس اليوم؛ الرفض → دون إعادة محاولة. المنتقدون الحرجون لا يُدرجون في أي حملة أبداً.',
+          `Humans call by default. Hand-off rules: ${rules.aiNoAnswers}x no-answer/hang-up → human; asks for a person or says anything critical → human the same day; declines → no retry. Critical detractors are never in a campaign.`,
+          `الاتصال بشري افتراضياً. قواعد التسليم: عدم الرد ${timesAr(rules.aiNoAnswers)} ← بشري؛ طلب شخص أو قول أمر حرج ← بشري بنفس اليوم؛ الرفض ← دون إعادة محاولة. المنتقدون الحرجون لا يُدرجون في أي حملة أبداً.`,
         )}
         actions={
           canCreateCampaign && (
@@ -390,9 +529,17 @@ export default function CloseTheLoop() {
         )}
       </SectionCard>
 
+      <p className="text-sm text-muted-foreground">
+        {t('Calling hours, attempts and the working week are configuration:', 'ساعات الاتصال والمحاولات وأسبوع العمل إعدادات:')}{' '}
+        <Link to="/settings/rules" className="text-primary underline underline-offset-4">
+          {t('Settings → Rules as configuration', 'الإعدادات ← القواعد كإعدادات')}
+        </Link>
+      </p>
+
       {interviewing && (
         <InterviewDialog
           item={interviewing}
+          who={personName(interviewing.personId)}
           onCancel={() => setInterviewing(null)}
           onSubmit={(v) => {
             recordInterview.mutate({ id: interviewing.id, ...v })
@@ -404,7 +551,8 @@ export default function CloseTheLoop() {
 
       {creatingCampaign && (
         <CampaignDialog
-          eligibleItems={(items ?? []).filter((i) => i.severity !== 'critical' && !i.outcome)}
+          eligibleItems={sorted.filter((i) => i.severity !== 'critical' && !i.outcome && i.status !== 'done')}
+          noAnswers={rules.aiNoAnswers}
           onCancel={() => setCreatingCampaign(false)}
           onCreate={(v) => {
             createCampaign.mutate({

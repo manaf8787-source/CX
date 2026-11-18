@@ -2,6 +2,7 @@ import type {
   Access,
   EnvId,
   Environment,
+  SupervisorTest,
   AgentActivityEntry,
   AgentDirectoryEntry,
   AgentOutputEnvelope,
@@ -1125,11 +1126,15 @@ function buildRulesConfig(): RuleConfigItem[] {
     { id: 'rule_effective_drop', area: bi('Corrective actions', 'الإجراءات التصحيحية'), label: bi('Effective when the signals drop by', 'فعّال عندما تنخفض الإشارات بنسبة'), value: 50, unit: bi('%', '%'), source: 'KB §12 D3' },
     { id: 'rule_effective_hold', area: bi('Corrective actions', 'الإجراءات التصحيحية'), label: bi('… and do not return for', '… ولا تعود خلال'), value: 90, unit: bi('days', 'يوم'), source: 'KB §12 D3' },
     { id: 'rule_calls_per_hour', area: bi('Close the loop', 'إغلاق الحلقة'), label: bi('Calls per hour in the capacity formula', 'المكالمات في الساعة في معادلة السعة'), value: 4, unit: bi('calls', 'مكالمات'), source: 'KB §12 D3' },
-    // v40 (F20, F27), all [Proposed]: the working week and the calling rules are settings, not constants.
-    { id: RULE_IDS.workingDays, area: bi('Close the loop', 'إغلاق الحلقة'), label: bi('Working days per week (Monday to Friday)', 'أيام العمل في الأسبوع (من الإثنين إلى الجمعة)'), value: MON_FRI.length, days: [...MON_FRI], unit: bi('days', 'أيام'), source: 'v40 F20', proposed: true },
-    { id: RULE_IDS.callFrom, area: bi('Close the loop', 'إغلاق الحلقة'), label: bi('Calling hours start (hour of day, UAE time)', 'بداية ساعات الاتصال (الساعة، توقيت الإمارات)'), value: 9, unit: bi('o’clock', 'الساعة'), source: 'v40 F27', proposed: true },
-    { id: RULE_IDS.callTo, area: bi('Close the loop', 'إغلاق الحلقة'), label: bi('Calling hours end (hour of day, UAE time)', 'نهاية ساعات الاتصال (الساعة، توقيت الإمارات)'), value: 18, unit: bi('o’clock', 'الساعة'), source: 'v40 F27', proposed: true },
-    { id: RULE_IDS.callTries, area: bi('Close the loop', 'إغلاق الحلقة'), label: bi('Call attempts before "needs a human"', 'محاولات الاتصال قبل "يحتاج إنساناً"'), value: 3, unit: bi('attempts', 'محاولات'), source: 'v40 F27', proposed: true },
+    // v40 (decided 18 Nov): the working week, the working day, the calling rules and the AI-campaign hand-off are settings, not constants.
+    { id: RULE_IDS.workingDays, area: bi('Close the loop', 'إغلاق الحلقة'), label: bi('Working days per week (Monday to Friday)', 'أيام العمل في الأسبوع (من الإثنين إلى الجمعة)'), value: MON_FRI.length, days: [...MON_FRI], unit: bi('days', 'أيام'), source: 'Decisions 18 Nov, 1' },
+    { id: RULE_IDS.workStart, area: bi('Corrective actions', 'الإجراءات التصحيحية'), label: bi('Working day starts (hour, working hours clock)', 'بداية يوم العمل (الساعة، ساعة العمل)'), value: 9, unit: bi('o’clock', 'الساعة'), source: 'KB 09:00 to 18:00' },
+    { id: RULE_IDS.workEnd, area: bi('Corrective actions', 'الإجراءات التصحيحية'), label: bi('Working day ends (hour, working hours clock)', 'نهاية يوم العمل (الساعة، ساعة العمل)'), value: 18, unit: bi('o’clock', 'الساعة'), source: 'KB 09:00 to 18:00' },
+    { id: RULE_IDS.fixFallbackDays, area: bi('Corrective actions', 'الإجراءات التصحيحية'), label: bi('Fix due date when the matrix cell is empty', 'موعد الحل عندما تكون خلية المصفوفة فارغة'), value: 14, unit: bi('days', 'يوم'), source: 'Decisions 18 Nov, 3' },
+    { id: RULE_IDS.callFrom, area: bi('Close the loop', 'إغلاق الحلقة'), label: bi('Calling hours start (hour of day, UAE time)', 'بداية ساعات الاتصال (الساعة، توقيت الإمارات)'), value: 9, unit: bi('o’clock', 'الساعة'), source: 'Decisions 18 Nov, 5', note: { en: 'Legal to confirm the hours', ar: 'القانونية تؤكد الساعات' } },
+    { id: RULE_IDS.callTo, area: bi('Close the loop', 'إغلاق الحلقة'), label: bi('Calling hours end (hour of day, UAE time)', 'نهاية ساعات الاتصال (الساعة، توقيت الإمارات)'), value: 18, unit: bi('o’clock', 'الساعة'), source: 'Decisions 18 Nov, 5', note: { en: 'Legal to confirm the hours', ar: 'القانونية تؤكد الساعات' } },
+    { id: RULE_IDS.callTries, area: bi('Close the loop', 'إغلاق الحلقة'), label: bi('Call attempts before "needs a human" (CX team list)', 'محاولات الاتصال قبل "يحتاج إنساناً" (قائمة فريق CX)'), value: 3, unit: bi('attempts', 'محاولات'), source: 'Decisions 18 Nov, 5' },
+    { id: RULE_IDS.aiNoAnswers, area: bi('Close the loop', 'إغلاق الحلقة'), label: bi('No-answers before an AI campaign hands over to a person', 'عدد عدم الرد قبل أن تسلّم حملة الذكاء الاصطناعي لشخص'), value: 2, unit: bi('no-answers', 'مرات عدم رد'), source: 'Decisions 18 Nov, 5' },
     { id: 'rule_silence_why', area: bi('Surveys and triggers', 'الاستبيانات والمحفزات'), label: bi('"What stopped you?" after silence of', '"ما الذي أوقفك؟" بعد صمت لمدة'), value: 14, unit: bi('days', 'يوم'), source: 'KB §12 D5' },
   ]
 }
@@ -1208,6 +1213,8 @@ export const MOCK_WEEKLY_SAMPLE = buildWeeklySample({
   readings: MOCK_AI_JOURNEY_READINGS,
 })
 export const MOCK_WEEKLY_SAMPLE_SIZE = WEEKLY_SAMPLE_SIZE
+/** Tests the supervisor gained from "wrong" verdicts on the weekly sample (decided 18 Nov). Filled by `useJudgeSample`. */
+export const MOCK_SUPERVISOR_TESTS: SupervisorTest[] = []
 export const MOCK_AGENT_ACTIVITY = buildAgentActivity(
   MOCK_INTERACTIONS,
   MOCK_SIGNALS,

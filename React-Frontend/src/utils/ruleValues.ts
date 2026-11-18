@@ -12,14 +12,21 @@ export const RULE_IDS = {
   verifyDays: 'rule_verification_days',
   approveDays: 'rule_approval_days',
   publicReply: 'rule_public_reply',
-  /** v40, [Proposed]: JS weekdays that count (0 = Sunday); default Monday to Friday (KB), the prototype counts Friday and Saturday off. */
+  /** Decided 18 Nov: Monday to Friday. JS weekdays that count (0 = Sunday); still a setting. */
   workingDays: 'rule_working_days',
-  /** v40, [Proposed]: hour of day (0 to 23) calls may start; prototype 09:00, the KB's After-Sales placeholder says 09:00. */
+  /** The working day (KB: 09:00 to 18:00): the clock behind "working hours" in the matrix (9 = one working day). */
+  workStart: 'rule_work_start',
+  workEnd: 'rule_work_end',
+  /** Decided 18 Nov: a fix's due date is the matrix "Resolve (h)" from approval; this many calendar days when that cell is empty (Agent 5's 14). */
+  fixFallbackDays: 'rule_fix_fallback_days',
+  /** Decided 18 Nov: hour of day calls may start, UAE time (09:00). Legal confirmation of the hours is pending (a note, not a [Proposed] badge). */
   callFrom: 'rule_call_from',
-  /** v40, [Proposed]: hour of day calls must end; prototype 18:00, the KB's placeholder says 20:00 (open question 43.9). */
+  /** Decided 18 Nov: hour of day calls must end (18:00). */
   callTo: 'rule_call_to',
-  /** v40, [Proposed]: attempts before "needs a human"; prototype 3, Legal to confirm. */
+  /** Decided 18 Nov: attempts on the CX team's list before "needs a human" (3). */
   callTries: 'rule_call_tries',
+  /** Decided 18 Nov: no-answers before an AI campaign hands over to a person (2). */
+  aiNoAnswers: 'rule_ai_no_answers',
 } as const
 
 /** The configuration read as plain values: what hooks and utilities pass around. */
@@ -29,9 +36,16 @@ export interface RulesBag {
   verifyDays: number
   publicReplyHours: number
   workingDays: number[]
+  /** Working day, hour of day: 9 and 18. */
+  workStart: number
+  workEnd: number
+  /** Calendar days when the matrix "Resolve (h)" cell is empty. */
+  fixFallbackDays: number
   callFrom: number
   callTo: number
   callTries: number
+  /** No-answers before an AI campaign hands over. */
+  aiNoAnswers: number
 }
 
 export const DEFAULT_RULES_BAG: RulesBag = {
@@ -40,9 +54,13 @@ export const DEFAULT_RULES_BAG: RulesBag = {
   verifyDays: 60,
   publicReplyHours: 48,
   workingDays: [...MON_FRI],
+  workStart: 9,
+  workEnd: 18,
+  fixFallbackDays: 14,
   callFrom: 9,
   callTo: 18,
   callTries: 3,
+  aiNoAnswers: 2,
 }
 
 /** Reads the rules configuration into a `RulesBag`; missing items fall back to the documented defaults. */
@@ -63,20 +81,24 @@ export function rulesFromConfig(items: readonly RuleConfigItem[]): RulesBag {
     verifyDays: num(RULE_IDS.verifyDays, d.verifyDays),
     publicReplyHours: num(RULE_IDS.publicReply, d.publicReplyHours),
     workingDays: days && days.length ? [...days] : [...d.workingDays],
+    workStart: num(RULE_IDS.workStart, d.workStart),
+    workEnd: num(RULE_IDS.workEnd, d.workEnd),
+    fixFallbackDays: num(RULE_IDS.fixFallbackDays, d.fixFallbackDays),
     callFrom: num(RULE_IDS.callFrom, d.callFrom),
     callTo: num(RULE_IDS.callTo, d.callTo),
     callTries: num(RULE_IDS.callTries, d.callTries),
+    aiNoAnswers: num(RULE_IDS.aiNoAnswers, d.aiNoAnswers),
   }
 }
 
 /** A short string that changes whenever any rule value changes (used in query keys and memo keys). */
 export function rulesSignature(bag: RulesBag): string {
   const p = bag.patterns
-  return [p.sameIssueMin, p.sameAgentMin, p.environmentConcentrationPct, p.minimumSample, p.windowDays, bag.approveDays, bag.verifyDays, bag.publicReplyHours, bag.workingDays.join(''), bag.callFrom, bag.callTo, bag.callTries].join('.')
+  return [p.sameIssueMin, p.sameAgentMin, p.environmentConcentrationPct, p.minimumSample, p.windowDays, bag.approveDays, bag.verifyDays, bag.publicReplyHours, bag.workingDays.join(''), bag.workStart, bag.workEnd, bag.fixFallbackDays, bag.callFrom, bag.callTo, bag.callTries, bag.aiNoAnswers].join('.')
 }
 
 export function calendarFromRules(bag: RulesBag): WorkCalendar {
-  return { days: bag.workingDays, holidays: [] }
+  return { days: bag.workingDays, holidays: [], startHour: bag.workStart, endHour: bag.workEnd }
 }
 
 /** "09:00" from an hour of day. */

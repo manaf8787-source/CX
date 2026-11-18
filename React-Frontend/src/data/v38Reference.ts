@@ -102,8 +102,13 @@ export interface AgentJobDescription {
   supervisorChecks: Bi
   showsOn: Bi
   stage: AgentStage
-  /** Share of outputs the supervisor approved first time (sample); null = not running. */
+  /** Share of outputs the supervisor approved first time (sample); null = not running. A "wrong" in the weekly sample lowers it (see `utils/passRate.ts`); this field holds the current figure. */
   approvalPct: number | null
+  /** The figure before the weekly sample's verdicts; filled at load from `approvalPct`. */
+  baseApprovalPct?: number | null
+  /** "Wrong" verdicts this week, and the supervisor tests they became. */
+  wrongThisWeek?: number
+  supervisorTests?: number
 }
 
 export const AGENT_STAGE_LABEL: Record<AgentStage, Bi> = {
@@ -125,6 +130,13 @@ export const AGENT_JDS: AgentJobDescription[] = [
   { id: 9, stage: 'shadow', approvalPct: 100, inputs: b('The metric store only', 'مخزن المؤشرات فقط'), output: b('The daily brief per role; the Monthly CX pack; the role summaries; every figure traceable to its register', 'الموجز اليومي لكل دور؛ حزمة CX الشهرية؛ ملخصات الأدوار؛ كل رقم له أثر إلى سجله'), rules: b('Every figure from the store with its sample size; below minimum sample = "too early"; no group NPS; audience rules', 'كل رقم من المخزن مع حجم عينته؛ تحت العينة = "مبكر"؛ لا NPS مجمّع؛ قواعد الجمهور'), model: b('The narrative, every sentence tied to a figure', 'السرد وكل جملة مربوطة برقم'), supervisorChecks: b('Every number in the narrative appears in the table with the same value', 'كل رقم في السرد موجود في الجدول بنفس القيمة'), showsOn: b('Daily brief on Home and on each role’s landing page; Monthly CX pack, per audience', 'الموجز اليومي في الرئيسية وفي صفحة هبوط كل دور؛ الحزمة الشهرية لكل جمهور') },
   { id: 10, stage: 'shadow', approvalPct: 98, inputs: b('Events and CRM stages, instrument definitions, caps, survey history, consent flags, approved templates, original source and service', 'الأحداث ومراحل CRM، تعريفات الأدوات، السقوف، سجل الاستبيانات، أعلام الموافقة، القوالب المعتمدة، المصدر الأصلي والخدمة'), output: b('survey_send {person, instrument, trigger, channel, source, stage}; survey_answer; survey_skip {reason}', 'إرسال {شخص، أداة، محفّز، قناة، مصدر، مرحلة}؛ إجابة؛ تخطٍّ {السبب}'), rules: b('NPS only on a completed milestone · interaction survey once per 30 days, viewing > offer > call · NPS once per 90 days, relationship NPS yearly · "What stopped you?" once per lead at 14 days silent · re-survey 7 to 14 days after resolution, exempt · nobody unidentified, opted out or on an open case', 'NPS فقط عند معلم مكتمل · استبيان تفاعل مرة كل 30 يوماً، معاينة > عرض > مكالمة · NPS مرة كل 90 يوماً، NPS العلاقة سنوياً · "ما الذي أوقفك" مرة لكل عميل محتمل بعد 14 يوم صمت · إعادة الاستبيان بعد 7 إلى 14 يوماً من الحل، معفاة · لا أحد غير معرَّف أو رافض أو في حالة مفتوحة'), model: b('Only the greeting line in the person’s language; the scored questions are fixed text', 'فقط سطر التحية بلغة الشخص؛ الأسئلة المقيَّمة نص ثابت'), supervisorChecks: b('Trigger exists and is allowed for the instrument; caps recomputed; no send to unidentified, opted-out or open-case people; template approved; never NPS without a milestone', 'المحفّز موجود ومسموح للأداة؛ السقوف تُعاد حسابها؛ لا إرسال لغير المعرَّفين أو الرافضين أو أصحاب الحالات المفتوحة؛ القالب معتمد؛ لا NPS بلا معلم'), showsOn: b('Surveys and triggers page (sent, answered, skipped and why), each product page', 'صفحة الاستبيانات والمحفّزات (أُرسل، أُجيب، تُخطّي ولماذا)، صفحة كل منتج') },
 ]
+
+// The weekly sample changes `approvalPct` in place (the mock store); keep the starting figure.
+for (const jd of AGENT_JDS) {
+  jd.baseApprovalPct = jd.approvalPct
+  jd.wrongThisWeek = 0
+  jd.supervisorTests = 0
+}
 
 export const SUPERVISOR_VERDICTS = b(
   'Approved · Returned (once, with the failed check named) · Escalated (to the human role for that agent)',
@@ -161,7 +173,7 @@ export interface PublicMention {
   replyHours: number | null
   /** The person later identified themselves on a private channel. */
   becameIdentified: boolean
-  /** v40 (F30): who owns the public reply. [Proposed] "Marketing · channel owner" for every row; the KB does not name an owner. */
+  /** v40 (F30): who owns the public reply: Marketing, the channel owner (decided 18 Nov). CX watches the 48-hour clock and raises a signal when it is missed; the Internal Audit and Marketing Lead audits monthly. */
   owner: Bi
   /** v40 (F30): when the mention was marked replied (ISO), set by `useMarkReplied`. */
   repliedAt?: string
@@ -169,7 +181,7 @@ export interface PublicMention {
   channelMovedTo?: 'whatsapp' | 'app'
 }
 
-/** [Proposed] The owner column of the public mentions page; asked of the owner (who owns public replies). */
+/** The owner column of the public mentions page (decided 18 Nov: Marketing, channel owner). */
 export const PUBLIC_REPLY_OWNER: Bi = b('Marketing · channel owner', 'التسويق · مسؤول القناة')
 
 const PUB_ROWS: [PublicPlatform, string, string, string, -1 | 0 | 1, boolean, boolean][] = [

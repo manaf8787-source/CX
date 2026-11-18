@@ -93,8 +93,9 @@ export const AGENT_REGISTRY: AgentProfile[] = [
     key: 'report',
     name: { en: 'Reporting', ar: 'التقارير' },
     task: { en: 'Produce the monthly management report and role-specific summaries from the same computed figures the pages show.', ar: 'إعداد التقرير الإداري الشهري والملخصات الخاصة بكل دور من نفس الأرقام المحتسبة الظاهرة في الصفحات.' },
-    trigger: { en: 'First working day of the month; on demand by the CX manager.', ar: 'أول يوم عمل في الشهر؛ عند الطلب من مدير تجربة العملاء.' },
-    runsOn: { en: 'Monthly, released by the CX manager.', ar: 'شهرياً، يصدره مدير تجربة العملاء.' },
+    // v40 (F36): Agent 9 also writes the daily brief, one per role, at 07:00 (the prototype's roster text). The monthly pack stays, released by the CX manager.
+    trigger: { en: 'Every day at 07:00 for the daily brief (one per role); the first working day of the month for the Monthly CX pack; on demand by the CX manager.', ar: 'كل يوم الساعة 07:00 للموجز اليومي (واحد لكل دور)؛ أول يوم عمل في الشهر لحزمة CX الشهرية؛ وعند الطلب من مدير تجربة العملاء.' },
+    runsOn: { en: 'Daily 07:00 for the brief; first working day of the month for the pack; on demand.', ar: 'يومياً 07:00 للموجز؛ أول يوم عمل في الشهر للحزمة؛ وعند الطلب.' },
     escalatesTo: { en: 'CX manager for release; nothing is sent automatically.', ar: 'مدير تجربة العملاء للإصدار؛ لا شيء يُرسل تلقائياً.' },
     mustNot: { en: 'Compute its own numbers; include anything outside the audience’s view.', ar: 'احتساب أرقامه الخاصة؛ تضمين ما يتجاوز صلاحية الجمهور المستهدف.' },
   },

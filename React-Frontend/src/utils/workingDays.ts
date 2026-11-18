@@ -13,6 +13,9 @@ export interface WorkCalendar {
   days: readonly number[]
   /** Dates ('YYYY-MM-DD') that are not working days even on a working weekday. */
   holidays?: readonly string[]
+  /** The working day for `addWorkingHours`: hour of day it starts and ends (default 9 and 18: 09:00 to 18:00). */
+  startHour?: number
+  endHour?: number
 }
 
 /** Monday to Friday (Programme KB: clocks count Monday to Friday, 09:00 to 18:00). */
@@ -102,4 +105,35 @@ export function nextWeekday(from: Date | string | number, weekday: number): stri
   let d = startOfDay(from)
   for (let guard = 0; d.getDay() !== weekday && guard < 8; guard++) d = plusDays(d, 1)
   return toDayKey(d)
+}
+
+/**
+ * `from` plus `hours` working hours, on the calendar's working day (default 09:00 to 18:00, so 9 hours = one
+ * working day). A start outside working time (a weekend, after 18:00, before 09:00) begins at the next opening.
+ * 45 hours from Monday 09:00 end Friday 18:00; 9 hours from Tuesday 12:00 end Wednesday 12:00.
+ */
+export function addWorkingHours(from: Date | string | number, hours: number, cal: WorkCalendar = DEFAULT_CALENDAR): Date {
+  const start = cal.startHour ?? 9
+  const end = cal.endHour ?? 18
+  const d0 = new Date(from)
+  let day = startOfDay(d0)
+  let hour = d0.getHours() + d0.getMinutes() / 60 + d0.getSeconds() / 3600
+  if (!isWorkingDay(day, cal) || hour >= end) {
+    day = nextWorkingDay(day, cal)
+    hour = start
+  } else if (hour < start) {
+    hour = start
+  }
+  let left = Math.max(0, hours)
+  for (let guard = 0; guard < 4000; guard++) {
+    const room = end - hour
+    if (left <= room) {
+      hour += left
+      break
+    }
+    left -= room
+    day = nextWorkingDay(day, cal)
+    hour = start
+  }
+  return new Date(day.getFullYear(), day.getMonth(), day.getDate(), 0, Math.round(hour * 60))
 }

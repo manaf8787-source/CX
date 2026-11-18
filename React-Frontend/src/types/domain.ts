@@ -219,6 +219,10 @@ export interface CorrectiveAction {
   source?: { investigationId: string }
   /** v40 (F26): who proposed it when it was not the standard flow, e.g. "Agent 5, from the investigation". */
   proposedBy?: Bi
+  /** v40 (decided 18 Nov): where the due date came from once the fix was approved: the matrix "Resolve (h)" in working hours from approval, or Agent 5's 14 days when that cell is empty. Absent while the date is still the proposal's own. */
+  dueSource?: 'matrix' | 'fallback'
+  /** v40: the environment of a fix that has no pattern (an AI Insights proposal). A fix with a pattern takes the environments of the pattern's signals. Absent and without a pattern = every environment. */
+  envId?: EnvId
 }
 
 /** FR-4.2 — "How the AI found this", one per corrective action: sources,
@@ -291,6 +295,8 @@ export interface Investigation {
   doneCount?: number
   /** v40 (F26): the fix proposed when the result was recorded, if the pattern had none. */
   proposedFixId?: string
+  /** v40: environment of an investigation without a pattern. With a pattern it takes the environments of the pattern's signals. */
+  envId?: EnvId
 }
 
 // --- Close the loop ----------------------------------------------------

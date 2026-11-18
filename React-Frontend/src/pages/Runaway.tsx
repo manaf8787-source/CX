@@ -4,16 +4,13 @@ import type { LucideIcon } from 'lucide-react'
 import { ArrowRight, CalendarX, Hourglass, MessageSquareWarning, MoonStar, PhoneMissed, Shuffle } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { useRole } from '@/auth/RoleContext'
-import { useAllInteractions, useEffortSummaries, usePersons } from '@/services/queries'
+import { useAllInteractions, usePersons } from '@/services/queries'
+import { useEnvScope } from '@/services/queriesV40'
 import { JOURNEY_RULES } from '@/utils/journeyRules'
-import {
-  buildFaultSummary,
-  classifyRunaway,
-  RUNAWAY_LEARNING_ORDER,
-  RUNAWAY_TYPE_DEFINITION,
-  RUNAWAY_TYPE_LABEL,
-  type RunawayClassification,
-} from '@/utils/runaway'
+import { buildFaultSummary, RUNAWAY_LEARNING_ORDER, RUNAWAY_TYPE_DEFINITION, RUNAWAY_TYPE_LABEL } from '@/utils/runaway'
+import { personLabel } from '@/utils/peopleExport'
+import { CUSTOMERS_LIST_COPY } from '@/data/customersList'
+import { envName } from '@/data/environments'
 import type { RunawayType } from '@/types'
 import { Button } from '@/components/ui/button'
 import { PageHeader } from '@/components/common/PageHeader'
@@ -22,6 +19,8 @@ import { KpiTile } from '@/components/common/KpiTile'
 import { StatusBadge } from '@/components/common/StatusBadge'
 import { EmptyState } from '@/components/common/EmptyState'
 import { LoadingState } from '@/components/common/LoadingState'
+import { CustomersTabs } from '@/components/customers/CustomersTabs'
+import { usePeopleFacts } from '@/components/customers/usePeopleFacts'
 
 /** One icon and one hue per type so the six read apart at a glance (icon carries meaning, colour only reinforces it). */
 const TYPE_STYLE: Record<RunawayType, { icon: LucideIcon; accent: string }> = {
@@ -36,44 +35,33 @@ const TYPE_STYLE: Record<RunawayType, { icon: LucideIcon; accent: string }> = {
 /** FR-3.1–3.5 — six types as live counters (classified from real sample
  * data, not static placeholders), a cross-type "what we keep doing wrong"
  * list clickable into Actions, per-person detail linking to the full
- * Customers journey, environment scoping, and the agreed learning order. */
+ * Customers journey, environment scoping, and the agreed learning order.
+ * v40 (F17): the "Who is leaving" tab of Customers (the URL `/runaway` still works), and a
+ * person shows by name only to a role that may see customer names (the Internal Audit and
+ * Marketing Lead sees the reference, for example P-005). */
 export default function Runaway() {
   const { t, L } = useI18n()
   const navigate = useNavigate()
   const { role } = useRole()
-  const { data: persons, isLoading: personsLoading } = usePersons()
-  const { data: effortSummaries, isLoading: effortLoading } = useEffortSummaries()
+  const { fixed } = useEnvScope()
+  // The environment switch (and an environment manager's own environment) already narrows the people register.
+  const { data: scopedPersons = [], isLoading: personsLoading } = usePersons()
+  const { facts, isLoading: factsLoading } = usePeopleFacts(scopedPersons)
   const { data: interactions, isLoading: interactionsLoading } = useAllInteractions()
-  const loading = personsLoading || effortLoading || interactionsLoading
-
-  const scopedPersons = useMemo(() => {
-    let list = persons ?? []
-    if (role.id === 'envmgmt' && role.environment) list = list.filter((p) => p.environment === role.environment)
-    return list
-  }, [persons, role])
-
-  const classifications = useMemo(() => {
-    const map = new Map<string, RunawayClassification>()
-    for (const p of scopedPersons) {
-      const effort = effortSummaries?.find((e) => e.personId === p.id)
-      const mine = (interactions ?? []).filter((i) => i.personKey === p.id)
-      const result = classifyRunaway(p, effort, mine)
-      if (result) map.set(p.id, result)
-    }
-    return map
-  }, [scopedPersons, effortSummaries, interactions])
+  const loading = personsLoading || factsLoading || interactionsLoading
+  const classifications = facts.drifting
 
   const byType = useMemo(() => {
-    const groups = new Map<RunawayType, { id: string; name: string }[]>()
+    const groups = new Map<RunawayType, { id: string; label: string }[]>()
     for (const [personId, c] of classifications) {
       const person = scopedPersons.find((p) => p.id === personId)
       if (!person) continue
       const list = groups.get(c.type) ?? []
-      list.push({ id: person.id, name: person.name })
+      list.push({ id: person.id, label: personLabel(person, role.id) })
       groups.set(c.type, list)
     }
     return groups
-  }, [classifications, scopedPersons])
+  }, [classifications, scopedPersons, role.id])
 
   const faults = useMemo(() => buildFaultSummary(scopedPersons, classifications, interactions ?? []), [scopedPersons, classifications, interactions])
   const maxFault = Math.max(1, ...faults.map((f) => f.count))
@@ -82,16 +70,18 @@ export default function Runaway() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        term="Runaway customer" title={t('Runaway customers', 'العملاء الهاربون')}
+        term="Runaway customer" title={L(CUSTOMERS_LIST_COPY.tabs.leaving)}
         description={t(
           'Six types as counters, plus a cross-type "what we keep doing wrong" list. The point is to learn and fix the cause, not to chase each one.',
           'ستة أنواع كعدادات، مع قائمة الأخطاء المتكررة عبر الأنواع. الهدف التعلّم وإصلاح السبب، لا ملاحقة كل حالة.',
         )}
       />
 
-      {role.id === 'envmgmt' && role.environment && (
+      <CustomersTabs />
+
+      {fixed && (
         <StatusBadge tone="info" className="self-start">
-          {t('Scoped to your environment:', 'محصور ببيئتك:')} {role.environment}
+          {t('Scoped to your environment:', 'محصور ببيئتك:')} {L(envName(fixed))}
         </StatusBadge>
       )}
 
@@ -174,7 +164,7 @@ export default function Runaway() {
                     return (
                       <li key={p.id} className="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0">
                         <div className="flex min-w-0 flex-col gap-0.5">
-                          <span className="text-sm font-medium">{p.name}</span>
+                          <span className="text-sm font-medium">{p.label}</span>
                           {reason && <span className="text-xs text-muted-foreground">{L(reason)}</span>}
                         </div>
                         <Button variant="outline" size="sm" asChild className="h-9 shrink-0">

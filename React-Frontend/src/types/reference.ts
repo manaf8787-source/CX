@@ -158,6 +158,8 @@ export interface RuleConfigItem {
   days?: number[]
   /** v40: a default or prototype choice the owner has not confirmed; show it with the [Proposed] badge. */
   proposed?: boolean
+  /** v40: a small caveat shown beside the value (not a [Proposed] badge), e.g. "Legal to confirm the hours". */
+  note?: Bi
 }
 
 // --- AI Insights access matrix (CX-manager-editable, NFR per §2) -----------

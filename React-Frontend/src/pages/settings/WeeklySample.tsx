@@ -9,7 +9,6 @@ import { WEEKLY_SAMPLE_COPY as COPY } from '@/data/weeklySample'
 import { AgentChip } from '@/components/common/AgentChip'
 import { KpiTile } from '@/components/common/KpiTile'
 import { LoadingState } from '@/components/common/LoadingState'
-import { ProposedBadge } from '@/components/common/ProposedBadge'
 import { StatusBadge } from '@/components/common/StatusBadge'
 import { TraceId } from '@/components/common/TraceId'
 import { Button } from '@/components/ui/button'
@@ -30,7 +29,7 @@ export default function WeeklySample() {
 
   return (
     <section className="flex flex-col gap-4">
-      <SubPageHeader title={<span className="inline-flex items-center gap-2">{L(COPY.title)} <ProposedBadge /></span>} description={L(COPY.intro)} />
+      <SubPageHeader title={L(COPY.title)} description={L(COPY.intro)} />
       {isLoading || !sample ? (
         <LoadingState rows={6} />
       ) : (

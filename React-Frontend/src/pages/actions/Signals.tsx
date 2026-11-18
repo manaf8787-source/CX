@@ -1,26 +1,26 @@
-import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { DeferredRender } from '@/components/common/DeferredRender'
-import { Controller, useForm } from 'react-hook-form'
+import { Controller, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
 import { Activity, ChevronDown, Layers, Megaphone, Plus, Settings2 } from 'lucide-react'
-import type { ColumnDef } from '@tanstack/react-table'
 import { useI18n } from '@/i18n'
 import { useNow } from '@/hooks/useNow'
 import { useRole } from '@/auth/RoleContext'
 import { canActOnCorrectiveAction } from '@/auth/permissions'
-import { useCorrectiveActions, useCreateActionFromPattern, useHandoffs, usePatterns, useSignals } from '@/services/queries'
+import { useCorrectiveActions, useCreateActionFromPattern, usePatterns, useSignals, useSignalsAll } from '@/services/queries'
+import { useFixDue, useInvestigationEvidence } from '@/services/queriesV40'
+import { productOfPattern } from '@/utils/audit'
 import { sortByThresholdCloseness } from '@/utils/patterns'
-import { HANDOFF_RULES } from '@/data/handoffRules'
+import { caId } from '@/utils/trace'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
 import { CORRECTIVE_STATUS_LABEL, CORRECTIVE_STATUS_TONE } from '@/lib/status'
 import { HowAiFoundThis } from './components/HowAiFoundThis'
-import type { CorrectiveActionKind, HandoffItem, Pattern } from '@/types'
+import type { CorrectiveActionKind, Pattern } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
@@ -29,12 +29,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { KpiTile } from '@/components/common/KpiTile'
 import { SectionCard } from '@/components/common/SectionCard'
 import { StatusBadge } from '@/components/common/StatusBadge'
-import { DataTable } from '@/components/common/DataTable'
+import { TraceId } from '@/components/common/TraceId'
+import { WhatIfCard } from '@/components/signals/WhatIfCard'
+import { RulesPointer } from '@/components/signals/RulesPointer'
+import { SignalsTable } from './components/SignalsTable'
 import { EmptyState } from '@/components/common/EmptyState'
 import { LoadingState } from '@/components/common/LoadingState'
 import { PatternThresholdMeter } from './components/PatternThresholdMeter'
 import { ScoresVsSignalsNotice } from './components/ScoresVsSignalsNotice'
 import { signalCategoryLabel } from './components/labels'
+import { envNameFromShort } from '@/data/environments'
 import { useChartMotion } from '@/hooks/useChartMotion'
 
 /** On a phone the pattern cards are the page's heaviest part; the rest wait behind "Show all". */
@@ -61,11 +65,16 @@ export default function Signals() {
   const now = useNow()
   const { data: signals, isLoading: signalsLoading } = useSignals()
   const { data: patterns, isLoading: patternsLoading } = usePatterns()
-  const { data: handoffs, isLoading: handoffsLoading } = useHandoffs()
   const createAction = useCreateActionFromPattern()
+  const [params] = useSearchParams()
   const [creatingFor, setCreatingFor] = useState<Pattern | null>(null)
   const [showAllPatterns, setShowAllPatterns] = useState(false)
+  const [collapsedByUser, setCollapsedByUser] = useState(false)
   const orderedPatterns = useMemo(() => sortByThresholdCloseness(patterns ?? []), [patterns])
+  // `?pt=<key>` (the Trace card, the signals table): the named pattern is scrolled to and highlighted, and the list opens when it sits past the first few.
+  const targetPattern = params.get('pt')
+  const targetIndex = targetPattern ? orderedPatterns.findIndex((p) => p.id === targetPattern || p.traceId === targetPattern) : -1
+  const patternsOpen = showAllPatterns || (targetIndex >= PATTERNS_SHOWN_FIRST && !collapsedByUser)
 
   const volumeSeries = useMemo(() => {
     if (!signals) return []
@@ -79,20 +88,6 @@ export default function Signals() {
 
   const publicMentions = signals?.filter((s) => s.isPublic) ?? []
   const canCreate = canActOnCorrectiveAction(role.id, 'process')
-
-  const handoffColumns: ColumnDef<HandoffItem>[] = [
-    { id: 'owner', header: t('Owner system', 'النظام المالك'), accessorFn: (h) => L(h.ownerSystem) },
-    {
-      id: 'status',
-      header: t('Status', 'الحالة'),
-      accessorKey: 'status',
-      cell: ({ row }) => (
-        <StatusBadge tone={row.original.status === 'done' ? 'success' : 'neutral'} dot>
-          {row.original.status === 'done' ? t('Done', 'منجز') : t('Open', 'مفتوح')}
-        </StatusBadge>
-      ),
-    },
-  ]
 
   return (
     <div className="flex flex-col gap-4">
@@ -168,6 +163,7 @@ export default function Signals() {
         )}
       </SectionCard>
 
+      <div id="patterns" className="scroll-mt-24">
       <SectionCard
         title={t('Patterns', 'الأنماط')}
         description={t('Each pattern shows how far its signals are toward the rule that makes it actionable. Closest to or furthest past the threshold first.', 'يُظهر كل نمط مدى اقتراب إشاراته من القاعدة التي تجعله قابلاً للإجراء. الأقرب إلى الحد أو الأبعد بعده أولاً.')}
@@ -181,25 +177,32 @@ export default function Signals() {
           <>
             <ul className="grid grid-cols-1 gap-3 lg:grid-cols-2">
               {orderedPatterns.slice(0, PATTERNS_SHOWN_FIRST).map((p) => (
-                <PatternCard key={p.id} pattern={p} canCreate={canCreate} onCreate={setCreatingFor} />
+                <PatternCard key={p.id} pattern={p} canCreate={canCreate} onCreate={setCreatingFor} selected={orderedPatterns[targetIndex]?.id === p.id} />
               ))}
             </ul>
             {orderedPatterns.length > PATTERNS_SHOWN_FIRST && (
-              <Collapsible open={showAllPatterns} onOpenChange={setShowAllPatterns} className="mt-3">
+              <Collapsible
+                open={patternsOpen}
+                onOpenChange={(next) => {
+                  setShowAllPatterns(next)
+                  setCollapsedByUser(!next)
+                }}
+                className="mt-3"
+              >
                 <CollapsibleContent>
                   {/* Rendered only once opened: the rest of the cards are the page's heaviest part on a phone. */}
-                  {showAllPatterns && (
+                  {patternsOpen && (
                     <ul className="mb-3 grid grid-cols-1 gap-3 lg:grid-cols-2">
                       {orderedPatterns.slice(PATTERNS_SHOWN_FIRST).map((p) => (
-                        <PatternCard key={p.id} pattern={p} canCreate={canCreate} onCreate={setCreatingFor} />
+                        <PatternCard key={p.id} pattern={p} canCreate={canCreate} onCreate={setCreatingFor} selected={orderedPatterns[targetIndex]?.id === p.id} />
                       ))}
                     </ul>
                   )}
                 </CollapsibleContent>
                 <CollapsibleTrigger asChild>
                   <Button variant="outline" size="sm" className="h-10 w-full sm:w-auto">
-                    <ChevronDown aria-hidden className={cn('transition-transform duration-200', showAllPatterns && 'rotate-180')} />
-                    {showAllPatterns
+                    <ChevronDown aria-hidden className={cn('transition-transform duration-200', patternsOpen && 'rotate-180')} />
+                    {patternsOpen
                       ? t('Show fewer patterns', 'عرض أنماط أقل')
                       : t(`Show all patterns (${orderedPatterns.length})`, `عرض كل الأنماط (${orderedPatterns.length})`)}
                   </Button>
@@ -209,8 +212,17 @@ export default function Signals() {
           </>
         )}
       </SectionCard>
+      </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <SectionCard
+        title={t('Signals', 'الإشارات')}
+        term="Signal"
+        description={t('Every signal with its id. Open one to see where it came from and where it leads. Counted, not worked one by one.', 'كل إشارة برقمها. افتح واحدة لترى من أين جاءت وإلى أين تقود. تُعدّ ولا تُعالج واحدة واحدة.')}
+      >
+        <SignalsTable signals={signals} patterns={patterns} isLoading={signalsLoading} />
+      </SectionCard>
+
+      <div>
         <SectionCard
           term="Public reputation index" title={t('Public mentions', 'الإشارات العامة')}
           description={t('Never tied to a person unless self-identified.', 'لا تُربط بشخص إلا إذا عرّف نفسه.')}
@@ -228,8 +240,9 @@ export default function Signals() {
                   <li key={s.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5 first:pt-0 last:pb-0">
                     <span className="inline-flex items-center gap-2 text-sm">
                       <Megaphone aria-hidden className="size-4 text-muted-foreground" />
+                      <TraceId kind="signal" id={s.id} />
                       <span>{L(signalCategoryLabel(s.category))}</span>
-                      <span className="text-muted-foreground">· {s.environment}</span>
+                      <span className="text-muted-foreground">· {L(envNameFromShort(s.environment))}</span>
                     </span>
                     {s.publicReplyDueAt ? (
                       <StatusBadge tone={breached ? 'danger' : 'warning'} dot>
@@ -244,34 +257,12 @@ export default function Signals() {
             </ul>
           )}
         </SectionCard>
-
-        <SectionCard
-          title={t('Hand-offs', 'التسليمات')}
-          term="Hand-off"
-          description={t('One-customer fixes owned by another system — status tracked, no SLA clock runs here.', 'إصلاحات فردية تملكها أنظمة أخرى — تُتابع حالتها دون ساعة التزام.')}
-        >
-          <DataTable columns={handoffColumns} data={handoffs} isLoading={handoffsLoading} pageSize={6} emptyTitle={t('No hand-offs', 'لا تسليمات')} />
-          <h3 className="mt-4 mb-2 text-sm font-semibold">{t('Hand-off rules by signal type', 'قواعد التسليم حسب نوع الإشارة')}</h3>
-          <div className="overflow-x-auto rounded-lg border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="px-3">{t('Signal type', 'نوع الإشارة')}</TableHead>
-                  <TableHead className="px-3">{t('Goes to', 'يذهب إلى')}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {HANDOFF_RULES.map((r) => (
-                  <TableRow key={r.signalType.en}>
-                    <TableCell className="px-3 align-top text-sm font-medium whitespace-normal">{L(r.signalType)}</TableCell>
-                    <TableCell className="px-3 text-sm whitespace-normal text-muted-foreground">{L(r.goesTo)}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </SectionCard>
       </div>
+
+      <section id="rules" aria-label={t('Rules for patterns', 'قواعد الأنماط')} className="flex scroll-mt-24 flex-col gap-4">
+        <RulesPointer />
+        <WhatIfCard />
+      </section>
 
       {creatingFor && (
         <CreateActionDialog
@@ -288,32 +279,50 @@ export default function Signals() {
   )
 }
 
-function PatternCard({ pattern: p, canCreate, onCreate }: { pattern: Pattern; canCreate: boolean; onCreate: (p: Pattern) => void }) {
+function PatternCard({ pattern: p, canCreate, onCreate, selected }: { pattern: Pattern; canCreate: boolean; onCreate: (p: Pattern) => void; selected: boolean }) {
   const { t, L } = useI18n()
   const { data: actions } = useCorrectiveActions()
+  const { data: evidence } = useInvestigationEvidence()
+  const ref = useRef<HTMLLIElement>(null)
   // KB §6: each pattern shows "the action it already has", and the same
   // "How the AI found this" panel as the action itself.
   const existing = actions?.find((a) => a.patternId === p.id)
+  const found = evidence?.[p.id]
+
+  // Opened from a Trace id (`?pt=`): scroll the card into view.
+  useEffect(() => {
+    if (selected) ref.current?.scrollIntoView?.({ block: 'center' })
+  }, [selected])
+
   return (
-    <li className="flex min-w-0 flex-col gap-3 rounded-lg border bg-card p-4">
+    <li ref={ref} id={`pattern-${p.traceId}`} data-pattern={p.traceId} data-selected={selected ? 'true' : undefined} className={cn('flex min-w-0 scroll-mt-24 flex-col gap-3 rounded-lg border bg-card p-4', selected && 'border-primary ring-2 ring-primary')}>
       <div className="flex items-start justify-between gap-2">
-        <h3 className="text-sm font-semibold">
-          {L(signalCategoryLabel(p.category))} <span className="font-normal text-muted-foreground">· {p.team}</span>
+        <h3 className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-semibold">
+          <TraceId kind="pattern" id={p.traceId} plain />
+          <span>
+            {L(signalCategoryLabel(p.category))} <span className="font-normal text-muted-foreground">· {p.team}</span>
+          </span>
         </h3>
       </div>
+      {found && (
+        <p className="rounded-lg border border-success/40 bg-success/10 px-3 py-2 text-sm" data-testid="pattern-evidence">
+          {t('Evidence from investigation', 'دليل من التحقيق')} · <bdi dir="ltr">{found.traceId}</bdi>: {L(found.result)}
+        </p>
+      )}
       <PatternThresholdMeter pattern={p} />
       <p className="text-sm">{L(p.aiSuggestion)}</p>
       <p className="text-xs text-muted-foreground">{L(p.recoveryFigure)}</p>
       {existing && (
         <div className="flex flex-wrap items-center gap-2 text-sm">
           <span className="text-muted-foreground">{t('Action', 'الإجراء')}:</span>
-          <Link to="/actions/corrective" className="font-medium text-primary underline-offset-4 hover:underline">
+          <TraceId kind="fix" id={existing.id} plain />
+          <Link to={`/actions/corrective?fix=${caId(existing.id)}`} className="font-medium text-primary underline-offset-4 hover:underline">
             {L(existing.title)}
           </Link>
           <StatusBadge tone={CORRECTIVE_STATUS_TONE[existing.status]}>{L(CORRECTIVE_STATUS_LABEL[existing.status])}</StatusBadge>
         </div>
       )}
-      <HowAiFoundThis actionId={existing?.id ?? ''} pattern={p} />
+      <HowAiFoundThis actionId={existing?.id ?? ''} pattern={p} aiMade />
       {canCreate && p.hasMinimumSample && !existing && (
         <Button size="sm" className="h-9 self-start" onClick={() => onCreate(p)}>
           <Plus aria-hidden />
@@ -327,22 +336,26 @@ function PatternCard({ pattern: p, canCreate, onCreate }: { pattern: Pattern; ca
 const createSchema = z.object({
   kind: z.enum(['employee', 'service_behaviour', 'training_gap', 'product_app', 'process', 'environment', 'legal_privacy', 'marketing']),
   owner: z.string().trim().min(2, 'owner'),
-  dueDate: z.string().min(1, 'due'),
 })
 type CreateValues = z.infer<typeof createSchema>
 
-function CreateActionDialog({ pattern, onCancel, onCreate }: { pattern: Pattern; onCancel: () => void; onCreate: (v: CreateValues) => void }) {
-  const { t, L } = useI18n()
-  const now = useNow()
+function CreateActionDialog({ pattern, onCancel, onCreate }: { pattern: Pattern; onCancel: () => void; onCreate: (v: CreateValues & { dueDate: string }) => void }) {
+  const { t, L, lang } = useI18n()
+  const { data: signals } = useSignalsAll()
   const { register, handleSubmit, control, formState: { errors } } = useForm<CreateValues>({
     resolver: zodResolver(createSchema),
-    defaultValues: { kind: 'process', owner: `${pattern.team.replace(' team', '')} environment manager`, dueDate: new Date(now + 5 * 86_400_000).toISOString().slice(0, 10) },
+    defaultValues: { kind: 'process', owner: `${pattern.team.replace(' team', '')} environment manager` },
   })
+  // The due date is not typed: approval sets it from the matrix "Resolve (h)" of the fix's product and kind, in working hours
+  // (Agent 5's 14 days when that cell is empty). Here: what approval today would give, which is also the proposal's placeholder date.
+  const kind = useWatch({ control, name: 'kind' })
+  const product = productOfPattern(pattern, signals ?? [])
+  const due = useFixDue({ kind, product, dueDate: '', dueSource: undefined })
 
   return (
     <Dialog open onOpenChange={(open) => !open && onCancel()}>
       <DialogContent className="sm:max-w-lg">
-        <form onSubmit={handleSubmit(onCreate)} className="flex flex-col gap-5">
+        <form onSubmit={handleSubmit((v) => onCreate({ ...v, dueDate: due?.dueAt ?? new Date().toISOString() }))} className="flex flex-col gap-5">
           <DialogHeader>
             <DialogTitle>{t('Create a corrective action', 'إنشاء إجراء تصحيحي')}</DialogTitle>
             <DialogDescription>
@@ -376,11 +389,15 @@ function CreateActionDialog({ pattern, onCancel, onCreate }: { pattern: Pattern;
               <Input id="ca-owner" className="h-9" aria-invalid={!!errors.owner} {...register('owner')} />
               {errors.owner && <FieldError>{t('Owner title is required.', 'المسمى الوظيفي للمالك مطلوب.')}</FieldError>}
             </Field>
-            <Field data-invalid={!!errors.dueDate}>
-              <FieldLabel htmlFor="ca-due">{t('Due date', 'تاريخ الاستحقاق')}</FieldLabel>
-              <Input id="ca-due" type="date" className="h-9" aria-invalid={!!errors.dueDate} {...register('dueDate')} />
-              {errors.dueDate && <FieldError>{t('Due date is required.', 'تاريخ الاستحقاق مطلوب.')}</FieldError>}
-            </Field>
+            <p className="text-sm text-muted-foreground" data-testid="create-due-note">
+              {t('Due date: set when the fix is approved, from the escalation matrix (Resolve, in working hours).', 'تاريخ الاستحقاق: يُحدَّد عند اعتماد الحل من مصفوفة التصعيد (الحل، بساعات العمل).')}{' '}
+              {due && (
+                <>
+                  {t('If approved today:', 'إن اعتُمد اليوم:')} <span className="text-foreground tabular-nums">{new Date(due.dueAt).toLocaleDateString(lang)}</span>
+                  {due.source === 'fallback' ? ` (${t('the matrix cell is empty: 14-day fallback', 'خلية المصفوفة فارغة: البديل 14 يوماً')})` : ''}
+                </>
+              )}
+            </p>
           </FieldGroup>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onCancel}>

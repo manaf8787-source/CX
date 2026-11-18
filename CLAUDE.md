@@ -1,6 +1,6 @@
 # PSI CX Portal — project notes for Claude
 
-This repository is **documentation, not application code**. It holds the knowledge base, plans and standards list for the PSI CX Portal programme. The interactive prototype is a Claude Artifact hosted at claude.ai; the `.html` file here is a static export of it (version 40), not a live app to build or run. The `frontend/` folder is a separate React scaffold and is not the prototype.
+This repository holds the knowledge base, plans and standards list for the PSI CX Portal programme, plus a React build of the portal. The interactive prototype is a Claude Artifact hosted at claude.ai; the `.html` file here is a static export of it (version 40), not a live app to build or run. **`React-Frontend/` is the React build of the prototype** (Vite + TypeScript + shadcn/ui + Tailwind, sample data only, no backend): run it with `npm install` then `npm run dev`, and check it with `npm run check` and `npm run test:e2e`. Its own docs are in `React-Frontend/docs/` (analysis, design system, fidelity review, implementation report, `V40_DELTA.md` for the v38 to v40 changes, `DECISIONS-2026-11-18.md` for the confirmed answers). It was built on v38 and is being brought to v40. The `frontend/` folder is an older pre-omnichannel React scaffold, reference only.
 
 ## Who this is for
 
@@ -53,3 +53,11 @@ See `PSI-CX-Programme-Knowledge-Base.md` section 43.
 
 - Don't invent or confirm decisions on Manaf's behalf; flag open items rather than resolving them silently.
 - The Programme KB is a chronological log (append dated sections); the Modules KB is a structural reference (edit in place by section).
+- Several Claude sessions may work in this repo at once (prototype and docs in one, `React-Frontend/` in another). Re-read a shared file such as this one or the Programme KB just before editing it, and edit in place rather than rewriting the whole file, so another session's changes are not lost.
+
+## Git: auto-push rule (set by Manaf, 17 Nov 2026)
+
+- All work is committed and pushed to `origin/main` (github.com/manaf8787-source/CX) every hour by the Windows scheduled task **CX-AutoPush**, which runs `.claude/auto-push.ps1`. Log: `%LOCALAPPDATA%\cx-auto-push.log`.
+- Claude may commit and push to `main` without asking. Never force-push; never commit secrets (`.env`, keys); files over 95 MB are left out automatically.
+- To stop it: `Unregister-ScheduledTask -TaskName CX-AutoPush -Confirm:$false`.
+- `React-Frontend/` uses shadcn/ui + Tailwind (decided 17 Nov 2026).

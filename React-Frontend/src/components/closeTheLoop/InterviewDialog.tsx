@@ -43,10 +43,13 @@ type FormValues = z.infer<typeof schema>
  * for it, the outcome value is the single source of truth. */
 export function InterviewDialog({
   item,
+  who,
   onCancel,
   onSubmit,
 }: {
   item: DetractorCallItem
+  /** Who is being called: the name for a role that may see names, else the reference (`P-005`). */
+  who?: string
   onCancel: () => void
   onSubmit: (v: { reasonCode: ReasonCode; outcome: InterviewOutcome; notes?: string; resurveyOn: string }) => void
 }) {
@@ -84,6 +87,7 @@ export function InterviewDialog({
                 <StatusBadge tone={SEVERITY_TONE[item.severity]} dot>
                   {L(SEVERITY_LABEL[item.severity])}
                 </StatusBadge>
+                {who && <span className="font-medium text-foreground">{who}</span>}
                 <span>
                   {t('First score', 'النتيجة الأولى')}: <bdi dir="ltr" className="font-medium text-foreground tabular-nums">{item.firstScore}</bdi>
                 </span>

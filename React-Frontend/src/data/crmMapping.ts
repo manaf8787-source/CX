@@ -74,21 +74,26 @@ export const CRM_MAPPING_OPTIONS: Record<MappingKind, MappingOption[]> = {
 
 const row = (kind: MappingKind, crmValue: string, portalValue: string): MappingRow => ({ kind, crmValue, portalValue })
 
-/** Default rows, exactly as in the v40 prototype (values seen on 17 Nov in the Abu Dhabi environment). */
+/**
+ * Default rows: the values seen on 17 Nov in the Abu Dhabi environment, aligned to `Documents/CRM-Field-Mapping.docx`
+ * (the read-only review of the CRM): the Media values it lists (PSI Mobile App, Website, www.psinv.net, What's App, Facebook,
+ * Property Finder, Bayut, Walk In, event names, Auto Generated – Post Transaction; "Website" and "www.psinv.net" are two separate
+ * values), the stage names it uses, and the activity categories it names (Calls, the Communication log, Handover Workflow, Client
+ * Complaint Category, Lease Renewal and the renewal notices, Survey Completed). The 761 activity types are mapped by category here;
+ * the full list is imported from the CRM lookups at go-live. All rows are [Proposed] until the CRM owner confirms them.
+ */
 export const CRM_MAPPING_ROWS: MappingRow[] = [
   row('src', 'PSI Mobile App', 'app'),
   row('src', 'Website', 'web'),
   row('src', 'www.psinv.net', 'web'),
   row('src', "What's App", 'wa'),
   row('src', 'Facebook', 'fb'),
-  row('src', 'Instagram', 'ig'),
   row('src', 'Property Finder', 'portal'),
-  row('src', 'www.bayut.com', 'portal'),
+  row('src', 'Bayut', 'portal'),
   row('src', 'Walk In', 'branch'),
   row('src', 'Fay Al Reeman Al Ain Event', 'event'),
   row('src', 'Mall of Emirates Stand', 'event'),
   row('src', 'Auto Generated – Post Transaction', 'crm'),
-  row('src', 'HubSpot Website', 'web'),
   row('src', 'Youngsters', 'event'),
   row('src', 'Moscow MPIRES', 'event'),
 
@@ -102,19 +107,24 @@ export const CRM_MAPPING_ROWS: MappingRow[] = [
   row('stg', 'Viewing', 'view'),
   row('stg', 'Opportunity', 'offer'),
   row('stg', 'Negotiation', 'offer'),
-  row('stg', 'Reservation With Developer', 'deal'),
-  row('stg', 'Contract Signed', 'deal'),
-  row('stg', 'Closed Won', 'deal'),
+  row('stg', 'Reservation (with developer)', 'deal'),
+  row('stg', 'Contract signed', 'deal'),
+  row('stg', 'Closed won', 'deal'),
   row('stg', 'Closed lost', 'lost'),
 
   row('act', 'Calls', 'call'),
-  row('act', 'WhatsApp, email, SMS', 'wa'),
+  row('act', 'Incoming Call – Communication', 'call'),
+  row('act', 'WhatsApp Communication', 'wa'),
+  row('act', 'Chatbot Communication', 'wa'),
+  row('act', 'Email Inquiry Copy', 'wa'),
   row('act', 'Meetings and viewings', 'view'),
   row('act', 'Offers and negotiation', 'offer'),
   row('act', 'Closing', 'deal'),
   row('act', 'After Sales · Handover Workflow', 'handover'),
   row('act', 'Client Complaint Category', 'complaint'),
   row('act', 'Lease Renewal', 'renewal'),
+  row('act', 'Renewal Notice', 'renewal'),
+  row('act', 'Non-Renewal Notice', 'renewal'),
   row('act', 'Maintenance', 'ticket'),
   row('act', 'Survey Completed', 'survey'),
   row('act', 'Automatic', 'ignore'),

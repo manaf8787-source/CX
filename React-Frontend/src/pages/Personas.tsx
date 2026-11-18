@@ -10,6 +10,7 @@ import { CHANNEL_LABEL } from '@/components/customers/channels'
 import type { Persona } from '@/types'
 import { Button } from '@/components/ui/button'
 import { PageHeader } from '@/components/common/PageHeader'
+import { CustomersTabs } from '@/components/customers/CustomersTabs'
 import { SectionCard } from '@/components/common/SectionCard'
 import { StatusBadge } from '@/components/common/StatusBadge'
 import { DataTable } from '@/components/common/DataTable'
@@ -78,6 +79,8 @@ export default function Personas() {
           'ست شخصيات مبنية من بيانات نظام إدارة العملاء، لكل منها توصية تسويقية وحملة تالية مرتبة.',
         )}
       />
+
+      <CustomersTabs />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div className="flex flex-col items-start gap-2 rounded-xl border bg-muted/40 p-5">

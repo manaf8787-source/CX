@@ -1,0 +1,27 @@
+import { actionsNext, fixNext } from '@/data/steps'
+import type { Bi, CorrectiveAction, NextStep } from '@/types'
+
+/** Short calendar date for a due phrase. */
+function dateLabel(iso: string, lang: 'en' | 'ar'): string {
+  return new Date(iso).toLocaleDateString(lang, { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+/**
+ * The "where you are, what happens next" step for one fix (v40 F07, S2): step `ca` while it is proposed, approved or in progress,
+ * step `vr` from the check on. Text and due phrase are the prototype's, with the date added after the due phrase once there is one
+ * ("by the due date, 24 Nov 2026"; "at 60 days, 12 Jan 2027"). A fix sent to investigation first reads the Investigations sentence;
+ * a rejected fix reads "Closed with a reason; nothing further" on step `ca`.
+ */
+export function fixNextStep(
+  fix: Pick<CorrectiveAction, 'status' | 'decision' | 'sentToInvestigation' | 'dueDate' | 'verificationDueAt'>,
+  rules: { approveDays: number; verifyDays: number },
+): NextStep {
+  if (fix.status === 'proposed' && fix.sentToInvestigation) return { ...actionsNext('investigations'), step: 'ca' }
+  if (fix.status === 'proposed' && fix.decision === 'rejected') return { ...fixNext('partial', rules), step: 'ca' }
+  const base = fixNext(fix.status, rules)
+  const withDate = (due: Bi | undefined, iso: string): Bi | undefined =>
+    due ? { en: `${due.en}, ${dateLabel(iso, 'en')}`, ar: `${due.ar}، ${dateLabel(iso, 'ar')}` } : due
+  if (fix.status === 'approved' || fix.status === 'in_progress') return { ...base, due: withDate(base.due, fix.dueDate) }
+  if (fix.status === 'verification') return { ...base, due: withDate(base.due, fix.verificationDueAt) }
+  return base
+}

@@ -6,10 +6,11 @@ import { isWorkingDay, nextWorkingDay, toDayKey, type WorkCalendar } from './wor
  * Close the loop calling rules (v40 F27): calls only inside calling hours, up to N attempts,
  * the next one on the following working day; after the last attempt a WhatsApp message goes out
  * and the person is marked "needs a human" for the CX manager (still open).
- * Hours, tries and the working week are configuration (`callFrom`, `callTo`, `callTries`,
- * `workingDays`), all [Proposed]: the prototype says 09:00 to 18:00 and 3, the KB's After-Sales
- * placeholder says 09:00 to 20:00, and Legal confirms (Programme KB 43.9).
- * The AI campaign hand-off rule is a different number (a campaign gives up after two no-answers).
+ * Decided 18 Nov: calling 09:00 to 18:00 UAE time, 3 attempts for the CX team's list, the next attempt the
+ * following working day, a WhatsApp message after the last; 2 no-answers for an AI campaign before hand-off.
+ * Hours, tries, the AI no-answers (`callFrom`, `callTo`, `callTries`, `aiNoAnswers`) and the working week
+ * (`workingDays`) are configuration. Legal's confirmation of the hours is still pending: show the small
+ * `CALL_COPY.hoursNote`, not a [Proposed] badge.
  */
 
 export interface CallRules {
@@ -17,13 +18,15 @@ export interface CallRules {
   from: number
   /** Hour of day calls must end (18 = 18:00). */
   to: number
-  /** Attempts before "needs a human". */
+  /** Attempts before "needs a human" (the CX team's list). */
   tries: number
+  /** No-answers before an AI campaign hands over to a person (2). */
+  aiNoAnswers: number
   calendar: WorkCalendar
 }
 
 export function callRulesFrom(bag: RulesBag): CallRules {
-  return { from: bag.callFrom, to: bag.callTo, tries: bag.callTries, calendar: { days: bag.workingDays } }
+  return { from: bag.callFrom, to: bag.callTo, tries: bag.callTries, aiNoAnswers: bag.aiNoAnswers, calendar: { days: bag.workingDays } }
 }
 
 /** True on a working day between `from` (inclusive) and `to` (exclusive) local time. */
@@ -82,6 +85,9 @@ export const CALL_COPY = {
   }),
   noAnswerButton: { en: 'No answer', ar: 'لم يرد' } as Bi,
   needsHuman: { en: 'Needs a human', ar: 'يحتاج إنساناً' } as Bi,
-  /** Hours and tries are placeholders until Legal confirms (open question 43.9): show with [Proposed]. */
+  /** A small note beside the hours (not a [Proposed] badge): decided, but Legal's confirmation of the hours is pending. */
+  hoursNote: { en: 'Legal to confirm the hours', ar: 'القانونية تؤكد الساعات' } as Bi,
+  /** An AI campaign hands over to a person after this many no-answers (CampaignDialog's "twice"). */
+  aiHandOff: (n: number): Bi => ({ en: `A campaign hands over to a person after ${n} no-answers.`, ar: `تسلّم الحملة لشخص بعد ${n} مرات عدم رد.` }),
   dncrNever: { en: 'DNCR: no calls, no surveys by call.', ar: 'DNCR: لا مكالمات ولا استبيانات بالهاتف.' } as Bi,
 }
