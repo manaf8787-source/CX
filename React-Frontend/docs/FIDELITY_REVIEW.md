@@ -4,6 +4,7 @@ Sources, in priority order: `Documents/PSI-CX-Portal-Knowledge-Base-Modules.md` 
 
 Totals before: 52 Done · 22 Partial · 21 Missing · 9 Differs (104 requirements).
 Totals after: 93 Done · 9 Partial · 0 Missing · 0 Differs; 2 moved to Open items.
+After pass I (18 Nov 2026): the five rows still Partial after pass F ("?" on headings, hand-off rules, AI Insights → proposed action, recovered, Settings) are Done, so every row in the tables below now reads Done. The pass F totals line above also counted items that are not rows here; those that depend on a decision are tracked under Open items, with visible [Proposed] / awaiting-decision placeholders in the UI.
 
 ## Sitewide
 
@@ -11,7 +12,7 @@ Totals after: 93 Done · 9 Partial · 0 Missing · 0 Differs; 2 moved to Open it
 |---|---|---|---|
 | Each role sees only its own pages (1 to 5), CX manager full view | KB §2 | Missing → Done | `auth/access.ts`: role page sets from the §2 table; sidebar, Settings sub-nav and an `AccessGuard` redirect to the role's home |
 | Assistant button for CX, Marketing, executives, environment managers only | KB §13 | Differs → Done | Hidden for other roles |
-| "?" beside metrics and headings; "What the terms mean" button on every page with search | KB §14 | Missing → Partial | Button on every page (PageHeader); "?" on the main metrics (Home, Overview, product pages, Corrective, Surveys). Not on every single heading yet |
+| "?" beside metrics and headings; "What the terms mean" button on every page with search | KB §14 | Missing → Partial → Done | Button on every page (PageHeader); "?" on page titles and section headings across the app (pass I: 22 headings and the shopper-case score and clock), wired to the glossary |
 | Glossary terms with what / how calculated / example (NPS, CSAT, CES + §14 table) | KB §14 | Partial → Done | 12 terms added, NPS/CSAT/CES rewritten |
 | Not-launched products out of menu and filters | KB §16 | Done | Products group in the sidebar shows live products only |
 | Bilingual EN/AR with RTL for every new string | CLAUDE.md | Done | All new strings have Arabic |
@@ -52,9 +53,9 @@ Totals after: 93 Done · 9 Partial · 0 Missing · 0 Differs; 2 moved to Open it
 | "How the AI found this" on every action and every pattern card | §6 | Partial → Done | Added to pattern cards with the action it already has |
 | L&D sees only training-gap actions; env manager only its environment | §15, §2 | Missing → Done | |
 | Signals: counted, thresholds, public badge, 48h clock, hand-offs | §6 | Done | |
-| Hand-off rules by signal type | §6 | Partial | Hand-offs list exists; the per-type rule table is not in the sources' text |
+| Hand-off rules by signal type | §6 | Partial → Done | Pass I: the four rules transcribed from the v38 prototype (`HO_RULE`) under the hand-offs list |
 | AI Insights: recovery figure in full, bar, small-sample warning, percentages panel, "Send to a case" same category only, two-registers note | §6 | Done | |
-| AI Insights suggestions become proposed corrective actions | §6 | Partial | Sample insights carry no suggested-action text; not invented |
+| AI Insights suggestions become proposed corrective actions | §6 | Partial → Done | Pass I: suggested actions and recovery figures transcribed from the prototype (`SIM`), each with bar and small-sample warning; CX makes one a *proposed* action (receiver a title, never top management); shows "From AI Insights" on Corrective actions |
 | Shopper cases: three severities, clocks, numbered actions, HR pool, direct manager review | §6 | Done | |
 | Investigations: weak signals, five interviews or a shopper check form (environment, scenario, what to look for) | §6 | Partial → Done | Form added with validation |
 
@@ -67,7 +68,7 @@ Totals after: 93 Done · 9 Partial · 0 Missing · 0 Differs; 2 moved to Open it
 | Reason codes (the ten in §7) | §7 | Differs → Done | Replaced with the KB list, in order |
 | Reason code suggested from the timeline; outcome; notes; re-survey date | §7 | Partial → Done | |
 | Reason shown on the list | §7 | Missing → Done | |
-| Recovered = 4/5, promoter/passive, transaction, renewal, new lead or clean contact | §7 | Partial | Mock has one score pair; approximated as second score ≥ 4 |
+| Recovered = 4/5, promoter/passive, transaction, renewal, new lead or clean contact | §7 | Partial → Done | Pass I: the full Decision 3 rule (60-day window, "too early", silent / detractor / cancel / runaway); sample items carry instrument, incident date and follow-up events; recovery rate and delta on Close the loop |
 | AI campaigns: segment, script EN/AR, hand-off rules, critical never in a campaign | §7 | Partial → Done | Hand-off rules shown in the form |
 | Campaign results as reason codes; people handed to a human | §7 | Missing → Done | |
 
@@ -129,7 +130,7 @@ Totals after: 93 Done · 9 Partial · 0 Missing · 0 Differs; 2 moved to Open it
 | L&D page: training-gap actions, requests, complaint types, materials and sessions with coverage, low findings as statistics | §15 | Partial → Done | |
 | Teams and structure: titles, authority matrix, routing, what the CRM provides | §15, PKB §28 | Differs → Done | Was "historical only"; rebuilt with roles (§2), routing, CRM fields, HR pool, who is informed |
 | Monthly pack, Mystery shopper, VoC, HR team, AI Insights access | §15 | Done | |
-| Settings: launch list, HR pool, notices heads receive | §15 | Partial | Launch list on Overview, HR pool in Teams; "notices" covered by the informed rule only |
+| Settings: launch list, HR pool, notices heads receive | §15 | Partial → Done | Pass I: `/settings/admin` holds the launch list, the HR pool and "Notices and digests" (informed titles per product, digest frequency, immediate alert), transcribed from the prototype; CX manager edits, CX team reads |
 
 ## Products (KB §16)
 
@@ -148,8 +149,11 @@ Totals after: 93 Done · 9 Partial · 0 Missing · 0 Differs; 2 moved to Open it
 7. Which agent writes AI Insights: the ten agents in the spec do not name one; existing label kept.
 8. Real brand colours, logo, environment names, HR pool members, SLA targets (PKB §43.8).
 
+9. Recovered precedence: when a recovery event and a not-recovered event both fall inside the 60 days, the Rules document does not say which wins. Pass I uses "the latest decisive event wins". [Proposed]
+10. AI Insights → shopper-case "same category" uses a mapping from shopper checklist categories to the six AI Insights categories. [Proposed]
+11. Who is informed for PSI Wallet: the prototype's notices list has no Wallet row; shown as awaiting decision. [Proposed]
+12. Runaway inside the recovered rule is supported by the rule but not fed in the sample (runaway types carry no date). [Proposed]
+
 ## Deferred
 
-- "?" on every heading (only the main metrics have it).
-- AI Insights → proposed action (needs suggested-action text from the real agent).
-- Full "recovered" rule (needs transaction and renewal feeds).
+None of the three items deferred after pass F remain: "?" on headings, AI Insights → proposed action and the full recovered rule were completed in pass I (18 Nov 2026).

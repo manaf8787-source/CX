@@ -255,6 +255,30 @@ What changed:
 
 **Remaining:** on throttled mobile, Actions / Signals still has about 1 s of TBT. That is React rendering 11 pattern cards, KPI tiles, an area chart and a table in one view. The next step would be virtualising or collapsing the pattern list, which is a design decision, so it is left as is.
 
+## 13. Partial and deferred items closed (18 Nov 2026)
+
+Pass I closed the five rows of `docs/FIDELITY_REVIEW.md` still marked Partial (every row there now reads Done) and the three items deferred after pass F.
+
+| Item | Source | What was built |
+|---|---|---|
+| "?" on headings | KB §14 | The existing `TermHelp` popover now sits beside page titles (`PageHeader term`) and 22 section headings, plus the shopper-case visit score and respond clock. Keyboard accessible, both languages. |
+| AI Insights → proposed action | KB §6, prototype `SIM` | Insights use the prototype's six categories. Each shows its suggested actions with the recovery sentence, a bar and a small-sample warning under 10. CX manager and CX team can make one a *proposed* corrective action (kind and receiver title editable; a title naming top management is refused in the form and in the mutation). Corrective actions show "From AI Insights" with the figure. |
+| Recovered rule | Rules and Definitions, Decision 3 | `recoveryStatus()` implements the 60-day window, "too early", the four recovery events, and silent / detractor / cancel / runaway. Re-surveys count as a rating event. Close the loop shows a "Recovered within 60 days" panel (rate of closed windows, not recovered, too early) and a per-person status with its reason; the re-survey input follows the instrument's scale. |
+| Hand-off rules by signal type | KB §6, prototype `HO_RULE` | Four rules under the hand-offs list on Signals. |
+| Settings: launch, HR pool, notices | KB §15, prototype Settings | New sub-page `/settings/admin`. Notices and digests: informed titles per product, digest weekly/daily/off and the immediate alert; CX manager edits, CX team reads; PSI Wallet shown as awaiting decision. |
+| Signals on a phone | Pass H known issue | Patterns sorted by closeness to threshold; the first four render, the rest only after "Show all patterns (n)". |
+
+**Sample data.** Detractor items now carry an instrument (NPS, CSAT, CES), an incident date and follow-up events, chosen so every branch of the recovered rule appears once: 6 too early, 3 recovered, 3 not recovered (50%). CSAT and CES detractors start at 1 or 2. AI insights use the six prototype categories with the same number of random draws, so the rest of the seeded sample is unchanged.
+
+**[Proposed] in this pass:** "latest decisive event wins" when both kinds fall in the window; the mapping from shopper checklist categories to AI Insights categories; default receiver titles per kind (pending the escalation matrix); PSI Wallet notices. All listed under Open items in the fidelity review.
+
+**Also fixed.** Shopper-case category names now show in Arabic. Two assistant scroll regions are keyboard-focusable (an intermittent axe finding). Two flaky tests were corrected: the assistant-sheet scan now waits for dialog fades, and the reduced-motion test ignores the 0.01 ms transitions the reduced-motion stylesheet leaves.
+
+**Checks.** `npm run check` green (141 unit tests; lint shows the 3 known fast-refresh warnings). `npm run test:e2e`: 135 passed, twice in a row, including the axe scan of every route (now also `/settings/admin`) and 6 new pass-I tests. Lighthouse mobile, Signals, median of three: Performance 88 → 89, TBT 280 → 260 ms, LCP 3.1 → 3.0 s; Accessibility and Best Practices 100.
+
+**Still open (not decidable here):** escalation matrix cells, funnel stages, standards ownership, 28 vs 33 L&D documents, Marketing access to Surveys, Actions scoping for team lead and HR, brand.
+
+
 ## Final status
 
 The app builds, type-checks, and lints clean (3 long-standing fast-refresh warnings). 107 unit tests and 125 end-to-end tests pass, and the end-to-end tests include a zero-violation axe WCAG 2.1 AA scan of every route in both languages and both themes, plus a keyboard-only pass. A full click-through across every route, both languages/directions, both themes, and all 12 roles found zero console errors and no visual defects. It is a complete, working, mock-data prototype of the v38 PSI CX Portal IA — ready to view and demo, not yet connected to a real backend.
