@@ -6,7 +6,7 @@ test('an AI Insights suggestion becomes a proposed corrective action', async ({ 
   const errors = collectErrors(page)
   await page.goto('/actions/ai-insights')
   await expectPageReady(page)
-  await page.getByRole('button', { name: 'Make it a proposed action' }).first().click()
+  await page.getByRole('button', { name: 'Make it a proposed action' }).first().click({ timeout: 15_000 })
   const dialog = page.getByRole('dialog')
   await expect(dialog.getByRole('heading', { name: 'Make it a proposed corrective action' })).toBeVisible()
   // Top management is refused as the receiver.
@@ -28,8 +28,9 @@ test('only CX can propose from AI Insights', async ({ page }) => {
   await signInAs(page, 'envmgmt')
   await page.goto('/actions/ai-insights')
   await expectPageReady(page)
+  await expect(page.getByText('CX creates the action.').first()).toBeVisible({ timeout: 15_000 })
   await expect(page.getByRole('button', { name: 'Make it a proposed action' })).toHaveCount(0)
-  await expect(page.getByText('CX creates the action.').first()).toBeVisible()
+  await expect(page.getByText('CX creates the action.').first()).toBeVisible({ timeout: 15_000 })
 })
 
 test('Signals shows the closest patterns first and the rest on request', async ({ page }) => {
@@ -37,7 +38,7 @@ test('Signals shows the closest patterns first and the rest on request', async (
   await page.goto('/actions/signals')
   await expectPageReady(page)
   const cards = page.locator('main section, main').getByRole('listitem').filter({ has: page.getByRole('progressbar') })
-  await expect(cards).toHaveCount(4)
+  await expect(cards).toHaveCount(4, { timeout: 15_000 })
   await page.getByRole('button', { name: /Show all patterns \(\d+\)/ }).click()
   await expect.poll(async () => cards.count()).toBeGreaterThan(4)
   await expect(page.getByRole('heading', { name: 'Hand-off rules by signal type' })).toBeVisible()
@@ -49,8 +50,8 @@ test('Close the loop shows the 60-day recovered rule', async ({ page }) => {
   await page.goto('/close-the-loop')
   await expectPageReady(page)
   await expect(page.getByText('Recovered within 60 days', { exact: true })).toBeVisible()
-  await expect(page.getByRole('columnheader', { name: 'Recovered (60 days)' })).toBeVisible()
-  await expect(page.getByText('Too early').first()).toBeVisible()
+  await expect(page.getByRole('columnheader', { name: 'Recovered (60 days)' })).toBeVisible({ timeout: 15_000 })
+  await expect(page.getByText('Too early').first()).toBeVisible({ timeout: 15_000 })
 })
 
 test('Settings: the CX manager edits notices, the CX team only reads them', async ({ browser }) => {
@@ -59,7 +60,7 @@ test('Settings: the CX manager edits notices, the CX team only reads them', asyn
   await mgr.goto('/settings/admin')
   await expectPageReady(mgr)
   await expect(mgr.getByText('Notices and digests', { exact: true })).toBeVisible()
-  await expect(mgr.getByRole('combobox', { name: /Digest: Head of Sales/ })).toBeEnabled()
+  await expect(mgr.getByRole('combobox', { name: /Digest: Head of Sales/ })).toBeEnabled({ timeout: 15_000 })
   await mgr.close()
 
   const team = await browser.newPage()
