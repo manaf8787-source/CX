@@ -18,7 +18,8 @@ interface TraceIdProps {
   className?: string
 }
 
-const TAG = 'inline-flex shrink-0 items-center gap-1 rounded-md border bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground whitespace-nowrap'
+/** A flat grey tag (well fill, 12px tabular figures: ids are numbers, not code, so no mono face). Ink on hover when it is a button. */
+const TAG = 'inline-flex h-6 shrink-0 items-center gap-1 rounded-full bg-well px-2.5 pt-px text-xs font-medium tabular text-muted-foreground whitespace-nowrap'
 
 /**
  * A trace id as a grey tag (v40 F10 to F12): `EV-12`, `SG-7`, `PT-123`, `CA-201`, `VR-201`, `RP-2026-11`. A button that
@@ -38,13 +39,20 @@ export function TraceId({ kind, id, children, plain, onOpen, className }: TraceI
       {children}
     </>
   )
-  if (plain || (!onOpen && !nav.canOpen(kind, id))) return <span className={cn(TAG, className)}>{content}</span>
+  if (plain || (!onOpen && !nav.canOpen(kind, id))) {
+    return (
+      <span data-slot="trace-id" className={cn(TAG, className)}>
+        {content}
+      </span>
+    )
+  }
   return (
     <button
       type="button"
+      data-slot="trace-id"
       onClick={onOpen ?? (() => nav.open(kind, id))}
       aria-label={children ? undefined : t(`Open ${text}`, `افتح ${text}`)}
-      className={cn(TAG, 'cursor-pointer outline-none transition-colors duration-150 hover:bg-accent hover:text-accent-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50', className)}
+      className={cn(TAG, 'cursor-pointer outline-none transition-colors duration-200 hover:bg-well-hover hover:text-foreground', className)}
     >
       {content}
     </button>

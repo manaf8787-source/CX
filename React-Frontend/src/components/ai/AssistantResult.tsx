@@ -29,9 +29,9 @@ export function AssistantResult({
   return (
     <div className="flex w-full min-w-0 flex-col gap-2">
       {answer.people && answer.people.length > 0 && (
-        <ul className="flex max-h-64 flex-col divide-y overflow-y-auto rounded-xl border bg-card text-sm shadow-xs">
+        <ul className="flex max-h-64 flex-col overflow-y-auto rounded-[14px] bg-card px-1.5 text-sm shadow-card-sm">
           {answer.people.slice(0, 12).map((p) => (
-            <li key={p.id} className="flex items-start gap-2 px-3 py-2">
+            <li key={p.id} className="row-divider flex items-start gap-2 px-2 py-2.5">
               <div className="flex min-w-0 flex-1 flex-col">
                 <span className="font-medium">{p.name}</span>
                 <span className="text-xs text-muted-foreground">{L(p.reason)}</span>
@@ -45,7 +45,7 @@ export function AssistantResult({
             </li>
           ))}
           {answer.people.length > 12 && (
-            <li className="px-3 py-2 text-xs text-muted-foreground">
+            <li className="px-2 py-2.5 text-xs text-muted-foreground">
               {t(`and ${answer.people.length - 12} more`, `و${answer.people.length - 12} آخرين`)}
             </li>
           )}
@@ -53,8 +53,8 @@ export function AssistantResult({
       )}
 
       {answer.plan && (
-        <div className="flex flex-col gap-2 rounded-xl border bg-card p-3 text-sm shadow-xs">
-          <span className="font-semibold">{t('Corrective action plan', 'خطة الإجراءات التصحيحية')}</span>
+        <div className="flex flex-col gap-2 rounded-[14px] bg-card p-3.5 text-sm shadow-card-sm">
+          <span className="font-medium">{t('Corrective action plan', 'خطة الإجراءات التصحيحية')}</span>
           {answer.plan.length === 0 ? (
             <span className="text-muted-foreground">{t('No fault repeats in this group yet — nothing to propose.', 'لا يتكرر أي خطأ في هذه المجموعة بعد — لا شيء لاقتراحه.')}</span>
           ) : (
@@ -92,9 +92,9 @@ export function AssistantResult({
       )}
 
       {answer.brief && (
-        <div className="flex flex-col gap-2 rounded-xl border bg-card p-3 text-sm shadow-xs">
-          <span className="inline-flex items-center gap-1.5 font-semibold">
-            <Megaphone aria-hidden className="size-4 text-gold-text" />
+        <div className="flex flex-col gap-2 rounded-[14px] bg-card p-3.5 text-sm shadow-card-sm">
+          <span className="inline-flex items-center gap-1.5 font-medium">
+            <Megaphone aria-hidden className="size-4 text-muted-foreground" />
             {L(answer.brief.title)}
           </span>
           <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1">

@@ -1,5 +1,10 @@
 # Design system: Tailwind CSS v4 + shadcn/ui
 
+> **Superseded in part (18 Nov 2026).** The visual language is now the Meo-inspired system in [`MEO_DESIGN_SYSTEM.md`](MEO_DESIGN_SYSTEM.md) (plan: [`MEO_DESIGN_PLAN.md`](MEO_DESIGN_PLAN.md)). That file wins over this one for:
+> section 2 (Tokens: the navy and gold pair is gone, ink replaces it; every value is in the new file), section 3 (fonts are Plus Jakarta Sans plus IBM Plex Sans Arabic at 400 and 500 only; the type scale, radius ladder and elevation lines are replaced; cards have no border), and the colour and component details in sections 5 and 6 (selected = dark material, pills for controls, one focus ring in the base layer).
+> Sections 1, 4 (right-to-left), 7, 8 (motion code), 9 and "Adding shadcn components" still hold; the new file adds the Arabic tracking rule and the dark-theme derivation.
+
+
 These conventions are binding for every page. Read this before you build or change a page. The decision to use Tailwind and shadcn/ui was Manaf's, on 17 Nov 2026. It reversed the earlier choice of hand-written CSS only.
 
 Design direction (from the `ui-ux-pro-max` skill, adjusted for this product): a calm, token-based enterprise style similar to Fluent 2, with bento grids for dashboard tiles and a dense dashboard spacing scale. Motion is subtle: CSS for hover, press, stagger and loops, and `motion` (`motion/react`) for enter/exit choreography (section 8). Arabic and English are both supported, with full right-to-left layout.

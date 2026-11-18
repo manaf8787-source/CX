@@ -179,29 +179,31 @@ export function AssistantPanel({ onClose, initialQuestion }: { onClose: () => vo
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-background">
-      <header className="flex items-center gap-3 border-b bg-card px-4 py-3">
-        <span aria-hidden className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-gold text-gold-foreground">
-          <Sparkles className="size-4" />
+    <div className="flex h-full min-h-0 flex-col bg-card">
+      {/* Floating drawer header: 60px, the dark assistant mark, title and meta, a 30px light close button. */}
+      <header className="flex min-h-[60px] items-center gap-3 ps-5 pe-4">
+        <span aria-hidden className="material-dark grid size-[30px] shrink-0 place-items-center rounded-full">
+          <Sparkles className="size-3.5" />
         </span>
         <div className="flex min-w-0 flex-1 flex-col">
-          <SheetTitle className="text-lg leading-tight font-semibold">{t('AI assistant', 'المساعد الذكي')}</SheetTitle>
+          <SheetTitle className="leading-tight">{t('AI assistant', 'المساعد الذكي')}</SheetTitle>
           <span className="truncate text-xs text-muted-foreground">
             {t('Built-in parser (no connection) · sample data, within your role', 'المحلّل المدمج (دون اتصال) · بيانات نموذجية ضمن صلاحيات دورك')}
           </span>
         </div>
-        <Button variant="ghost" size="icon" onClick={onClose} aria-label={t('Close', 'إغلاق')}>
+        <Button variant="outline" size="icon-sm" onClick={onClose} aria-label={t('Close', 'إغلاق')}>
           <X aria-hidden />
         </Button>
       </header>
 
+      {/* The conversation sits in a well; the two bubbles are the two materials: yours is dark, the assistant's is light. */}
       <div
         ref={scrollRef}
         role="log"
         aria-live="polite"
         aria-label={t('Conversation', 'المحادثة')}
         tabIndex={0}
-        className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-4 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+        className="well mx-2.5 flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto outline-none"
       >
         {messages.map((msg) => {
           const mine = msg.from === 'user'
@@ -214,8 +216,8 @@ export function AssistantPanel({ onClose, initialQuestion }: { onClose: () => vo
             >
               <div
                 className={cn(
-                  'rounded-2xl px-3.5 py-2.5 text-base leading-relaxed whitespace-pre-line shadow-xs',
-                  mine ? 'rounded-ee-sm bg-primary text-primary-foreground' : 'rounded-es-sm border bg-card text-card-foreground',
+                  'rounded-[20px] px-4 pt-2.5 pb-3 text-base leading-relaxed whitespace-pre-line',
+                  mine ? 'material-dark rounded-ee-[6px]' : 'material-light rounded-es-[6px]',
                 )}
               >
                 {L(msg.text)}
@@ -249,7 +251,7 @@ export function AssistantPanel({ onClose, initialQuestion }: { onClose: () => vo
           <m.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex items-center gap-1 self-start rounded-2xl rounded-es-sm border bg-card px-3.5 py-3 shadow-xs"
+            className="material-light flex items-center gap-1 self-start rounded-[20px] rounded-es-[6px] px-4 py-3.5"
           >
             <span className="sr-only">{t('The assistant is answering…', 'المساعد يجيب…')}</span>
             {[0, 1, 2].map((i) => (
@@ -259,25 +261,17 @@ export function AssistantPanel({ onClose, initialQuestion }: { onClose: () => vo
         )}
       </div>
 
-      <div className="border-t bg-card">
-        <div className="flex gap-2 overflow-x-auto px-4 pt-3 pb-1 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50" aria-label={t('Suggested questions', 'أسئلة مقترحة')} role="group" tabIndex={0}>
+      <div className="flex flex-col gap-2 pb-4">
+        <div className="flex gap-2 overflow-x-auto px-5 pt-3 pb-1 outline-none" aria-label={t('Suggested questions', 'أسئلة مقترحة')} role="group" tabIndex={0}>
           {SUGGESTED_QUERIES.map((q) => (
-            <Button
-              key={q.en}
-              type="button"
-              variant="outline"
-              size="sm"
-              className="shrink-0 rounded-full font-normal"
-              disabled={!ready || thinking}
-              onClick={() => send(t(q.en, q.ar))}
-            >
+            <Button key={q.en} type="button" variant="outline" size="sm" className="shrink-0" disabled={!ready || thinking} onClick={() => send(t(q.en, q.ar))}>
               {t(q.en, q.ar)}
             </Button>
           ))}
         </div>
 
         <form
-          className="flex items-center gap-2 px-4 pt-2 pb-4"
+          className="flex items-center gap-2 px-5"
           onSubmit={(e) => {
             e.preventDefault()
             send(draft)
@@ -286,13 +280,13 @@ export function AssistantPanel({ onClose, initialQuestion }: { onClose: () => vo
           {RecognitionCtor && (
             <Button
               type="button"
-              variant="outline"
+              variant={listening ? 'default' : 'outline'}
               size="icon-lg"
               title={t('Voice input', 'الإدخال الصوتي')}
               aria-label={listening ? t('Stop voice input', 'إيقاف الإدخال الصوتي') : t('Voice input', 'الإدخال الصوتي')}
               aria-pressed={listening}
               onClick={toggleVoice}
-              className={cn('shrink-0', listening && 'border-destructive bg-destructive/10 text-danger-text animate-pulse motion-reduce:animate-none')}
+              className={cn('shrink-0', listening && 'animate-pulse motion-reduce:animate-none')}
             >
               {listening ? <MicOff aria-hidden /> : <Mic aria-hidden />}
             </Button>

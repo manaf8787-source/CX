@@ -165,8 +165,8 @@ describe('DayChip (v40 F20, S7)', () => {
   })
 
   it('shows nothing without a date, and speaks Arabic', () => {
-    const { container, unmount } = renderWithProviders(<DayChip daysLeft={null} unit="d" />)
-    expect(container.querySelectorAll('[class*="rounded-full"]')).toHaveLength(0)
+    const { unmount } = renderWithProviders(<DayChip daysLeft={null} unit="d" />)
+    expect(document.querySelector('[data-slot=status-badge]')).toBeNull()
     unmount()
     renderWithProviders(<DayChip daysLeft={4} unit="wd" />, { lang: 'ar' })
     expect(screen.getByText('متبقٍ 4 أيام عمل')).toBeInTheDocument()

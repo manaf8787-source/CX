@@ -1,119 +1,329 @@
-/* shadcn/ui + Tailwind theme — see docs/DESIGN_SYSTEM.md (binding for all pages).
+/* Design tokens, Tailwind theme and base rules. The Meo-inspired design system: docs/MEO_DESIGN_SYSTEM.md (binding for every page).
+ * Source: meo-admin-design-skill (SKILL.md, tokens/*). Marks: "measured" = from the skill's reference; "derived" = added by us.
+ * It supersedes the navy #12385B / gold #C8963E placeholder pair of docs/DESIGN_SYSTEM.md section 2: ink replaces both, and one
+ * accent token set (--brand-accent*) is the single place to introduce the real PSI brand later [Proposed] (Programme KB 43.8).
  *
- * Brand pair navy #12385B / gold #C8963E is still a [Proposed] placeholder
- * pending real PSI brand colors (Programme KB §43.8) — changing it is an edit
- * to this file only.
- *
- * Every text/background pair below was checked at >= 4.5:1; input borders >= 3:1.
+ * Layout of this file
+ *   1. :root          light tokens (skill palette, gradients, shadows' colours, rings, density) + the shadcn variable names mapped onto them
+ *   2. .dark          derived dark theme: the same two materials inverted (mark: derived)
+ *   3. @theme         Tailwind: radii, shadows, type scale, weights (400/500 only), easing, breakpoints, colours
+ *   4. @utility       gradients, materials, tabular, label style
+ *   5. @layer base    type, language-aware tracking, focus ring, motion
+ *   6. @layer components  surfaces, wells, pills, row divider, type styles, button label roll, motion classes
  */
 
 @custom-variant dark (&:is(.dark *));
 
+/* ==== 1. Light tokens ========================================================================================================== */
 :root {
+  color-scheme: light;
   --radius: 0.625rem;
 
-  --background: #f8fafc;
-  --foreground: #1e293b;
-  --card: #ffffff;
-  --card-foreground: #1e293b;
-  --popover: #ffffff;
-  --popover-foreground: #1e293b;
+  /* -- skill palette (measured) -- */
+  --surface: #ffffff;
+  --surface-soft: #f6f6f6; /* sidebar */
+  --surface-well: #f2f2f2; /* wells, inputs, tracks, chips */
+  --surface-card: #ffffff;
+  --surface-popover: #ffffff;
+  --surface-well-hover: #efefef; /* input hover (derived) */
+  --row-hover: #f6f6f6; /* table row hover pill (derived) */
+  --row-selected: #f2f2f2; /* selected table row (derived) */
+  --ink: #0a0a0a;
+  --ink-graphite: #161616;
+  --ink-charcoal: #3a3a3a; /* label text */
+  --ink-secondary: #6e6e6e; /* prose, idle icons; 5.1:1 on white, 4.55:1 on #f2f2f2 */
+  --ink-tertiary: #767676; /* meta, table header; 4.54:1 on white ONLY: never on a well or the sidebar (use --ink-secondary) */
+  --line: #ececec; /* the only literal line: row dividers, tracks */
+  --on-dark: #ffffff; /* text on the emphasis ("dark") material */
+  --on-dark-muted: rgba(255, 255, 255, 0.62);
+  --on-dark-tint: rgba(255, 255, 255, 0.07);
 
-  --primary: #12385b;
-  --primary-foreground: #ffffff;
-  --secondary: #eef2f7;
-  --secondary-foreground: #12385b;
-  --muted: #f1f5f9;
-  --muted-foreground: #475569;
-  --accent: #e7eef5;
-  --accent-foreground: #12385b;
+  --brand-green: #1f9d55;
+  --brand-blue: #1f6fe0;
+  --brand-violet: #7c3aed;
+  --brand-amber: #f08a1c;
 
-  /* Gold fails as text on white (2.7:1): fill with dark ink, or use gold-text. */
-  --brand-gold: #c8963e;
-  --brand-gold-foreground: #2a1c06;
-  --brand-gold-text: #8a6420;
+  /* -- status (derived): solid for dots and chart marks, text shades for words, tint for the tag background.
+        Text shades are the skill's values darkened 0 to 8% so the legacy `bg-<status>/12` tints over a #f2f2f2 well stay >= 4.5:1. -- */
+  --status-success-solid: #1f9d55;
+  --status-success-text: #14713c;
+  --status-success-bg: #eaf6ef;
+  --status-info-solid: #1f6fe0;
+  --status-info-text: #195dbe;
+  --status-info-bg: #eaf1fc;
+  --status-warning-solid: #f08a1c;
+  --status-warning-text: #9b5306;
+  --status-warning-bg: #fdf1e3;
+  --status-error-solid: #d93a32;
+  --status-error-text: #b42a23;
+  --status-error-bg: #fcedec;
+  --status-accent-solid: #7c3aed;
+  --status-accent-text: #6a2fd0;
+  --status-accent-bg: #f1ebfd;
 
-  --destructive: #dc2626;
+  /* -- gradients: "light" = default raised material, "dark" = emphasis (selected, primary) material. Names say the role; in .dark they swap. -- */
+  --grad-light: linear-gradient(180deg, #ffffff 0%, #f6f6f6 100%);
+  --grad-dark: linear-gradient(180deg, #3a3a3a 0%, #0a0a0a 100%);
+  --grad-dark-button: linear-gradient(180deg, #3a3a3a 0%, #161616 55%, #0a0a0a 100%);
+  --grad-dark-surface: radial-gradient(120% 80% at 50% 0%, #3a3a3a 0%, #161616 55%, #0a0a0a 100%);
+  --grad-badge-light: linear-gradient(180deg, #ffffff, #ececec);
+  --grad-muted-fill: linear-gradient(180deg, #ececec, #767676); /* non-hero chart bars, used at 62% opacity */
+  --grad-shine: linear-gradient(180deg, rgba(255, 255, 255, 0.28), transparent);
+  --fill-gloss: linear-gradient(180deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0)); /* overlay on a flat fill colour (progress), derived */
+
+  /* -- shadow colours: every shadow stack in @theme is built from these, so .dark re-colours all of them (derived for dark) -- */
+  --sh-hi: #ffffff; /* inner top highlight on a light surface */
+  --sh-edge: rgba(0, 0, 0, 0.04); /* the 1px hairline ring */
+  --sh-drop: rgba(0, 0, 0, 0.04); /* every drop layer under a light surface */
+  --sh-drop-lg: rgba(0, 0, 0, 0.08); /* last layer of toast */
+  --sh-inner: rgba(0, 0, 0, 0.04); /* inner bottom shade */
+  --sh-well: rgba(0, 0, 0, 0.04);
+  --sh-track: rgba(0, 0, 0, 0.12);
+  --sh-lip: #ffffff; /* 1px lip under a recess */
+  --sh-d-hi: rgba(255, 255, 255, 0.28); /* emphasis material: top highlight */
+  --sh-d-inner: rgba(0, 0, 0, 0.5);
+  --sh-d-drop: rgba(0, 0, 0, 0.12);
+  --sh-d-ring: rgba(0, 0, 0, 0.12);
+  --sh-d-glass: rgba(255, 255, 255, 0.28);
+  --sh-glass: rgba(255, 255, 255, 0.62);
+
+  /* -- rings -- */
+  --ring-ink: #0a0a0a;
+  --ring-gap: #ffffff;
+  --ring-selected: 0 0 0 1.5px var(--ring-ink); /* measured */
+  --ring-focus: 0 0 0 2px var(--ring-gap), 0 0 0 4px var(--ring-ink); /* derived; appended to every focused element's shadows (base layer) */
+  --ring-field-color: rgba(10, 10, 10, 0.45); /* derived, WCAG 1.4.11 exception for form fields only: 3.16:1 on white, 3.10:1 on #f2f2f2 */
+  --ring-field: 0 0 0 1px var(--ring-field-color);
+  --ring-invalid: 0 0 0 1.5px var(--status-error-solid); /* 4.56:1 on white */
+  --ring-avatar: 0 0 0 2px var(--surface); /* measured */
+
+  /* -- chrome: switch thumb, scroll thumb, scrim -- */
+  --thumb-off: linear-gradient(180deg, #ffffff, #f6f6f6);
+  --thumb-on: #ffffff;
+  --scroll-thumb: rgba(0, 0, 0, 0.18);
+  --scrim: rgba(0, 0, 0, 0.32); /* derived */
+  --hover-tint: rgba(0, 0, 0, 0.04); /* ghost button, sidebar item hover (derived) */
+
+  /* -- motion -- */
+  --spring-css: 400ms cubic-bezier(0.34, 1.3, 0.64, 1); /* CSS stand-in for spring(.4, bounce .2), estimated */
+  --dur-overlay: 400ms;
+  --dur-drawer: 600ms;
+
+  /* -- layout (measured) -- */
+  --sidebar-w: 220px;
+  --sidebar-w-icon: 56px;
+  --topbar-h: 60px;
+  --control-h: 36px;
+  --page-x: 72px;
+
+  /* -- density: comfortable is the default; `data-density="dense"` on any ancestor switches (derived, see section 5 of the skill's admin guide) -- */
+  --card-pad: 28px;
+  --card-radius: 22px;
+  --card-gap: 26px;
+  --card-title-size: 22px;
+  --card-title-tracking: -0.035em;
+  --card-title-lh: 1.1;
+  --well-pad: 22px;
+  --well-radius: 14px;
+  --row-h: 60px;
+  --kpi-size: 44px;
+  --kpi-tracking: -0.05em;
+  --grid-gap: 16px;
+
+  /* -- language-aware tracking: negative tracking breaks Arabic letter joining, so every tracking value is multiplied by this -- */
+  --track: 1;
+
+  /* ---- shadcn variable names, mapped onto the skill tokens ---- */
+  --background: var(--surface);
+  --foreground: var(--ink);
+  --card: var(--surface-card);
+  --card-foreground: var(--ink);
+  --popover: var(--surface-popover);
+  --popover-foreground: var(--ink);
+
+  --primary: var(--ink);
+  --primary-foreground: var(--on-dark);
+  --secondary: var(--surface-well);
+  --secondary-foreground: var(--ink);
+  --muted: var(--surface-well);
+  --muted-foreground: var(--ink-secondary);
+  --accent: var(--surface-well);
+  --accent-foreground: var(--ink);
+
+  /* The one place to introduce the real PSI brand colour later [Proposed]. Today it is ink; --brand-gold* are the old names, kept so existing classes resolve. */
+  --brand-accent: var(--ink);
+  --brand-accent-foreground: var(--on-dark);
+  --brand-accent-text: var(--ink);
+  --brand-gold: var(--brand-accent);
+  --brand-gold-foreground: var(--brand-accent-foreground);
+  --brand-gold-text: var(--brand-accent-text);
+
+  --destructive: var(--status-error-solid);
   --destructive-foreground: #ffffff;
-  --success: #15803d;
-  --success-foreground: #ffffff;
-  --warning: #b45309;
-  --warning-foreground: #ffffff;
-  --info: #1d4ed8;
+  --success: var(--status-success-solid);
+  --success-foreground: var(--ink);
+  --warning: var(--status-warning-solid);
+  --warning-foreground: var(--ink);
+  --info: var(--status-info-solid);
   --info-foreground: #ffffff;
-  /* Text on a 10-15% tint of the same hue (badges, callouts) — darker for >= 4.5:1. */
-  --success-text: #166534;
-  --warning-text: #92400e;
-  --danger-text: #b91c1c;
-  --info-text: #1e40af;
+  --success-text: var(--status-success-text);
+  --warning-text: var(--status-warning-text);
+  --danger-text: var(--status-error-text);
+  --info-text: var(--status-info-text);
 
-  --border: #e2e8f0;
-  --input: #7a8ba1;
-  --ring: #1d5c99;
+  --border: var(--line);
+  --input: rgba(10, 10, 10, 0.45); /* the form-field ring colour, for the rare border-input use */
+  --ring: var(--ink);
 
-  /* Product hues — dots, bars, chart fills only (several are < 4.5:1 as text). */
+  /* Product hues: small dots and icon tiles only (several are < 4.5:1 as text). */
   --p-re: #0e8f8a; /* PSI Real Estate */
   --p-af: #3563d8; /* After-Sales */
   --p-cl: #de8514; /* PSI Club */
   --p-to: #8a4bd2; /* Tour Estate */
   --p-ev: #db406f; /* PSI Events */
-  --p-wl: #2e9e5b; /* [Proposed] PSI Wallet — the prototype never defined this hue */
+  --p-wl: #2e9e5b; /* [Proposed] PSI Wallet: the prototype never defined this hue */
 
-  --chart-1: #12385b;
-  --chart-2: #c8963e;
-  --chart-3: #0e8f8a;
-  --chart-4: #3563d8;
-  --chart-5: #db406f;
+  /* Charts: hero series ink, then grey, then the skill's blue and amber (up to four categories; beyond that use small multiples). */
+  --chart-1: #0a0a0a;
+  --chart-2: #767676;
+  --chart-3: #1f6fe0;
+  --chart-4: #f08a1c;
+  --chart-5: #b8b8b8;
 
-  --sidebar: #0e2c49;
-  --sidebar-foreground: #e2e8f0;
-  --sidebar-muted-foreground: #9fb3c8;
-  --sidebar-primary: #c8963e;
-  --sidebar-primary-foreground: #2a1c06;
-  --sidebar-accent: rgb(255 255 255 / 0.1);
-  --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: rgb(255 255 255 / 0.12);
-  --sidebar-ring: #c8963e;
+  --sidebar: var(--surface-soft);
+  --sidebar-foreground: var(--ink);
+  --sidebar-muted-foreground: var(--ink-secondary);
+  --sidebar-primary: var(--ink);
+  --sidebar-primary-foreground: var(--on-dark);
+  --sidebar-accent: var(--hover-tint); /* hover tint and legacy "subtle fill" */
+  --sidebar-accent-foreground: var(--on-dark); /* NOTE: the text on the SELECTED sidebar pill (dark material), not on --sidebar-accent */
+  --sidebar-border: var(--line);
+  --sidebar-ring: var(--ink);
 }
 
+@media (max-width: 1199.98px) {
+  :root {
+    --page-x: 40px;
+  }
+}
+@media (max-width: 809.98px) {
+  :root {
+    --page-x: 20px;
+  }
+}
+
+/* Dense density (tables, operations pages): derived values from the skill's admin guide. */
+[data-density='dense'] {
+  --card-pad: 20px;
+  --card-radius: 18px;
+  --card-gap: 16px;
+  --card-title-size: 17px;
+  --card-title-tracking: -0.02em;
+  --card-title-lh: 1.3;
+  --well-pad: 16px;
+  --well-radius: 12px;
+  --row-h: 44px;
+  --kpi-size: 32px;
+  --kpi-tracking: -0.04em;
+  --grid-gap: 12px;
+}
+[data-density='comfortable'] {
+  --card-pad: 28px;
+  --card-radius: 22px;
+  --card-gap: 26px;
+  --card-title-size: 22px;
+  --card-title-tracking: -0.035em;
+  --card-title-lh: 1.1;
+  --well-pad: 22px;
+  --well-radius: 14px;
+  --row-h: 60px;
+  --kpi-size: 44px;
+  --kpi-tracking: -0.05em;
+  --grid-gap: 16px;
+}
+
+/* ==== 2. Dark theme (derived): the same two materials inverted ================================================================
+ * Page #0a0a0a, raised surfaces #1a1a1a -> #111, and the emphasis material is the LIGHT gradient (selected pill, primary button), with
+ * ink text on it. --on-dark therefore means "text on the emphasis material" and is ink here. Every pair below is checked (docs/MEO_DESIGN_SYSTEM.md). */
 .dark {
-  --background: #0b1220;
-  --foreground: #e2e8f0;
-  --card: #111a2b;
-  --card-foreground: #e2e8f0;
-  --popover: #111a2b;
-  --popover-foreground: #e2e8f0;
+  color-scheme: dark;
 
-  --primary: #7fb0e0;
-  --primary-foreground: #0b1a2c;
-  --secondary: #1a2638;
-  --secondary-foreground: #e2e8f0;
-  --muted: #18233a;
-  --muted-foreground: #94a3b8;
-  --accent: #1a2b42;
-  --accent-foreground: #e2e8f0;
+  --surface: #0a0a0a;
+  --surface-soft: #101010;
+  --surface-well: #1c1c1c;
+  --surface-card: #121212;
+  --surface-popover: #161616;
+  --surface-well-hover: #222222;
+  --row-hover: #1a1a1a;
+  --row-selected: #212121;
+  --ink: #f5f5f5;
+  --ink-graphite: #e6e6e6;
+  --ink-charcoal: #c4c4c4;
+  --ink-secondary: #a8a8a8; /* 8.3:1 on the page, 7.2:1 on a well */
+  --ink-tertiary: #8f8f8f; /* 6.1:1 on the page, 5.3:1 on a well, 4.8:1 on #242424 */
+  --line: #262626;
+  --on-dark: #0a0a0a;
+  --on-dark-muted: rgba(10, 10, 10, 0.62);
+  --on-dark-tint: rgba(10, 10, 10, 0.07);
 
-  --brand-gold: #e0b15c;
-  --brand-gold-foreground: #241804;
-  --brand-gold-text: #e0b15c;
+  --status-success-solid: #34c77b;
+  --status-success-text: #6ee0a0;
+  --status-success-bg: #0f2a1d;
+  --status-info-solid: #5b9bff;
+  --status-info-text: #8db9ff;
+  --status-info-bg: #0f1d33;
+  --status-warning-solid: #f5a04a;
+  --status-warning-text: #f7b96f;
+  --status-warning-bg: #2b1d0c;
+  --status-error-solid: #ff6b63;
+  --status-error-text: #ff9791;
+  --status-error-bg: #2e1412;
+  --status-accent-solid: #a07bf5;
+  --status-accent-text: #bfa4f8;
+  --status-accent-bg: #1f1736;
 
-  --destructive: #f87171;
-  --destructive-foreground: #1f0a0a;
-  --success: #4ade80;
-  --success-foreground: #052e16;
-  --warning: #fbbf24;
-  --warning-foreground: #2a1a03;
-  --info: #93c5fd;
-  --info-foreground: #0b1a2c;
-  --success-text: #4ade80;
-  --warning-text: #fbbf24;
-  --danger-text: #fca5a5;
-  --info-text: #93c5fd;
+  --grad-light: linear-gradient(180deg, #1a1a1a 0%, #111111 100%);
+  --grad-dark: linear-gradient(180deg, #ffffff 0%, #d4d4d4 100%);
+  --grad-dark-button: linear-gradient(180deg, #ffffff 0%, #ececec 55%, #d4d4d4 100%);
+  --grad-dark-surface: radial-gradient(120% 80% at 50% 0%, #ffffff 0%, #ececec 55%, #d4d4d4 100%);
+  --grad-badge-light: linear-gradient(180deg, #1f1f1f, #141414);
+  --grad-muted-fill: linear-gradient(180deg, #2a2a2a, #8f8f8f);
+  --grad-shine: linear-gradient(180deg, rgba(255, 255, 255, 0.16), transparent);
+  --fill-gloss: linear-gradient(180deg, rgba(255, 255, 255, 0), rgba(0, 0, 0, 0.18));
 
-  --border: #22304a;
-  --input: #5e708c;
-  --ring: #7fb0e0;
+  --sh-hi: rgba(255, 255, 255, 0.08);
+  --sh-edge: rgba(255, 255, 255, 0.08);
+  --sh-drop: rgba(0, 0, 0, 0.3);
+  --sh-drop-lg: rgba(0, 0, 0, 0.45);
+  --sh-inner: rgba(0, 0, 0, 0.45);
+  --sh-well: rgba(0, 0, 0, 0.5);
+  --sh-track: rgba(0, 0, 0, 0.6);
+  --sh-lip: rgba(255, 255, 255, 0.04);
+  --sh-d-hi: #ffffff;
+  --sh-d-inner: rgba(0, 0, 0, 0.2);
+  --sh-d-drop: rgba(0, 0, 0, 0.45);
+  --sh-d-ring: rgba(255, 255, 255, 0.2);
+  --sh-d-glass: rgba(255, 255, 255, 0.2);
+  --sh-glass: rgba(18, 18, 18, 0.7);
 
+  --ring-ink: #f5f5f5;
+  --ring-gap: #0a0a0a;
+  --ring-field-color: rgba(245, 245, 245, 0.45); /* 4.2:1 on the page and on a card */
+  --ring-avatar: 0 0 0 2px var(--surface-card);
+
+  --thumb-off: linear-gradient(180deg, #e8e8e8, #c8c8c8);
+  --thumb-on: #0a0a0a;
+  --scroll-thumb: rgba(255, 255, 255, 0.22);
+  --scrim: rgba(0, 0, 0, 0.6);
+  --hover-tint: rgba(255, 255, 255, 0.06);
+
+  --destructive-foreground: #0a0a0a;
+  --success-foreground: #0a0a0a;
+  --warning-foreground: #0a0a0a;
+  --info-foreground: #0a0a0a;
+  --input: rgba(245, 245, 245, 0.45);
+
+  /* Product hues: lighter, for dark backgrounds. */
   --p-re: #3fc4bd;
   --p-af: #7399f6;
   --p-cl: #f2ab4c;
@@ -121,57 +331,140 @@
   --p-ev: #f2809f;
   --p-wl: #5fc98a;
 
-  --chart-1: #7fb0e0;
-  --chart-2: #e0b15c;
-  --chart-3: #3fc4bd;
-  --chart-4: #7399f6;
-  --chart-5: #f2809f;
+  --chart-1: #f5f5f5;
+  --chart-2: #8f8f8f;
+  --chart-3: #5b9bff;
+  --chart-4: #f5a04a;
+  --chart-5: #4a4a4a;
 
-  --sidebar: #08111d;
-  --sidebar-foreground: #e2e8f0;
-  --sidebar-muted-foreground: #8fa3ba;
-  --sidebar-primary: #e0b15c;
-  --sidebar-primary-foreground: #241804;
-  --sidebar-accent: rgb(255 255 255 / 0.08);
-  --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: rgb(255 255 255 / 0.08);
-  --sidebar-ring: #e0b15c;
+  --sidebar-muted-foreground: #a8a8a8;
+  --sidebar-ring: #f5f5f5;
+}
+
+/* ==== 3. Tailwind theme ======================================================================================================== */
+
+/* Clear the stock shadow scale: the stacks below replace it. Tailwind inlines shadow values, so the stacks are built from colour variables
+   (--sh-*), which is what lets the dark theme re-colour every shadow utility. */
+@theme {
+  --shadow-*: initial;
+  --inset-shadow-*: initial;
+}
+
+@theme static {
+  /* radius ladder (measured): xs 4, sm 5, md 8, lg 10, xl 12, well 14, icon 15, pop 16, inner 18, panel 20, card 22, card-lg 24, frame 26, pill */
+  --radius-xs: 4px;
+  --radius-sm: 5px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-3xl: 24px;
+  --radius-well: 14px;
+  --radius-icon: 15px;
+  --radius-pop: 16px;
+  --radius-inner: 18px;
+  --radius-panel: 20px;
+  --radius-card: 22px;
+  --radius-card-lg: 24px;
+  --radius-frame: 26px;
+  --radius-pill: 999px;
+
+  /* shadows (measured stacks, colours via --sh-*) */
+  --shadow-hairline: 0 0 0 1px var(--sh-edge);
+  --shadow-raised-light: inset 0 1px 1px var(--sh-hi), inset 0 -1px 1px var(--sh-inner), inset 0 0 1px 1px var(--sh-edge), 0 1px 1px var(--sh-drop), 0 3px 4px var(--sh-drop);
+  --shadow-raised-light-md: inset 0 1px 1px var(--sh-hi), inset 0 -1px 1px var(--sh-inner), inset 0 0 1px 1px var(--sh-edge), 0 1px 1px var(--sh-drop), 0 3px 4px var(--sh-drop), 0 7px 10px var(--sh-drop), 0 12px 18px var(--sh-drop);
+  --shadow-raised-dark: inset 0 1px 1px var(--sh-d-hi), inset 0 -2px 3px var(--sh-d-inner), 0 1px 1px var(--sh-d-drop), 0 3px 5px var(--sh-d-drop);
+  --shadow-raised-dark-md: inset 0 1px 1px var(--sh-d-hi), inset 0 -2px 3px var(--sh-d-inner), 0 2px 4px var(--sh-d-drop);
+  --shadow-button-primary: inset 0 1px 1px var(--sh-d-hi), inset 0 6px 8px -5px var(--sh-d-hi), inset 0 -2px 3px var(--sh-d-inner), 0 2px 3px var(--sh-d-drop), 0 6px 10px var(--sh-d-drop), 0 14px 22px var(--sh-d-drop);
+  --shadow-button-secondary: inset 0 1px 1px var(--sh-hi), inset 0 -2px 3px var(--sh-inner), 0 0 0 1px var(--sh-edge), 0 2px 3px var(--sh-drop), 0 6px 10px var(--sh-drop), 0 14px 22px var(--sh-drop);
+  --shadow-card: inset 0 1px 1px var(--sh-hi), 0 0 0 1px var(--sh-edge), 0 3px 4px var(--sh-drop), 0 7px 9px var(--sh-drop), 0 12px 16px var(--sh-drop), 0 30px 48px var(--sh-drop);
+  --shadow-card-frame: inset 0 1px 1px var(--sh-hi), 0 0 0 1px var(--sh-edge), 0 4px 6px var(--sh-drop), 0 14px 26px var(--sh-drop);
+  --shadow-card-sm: inset 0 1px 1px var(--sh-hi), 0 0 0 1px var(--sh-edge), 0 4px 10px var(--sh-drop);
+  --shadow-window: inset 0 1px 1px var(--sh-hi), 0 0 0 1px var(--sh-edge), 0 4px 6px var(--sh-drop), 0 14px 24px var(--sh-drop), 0 34px 60px var(--sh-drop);
+  --shadow-popover: 0 0 0 1px var(--sh-edge), 0 3px 4px var(--sh-drop), 0 7px 9px var(--sh-drop), 0 12px 16px var(--sh-drop), 0 18px 24px var(--sh-drop), 0 30px 48px var(--sh-drop);
+  --shadow-floating: inset 0 1px 1px var(--sh-hi), inset 0 -1px 1px var(--sh-inner), 0 0 0 1px var(--sh-edge), 0 2px 4px var(--sh-drop), 0 8px 16px var(--sh-drop), 0 18px 32px var(--sh-d-drop);
+  --shadow-toast: inset 0 1px 1px var(--sh-hi), 0 0 0 1px var(--sh-edge), 0 3px 4px var(--sh-drop), 0 12px 16px var(--sh-drop), 0 30px 48px var(--sh-drop-lg);
+  --shadow-inset-well: inset 0 1px 2px var(--sh-well), inset 0 2px 5px -2px var(--sh-well), 0 1px 0 var(--sh-lip);
+  --shadow-inset-track: inset 0 1px 2px var(--sh-track), inset 0 2px 5px -2px var(--sh-well), 0 1px 0 var(--sh-lip);
+  /* form fields: the recess plus the documented 1px accessibility ring (still a shadow, not a CSS border) */
+  --shadow-field: inset 0 1px 2px var(--sh-well), inset 0 2px 5px -2px var(--sh-well), 0 1px 0 var(--sh-lip), 0 0 0 1px var(--ring-field-color);
+  --shadow-field-invalid: inset 0 1px 2px var(--sh-well), inset 0 2px 5px -2px var(--sh-well), 0 1px 0 var(--sh-lip), 0 0 0 1.5px var(--status-error-solid);
+  --shadow-dot-off: inset 0 1px 1px var(--sh-hi), inset 0 -2px 3px var(--sh-inner), 0 1px 1px var(--sh-drop);
+  --shadow-glass: inset 0 1px 2px var(--sh-hi), inset 0 0 2px var(--sh-d-glass), inset 0 4px 8px -4px var(--sh-d-glass), 0 6px 14px var(--sh-drop);
+  --shadow-surface-dark: inset 0 1px 1px var(--sh-d-hi), inset 0 10px 20px -12px var(--sh-d-hi), 0 4px 6px var(--sh-drop), 0 14px 24px var(--sh-d-drop), 0 30px 50px var(--sh-d-drop);
+  --shadow-app-icon: inset 0 1px 1px rgba(255, 255, 255, 0.28), inset 0 6px 8px -4px rgba(255, 255, 255, 0.28), inset 0 -4px 8px -2px rgba(0, 0, 0, 0.12), 0 2px 3px var(--sh-drop), 0 6px 10px var(--sh-drop), 0 12px 18px var(--sh-drop);
+  --shadow-badge-light: inset 0 1px 1px var(--sh-hi), 0 0 0 1px var(--sh-edge), 0 2px 4px var(--sh-drop);
+  --shadow-badge-dark: inset 0 1px 1px var(--sh-d-hi), 0 0 0 1px var(--sh-d-ring), 0 2px 4px var(--sh-d-drop);
+  /* the stock names, kept so existing `shadow-sm` etc. resolve to the skill's stacks */
+  --shadow-xs: 0 0 0 1px var(--sh-edge);
+  --shadow-sm: 0 0 0 1px var(--sh-edge), 0 4px 10px var(--sh-drop);
+  --shadow-md: 0 0 0 1px var(--sh-edge), 0 3px 4px var(--sh-drop), 0 7px 9px var(--sh-drop), 0 12px 16px var(--sh-drop);
+  --shadow-lg: 0 0 0 1px var(--sh-edge), 0 3px 4px var(--sh-drop), 0 7px 9px var(--sh-drop), 0 12px 16px var(--sh-drop), 0 18px 24px var(--sh-drop), 0 30px 48px var(--sh-drop);
+  --shadow-xl: 0 0 0 1px var(--sh-edge), 0 3px 4px var(--sh-drop), 0 12px 16px var(--sh-drop), 0 30px 48px var(--sh-drop-lg);
+  --shadow-2xl: 0 0 0 1px var(--sh-edge), 0 3px 4px var(--sh-drop), 0 12px 16px var(--sh-drop), 0 30px 48px var(--sh-drop-lg);
+
+  /* breakpoints of the skill (measured): phone <= 809, tablet 810-1199, desktop >= 1200. The stock sm/md/lg stay for existing code. */
+  --breakpoint-tablet: 810px;
+  --breakpoint-desktop: 1200px;
+}
+
+@theme {
+  --font-sans: 'Plus Jakarta Sans', 'IBM Plex Sans Arabic', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Tahoma, sans-serif;
+  --font-arabic: 'Plus Jakarta Sans', 'IBM Plex Sans Arabic', ui-sans-serif, system-ui, 'Segoe UI', Tahoma, sans-serif;
+  /* No mono webfont: the skill has none. Use .tabular on the sans for ids; font-mono is the system stack, for real code only. */
+  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+
+  /* Weights 400 and 500 only: every heavier or lighter weight utility resolves to one of the two files that are loaded. */
+  --font-weight-thin: 400;
+  --font-weight-extralight: 400;
+  --font-weight-light: 400;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 500;
+  --font-weight-bold: 500;
+  --font-weight-extrabold: 500;
+  --font-weight-black: 500;
+
+  /* Type scale (measured, desktop). Tracking is multiplied by --track so it is 0 in Arabic and RTL. */
+  --text-2xs: 0.6875rem; /* 11: badge, caption */
+  --text-2xs--line-height: 1.2;
+  --text-2xs--letter-spacing: calc(0.02em * var(--track));
+  --text-xs: 0.75rem; /* 12: meta, label */
+  --text-xs--line-height: 1.4;
+  --text-xs--letter-spacing: 0em;
+  --text-sm: 0.8125rem; /* 13: body S, table cells, small strong */
+  --text-sm--line-height: 1.45;
+  --text-sm--letter-spacing: calc(-0.005em * var(--track));
+  --text-base: 0.875rem; /* 14: UI, inputs */
+  --text-base--line-height: 1.5;
+  --text-base--letter-spacing: calc(-0.01em * var(--track));
+  --text-lg: 0.9375rem; /* 15: body M, large buttons */
+  --text-lg--line-height: 1.5;
+  --text-lg--letter-spacing: calc(-0.01em * var(--track));
+  --text-xl: 1.0625rem; /* 17: heading 4 (dialog title, dense card title) */
+  --text-xl--line-height: 1.3;
+  --text-xl--letter-spacing: calc(-0.02em * var(--track));
+  --text-2xl: 1.375rem; /* 22: card title */
+  --text-2xl--line-height: 1.1;
+  --text-2xl--letter-spacing: calc(-0.035em * var(--track));
+  --text-3xl: 1.5rem; /* 24: page title (heading 3) */
+  --text-3xl--line-height: 1.2;
+  --text-3xl--letter-spacing: calc(-0.03em * var(--track));
+  --text-4xl: 2rem; /* 32: dense KPI */
+  --text-4xl--line-height: 1.1;
+  --text-4xl--letter-spacing: calc(-0.04em * var(--track));
+  --text-5xl: 2.75rem; /* 44: KPI (comfortable) */
+  --text-5xl--line-height: 1;
+  --text-5xl--letter-spacing: calc(-0.05em * var(--track));
+
+  /* Motion: one spring for state, one curve for entrances (measured). */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-in-out: cubic-bezier(0.45, 0, 0.55, 1);
+  --ease-spring: cubic-bezier(0.34, 1.3, 0.64, 1);
 }
 
 @theme inline {
-  --font-sans: 'IBM Plex Sans', 'IBM Plex Sans Arabic', 'Segoe UI', system-ui, sans-serif;
-  --font-arabic: 'IBM Plex Sans Arabic', 'IBM Plex Sans', 'Segoe UI', Tahoma, sans-serif;
-  --font-mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
-
-  /* Dense dashboard scale: nothing below 12px; body 14px at 1.57 line-height. */
-  --text-xs: 0.75rem;
-  --text-xs--line-height: 1.125rem;
-  --text-sm: 0.8125rem;
-  --text-sm--line-height: 1.25rem;
-  --text-base: 0.875rem;
-  --text-base--line-height: 1.375rem;
-  --text-lg: 1rem;
-  --text-lg--line-height: 1.5rem;
-  --text-xl: 1.125rem;
-  --text-xl--line-height: 1.625rem;
-  --text-2xl: 1.375rem;
-  --text-2xl--line-height: 1.875rem;
-  --text-3xl: 1.75rem;
-  --text-3xl--line-height: 2.25rem;
-
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-
-  --shadow-xs: 0 1px 2px rgb(15 23 42 / 0.05);
-  --shadow-sm: 0 1px 3px rgb(15 23 42 / 0.08), 0 1px 2px rgb(15 23 42 / 0.04);
-  --shadow-md: 0 4px 12px rgb(15 23 42 / 0.08);
-  --shadow-lg: 0 12px 32px rgb(15 23 42 / 0.14);
-
-  --ease-out: cubic-bezier(0.2, 0.7, 0.3, 1);
-  --ease-in: cubic-bezier(0.4, 0, 1, 1);
-
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -189,6 +482,9 @@
   --color-gold: var(--brand-gold);
   --color-gold-foreground: var(--brand-gold-foreground);
   --color-gold-text: var(--brand-gold-text);
+  --color-brand-accent: var(--brand-accent);
+  --color-brand-accent-foreground: var(--brand-accent-foreground);
+  --color-brand-accent-text: var(--brand-accent-text);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-success: var(--success);
@@ -201,6 +497,12 @@
   --color-warning-text: var(--warning-text);
   --color-danger-text: var(--danger-text);
   --color-info-text: var(--info-text);
+  --color-success-bg: var(--status-success-bg);
+  --color-warning-bg: var(--status-warning-bg);
+  --color-danger-bg: var(--status-error-bg);
+  --color-info-bg: var(--status-info-bg);
+  --color-accent-bg: var(--status-accent-bg);
+  --color-accent-text: var(--status-accent-text);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -219,6 +521,22 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
+  /* skill palette as colour utilities: bg-surface, bg-soft, bg-well, text-ink, text-ink-secondary, bg-line ... */
+  --color-surface: var(--surface);
+  --color-soft: var(--surface-soft);
+  --color-well: var(--surface-well);
+  --color-well-hover: var(--surface-well-hover);
+  --color-row-hover: var(--row-hover);
+  --color-row-selected: var(--row-selected);
+  --color-ink: var(--ink);
+  --color-ink-graphite: var(--ink-graphite);
+  --color-ink-charcoal: var(--ink-charcoal);
+  --color-ink-secondary: var(--ink-secondary);
+  --color-ink-tertiary: var(--ink-tertiary);
+  --color-line: var(--line);
+  --color-on-dark: var(--on-dark);
+
+  /* product hues: dots and icon tiles only */
   --color-product-re: var(--p-re);
   --color-product-af: var(--p-af);
   --color-product-cl: var(--p-cl);
@@ -227,19 +545,120 @@
   --color-product-wl: var(--p-wl); /* [Proposed] PSI Wallet hue */
 }
 
+/* ==== 4. Utilities (take variants: data-[state=active]:material-dark, hover:bg-grad-light ...) =================================== */
+
+@utility bg-grad-light {
+  background-image: var(--grad-light);
+}
+@utility bg-grad-dark {
+  background-image: var(--grad-dark);
+}
+@utility bg-grad-dark-button {
+  background-image: var(--grad-dark-button);
+}
+@utility bg-grad-dark-surface {
+  background-image: var(--grad-dark-surface);
+}
+@utility bg-grad-badge-light {
+  background-image: var(--grad-badge-light);
+}
+@utility bg-grad-muted-fill {
+  background-image: var(--grad-muted-fill);
+}
+@utility bg-grad-shine {
+  background-image: var(--grad-shine);
+}
+
+/* The two materials. light = default raised (key, tag, secondary button, thumb); dark = emphasis (selected, primary). In .dark they swap. */
+@utility material-light {
+  background-image: var(--grad-light);
+  color: var(--ink);
+  @apply shadow-raised-light;
+}
+@utility material-dark {
+  background-image: var(--grad-dark);
+  color: var(--on-dark);
+  @apply shadow-raised-dark;
+}
+
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+}
+
+/* Eyebrow, group heading: 12px, 500, +0.04em, UPPERCASE. Latin only: Arabic has no case and no tracking, so it keeps size and weight. */
+@utility label-style {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: calc(0.04em * var(--track));
+  text-transform: uppercase;
+  color: var(--ink-charcoal);
+  &:lang(ar),
+  [dir='rtl'] & {
+    text-transform: none;
+    letter-spacing: 0;
+  }
+}
+
+/* ==== 5. Base =================================================================================================================== */
+
 @layer base {
   html {
     font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-size-adjust: 100%;
+    /* Only 400 and 500 are loaded: never fake a bold or an italic. */
+    font-synthesis: none;
   }
   html:lang(ar) {
     font-family: var(--font-arabic);
   }
   body {
     @apply bg-background text-foreground text-base antialiased;
+    letter-spacing: calc(-0.01em * var(--track));
   }
   * {
     @apply border-border outline-ring/50;
   }
+
+  /* Language-aware tracking. Negative tracking breaks Arabic letter joining, so Arabic and every RTL page track at 0, even where a
+     tracking-* utility says otherwise (the one !important in the system, kept in the base layer so it cannot leak). */
+  html:lang(ar),
+  html[dir='rtl'] {
+    --track: 0;
+  }
+  :lang(ar) *,
+  :lang(ar) *::before,
+  :lang(ar) *::after,
+  [dir='rtl'] *,
+  [dir='rtl'] *::before,
+  [dir='rtl'] *::after {
+    letter-spacing: 0 !important;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-weight: 500;
+    text-wrap: balance;
+  }
+  b,
+  strong {
+    font-weight: 500;
+  }
+  table {
+    font-variant-numeric: tabular-nums;
+  }
+  /* Outline icons, round caps, stroke 1.7 at UI sizes (iconography.md). Tiles and 24px icons opt in with stroke-2 / stroke-[2.2]. */
+  svg.lucide {
+    stroke-width: 1.7;
+  }
+
   /* Tailwind v4 preflight resets buttons to cursor: default. */
   button:not(:disabled),
   [role='button']:not([aria-disabled='true']),
@@ -248,45 +667,377 @@
   [role='menuitem'],
   [role='switch'],
   [role='checkbox'],
+  [role='radio'],
   summary,
   label[for] {
     cursor: pointer;
   }
+
+  /* Focus: --ring-focus (2px gap + 2px ink) APPENDED to whatever shadows the element already has. Tailwind composes box-shadow from
+     --tw-ring-shadow + --tw-shadow, so setting the ring slot keeps every material, card and field shadow underneath it. The transparent
+     outline is what forced-colors (Windows high contrast) draws. */
+  :focus-visible {
+    --tw-ring-shadow: var(--ring-focus);
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+    box-shadow:
+      var(--tw-inset-shadow, 0 0 #0000), var(--tw-inset-ring-shadow, 0 0 #0000), var(--tw-ring-offset-shadow, 0 0 #0000),
+      var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
+  }
+  /* LEGACY SHIM (delete when the page steps remove ink-tint selected states): the old selected look was bg-primary/10 or bg-gold/10, which was a navy tint.
+     Ink at 10% is #e7e7e7, where #6e6e6e is only 4.12:1. Inside such a tint the muted text is #5c5c5c (5.4:1). Selected = dark material replaces these. */
+  :root:not(.dark) :is([class*='bg-primary/'], [class*='bg-gold/'], [class*='bg-brand-accent/']) {
+    --muted-foreground: #5c5c5c;
+  }
+  /* Containers that take programmatic focus (an opened menu, popover, dialog or drawer) show no ring; the items inside them keep theirs. */
+  :is([data-slot=dropdown-menu-content], [data-slot=dropdown-menu-sub-content], [data-slot=popover-content], [data-slot=select-content], [data-slot=dialog-content], [data-slot=sheet-content], [role=menu], [role=dialog], [role=alertdialog], [role=listbox]):focus-visible {
+    --tw-ring-shadow: 0 0 #0000;
+  }
+  ::selection {
+    background: var(--ink);
+    color: var(--on-dark);
+  }
 }
 
-/* ---- Motion (docs/DESIGN_SYSTEM.md §8) ---------------------------------- */
+/* ==== 6. Components ============================================================================================================= */
+
+@layer components {
+  /* Surfaces. Padding, radius and gap come from the density tokens, so `data-density="dense"` on any ancestor switches them. */
+  .surface-card {
+    background-color: var(--card);
+    border-radius: var(--card-radius);
+    @apply shadow-card;
+  }
+  .surface-frame {
+    background-color: var(--card);
+    border-radius: var(--radius-frame);
+    padding: 10px;
+    @apply shadow-card-frame;
+  }
+  .surface-frame-inner {
+    border-radius: var(--radius-inner);
+    overflow: clip;
+    background-color: var(--card);
+    @apply shadow-hairline;
+  }
+  /* The one dark feature card per view (derived for dark: it is the light material). Inside it, the standard text classes keep working. */
+  .surface-dark {
+    background-image: var(--grad-dark-surface);
+    background-color: var(--ink-graphite);
+    border-radius: var(--card-radius);
+    color: var(--on-dark);
+    --ink: var(--on-dark);
+    --foreground: var(--on-dark);
+    --card-foreground: var(--on-dark);
+    --muted-foreground: var(--on-dark-muted);
+    --ink-secondary: var(--on-dark-muted);
+    --ink-tertiary: var(--on-dark-muted);
+    --muted: var(--on-dark-tint);
+    --border: var(--on-dark-tint);
+    @apply shadow-surface-dark;
+  }
+  /* A well: where data lives. Chart, stat, dot grid. No shadow. */
+  .well {
+    background-color: var(--surface-well);
+    border-radius: var(--well-radius);
+    padding: var(--well-pad);
+    /* small grey text on a well is --ink-secondary (4.55:1), never --ink-tertiary (4.06:1) */
+    --ink-tertiary: var(--ink-secondary);
+  }
+  .hairline {
+    @apply shadow-hairline;
+  }
+  /* A recessed field: input, search, segmented track. */
+  .well-field {
+    background-color: var(--surface-well);
+    @apply shadow-inset-well;
+  }
+  /* Faint motif for empty states: a dot grid with a few unlit dots. */
+  .dot-grid {
+    background-image: radial-gradient(circle, var(--line) 0 4px, transparent 4.5px);
+    background-size: 17px 17px;
+    background-position: center;
+  }
+  .scrim {
+    background-color: var(--scrim);
+  }
+
+  /* The only line in the system: a row divider. 1px #ececec via ::after, so it does not move the row's box. */
+  .row-divider {
+    position: relative;
+  }
+  .row-divider::after {
+    content: '';
+    position: absolute;
+    inset-inline: 0;
+    bottom: 0;
+    border-bottom: 1px solid var(--line);
+    pointer-events: none;
+  }
+  .row-divider:last-child::after,
+  .row-divider-none::after {
+    display: none;
+  }
+
+  /* Pills: tags, badges, chips. Height 24, pill radius, optical asymmetric padding (top 1px less than bottom). */
+  .pill {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 6px;
+    height: 24px;
+    padding: 3px 10px 5px;
+    border-radius: var(--radius-pill);
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 16px;
+    white-space: nowrap;
+    letter-spacing: calc(-0.01em * var(--track));
+  }
+  .pill-light {
+    background-image: var(--grad-light);
+    color: var(--ink-charcoal);
+    @apply shadow-raised-light;
+  }
+  .pill-dark {
+    background-image: var(--grad-dark);
+    color: var(--on-dark);
+    @apply shadow-raised-dark;
+  }
+  .pill-chip {
+    background-color: var(--surface-well);
+    color: var(--ink);
+  }
+  .pill-success {
+    background-color: var(--status-success-bg);
+    color: var(--status-success-text);
+  }
+  .pill-info {
+    background-color: var(--status-info-bg);
+    color: var(--status-info-text);
+  }
+  .pill-warning {
+    background-color: var(--status-warning-bg);
+    color: var(--status-warning-text);
+  }
+  .pill-error {
+    background-color: var(--status-error-bg);
+    color: var(--status-error-text);
+  }
+  .pill-accent {
+    background-color: var(--status-accent-bg);
+    color: var(--status-accent-text);
+  }
+  /* Status dot: 6px. live = ink + opacity pulse (always pair with words), idle = grey. */
+  .dot {
+    display: inline-block;
+    flex-shrink: 0;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: var(--ink-tertiary);
+  }
+  .dot-live {
+    background-color: var(--ink);
+    animation: cx-live 0.9s var(--ease-in-out) infinite alternate;
+  }
+  .dot-success {
+    background-color: var(--status-success-solid);
+  }
+  .dot-info {
+    background-color: var(--status-info-solid);
+  }
+  .dot-warning {
+    background-color: var(--status-warning-solid);
+  }
+  .dot-error {
+    background-color: var(--status-error-solid);
+  }
+  /* 56px app-icon tile, the one place the brand hues are solid: set the colour with bg-product-* or bg-[var(--brand-blue)]. */
+  .icon-tile {
+    position: relative;
+    display: inline-grid;
+    place-items: center;
+    width: 56px;
+    height: 56px;
+    border-radius: var(--radius-icon);
+    color: #fff;
+    overflow: hidden;
+    @apply shadow-app-icon;
+  }
+  .icon-tile::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    translate: -50% 0;
+    width: 44px;
+    height: 25px;
+    border-radius: 12px 12px 20px 20px;
+    background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.28), transparent);
+    pointer-events: none;
+  }
+  .icon-tile > svg {
+    position: relative;
+    width: 26px;
+    height: 26px;
+    stroke-width: 2.2;
+  }
+
+  /* Type styles (measured scale). Page-level headings use these or the Tailwind text-* sizes, which carry the same tracking. */
+  .t-page-title {
+    font-size: 24px;
+    font-weight: 500;
+    line-height: 1.2;
+    letter-spacing: calc(-0.03em * var(--track));
+    color: var(--ink);
+    text-wrap: balance;
+  }
+  .t-card-title {
+    font-size: var(--card-title-size);
+    font-weight: 500;
+    line-height: var(--card-title-lh);
+    letter-spacing: calc(var(--card-title-tracking) * var(--track));
+    color: var(--ink);
+    text-wrap: balance;
+  }
+  .t-h4 {
+    font-size: 17px;
+    font-weight: 500;
+    line-height: 1.3;
+    letter-spacing: calc(-0.02em * var(--track));
+    color: var(--ink);
+    text-wrap: balance;
+  }
+  .t-kpi {
+    font-size: var(--kpi-size);
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: calc(var(--kpi-tracking) * var(--track));
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .t-unit {
+    font-size: 24px;
+    font-weight: 500;
+    line-height: 1.2;
+    letter-spacing: calc(-0.03em * var(--track));
+    color: var(--ink-tertiary);
+  }
+  .t-body-m {
+    font-size: 15px;
+    line-height: 1.5;
+    letter-spacing: calc(-0.01em * var(--track));
+    color: var(--ink-secondary);
+  }
+  .t-ui {
+    font-size: 14px;
+    line-height: 1.5;
+    letter-spacing: calc(-0.01em * var(--track));
+    color: var(--ink-secondary);
+  }
+  .t-ui-strong {
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.3;
+    letter-spacing: calc(-0.01em * var(--track));
+    color: var(--ink);
+  }
+  .t-body-s {
+    font-size: 13px;
+    line-height: 1.45;
+    letter-spacing: calc(-0.005em * var(--track));
+    color: var(--ink-secondary);
+  }
+  .t-small-strong {
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.3;
+    letter-spacing: calc(-0.01em * var(--track));
+    color: var(--ink);
+  }
+  .t-badge {
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1.2;
+    letter-spacing: calc(0.02em * var(--track));
+  }
+  .t-caption {
+    font-size: 11px;
+    line-height: 1.35;
+    letter-spacing: 0;
+    color: var(--ink-secondary);
+  }
+  .t-muted {
+    color: var(--ink-tertiary);
+  }
+
+  /* Button label roll (hover). The mask is 18px; the copy is generated from data-label, so the DOM keeps ONE label and the accessible name,
+     getByText and screen readers see it once. `content: ... / ""` gives the copy an empty alternative text, so it is not read either.
+     Browsers without alt-text support get no roll at all (the whole block sits inside @supports). */
+  .btn-roll {
+    display: inline-block;
+    height: 18px;
+    overflow: clip;
+    line-height: 18px;
+    vertical-align: middle;
+  }
+  .btn-roll-inner {
+    display: block;
+    line-height: 18px;
+    white-space: nowrap;
+  }
+  @supports (content: 'a' / '') {
+    .btn-roll-inner {
+      transition: transform var(--spring-css);
+    }
+    .btn-roll-inner::after {
+      content: attr(data-label) / '';
+      display: block;
+      line-height: 18px;
+    }
+    .btn-rollable:is(:hover, :focus-visible):not(:disabled, [aria-disabled='true']) .btn-roll-inner {
+      transform: translateY(-18px);
+    }
+  }
+
+  /* Skeleton and loading: static well-coloured block, opacity pulse .6 <-> 1 over 1.2s (no shimmer). */
+  .cx-shimmer {
+    animation: cx-pulse 1.2s var(--ease-in-out) infinite alternate;
+  }
+}
+
+/* ==== Motion (docs/MEO_DESIGN_SYSTEM.md, animations-and-interactions.md) ====================================================== */
 
 @keyframes cx-rise {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(12px);
   }
 }
-
 @keyframes cx-drift {
   to {
     transform: translate3d(-44px, -22px, 0);
   }
 }
-
 @keyframes cx-orbit {
   to {
     transform: rotate(360deg);
   }
 }
-
-@keyframes cx-shimmer {
+@keyframes cx-pulse {
+  from {
+    opacity: 0.6;
+  }
   to {
-    transform: translateX(100%);
+    opacity: 1;
   }
 }
-
-@keyframes cx-shimmer-rtl {
+@keyframes cx-live {
   to {
-    transform: translateX(-100%);
+    opacity: 0.3;
   }
 }
-
 @keyframes cx-dot {
   0%,
   80%,
@@ -299,21 +1050,41 @@
     transform: translateY(-3px);
   }
 }
+@keyframes cx-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes cx-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+/* dialogs and popovers: opacity + scale .98 -> 1 */
+@keyframes cx-pop-in {
+  from {
+    opacity: 0;
+    scale: 0.98;
+  }
+}
+@keyframes cx-pop-out {
+  to {
+    opacity: 0;
+    scale: 0.98;
+  }
+}
 
 @layer components {
-  /* Direct children rise in one after another; capped at 280ms total so a page never waits on its own animation.
-     `backwards` fill only holds the start frame during the delay, so nothing overrides hover transforms afterwards. */
-  /* `.cx-stagger` staggers its own children; `.cx-page` (RouteTransition) staggers the sections of the page it wraps. */
+  /* Page entrance (RouteTransition and .cx-stagger): opacity 0 -> 1, y 12 -> 0, 400ms ease-out, first paint of a page only. The stagger is
+     capped at 200ms (first five children), then everything else appears together. `backwards` fill holds the start frame during the delay
+     and releases afterwards, so nothing overrides hover transforms. */
   :is(.cx-stagger, .cx-page > *) > :not(.cx-page) {
-    animation: cx-rise 320ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+    animation: cx-rise 400ms var(--ease-out) backwards;
   }
-  :is(.cx-stagger, .cx-page > *) > :nth-child(2) { animation-delay: 40ms; }
-  :is(.cx-stagger, .cx-page > *) > :nth-child(3) { animation-delay: 80ms; }
-  :is(.cx-stagger, .cx-page > *) > :nth-child(4) { animation-delay: 120ms; }
-  :is(.cx-stagger, .cx-page > *) > :nth-child(5) { animation-delay: 160ms; }
-  :is(.cx-stagger, .cx-page > *) > :nth-child(6) { animation-delay: 200ms; }
-  :is(.cx-stagger, .cx-page > *) > :nth-child(7) { animation-delay: 240ms; }
-  :is(.cx-stagger, .cx-page > *) > :nth-child(n + 8) { animation-delay: 280ms; }
+  :is(.cx-stagger, .cx-page > *) > :nth-child(2) { animation-delay: 50ms; }
+  :is(.cx-stagger, .cx-page > *) > :nth-child(3) { animation-delay: 100ms; }
+  :is(.cx-stagger, .cx-page > *) > :nth-child(4) { animation-delay: 150ms; }
+  :is(.cx-stagger, .cx-page > *) > :nth-child(n + 5) { animation-delay: 200ms; }
 
   .cx-drift {
     animation: cx-drift 40s linear infinite alternate;
@@ -321,25 +1092,6 @@
   .cx-orbit {
     animation: cx-orbit 120s linear infinite;
   }
-
-  /* Skeleton shimmer: a highlight sweeps from the reading-start edge. */
-  .cx-shimmer {
-    position: relative;
-    overflow: hidden;
-  }
-  .cx-shimmer::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    transform: translateX(-100%);
-    background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--card) 65%, transparent), transparent);
-    animation: cx-shimmer 1.4s ease-in-out infinite;
-  }
-  [dir='rtl'] .cx-shimmer::after {
-    transform: translateX(100%);
-    animation-name: cx-shimmer-rtl;
-  }
-
   .cx-typing-dot {
     animation: cx-dot 1.1s ease-in-out infinite;
   }
@@ -347,24 +1099,44 @@
   .cx-typing-dot:nth-child(3) { animation-delay: 0.3s; }
 }
 
+/* Reduced motion: loops off, transforms off, 150ms fades. Transitions keep only the properties that fade (opacity and colour), so the
+   sliding indicator, switch thumb and label roll jump instead of travelling; overlays fade in 150ms instead of scaling. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+    animation-delay: 0s !important;
+    transition-property: opacity, color, background-color, box-shadow !important;
+    transition-duration: 150ms !important;
+    transition-delay: 0s !important;
     scroll-behavior: auto !important;
   }
-  /* Delays would otherwise still hide content briefly, and loops would freeze mid-frame. */
   :is(.cx-stagger, .cx-page > *) > :not(.cx-page),
   .cx-drift,
   .cx-orbit,
   .cx-typing-dot,
-  .cx-shimmer::after {
+  .cx-shimmer,
+  .dot-live {
     animation: none !important;
   }
-  .cx-shimmer::after {
-    display: none;
+  :root {
+    --dur-overlay: 150ms;
+    --dur-drawer: 150ms;
+  }
+  [data-slot$='-content'][data-state='open'],
+  [data-slot$='-overlay'][data-state='open'] {
+    animation: cx-fade-in 150ms linear both !important;
+  }
+  [data-slot$='-content'][data-state='closed'],
+  [data-slot$='-overlay'][data-state='closed'] {
+    animation: cx-fade-out 150ms linear both !important;
+  }
+  .btn-roll-inner::after {
+    display: none !important;
+  }
+  .btn-rollable .btn-roll-inner {
+    transform: none !important;
   }
 }

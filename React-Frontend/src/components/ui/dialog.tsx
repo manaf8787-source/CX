@@ -1,6 +1,6 @@
 import * as React from "react"
 import { cn } from "cn"
-import { XIcon } from "lucide-react"
+import { TriangleAlertIcon, XIcon } from "lucide-react"
 import { Dialog as DialogPrimitive } from "radix-ui"
 
 import { Button } from "@/components/ui/button"
@@ -31,6 +31,7 @@ function DialogClose({
   return <DialogPrimitive.Close data-slot="dialog-close" {...props} />
 }
 
+/** Scrim rgba(0,0,0,.32) (derived; .6 in the dark theme). */
 function DialogOverlay({
   className,
   ...props
@@ -39,7 +40,7 @@ function DialogOverlay({
     <DialogPrimitive.Overlay
       data-slot="dialog-overlay"
       className={cn(
-        "fixed inset-0 z-50 bg-black/50 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0",
+        "scrim fixed inset-0 z-50 data-[state=open]:animate-[cx-fade-in_var(--dur-overlay)_var(--ease-out)] data-[state=closed]:animate-[cx-fade-out_200ms_var(--ease-in)_forwards]",
         className
       )}
       {...props}
@@ -47,6 +48,7 @@ function DialogOverlay({
   )
 }
 
+/** Centred card: radius 24, padding 28, the toast shadow. Enters with opacity + scale .98 -> 1 over 400ms (opacity only under reduced motion). */
 function DialogContent({
   className,
   children,
@@ -65,7 +67,7 @@ function DialogContent({
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          "fixed top-[50%] start-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] rtl:-translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border bg-background p-6 shadow-lg duration-200 outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 sm:max-w-lg",
+          "fixed top-[50%] start-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] rtl:-translate-x-[-50%] translate-y-[-50%] gap-4 rounded-card-lg bg-card p-7 text-card-foreground shadow-toast outline-none data-[state=open]:animate-[cx-pop-in_var(--dur-overlay)_var(--ease-out)] data-[state=closed]:animate-[cx-pop-out_200ms_var(--ease-in)_forwards] sm:max-w-lg",
           className
         )}
         {...props}
@@ -75,7 +77,7 @@ function DialogContent({
         {showCloseButton && (
           <DialogPrimitive.Close
             data-slot="dialog-close"
-            className="absolute top-4 end-4 rounded-xs opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
+            className="material-light absolute top-4 end-4 inline-grid size-[30px] place-items-center rounded-full outline-none transition-opacity hover:opacity-80 disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-3.5"
           >
             <XIcon />
             <span className="sr-only">{t("Close", "إغلاق")}</span>
@@ -86,11 +88,25 @@ function DialogContent({
   )
 }
 
+/** The alert circle above the title of a destructive confirmation (the button stays dark and says its verb). */
+function DialogAlertIcon({ className, ...props }: React.ComponentProps<"span">) {
+  return (
+    <span
+      aria-hidden
+      data-slot="dialog-alert-icon"
+      className={cn("inline-grid size-[30px] place-items-center rounded-full bg-danger-bg text-(--status-error-solid)", className)}
+      {...props}
+    >
+      <TriangleAlertIcon className="size-3.5" />
+    </span>
+  )
+}
+
 function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="dialog-header"
-      className={cn("flex flex-col gap-2 text-center sm:text-start", className)}
+      className={cn("flex flex-col gap-2 text-start", className)}
       {...props}
     />
   )
@@ -124,6 +140,7 @@ function DialogFooter({
   )
 }
 
+/** Heading 4: 17/500 (the dialog title is the one heading in the card). */
 function DialogTitle({
   className,
   ...props
@@ -131,7 +148,7 @@ function DialogTitle({
   return (
     <DialogPrimitive.Title
       data-slot="dialog-title"
-      className={cn("text-lg leading-none font-semibold", className)}
+      className={cn("t-h4 pe-8", className)}
       {...props}
     />
   )
@@ -144,7 +161,7 @@ function DialogDescription({
   return (
     <DialogPrimitive.Description
       data-slot="dialog-description"
-      className={cn("text-sm text-muted-foreground", className)}
+      className={cn("text-base text-muted-foreground", className)}
       {...props}
     />
   )
@@ -152,6 +169,7 @@ function DialogDescription({
 
 export {
   Dialog,
+  DialogAlertIcon,
   DialogClose,
   DialogContent,
   DialogDescription,

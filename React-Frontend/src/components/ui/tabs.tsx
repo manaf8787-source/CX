@@ -3,6 +3,8 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "cn"
 import { Tabs as TabsPrimitive } from "radix-ui"
 
+import { useSlidingIndicator } from "@/components/ui/use-sliding-indicator"
+
 function Tabs({
   className,
   orientation = "horizontal",
@@ -14,7 +16,7 @@ function Tabs({
       data-orientation={orientation}
       orientation={orientation}
       className={cn(
-        "group/tabs flex gap-2 data-[orientation=horizontal]:flex-col",
+        "group/tabs flex gap-3 data-[orientation=horizontal]:flex-col",
         className
       )}
       {...props}
@@ -22,13 +24,18 @@ function Tabs({
   )
 }
 
+/**
+ * Segmented control: a pill track (#f2f2f2 with the inset well shadow, 3px padding) and ONE dark pill that slides to the selected trigger
+ * on the spring. `page` is the larger page-level toggle (white track, card shadow). `line` is kept for old call sites and renders as `page`.
+ */
 const tabsListVariants = cva(
-  "group/tabs-list inline-flex w-fit items-center justify-center rounded-lg p-[3px] text-muted-foreground group-data-[orientation=horizontal]/tabs:h-9 group-data-[orientation=vertical]/tabs:h-fit group-data-[orientation=vertical]/tabs:flex-col data-[variant=line]:rounded-none",
+  "group/tabs-list relative inline-flex w-fit items-center justify-center gap-0.5 rounded-full text-muted-foreground group-data-[orientation=vertical]/tabs:h-fit group-data-[orientation=vertical]/tabs:flex-col group-data-[orientation=vertical]/tabs:items-stretch",
   {
     variants: {
       variant: {
-        default: "bg-muted",
-        line: "gap-1 bg-transparent",
+        default: "min-h-[35px] bg-well p-[3px] shadow-inset-well",
+        page: "min-h-12 bg-card p-1 shadow-card-sm",
+        line: "min-h-12 bg-card p-1 shadow-card-sm",
       },
     },
     defaultVariants: {
@@ -40,16 +47,34 @@ const tabsListVariants = cva(
 function TabsList({
   className,
   variant = "default",
+  children,
   ...props
 }: React.ComponentProps<typeof TabsPrimitive.List> &
   VariantProps<typeof tabsListVariants>) {
+  const { ref, box, ready, animate } = useSlidingIndicator<HTMLDivElement>("[role=tab][data-state=active]")
   return (
     <TabsPrimitive.List
+      ref={ref}
       data-slot="tabs-list"
-      data-variant={variant}
+      data-variant={variant === "line" ? "page" : variant}
+      data-indicator={ready ? "on" : "off"}
       className={cn(tabsListVariants({ variant }), className)}
       {...props}
-    />
+    >
+      {ready && box && (
+        <span
+          aria-hidden
+          data-slot="tabs-indicator"
+          // physical left/top on purpose: the box comes from offsetLeft/offsetTop, which are physical in RTL as well
+          className={cn(
+            "material-dark pointer-events-none absolute top-0 left-0 rounded-full",
+            animate && "transition-[translate,width,height] duration-400 ease-spring"
+          )}
+          style={{ width: box.w, height: box.h, translate: `${box.x}px ${box.y}px` }}
+        />
+      )}
+      {children}
+    </TabsPrimitive.List>
   )
 }
 
@@ -61,10 +86,9 @@ function TabsTrigger({
     <TabsPrimitive.Trigger
       data-slot="tabs-trigger"
       className={cn(
-        "relative inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-md border border-transparent px-2 py-1 text-sm font-medium whitespace-nowrap text-muted-foreground transition-all duration-200 ease-out group-data-[orientation=vertical]/tabs:w-full group-data-[orientation=vertical]/tabs:justify-start hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50 group-data-[variant=default]/tabs-list:data-[state=active]:shadow-sm group-data-[variant=line]/tabs-list:data-[state=active]:shadow-none dark:text-muted-foreground dark:hover:text-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
-        "group-data-[variant=line]/tabs-list:bg-transparent group-data-[variant=line]/tabs-list:data-[state=active]:bg-transparent dark:group-data-[variant=line]/tabs-list:data-[state=active]:border-transparent dark:group-data-[variant=line]/tabs-list:data-[state=active]:bg-transparent",
-        "data-[state=active]:bg-background data-[state=active]:text-foreground dark:data-[state=active]:border-input dark:data-[state=active]:bg-input/30 dark:data-[state=active]:text-foreground",
-        "after:absolute after:bg-foreground after:opacity-0 after:transition-opacity group-data-[orientation=horizontal]/tabs:after:inset-x-0 group-data-[orientation=horizontal]/tabs:after:bottom-[-5px] group-data-[orientation=horizontal]/tabs:after:h-0.5 group-data-[orientation=vertical]/tabs:after:inset-y-0 group-data-[orientation=vertical]/tabs:after:-end-1 group-data-[orientation=vertical]/tabs:after:w-0.5 group-data-[variant=line]/tabs-list:data-[state=active]:after:opacity-100",
+        "relative z-10 inline-flex h-full min-h-[29px] flex-1 items-center justify-center gap-1.5 rounded-full px-[13px] pt-[5px] pb-[7px] text-sm leading-[17px] font-medium whitespace-nowrap text-muted-foreground transition-colors duration-200 ease-out outline-none group-data-[orientation=vertical]/tabs:w-full group-data-[orientation=vertical]/tabs:justify-start hover:text-foreground disabled:pointer-events-none disabled:opacity-50 data-[state=active]:text-primary-foreground data-[state=active]:hover:text-primary-foreground group-data-[variant=page]/tabs-list:min-h-10 group-data-[variant=page]/tabs-list:px-4 group-data-[variant=page]/tabs-list:pt-1.5 group-data-[variant=page]/tabs-list:pb-2 group-data-[variant=page]/tabs-list:text-base [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        // until the sliding pill is measured (first paint, no layout engine) the selected trigger paints the dark material itself
+        "group-data-[indicator=off]/tabs-list:data-[state=active]:material-dark",
         className
       )}
       {...props}
@@ -79,7 +103,7 @@ function TabsContent({
   return (
     <TabsPrimitive.Content
       data-slot="tabs-content"
-      className={cn("flex-1 outline-none data-[state=active]:animate-in data-[state=active]:fade-in-0 data-[state=active]:duration-200", className)}
+      className={cn("flex-1 outline-none data-[state=active]:animate-in data-[state=active]:fade-in-0 data-[state=active]:duration-300 data-[state=active]:ease-out", className)}
       {...props}
     />
   )

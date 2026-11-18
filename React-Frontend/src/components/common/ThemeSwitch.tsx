@@ -14,6 +14,7 @@ import { useTheme, type ThemeMode } from '@/theme/ThemeContext'
 
 const ICONS = { system: SunMoon, light: Sun, dark: Moon }
 
+/** A 36px light round icon button that opens a menu of the three modes (36px rows, the current one marked). */
 export function ThemeSwitch() {
   const { mode, setMode } = useTheme()
   const { t } = useI18n()
@@ -26,19 +27,19 @@ export function ThemeSwitch() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="size-9" aria-label={t('Theme', 'المظهر')}>
+        <Button variant="outline" size="icon" aria-label={t('Theme', 'المظهر')}>
           <Icon aria-hidden />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-44">
+      <DropdownMenuContent align="end" className="w-48">
         <DropdownMenuLabel>{t('Theme', 'المظهر')}</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuRadioGroup value={mode} onValueChange={(v) => setMode(v as ThemeMode)}>
           {options.map((o) => {
             const OptIcon = ICONS[o.value]
             return (
-              <DropdownMenuRadioItem key={o.value} value={o.value} className="gap-2">
-                <OptIcon aria-hidden className="size-4 text-muted-foreground" />
+              <DropdownMenuRadioItem key={o.value} value={o.value}>
+                <OptIcon aria-hidden />
                 {o.label}
               </DropdownMenuRadioItem>
             )

@@ -10,57 +10,76 @@ interface KpiTileProps {
   label: ReactNode
   value: ReactNode
   sub?: ReactNode
-  /** Any CSS color, e.g. 'var(--chart-1)' or a legacy token 'var(--crit)'. Drives the top bar and icon tint. */
+  /**
+   * Any CSS colour, e.g. 'var(--success)'. It becomes the 6px status dot before the label: colour is categorical in this design, it never
+   * tints the number, the icon or the card. Pass it only when the colour means something (a status, a product); leave it out otherwise.
+   */
   accent?: string
+  /** Shown in a 30px light round tile at the end of the label row (neutral: ink on the light material). */
   icon?: ReactNode
+  /** The unit after the number, in the smaller grey "unit" style ("%", "days"). */
+  unit?: ReactNode
+  /** A change since the last period, as a light tag at the end of the label row ("+4.2%"). Takes the place of the icon. */
+  delta?: ReactNode
   /** Navigate on click (preferred) … */
   to?: string
   /** … or run a handler. Without either the tile is static. */
   onClick?: () => void
   loading?: boolean
   className?: string
+  /** Optional visual (a mono chart, a bar list): rendered in a well inside the card, under the value. */
   children?: ReactNode
   /** Glossary term for a "?" beside the metric (KB §14). */
   term?: string
 }
 
-const BASE =
-  'group relative flex min-w-0 flex-col gap-1 overflow-hidden rounded-xl border bg-card p-4 text-start text-card-foreground shadow-xs ' +
-  'before:absolute before:inset-x-0 before:top-0 before:h-0.5 before:bg-(--c)'
-const INTERACTIVE =
-  'cursor-pointer outline-none transition-[box-shadow,transform,border-color] duration-200 ease-out ' +
-  'hover:-translate-y-px hover:border-(--c)/40 hover:shadow-md focus-visible:ring-[3px] focus-visible:ring-ring/50 ' +
-  'motion-reduce:hover:translate-y-0'
+const BASE = 'surface-card group relative flex min-w-0 flex-col gap-3 p-(--card-pad) text-start text-card-foreground'
+const INTERACTIVE = 'cursor-pointer outline-none'
 
-/** Bento-capable KPI tile: pass `className="md:col-span-2"` etc. to size it in a grid. */
-export function KpiTile({ label, value, sub, accent = 'var(--chart-1)', icon, to, onClick, loading, className, children, term }: KpiTileProps) {
-  const style = { '--c': accent } as CSSProperties
+/**
+ * The skill's KPI card: label (small strong, grey) with an optional icon tile or delta tag, the value (44 comfortable / 32 dense,
+ * tabular, counted up), an optional unit, a grey sub line and an optional well. Density follows `data-density` on any ancestor.
+ * Bento-capable: pass `className="md:col-span-2"` to size it in a grid.
+ */
+export function KpiTile({ label, value, sub, accent, icon, unit, delta, to, onClick, loading, className, children, term }: KpiTileProps) {
+  const interactive = Boolean(to || onClick)
+  const style = accent ? ({ '--c': accent } as CSSProperties) : undefined
+  const end = delta ? (
+    <bdi className="pill pill-light shrink-0">{delta}</bdi>
+  ) : icon ? (
+    <span aria-hidden className="material-light inline-grid size-[30px] shrink-0 place-items-center rounded-full [&_svg]:size-4">
+      {icon}
+    </span>
+  ) : (
+    interactive && (
+      <ArrowUpRight
+        aria-hidden
+        className="size-4 text-muted-foreground opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100 rtl:-scale-x-100"
+      />
+    )
+  )
   const body = (
     <>
       <div className="flex items-start justify-between gap-2">
-        <span className="text-sm font-medium text-muted-foreground">{label}</span>
-        {icon ? (
-          <span aria-hidden className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-(--c)/12 text-(--c) [&_svg]:size-4">
-            {icon}
-          </span>
-        ) : (
-          (to || onClick) && (
-            <ArrowUpRight
-              aria-hidden
-              className="size-4 text-muted-foreground opacity-0 transition-opacity duration-150 group-hover:opacity-100 rtl:-scale-x-100"
-            />
-          )
-        )}
+        <span className="t-small-strong flex min-w-0 items-center gap-2 text-muted-foreground transition-[padding] duration-400 ease-spring group-hover:ps-[3px]">
+          {accent && <span aria-hidden className="dot bg-(--c)" />}
+          {label}
+        </span>
+        {end}
       </div>
       {loading ? (
-        <Skeleton className="h-8 w-16" />
+        <Skeleton className="h-(--kpi-size) w-24 rounded-lg" />
       ) : (
-        <span className="text-3xl font-semibold tracking-tight tabular-nums">
-          <AnimatedValue value={value} />
+        <span className="flex items-baseline gap-1">
+          {/* bdi: a signed value such as "+29" keeps its sign on the left in Arabic */}
+          <bdi className="t-kpi">
+            <AnimatedValue value={value} />
+          </bdi>
+          {unit && <span className="t-unit">{unit}</span>}
         </span>
       )}
       {sub && <span className="text-sm text-muted-foreground">{sub}</span>}
-      {children}
+      {children && <div className="well flex flex-col gap-2">{children}</div>}
     </>
   )
 
@@ -82,7 +101,7 @@ export function KpiTile({ label, value, sub, accent = 'var(--chart-1)', icon, to
   return (
     <div className={cn('relative min-w-0', className)}>
       {tile}
-      <TermHelp term={term} className="absolute end-2 bottom-2" />
+      <TermHelp term={term} className="absolute end-3 bottom-3" />
     </div>
   )
 }

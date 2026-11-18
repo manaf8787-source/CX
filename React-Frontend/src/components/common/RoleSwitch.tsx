@@ -8,7 +8,7 @@ import type { RoleId } from '@/types'
 /**
  * A demo-only role switcher: a real deployment resolves the role from sign-in, it is never a user-facing control
  * (USER_ROLES_AND_PERMISSIONS.md). It follows the sign-in screen (v40 F28): the six main roles first, the other six
- * under "Other roles used in the demo".
+ * under "Other roles used in the demo". A 36px select (well + field ring) that sits in the sidebar's bottom card.
  */
 export function RoleSwitch({ className }: { className?: string }) {
   const { role, setRole } = useRole()
