@@ -40,22 +40,42 @@ export interface NoAnswerResult {
   status: CallStatus
   /** 'YYYY-MM-DD' of the next attempt (the following working day); absent once the last attempt is spent. */
   nextAttemptOn?: string
-  /** True on the last attempt: a WhatsApp message goes out. */
+  /** True on the last attempt of the CX team's list: a WhatsApp message goes out (an AI campaign hands over instead). */
   whatsappSent: boolean
   needsHuman: boolean
+  /** True when an AI campaign's no-answers reached the limit and the call passes to a person. */
+  handedOver: boolean
 }
 
-/** "No answer": attempts + 1; the next attempt is the following working day; on the last attempt the status becomes "needs a human". */
-export function recordNoAnswer(item: Pick<DetractorCallItem, 'attempts'>, now: Date, rules: CallRules): NoAnswerResult {
+type CallRow = Pick<DetractorCallItem, 'attempts'> & Partial<Pick<DetractorCallItem, 'channel'>>
+
+/** Attempts a row gets: an AI campaign hands over after `aiNoAnswers` (2), the CX team's own list after `tries` (3). */
+export function attemptsAllowed(item: Partial<Pick<DetractorCallItem, 'channel'>>, rules: Pick<CallRules, 'tries' | 'aiNoAnswers'>): number {
+  return item.channel === 'ai_campaign' ? rules.aiNoAnswers : rules.tries
+}
+
+/**
+ * "No answer": attempts + 1; the next attempt is the following working day; on the last attempt the status becomes
+ * "needs a human". The last attempt is the 2nd for an AI campaign row (hand-off, no WhatsApp from the campaign) and the
+ * 3rd for the CX team's list (a WhatsApp message goes out).
+ */
+export function recordNoAnswer(item: CallRow, now: Date, rules: CallRules): NoAnswerResult {
   const attempts = item.attempts + 1
-  if (attempts >= rules.tries) return { attempts, status: 'needs_human', whatsappSent: true, needsHuman: true }
-  return { attempts, status: 'no_answer', nextAttemptOn: toDayKey(nextWorkingDay(now, rules.calendar)), whatsappSent: false, needsHuman: false }
+  if (attempts >= attemptsAllowed(item, rules)) {
+    const ai = item.channel === 'ai_campaign'
+    return { attempts, status: 'needs_human', whatsappSent: !ai, needsHuman: true, handedOver: ai }
+  }
+  return { attempts, status: 'no_answer', nextAttemptOn: toDayKey(nextWorkingDay(now, rules.calendar)), whatsappSent: false, needsHuman: false, handedOver: false }
 }
 
-/** The row suffix "attempt {n+1} of {tries} · next {date}" is shown for a row with at least one attempt that still has one to go. */
-export function attemptLine(item: Pick<DetractorCallItem, 'attempts' | 'status' | 'nextAttemptOn'>, rules: Pick<CallRules, 'tries'>): { attempt: number; of: number; next?: string } | null {
+/** The row suffix "attempt {n+1} of {allowed} · next {date}" is shown for a row with at least one attempt that still has one to go. */
+export function attemptLine(
+  item: Pick<DetractorCallItem, 'attempts' | 'status' | 'nextAttemptOn'> & Partial<Pick<DetractorCallItem, 'channel'>>,
+  rules: Pick<CallRules, 'tries'> & Partial<Pick<CallRules, 'aiNoAnswers'>>,
+): { attempt: number; of: number; next?: string } | null {
   if (item.attempts < 1 || item.status === 'done' || item.status === 'needs_human') return null
-  return { attempt: item.attempts + 1, of: rules.tries, next: item.nextAttemptOn }
+  const of = item.channel === 'ai_campaign' ? (rules.aiNoAnswers ?? rules.tries) : rules.tries
+  return { attempt: item.attempts + 1, of, next: item.nextAttemptOn }
 }
 
 /** True while the row still counts as open (to do, no answer, needs a human). */
@@ -79,6 +99,13 @@ export const CALL_COPY = {
     en: `No answer after ${n} attempts: WhatsApp sent, flagged "needs a human".`,
     ar: `لم يرد بعد ${n} محاولات: أُرسل واتساب وعُلّم "يحتاج إنساناً".`,
   }),
+  /** An AI campaign's last no-answer: the call passes to a person (decided 18 Nov: 2 no-answers). */
+  noAnswerHandOff: (n: number): Bi => ({
+    en: `No answer ${n} times: the campaign hands this call to a person, flagged "needs a human".`,
+    ar: `لم يرد ${n} مرات: تسلّم الحملة المكالمة لشخص وعُلّم "يحتاج إنساناً".`,
+  }),
+  /** The small line under "Needs a human" on an AI campaign row. */
+  handedOverNote: { en: 'Handed over by the AI campaign after its no-answers', ar: 'سلّمتها حملة AI بعد عدم الرد' } as Bi,
   noAnswerMore: (date: string): Bi => ({
     en: `No answer. Next attempt ${date} within calling hours.`,
     ar: `لم يرد. المحاولة التالية ${date} ضمن ساعات الاتصال.`,

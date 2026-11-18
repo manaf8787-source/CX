@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { CalendarClock, FileSearch, Gavel, Package, Play, Route, CheckCheck, UserRound } from 'lucide-react'
+import { CalendarClock, CheckCheck, ChevronDown, FileSearch, Gavel, Package, Play, Route, UserRound } from 'lucide-react'
 import { toast } from 'sonner'
 import { useI18n } from '@/i18n'
 import { useRole } from '@/auth/RoleContext'
@@ -9,12 +9,14 @@ import { canActOnCorrectiveAction } from '@/auth/permissions'
 import { useFixDue, useRules, useSetFixStatus } from '@/services/queriesV40'
 import { ACTION_KIND } from '@/lib/actionKinds'
 import { PRODUCTS } from '@/data/products'
+import { ownerTitle } from '@/data/ownerTitles'
 import { CORRECTIVE_STATUS_LABEL } from '@/lib/status'
 import { evaluateEffectiveness, EFFECTIVENESS_LABEL } from '@/utils/effectiveness'
 import { approvalDaysLeft } from '@/utils/fixClock'
 import { caId, invId } from '@/utils/trace'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { StatusBadge } from '@/components/common/StatusBadge'
 import { NextBox } from '@/components/common/NextBox'
 import { TraceId } from '@/components/common/TraceId'
@@ -41,14 +43,21 @@ interface FixCardProps {
   selected: boolean
   now: number
   onDecide: (id: string) => void
+  /** Whether the details (lifecycle, matrix line, classification, AI panel, audit trail, Trace card) are shown. The header and the next-step box always are. */
+  open: boolean
+  onOpenChange: (open: boolean) => void
 }
 
 /**
  * One fix, in full (v40 F07, F11, F21, F22, F26, F33): the "where you are, what happens next" box above it, the title,
  * owner, product and due date (from the matrix "Resolve (h)" in working hours), the lifecycle, the matrix line before the
  * Classification, "How the AI found this" with the agent chips, the audit trail and the Trace card.
+ *
+ * The page is long with every fix open, so the details fold (v40 integration): the next-step box and the header (title, kind,
+ * status, owner, product, due date, decision) always show; the rest sits behind a "Details" toggle (`aria-expanded`, a real
+ * button, so Enter and Space work). The page keeps the first card and the one a link named (`?fix=`) open.
  */
-export function FixCard({ fix: a, pattern, selected, now, onDecide }: FixCardProps) {
+export function FixCard({ fix: a, pattern, selected, now, onDecide, open, onOpenChange }: FixCardProps) {
   const { t, L, lang } = useI18n()
   const { role } = useRole()
   const rules = useRules()
@@ -96,24 +105,22 @@ export function FixCard({ fix: a, pattern, selected, now, onDecide }: FixCardPro
     ) : undefined
   ) : undefined
 
-  // The date the fix is due: the stored one once approved (or for a sample fix), the preview of what approval now would give before that.
-  const dueIso = a.status === 'proposed' ? (due?.dueAt ?? a.dueDate) : a.dueDate
-  const dueHint: Bi | null =
-    a.status === 'proposed'
-      ? due
-        ? due.source === 'matrix'
-          ? { en: `if approved today: matrix Resolve ${due.hours ?? '–'} h, in working hours`, ar: `إن اعتُمد اليوم: الحل حسب المصفوفة ${due.hours ?? '–'} ساعة عمل` }
-          : { en: 'if approved today: the matrix cell is empty, so the 14-day fallback', ar: 'إن اعتُمد اليوم: خلية المصفوفة فارغة، فالبديل 14 يوماً' }
+  // The date the fix is due, from the hook: the stored one when the fix holds one (approved, or a sample fix), the preview of what
+  // approval now would give while it waits for its yes. `due.preview` says which.
+  const dueIso = due?.dueAt ?? a.dueDate
+  const dueHint: Bi | null = due?.preview
+    ? due.source === 'matrix'
+      ? { en: `if approved today: matrix Resolve ${due.hours ?? '–'} h, in working hours`, ar: `إن اعتُمد اليوم: الحل حسب المصفوفة ${due.hours ?? '–'} ساعة عمل` }
+      : { en: 'if approved today: the matrix cell is empty, so the 14-day fallback', ar: 'إن اعتُمد اليوم: خلية المصفوفة فارغة، فالبديل 14 يوماً' }
+    : due?.source === 'matrix'
+      ? { en: 'from the matrix Resolve (h), in working hours from approval', ar: 'من حقل الحل (ساعة) في المصفوفة، بساعات العمل من الاعتماد' }
+      : due?.source === 'fallback'
+        ? { en: 'the matrix cell was empty: Agent 5’s 14-day fallback', ar: 'كانت خلية المصفوفة فارغة: البديل 14 يوماً من الوكيل 5' }
         : null
-      : a.dueSource === 'matrix'
-        ? { en: 'from the matrix Resolve (h), in working hours from approval', ar: 'من حقل الحل (ساعة) في المصفوفة، بساعات العمل من الاعتماد' }
-        : a.dueSource === 'fallback'
-          ? { en: 'the matrix cell was empty: Agent 5’s 14-day fallback', ar: 'كانت خلية المصفوفة فارغة: البديل 14 يوماً من الوكيل 5' }
-          : null
 
   return (
     <li ref={itemRef} id={`fix-${caId(a.id)}`} className="flex scroll-mt-24 flex-col gap-3" data-fix={caId(a.id)} data-selected={selected ? 'true' : undefined}>
-      <NextBox next={next} who={a.owner} action={action} />
+      <NextBox next={next} who={L(ownerTitle(a.owner))} action={action} />
       <Card className={cn('gap-0 py-0', selected && 'ring-2 ring-primary')}>
         <CardContent className="flex flex-col gap-4 p-5">
           <div className="flex min-w-0 flex-col gap-1.5">
@@ -140,7 +147,7 @@ export function FixCard({ fix: a, pattern, selected, now, onDecide }: FixCardPro
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
               <span className="inline-flex items-center gap-1.5">
                 <UserRound aria-hidden className="size-4" />
-                {t('Owner', 'المالك')}: <span className="text-foreground">{a.owner}</span>
+                {t('Owner', 'المالك')}: <span className="text-foreground">{L(ownerTitle(a.owner))}</span>
               </span>
               {product && (
                 <span className="inline-flex items-center gap-1.5">
@@ -168,8 +175,6 @@ export function FixCard({ fix: a, pattern, selected, now, onDecide }: FixCardPro
               </p>
             )}
           </div>
-
-          <LifecycleStepper status={a.status} />
 
           {(a.decision === 'modified' || a.decision === 'rejected') && (
             <div className="flex flex-wrap items-center gap-2 text-sm">
@@ -199,27 +204,39 @@ export function FixCard({ fix: a, pattern, selected, now, onDecide }: FixCardPro
             </div>
           )}
 
-          <MatrixLine fix={a} />
-          <div className="grid gap-x-4 gap-y-2 rounded-lg border bg-muted/30 p-3 text-sm sm:grid-cols-3">
-            <div className="flex flex-col gap-0.5">
-              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
-                <Route aria-hidden className="size-3.5" />
-                {t('Kind and path', 'النوع والمسار')}
-              </span>
-              <span>{L(ACTION_KIND[a.kind].path)}</span>
-            </div>
-            <div className="flex flex-col gap-0.5">
-              <span className="text-xs font-semibold text-muted-foreground">{t('Who receives it', 'من يستلمه')}</span>
-              <span>{a.owner}</span>
-            </div>
-            <div className="flex flex-col gap-0.5">
-              <span className="text-xs font-semibold text-muted-foreground">{t('What comes back', 'ما الذي يعود')}</span>
-              <span>{L(ACTION_KIND[a.kind].comesBack)}</span>
-            </div>
-          </div>
-          <HowAiFoundThis actionId={a.id} pattern={pattern} aiMade={isAiMadeFix(a)} />
-          <AuditTrail log={a.auditLog} />
-          <TraceCard kind="fix" id={a.id} />
+          <Collapsible open={open} onOpenChange={onOpenChange} className="flex flex-col gap-4">
+            <CollapsibleTrigger
+              className="inline-flex h-9 w-fit cursor-pointer items-center gap-1.5 rounded-md border bg-card px-3 text-sm font-medium outline-none transition-colors duration-150 hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50 [&[data-state=open]>svg]:rotate-180"
+            >
+              {t('Details', 'التفاصيل')}
+              <span className="sr-only"> {caId(a.id)}</span>
+              <ChevronDown aria-hidden className="size-4 transition-transform duration-150 motion-reduce:transition-none" />
+            </CollapsibleTrigger>
+            <CollapsibleContent className="flex flex-col gap-4">
+              <LifecycleStepper status={a.status} />
+              <MatrixLine fix={a} />
+              <div className="grid gap-x-4 gap-y-2 rounded-lg border bg-muted/30 p-3 text-sm sm:grid-cols-3">
+                <div className="flex flex-col gap-0.5">
+                  <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+                    <Route aria-hidden className="size-3.5" />
+                    {t('Kind and path', 'النوع والمسار')}
+                  </span>
+                  <span>{L(ACTION_KIND[a.kind].path)}</span>
+                </div>
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-xs font-semibold text-muted-foreground">{t('Who receives it', 'من يستلمه')}</span>
+                  <span>{L(ownerTitle(a.owner))}</span>
+                </div>
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-xs font-semibold text-muted-foreground">{t('What comes back', 'ما الذي يعود')}</span>
+                  <span>{L(ACTION_KIND[a.kind].comesBack)}</span>
+                </div>
+              </div>
+              <HowAiFoundThis actionId={a.id} pattern={pattern} aiMade={isAiMadeFix(a)} />
+              <AuditTrail log={a.auditLog} />
+              <TraceCard kind="fix" id={a.id} />
+            </CollapsibleContent>
+          </Collapsible>
         </CardContent>
       </Card>
     </li>

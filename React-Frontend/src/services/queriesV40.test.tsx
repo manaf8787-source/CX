@@ -349,6 +349,7 @@ describe('registers: mapping, matrix, questions, sample, mentions, no answer', (
   it('records "no answer": attempts go up, the next attempt is a working day, the last one needs a human, DNCR is refused', async () => {
     const { result } = renderHookWithProviders(() => useRecordNoAnswer(), { role: 'cxmgr' })
     const todo = mock.MOCK_DETRACTOR_CALL_ITEMS.find((i) => i.status === 'to_do')!
+    todo.channel = 'human' // the CX team's own list: 3 attempts (an AI campaign row hands over after 2, tested below)
     const first = await act(() => result.current.mutateAsync({ id: todo.id }))
     expect(first.item).toMatchObject({ attempts: 1, status: 'no_answer' })
     expect(first.result.nextAttemptOn).toMatch(/^\d{4}-\d{2}-\d{2}$/)
@@ -363,6 +364,18 @@ describe('registers: mapping, matrix, questions, sample, mentions, no answer', (
     // Still open (it counts), and not done.
     expect(mock.MOCK_DETRACTOR_CALL_ITEMS.find((i) => i.id === todo.id)?.status).toBe('needs_human')
 
+    // An AI campaign row hands over to a person after aiNoAnswers (2), not callTries (3).
+    const ai = mock.MOCK_DETRACTOR_CALL_ITEMS.find((i) => i.status === 'no_answer' && i.id !== todo.id) ?? mock.MOCK_DETRACTOR_CALL_ITEMS.find((i) => i.status === 'done')!
+    const aiRow = { ...ai, id: 'dcl-ai-probe', channel: 'ai_campaign' as const, status: 'to_do' as const, attempts: 0, outcome: undefined, nextAttemptOn: undefined }
+    mock.MOCK_DETRACTOR_CALL_ITEMS.push(aiRow)
+    const a1 = await act(() => result.current.mutateAsync({ id: 'dcl-ai-probe' }))
+    expect(a1.item).toMatchObject({ attempts: 1, status: 'no_answer' })
+    const a2 = await act(() => result.current.mutateAsync({ id: 'dcl-ai-probe' }))
+    expect(a2.item).toMatchObject({ attempts: 2, status: 'needs_human' })
+    expect(a2.result.handedOver).toBe(true)
+    expect(a2.toast.en).toBe('No answer 2 times: the campaign hands this call to a person, flagged "needs a human".')
+    mock.MOCK_DETRACTOR_CALL_ITEMS.pop()
+
     const done = mock.MOCK_DETRACTOR_CALL_ITEMS.find((i) => i.status === 'done')!
     await expect(result.current.mutateAsync({ id: done.id })).rejects.toThrow('already done')
     // A DNCR person is refused even if a row were to exist.
@@ -371,6 +384,21 @@ describe('registers: mapping, matrix, questions, sample, mentions, no answer', (
     mock.MOCK_DETRACTOR_CALL_ITEMS.push(probe)
     await expect(result.current.mutateAsync({ id: 'dcl-probe' })).rejects.toThrow('DNCR')
     mock.MOCK_DETRACTOR_CALL_ITEMS.pop()
+  })
+})
+
+describe('the close-the-loop list is a copy, not the register (v40 carry-over)', () => {
+  it('useDetractorCallItems returns copies of the rows, so a page never holds the register that the mutations edit in place', async () => {
+    const { useDetractorCallItems } = await import('./queries')
+    const { result } = renderHookWithProviders(() => useDetractorCallItems(), { role: 'cxmgr' })
+    await waitFor(() => expect(result.current.data).toBeDefined())
+    const rows = result.current.data!
+    expect(rows).not.toBe(mock.MOCK_DETRACTOR_CALL_ITEMS)
+    expect(rows).toHaveLength(mock.MOCK_DETRACTOR_CALL_ITEMS.length)
+    rows.forEach((row, i) => {
+      expect(row).toEqual(mock.MOCK_DETRACTOR_CALL_ITEMS[i])
+      expect(row).not.toBe(mock.MOCK_DETRACTOR_CALL_ITEMS[i])
+    })
   })
 })
 
@@ -485,12 +513,35 @@ describe('a fix\'s clocks (decided 18 Nov)', () => {
 
   it('useFixDue previews the due date before approval and shows the stored one after', async () => {
     const { useFixDue } = await import('./queriesV40')
-    const { result: fresh } = renderHookWithProviders(() => useFixDue({ kind: 'training_gap', product: 're', dueDate: new Date().toISOString(), dueSource: undefined }))
+    const { result: fresh } = renderHookWithProviders(() => useFixDue({ kind: 'training_gap', product: 're', dueDate: new Date().toISOString(), dueSource: undefined, status: 'proposed' }))
     await waitFor(() => expect(fresh.current).toBeDefined())
     expect(fresh.current).toMatchObject({ source: 'matrix', preview: true, hours: 90 }) // training gap: 90 working hours
     const stored = '2026-12-01T10:00:00.000Z'
     const { result: after } = renderHookWithProviders(() => useFixDue({ kind: 'training_gap', product: 're', dueDate: stored, dueSource: 'fallback' }))
     expect(after.current).toEqual({ dueAt: stored, source: 'fallback', preview: false })
+    // A fix past the proposal keeps its stored date even with no source (a sample fix): not a preview from now.
+    const { result: sample } = renderHookWithProviders(() => useFixDue({ kind: 'training_gap', product: 're', dueDate: stored, dueSource: undefined, status: 'in_progress' }))
+    expect(sample.current).toEqual({ dueAt: stored, source: 'recorded', preview: false })
+    // A proposed fix's stored date is only the placeholder from its proposal: the live preview wins.
+    const { result: waiting } = renderHookWithProviders(() => useFixDue({ kind: 'training_gap', product: 're', dueDate: stored, dueSource: undefined, status: 'proposed' }))
+    await waitFor(() => expect(waiting.current).toBeDefined())
+    expect(waiting.current).toMatchObject({ preview: true, source: 'matrix' })
+    expect(waiting.current!.dueAt).not.toBe(stored)
+  })
+
+  it('createActionFromPattern computes the due date from the matrix itself (no caller argument)', async () => {
+    const { useCreateActionFromPattern } = await import('./queries')
+    const pattern = mock.MOCK_PATTERNS?.[0]
+    expect(pattern).toBeDefined()
+    const { result } = renderHookWithProviders(() => useCreateActionFromPattern(), { role: 'cxmgr' })
+    const before = mock.MOCK_CORRECTIVE_ACTIONS.length
+    const created = await act(() => result.current.mutateAsync({ pattern: pattern!, kind: 'training_gap', owner: 'L&D manager' }))
+    // training gap: 90 working hours (10 working days at 9 h) from now: in the future, a working day, not the 14-day fallback unless the cell is empty
+    const days = (Date.parse(created.dueDate) - Date.now()) / 86_400_000
+    expect(days).toBeGreaterThan(9)
+    expect(created.dueSource).toBeUndefined()
+    expect(created.status).toBe('proposed')
+    mock.MOCK_CORRECTIVE_ACTIONS.length = before
   })
 })
 

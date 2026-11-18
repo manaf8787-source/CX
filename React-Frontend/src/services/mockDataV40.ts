@@ -105,7 +105,7 @@ export function seedCallAttempts(index: number, open: boolean, tries: number, to
   const dueOn = toDayKey(addWorkingDays(today, 5))
   if (index === 2) return { attempts: 0, status: 'to_do', dueOn: toDayKey(addWorkingDays(today, 2)) }
   if (index === 5) return { attempts: 1, status: 'no_answer', nextAttemptOn: toDayKey(nextWorkingDay(today)), dueOn }
-  if (index === 8) return { attempts: 2, status: 'no_answer', nextAttemptOn: toDayKey(addWorkingDays(today, 2)), dueOn }
+  if (index === 8) return { attempts: Math.min(2, tries - 1), status: 'no_answer', nextAttemptOn: toDayKey(addWorkingDays(today, 2)), dueOn }
   return { attempts: tries, status: 'needs_human', dueOn }
 }
 

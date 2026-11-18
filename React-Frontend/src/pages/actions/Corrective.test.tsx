@@ -17,11 +17,78 @@ const card = async (ca: string) => {
   return el
 }
 
+/** The "Details" toggle of one card, and opens the card when it is folded (the details fold: only the first fix is open by default). */
+const toggleOf = (li: HTMLElement) => within(li).getByRole('button', { name: /^(Details|التفاصيل)/ })
+const openCard = async (li: HTMLElement) => {
+  if (toggleOf(li).getAttribute('aria-expanded') !== 'true') await userEvent.click(toggleOf(li))
+  await waitFor(() => expect(toggleOf(li)).toHaveAttribute('aria-expanded', 'true'))
+  return li
+}
+
+describe('Corrective: the details fold so the page is not extremely long (v40 integration)', () => {
+  it('opens the first fix and folds the others; the header and the next-step box always show', async () => {
+    renderWithProviders(<Corrective />, { route: '/actions/corrective' })
+    const first = await card('CA-201')
+    const toggles = await screen.findAllByRole('button', { name: /^Details/ })
+    expect(toggles).toHaveLength(mock.MOCK_CORRECTIVE_ACTIONS.length)
+    expect(toggles[0]).toHaveAttribute('aria-expanded', 'true')
+    for (const t of toggles.slice(1)) expect(t).toHaveAttribute('aria-expanded', 'false')
+    expect(await within(first).findByTestId('audit-trail')).toBeInTheDocument()
+    const folded = await card('CA-202')
+    expect(within(folded).queryByTestId('audit-trail')).not.toBeInTheDocument()
+    expect(within(folded).queryByTestId('matrix-line')).not.toBeInTheDocument()
+    // still visible while folded: the box, the title row, owner, product and due date, and the Decide button
+    expect(within(folded).getAllByRole('region', { name: 'Next step' })[0]).toBeInTheDocument()
+    expect(within(folded).getByRole('heading', { level: 2 })).toBeInTheDocument()
+    expect(within(folded).getByTestId('fix-due')).toBeInTheDocument()
+    expect(within(folded).getByRole('button', { name: 'Decide' })).toBeInTheDocument()
+  })
+
+  it('opens and folds from the keyboard (Enter and Space on the toggle)', async () => {
+    renderWithProviders(<Corrective />, { route: '/actions/corrective' })
+    const li = await card('CA-202')
+    const toggle = toggleOf(li)
+    toggle.focus()
+    await userEvent.keyboard('{Enter}')
+    await waitFor(() => expect(toggle).toHaveAttribute('aria-expanded', 'true'))
+    expect(await within(li).findByTestId('audit-trail')).toBeInTheDocument()
+    await userEvent.keyboard(' ')
+    await waitFor(() => expect(toggle).toHaveAttribute('aria-expanded', 'false'))
+    expect(within(li).queryByTestId('audit-trail')).not.toBeInTheDocument()
+  })
+
+  it('"Expand all" opens every card and becomes "Collapse all"', async () => {
+    renderWithProviders(<Corrective />, { route: '/actions/corrective' })
+    await card('CA-201')
+    await userEvent.click(await screen.findByRole('button', { name: 'Expand all' }))
+    await waitFor(() => expect(screen.getAllByRole('button', { name: /^Details/ }).every((b) => b.getAttribute('aria-expanded') === 'true')).toBe(true))
+    await userEvent.click(screen.getByRole('button', { name: 'Collapse all' }))
+    await waitFor(() => expect(screen.getAllByRole('button', { name: /^Details/ }).every((b) => b.getAttribute('aria-expanded') === 'false')).toBe(true))
+  })
+
+  it('the fix a link names (?fix=) is open as well as the first', async () => {
+    renderWithProviders(<Corrective />, { route: '/actions/corrective?fix=CA-203' })
+    const li = await card('CA-203')
+    expect(toggleOf(li)).toHaveAttribute('aria-expanded', 'true')
+    expect(toggleOf(await card('CA-201'))).toHaveAttribute('aria-expanded', 'true')
+    expect(toggleOf(await card('CA-202'))).toHaveAttribute('aria-expanded', 'false')
+  })
+
+  it('the toggle is named in Arabic and keeps the fix id for a screen reader', async () => {
+    renderWithProviders(<Corrective />, { route: '/actions/corrective', lang: 'ar' })
+    const li = await card('CA-202')
+    const toggle = toggleOf(li)
+    expect(toggle).toHaveAttribute('aria-expanded', 'false')
+    expect(toggle.textContent).toMatch(/^التفاصيل\s+CA-202/)
+  })
+})
+
 describe('Corrective: every fix in full (v40 F07, F11, F21, F22, F33)', () => {
   it('shows, per fix: the next-step box above it, the matrix line, the audit trail and the Trace card', async () => {
     renderWithProviders(<Corrective />, { route: '/actions/corrective' })
     const fixes = mock.MOCK_CORRECTIVE_ACTIONS
     await card('CA-201')
+    await userEvent.click(await screen.findByRole('button', { name: 'Expand all' }))
     expect(document.querySelectorAll('li[data-fix]')).toHaveLength(fixes.length)
     for (const f of fixes) {
       const li = await card(`CA-${200 + Number(f.id.replace(/\D/g, ''))}`)
@@ -66,7 +133,7 @@ describe('Corrective: every fix in full (v40 F07, F11, F21, F22, F33)', () => {
 
   it('the matrix line names the receiver, the clocks and the product, and the Matrix button opens that product', async () => {
     renderWithProviders(<Corrective />, { route: '/actions/corrective' })
-    const li = await card('CA-202')
+    const li = await openCard(await card('CA-202'))
     const line = await within(li).findByTestId('matrix-line')
     expect(line).toHaveTextContent('From the matrix (PSI Real Estate)')
     expect(line).toHaveTextContent('receiver Internal Audit and Marketing Lead')
@@ -77,8 +144,8 @@ describe('Corrective: every fix in full (v40 F07, F11, F21, F22, F33)', () => {
 
   it('"How the AI found this" carries Arabic chips and the Who does what button', async () => {
     renderWithProviders(<Corrective />, { route: '/actions/corrective', lang: 'ar' })
-    const li = await card('CA-202')
-    const chips = within(li).getByTestId('found-agents')
+    const li = await openCard(await card('CA-202'))
+    const chips = await within(li).findByTestId('found-agents')
     expect(chips).toHaveTextContent('الوكيل 3')
     expect(chips).toHaveTextContent('الوكيل 5')
     expect(chips).toHaveTextContent('سوبرفايزر CX: اجتاز 6 فحوصات')
@@ -123,7 +190,7 @@ describe('Corrective: every fix in full (v40 F07, F11, F21, F22, F33)', () => {
 describe('Corrective: decisions and status changes write the audit trail (v40 F21)', () => {
   it('"Done, start the 60-day check" writes an audit line, schedules the check 60 days out and moves the box to the check step', async () => {
     renderWithProviders(<Corrective />, { route: '/actions/corrective' })
-    const li = await card('CA-203')
+    const li = await openCard(await card('CA-203'))
     const fix = mock.MOCK_CORRECTIVE_ACTIONS.find((f) => f.id === 'ca-3')!
     const before = fix.auditLog.length
     await userEvent.click(within(li).getByRole('button', { name: 'Done, start the 60-day check' }))
@@ -140,7 +207,7 @@ describe('Corrective: decisions and status changes write the audit trail (v40 F2
 
   it('approving a proposed fix writes the decision, sets the due date from the matrix and starts "the owner does the fix"', async () => {
     renderWithProviders(<Corrective />, { route: '/actions/corrective' })
-    const li = await card('CA-202')
+    const li = await openCard(await card('CA-202'))
     const fix = mock.MOCK_CORRECTIVE_ACTIONS.find((f) => f.id === 'ca-2')!
     const before = fix.auditLog.length
     await userEvent.click(within(li).getByRole('button', { name: 'Decide' }))

@@ -12,6 +12,7 @@ import type {
 } from '../types'
 import { canAccessPath, canOpenPage } from '../auth/access'
 import { DEFAULT_RULES_BAG, calendarFromRules, type RulesBag } from './ruleValues'
+import { ownerTitle } from '../data/ownerTitles'
 import { caId, invId } from './trace'
 import { calendarDaysLeft, nextWeekday, startOfDay, toDayKey, workingDaysBetween } from './workingDays'
 
@@ -62,7 +63,26 @@ export function dayChipState(daysLeft: number | null): DayChipState {
   return 'ok'
 }
 
-/** The chip text (v40 S7): "overdue", "{n} working days late" / "{n} days late", "today", "{n} working days left" / "{n} days left". */
+/**
+ * A counted number of days with the right grammar. English: "1 day" / "5 days", "1 working day" / "5 working days".
+ * Arabic: singular with "one" (يوم واحد), dual (يومان, accusative يومين), plural for 3 to 10 (أيام), singular accusative from 11
+ * (يوماً; working days: يوم عمل). `late` selects the genitive/accusative dual (after "تأخير"), `left` the nominative (after "متبقٍ").
+ */
+export function daysPhrase(n: number, unit: 'wd' | 'd', caseOf: 'nominative' | 'oblique' = 'nominative'): Bi {
+  const wd = unit === 'wd'
+  const en = wd ? `${n} working ${n === 1 ? 'day' : 'days'}` : `${n} ${n === 1 ? 'day' : 'days'}`
+  let ar: string
+  if (n === 1) ar = wd ? 'يوم عمل واحد' : 'يوم واحد'
+  else if (n === 2) ar = wd ? (caseOf === 'nominative' ? 'يوما عمل' : 'يومي عمل') : caseOf === 'nominative' ? 'يومان' : 'يومين'
+  else if (n <= 10) ar = wd ? `${n} أيام عمل` : `${n} أيام`
+  else ar = wd ? `${n} يوم عمل` : `${n} يوماً`
+  return { en, ar }
+}
+
+/**
+ * The chip text (v40 S7): "overdue", "{n} working days late" / "{n} days late", "today", "{n} working days left" / "{n} days left".
+ * A count of one is singular ("1 day left"), and Arabic agrees: متبقٍ يوم واحد / يومان / 3 أيام / 12 يوماً.
+ */
 export function dayChipLabel(daysLeft: number | null, unit: 'wd' | 'd'): Bi | null {
   switch (dayChipState(daysLeft)) {
     case 'none':
@@ -72,12 +92,12 @@ export function dayChipLabel(daysLeft: number | null, unit: 'wd' | 'd'): Bi | nu
     case 'today':
       return { en: 'today', ar: 'اليوم' }
     case 'late': {
-      const n = Math.abs(daysLeft as number)
-      return unit === 'wd' ? { en: `${n} working days late`, ar: `${n} يوم عمل تأخير` } : { en: `${n} days late`, ar: `${n} يوم تأخير` }
+      const p = daysPhrase(Math.abs(daysLeft as number), unit, 'oblique')
+      return { en: `${p.en} late`, ar: `تأخير ${p.ar}` }
     }
     default: {
-      const n = daysLeft as number
-      return unit === 'wd' ? { en: `${n} working days left`, ar: `متبقٍ ${n} يوم عمل` } : { en: `${n} days left`, ar: `متبقٍ ${n} يوم` }
+      const p = daysPhrase(daysLeft as number, unit, 'nominative')
+      return { en: `${p.en} left`, ar: `متبقٍ ${p.ar}` }
     }
   }
 }
@@ -121,7 +141,6 @@ export function visibleFixes(
 }
 
 const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1)}…` : s)
-const same = (s: string): Bi => ({ en: s, ar: s })
 
 export function buildInbox(input: InboxInput): InboxItem[] {
   const rules = input.rules ?? DEFAULT_RULES_BAG
@@ -133,7 +152,7 @@ export function buildInbox(input: InboxInput): InboxItem[] {
   // Fixes: approve, do, verify (fix visibility rules).
   for (const f of visibleFixes(input.fixes, input.patterns, role, input.roleEnvironment)) {
     const title = f.title.en
-    const owner = same(f.owner)
+    const owner = ownerTitle(f.owner)
     const target = `/actions/corrective?fix=${caId(f.id)}`
     if (f.status === 'proposed') {
       const left = rules.approveDays - workingDaysBetween(f.proposedAt, today, cal)
@@ -193,7 +212,7 @@ export function buildInbox(input: InboxInput): InboxItem[] {
         text: { en: `${critical ? 'Critical · ' : ''}Call ${name} · ${reason}`, ar: `${critical ? 'حرج · ' : ''}اتصل بـ ${name} · ${reason}` },
         daysLeft: left,
         unit: 'wd',
-        who: l.channel === 'ai_campaign' && campaign ? { en: `AI campaign ${campaign.id}`, ar: `حملة AI ${campaign.id}` } : { en: 'CX team', ar: 'فريق CX' },
+        who: l.channel === 'ai_campaign' && l.status !== 'needs_human' && campaign ? { en: `AI campaign ${campaign.id}`, ar: `حملة AI ${campaign.id}` } : { en: 'CX team', ar: 'فريق CX' },
         priority: critical ? 2 : left !== null && left < 0 ? 1 : 0,
         target: `/close-the-loop?item=${l.id}`,
         critical,

@@ -8,6 +8,9 @@ const OUT_DIR = PORT === 4321 ? 'dist' : `dist-e2e-${PORT}`
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
+  // Ten parallel browsers (the default here) starve each other and the preview server on a busy machine: pages stall on "Loading..." and
+  // pass again when rerun alone. Six is steady; E2E_WORKERS overrides it.
+  workers: Number(process.env.E2E_WORKERS ?? 6),
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: [['list'], ['html', { open: 'never', outputFolder: `playwright-report${SUFFIX}` }]],

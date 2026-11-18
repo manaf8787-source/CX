@@ -102,7 +102,7 @@ const LEAD_WORDS = /\blead|عملاء محتملين|عميل محتمل/
  * environment champion; process → whoever owns it; product and app → product
  * owner and IT; marketing → the Internal Audit and Marketing Lead first).
  * Exact titles per product come from the escalation matrix, still pending. */
-const FAULT_ROUTE: Record<ProblemFlag, { kind: CorrectiveActionKind; owner: Bi }> = {
+export const FAULT_ROUTE: Record<ProblemFlag, { kind: CorrectiveActionKind; owner: Bi }> = {
   slow_reply: { kind: 'service_behaviour', owner: { en: 'Sales manager of the environment', ar: 'مدير مبيعات البيئة' } },
   promise_not_kept: { kind: 'service_behaviour', owner: { en: 'Sales manager of the environment', ar: 'مدير مبيعات البيئة' } },
   detractor: { kind: 'service_behaviour', owner: { en: 'Sales manager of the environment', ar: 'مدير مبيعات البيئة' } },

@@ -1,6 +1,6 @@
 # PSI CX Portal — React rebuild
 
-A from-scratch React implementation of the PSI CX Portal prototype (v38, 17 Nov 2026), built against the requirements in [`docs/analysis/`](docs/analysis/) rather than against the live `.claude.ai` artifact. **Mock-data-only** — there is no backend yet (go-live is targeted for ~25 Jan 2027); every page reads from a typed, seeded sample dataset behind the `src/services/` layer, which is the seam a real API will plug into later.
+A from-scratch React implementation of the PSI CX Portal prototype (v38, 17 Nov 2026; brought to v40 on 18 Nov 2026, see below), built against the requirements in [`docs/analysis/`](docs/analysis/) rather than against the live `.claude.ai` artifact. **Mock-data-only** — there is no backend yet (go-live is targeted for ~25 Jan 2027); every page reads from a typed, seeded sample dataset behind the `src/services/` layer, which is the seam a real API will plug into later.
 
 This is a separate app from `../frontend/` (the earlier pre-omnichannel scaffold, kept read-only as reference) and from `../PSI CX Portal.html` (the static export of the claude.ai artifact, which remains the canonical interactive prototype per the repo's `CLAUDE.md`).
 
@@ -30,9 +30,9 @@ The UI moved from hand-written CSS to Tailwind CSS v4 + shadcn/ui by Manaf's dec
 
 | Command | What it runs | Time |
 |---|---|---|
-| `npm test` | Vitest + Testing Library in jsdom: the business rules (pattern thresholds, runaway types, 60-day effectiveness, due-date clocks, mystery-shopper scoring, close-the-loop capacity and sampling), role permissions and page access, the sample session, i18n completeness, the assistant engine, and component tests (KpiTile, DataTable, sign-in, Timeline role gating) | ~3 s |
+| `npm test` | **610 tests in 55 files.** Vitest + Testing Library in jsdom: the business rules (pattern thresholds, runaway types, 60-day effectiveness, due-date clocks, mystery-shopper scoring, close-the-loop capacity and sampling), role permissions and page access, the sample session, i18n completeness, the assistant engine, and component tests (KpiTile, DataTable, sign-in, Timeline role gating) | ~25 s |
 | `npm run test:coverage` | the same, with v8 coverage for `src/utils`, `src/lib`, `src/auth` | ~4 s |
-| `npm run test:e2e` | Playwright (Chromium) against a production build served by `vite preview` on port 4321: sign-in flow, all 25 routes in English and Arabic, role gating, the assistant, reduced motion; an **axe-core WCAG 2.1 AA scan** of every route in English/Arabic × light/dark plus the login page and dialogs (fails on any serious or critical violation); and a **keyboard-only** spec (skip link, sidebar, tabs, table sort, dialog focus trap and return, assistant) | ~50 s plus the build |
+| `npm run test:e2e` | Playwright (Chromium) against a production build served by `vite preview` on port 4321: **334 of 334 passed.** Sign-in flow, all 33 routes in English and Arabic, the v40 specs (`v40-foundation`, `v40-orientation`, `v40-trace`, `v40-people`, `v40-integration`), role gating, the assistant, reduced motion; an **axe-core WCAG 2.1 AA scan** of every route in English/Arabic × light/dark plus the login page and dialogs (fails on any serious or critical violation); and a **keyboard-only** spec (skip link, sidebar, tabs, table sort, dialog focus trap and return, assistant) | ~3 min plus the build (6 workers) |
 | `npm run check` | typecheck, lint, unit tests, build | ~10 s |
 
 Unit tests live next to the code (`*.test.ts(x)`); shared helpers are in `src/test/`. End-to-end specs are in `e2e/`.
@@ -43,9 +43,24 @@ The i18n test fails the build if any bilingual string or inline `t('English', 'A
 
 ## Sign-in and motion
 
-The app opens on a **sample sign-in** at `/login`: choose one of the 12 roles (and optionally a display name) to see the portal as that role sees it. There is no backend and no password; the session lives in `localStorage`, and Sign out is in the header user menu. See `docs/DESIGN_SYSTEM.md` §9.
+The app opens on a **sample sign-in** at `/login`: choose one of the six main roles, or one of the other six under "Other roles used in the demo" (and optionally a display name), to see the portal as that role sees it. There is no backend and no password; the session lives in `localStorage`, and Sign out is in the header user menu. See `docs/DESIGN_SYSTEM.md` §9.
 
 Animation uses `motion` (pinned, features lazy-loaded) plus CSS. It covers direction-aware route transitions, staggered sections, count-up KPIs, chart draw-in, hover and press feedback, skeleton shimmer, the assistant's typing indicator, and the login intro. Everything respects `prefers-reduced-motion`. See `docs/DESIGN_SYSTEM.md` §8.
+
+## Routes, menu and roles (v40)
+
+**Main menu** (CX manager and CX team see all of it; every other role sees its own pages): Home `/home`; 1 · Customers `/customers` (tabs: Find a person, Who is leaving `/runaway`, Personas and campaigns `/personas`); My inbox `/inbox`; 2–4 · Signals and fixes `/actions` (Corrective actions, Signals and patterns, AI Insights, Shopper cases, Investigations); 5 · Close the loop `/close-the-loop`; 6 · CX indicators `/overview`; live products `/products/:id`; Settings and reference `/settings` (AI team page, Data feeds, CRM mapping, Escalation matrix, Survey questions, Weekly sample, Public mentions, Surveys and triggers, Rules, Monthly pack, Mystery shopper, Standards, Voice of customer, L&D, Teams, HR team, Admin, AI Insights access, Glossary). Old URLs still work: `/surveys` goes to `/settings/surveys`, `/settings/overview` to `/overview`.
+
+| Role (title) | Lands on | Notes |
+|---|---|---|
+| CX manager, CX team, Executive, Environment management, Team lead, After-Sales lead, Marketing manager | `/home` | the Daily brief and the six steps on Home |
+| L&D manager | `/settings/ld` | Daily brief at the top of that page |
+| HR specialist | `/actions` (fixes tab) | Daily brief at the top of that tab |
+| HR manager | `/settings/hr-team` | Daily brief at the top, informed only |
+| Internal Audit and Marketing Lead | `/overview` | Daily brief at the top; sees references (P-005), never customer names |
+| Mystery shopper | `/settings/mystery-shopper` | its own tasks only |
+
+Who opens what is `src/auth/access.ts` (`ROLE_PATHS`), edit rights and the name rules are `src/auth/permissions.ts`; the test is `src/auth/permissions.test.ts`. The three CRM environments (Dubai, Abu Dhabi, PSI Assets) are narrowed by the "Data as of" bar's switch; everything that is still `[Proposed]` carries a badge in the UI (list in `docs/IMPLEMENTATION_REPORT.md` section 14.5).
 
 ## Folder structure
 
@@ -67,6 +82,16 @@ src/
 
 ## Requirements and analysis
 
-**v39/v40 work (18 Nov 2026):** the analysis is [`docs/V40_DELTA.md`](docs/V40_DELTA.md); the contract that the three build workstreams rely on (new hooks, primitives, routes, permissions, data files, stub pages, config keys) is [`docs/V40_FOUNDATION_API.md`](docs/V40_FOUNDATION_API.md).
+**v39/v40 work (18 Nov 2026):**
+
+| Doc | What it is |
+|---|---|
+| [`docs/V40_DELTA.md`](docs/V40_DELTA.md) | the analysis: 36 features, F01 to F36, verbatim strings |
+| [`docs/DECISIONS-2026-11-18.md`](docs/DECISIONS-2026-11-18.md) | the owner's seven decisions of 18 Nov (they win over the delta) |
+| [`docs/V40_FOUNDATION_API.md`](docs/V40_FOUNDATION_API.md) | the contract: hooks, primitives, routes, permissions, data files, config keys; which stubs were replaced |
+| [`docs/V40_WS_A.md`](docs/V40_WS_A.md), [`V40_WS_B.md`](docs/V40_WS_B.md), [`V40_WS_C.md`](docs/V40_WS_C.md) | what each workstream built, tested, left and asked for |
+| [`docs/MEO_DESIGN_PLAN.md`](docs/MEO_DESIGN_PLAN.md) | a restyle plan (Meo-inspired tokens and components, 18 Nov); styling only, no logic or copy changes; not part of the v40 feature work |
+| [`docs/FIDELITY_REVIEW.md`](docs/FIDELITY_REVIEW.md) | v38 rows marked where v40 changed them, and F01 to F36 with code and test |
+| [`docs/IMPLEMENTATION_REPORT.md`](docs/IMPLEMENTATION_REPORT.md) section 14 | the integration pass: fixes, decisions applied, `[Proposed]` still badged, known gaps |
 
 Everything this app was built against — the product analysis, functional requirements, roles/permissions, module inventory, UI/UX spec, and implementation plan — lives in [`docs/analysis/`](docs/analysis/). The consolidated build report, including every `[Proposed]` placeholder and open question still unresolved in the source documents, is in [`docs/IMPLEMENTATION_REPORT.md`](docs/IMPLEMENTATION_REPORT.md).

@@ -1,14 +1,14 @@
 # PSI CX Portal — project notes for Claude
 
-This repository holds the knowledge base, plans and standards list for the PSI CX Portal programme, plus a React build of the portal. The interactive prototype is a Claude Artifact hosted at claude.ai; the `.html` file here is a static export of it (version 40), not a live app to build or run. **`React-Frontend/` is the React build of the prototype** (Vite + TypeScript + shadcn/ui + Tailwind, sample data only, no backend): run it with `npm install` then `npm run dev`, and check it with `npm run check` and `npm run test:e2e`. Its own docs are in `React-Frontend/docs/` (analysis, design system, fidelity review, implementation report, `V40_DELTA.md` for the v38 to v40 changes, `DECISIONS-2026-11-18.md` for the confirmed answers). It was built on v38 and is being brought to v40. The `frontend/` folder is an older pre-omnichannel React scaffold, reference only.
+This repository is **documentation, not application code**. It holds the knowledge base, plans and standards list for the PSI CX Portal programme. The interactive prototype is a Claude Artifact hosted at claude.ai; the `.html` file here is a static export of it (version 40), not a live app to build or run. The `frontend/` folder is a separate React scaffold and is not the prototype.
 
 ## Who this is for
 
 Owner: **Manaf Obeidat**, Delivery and CX Manager, PSI Real Estate. Audience: PSI management, the CX team, L&D (George), Marketing, the AI and IT teams who will build the real platform.
 
-## What PSI CX Portal is (as of 18 Nov 2026, v40)
+## What PSI CX Portal is (as of 18 Nov 2026, v41)
 
-An **omnichannel** customer experience platform: one record per person (lead or customer), every contact from every channel on one timeline, read by rules and AI. One line of six steps (Listen, Signal, Pattern, Fix, Check, Report) with ids EV→SG→PT→CA→VR→RP and a Trace card on every record. Menu in step order: Home (six steps, daily brief per role, CX indicators per product, your work today, search), 1 Customers (search, everyone on record, who is leaving, personas), My inbox (day counts), 2–4 Signals and fixes (corrective actions, signals and patterns, AI insights, shopper cases, investigations), 5 Close the loop, 6 CX indicators; under Settings: data feeds (three CRM environments), CRM mapping, escalation matrix, survey questions, rules as configuration with what-if, the intelligent CX team, weekly sample, public mentions. Plus an AI assistant (voice or text, Arabic or English) and the Intelligent CX team page: ten single-task AI agents and one supervisor with six checks; people approve, read, see names and call. The earlier modules (mystery shopper, standards register, voice of customer, L&D, teams, settings) sit under "Settings and reference". Six products: PSI Real Estate and After-Sales live; PSI Club, Tour Estate, PSI Events and PSI Wallet hidden until launch.
+An **omnichannel** customer experience platform: one record per person (lead or customer), every contact from every channel on one timeline, read by rules and AI. A guided tour inside the portal teaches each role on first entry (v41). One line of six steps (Listen, Signal, Pattern, Fix, Check, Report) with ids EV→SG→PT→CA→VR→RP and a Trace card on every record. Menu in step order: Home (six steps, daily brief per role, CX indicators per product, your work today, search), 1 Customers (search, everyone on record, who is leaving, personas), My inbox (day counts), 2–4 Signals and fixes (corrective actions, signals and patterns, AI insights, shopper cases, investigations), 5 Close the loop, 6 CX indicators; under Settings: data feeds (three CRM environments), CRM mapping, escalation matrix, survey questions, rules as configuration with what-if, the intelligent CX team, weekly sample, public mentions. Plus an AI assistant (voice or text, Arabic or English) and the Intelligent CX team page: ten single-task AI agents and one supervisor with six checks; people approve, read, see names and call. The earlier modules (mystery shopper, standards register, voice of customer, L&D, teams, settings) sit under "Settings and reference". Six products: PSI Real Estate and After-Sales live; PSI Club, Tour Estate, PSI Events and PSI Wallet hidden until launch.
 
 The rules (five decisions, all configuration): signals are counted, not worked; a pattern (5 same issue, 3 same agent, 50% concentration, 30 days, sample ≥ 10) gets one *suggested* corrective action that the responsible manager approves within 5 working days, verified at 60 days, effective at a 50% drop held 90 days; only a critical mystery shopper item or a legal/privacy signal opens a case directly; NPS only after a completed milestone (cap 90 days), CSAT + CES after a meaningful interaction (cap 30 days, viewing > offer > call), public channels never surveyed, each product its own line with no group NPS, PSI Website and PSI Real Estate app two named sources.
 
@@ -17,7 +17,7 @@ The rules (five decisions, all configuration): signals are counted, not worked; 
 | File | What it is |
 |---|---|
 | `Documents/PSI-CX-Programme-Knowledge-Base.md` | **Start here.** Chronological project log: decisions, requirements, open questions. Sections 28 to 44 cover the omnichannel rebuild, the rules layer and the intelligent CX team. |
-| `Documents/PSI-CX-Portal-Knowledge-Base-Modules.md` | **Reference.** v40 page by page: what each page is for, what each role sees, the rules, the data. Same content as the Word document without pictures. |
+| `Documents/PSI-CX-Portal-Knowledge-Base-Modules.md` | **Reference.** v41 page by page: what each page is for, what each role sees, the rules, the data. Same content as the Word document without pictures. |
 | `Documents/PSI-CX-Portal-Knowledge-Base.docx` / `KB.pdf` | The illustrated knowledge base (75 screenshots), for people who will not open an `.md` file. |
 | `Documents/CX-Portal-Phase-One-Omnichannel-Integration-Plan.docx` | What the AI and IT teams need to build: per channel, the unified record, identity, integrations, the ten-week plan. |
 | `Documents/Standards-Documentation-List-for-LD.docx` | The 28 standards documents L&D is asked to write, with contents, writers, readers and the PSI Assets variants. |
@@ -27,8 +27,8 @@ The rules (five decisions, all configuration): signals are counted, not worked; 
 | `Documents/CRM-Field-Mapping.docx` | The 17 Nov read-only review of the Abu Dhabi CRM: where each trigger lives, what exists, what is missing (the request list to the CRM owner). |
 | `Documents/CX-Portal-AI-Agents-deck.pdf`, `Documents/Survey-Journeys-deck.pdf` | The AI-team deck (business language, one example per agent) and the survey journeys deck. |
 | `Documents/PSI-CX-Portal-Pilot-Plan.docx` | Earlier eight-week pilot plan (2 Nov); superseded in scope by the phase one plan but kept for the management review history. |
-| `Documents/PSI CX Portal.html` | Static export of the prototype, v40, bilingual EN/AR with RTL. |
-| `PSI CX Portal.html` (root) | Same v40 export as the one in `Documents/`, kept at the root for quick opening. |
+| `Documents/PSI CX Portal.html` | Static export of the prototype, v41, bilingual EN/AR with RTL. |
+| `PSI CX Portal.html` (root) | Same v41 export as the one in `Documents/`, kept at the root for quick opening. |
 | `intro-video/`, `*.mp4` | The recorded walkthrough; the four-slide introduction deck and the video page live online (see section 42). |
 
 Live links (private, shared individually) are in `PSI-CX-Programme-Knowledge-Base.md` section 42.
@@ -53,11 +53,3 @@ See `PSI-CX-Programme-Knowledge-Base.md` section 43.
 
 - Don't invent or confirm decisions on Manaf's behalf; flag open items rather than resolving them silently.
 - The Programme KB is a chronological log (append dated sections); the Modules KB is a structural reference (edit in place by section).
-- Several Claude sessions may work in this repo at once (prototype and docs in one, `React-Frontend/` in another). Re-read a shared file such as this one or the Programme KB just before editing it, and edit in place rather than rewriting the whole file, so another session's changes are not lost.
-
-## Git: auto-push rule (set by Manaf, 17 Nov 2026)
-
-- All work is committed and pushed to `origin/main` (github.com/manaf8787-source/CX) every hour by the Windows scheduled task **CX-AutoPush**, which runs `.claude/auto-push.ps1`. Log: `%LOCALAPPDATA%\cx-auto-push.log`.
-- Claude may commit and push to `main` without asking. Never force-push; never commit secrets (`.env`, keys); files over 95 MB are left out automatically.
-- To stop it: `Unregister-ScheduledTask -TaskName CX-AutoPush -Confirm:$false`.
-- `React-Frontend/` uses shadcn/ui + Tailwind (decided 17 Nov 2026).

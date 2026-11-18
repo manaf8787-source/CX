@@ -41,12 +41,14 @@ describe('Close the loop: calling rules (v40 F27)', () => {
     expect(screen.getByTestId('calling-rules')).toHaveTextContent('up to 4 attempts')
   })
 
-  it('shows "attempt n+1 of 3 · next {date}" on a row with an attempt, and "Needs a human" after the last', async () => {
+  it('shows "attempt n+1 of N · next {date}" on a row with an attempt, and "Needs a human" after the last', async () => {
     renderWithProviders(<CloseTheLoop />, { role: 'cxmgr', route: '/close-the-loop' })
     const table = await ready()
     const withAttempt = mock.MOCK_DETRACTOR_CALL_ITEMS.find((i) => i.status === 'no_answer')!
     expect(withAttempt.attempts).toBeGreaterThanOrEqual(1)
-    expect(within(table).getAllByText(new RegExp(`attempt ${withAttempt.attempts + 1} of 3 · next`)).length).toBeGreaterThan(0)
+    // The limit is the row's own: 2 no-answers for an AI campaign row, 3 attempts for the CX team's list.
+    const of = withAttempt.channel === 'ai_campaign' ? 2 : 3
+    expect(within(table).getAllByText(new RegExp(`attempt ${withAttempt.attempts + 1} of ${of} · next`)).length).toBeGreaterThan(0)
     expect(within(table).getAllByText('Needs a human').length).toBeGreaterThan(0)
     // A row that needs a human has no "No answer" button left: it is a human's call now.
     const needsHuman = within(table).getAllByText('Needs a human')[0].closest('tr')!
@@ -78,7 +80,7 @@ describe('Close the loop: calling rules (v40 F27)', () => {
     // The next attempt is a working day (Monday to Friday), never a weekend.
     const day = new Date(`${after.nextAttemptOn}T00:00:00`).getDay()
     expect([1, 2, 3, 4, 5]).toContain(day)
-    expect(await within(focus).findByText(/attempt 2 of 3 · next/)).toBeInTheDocument()
+    expect(await within(focus).findByText(new RegExp(`attempt 2 of ${target.channel === 'ai_campaign' ? 2 : 3} · next`))).toBeInTheDocument()
   })
 
   it('opens a row from the inbox with its actions; the reason is not coded until the call', async () => {

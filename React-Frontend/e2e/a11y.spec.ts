@@ -55,6 +55,8 @@ test.describe('axe — login and overlays', () => {
       await page.addInitScript((l) => localStorage.setItem('psicx.lang', l), lang)
       await page.goto('/login')
       await expect(page.locator('h1').first()).toBeVisible()
+      // The brand panel and the cards fade and slide in with motion: wait for the final colours (a mid-fade frame reads as low contrast).
+      await waitForAnimations(page)
       const violations = blocking(await scan(page))
       expect(violations, JSON.stringify(violations, null, 2)).toEqual([])
     })

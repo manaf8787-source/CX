@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { ArrowDownLeft, ArrowUpRight, PhoneOff } from 'lucide-react'
 import { useI18n } from '@/i18n'
@@ -27,7 +27,8 @@ const ALL_CHANNELS: ChannelId[] = [
  * text/agent names stay behind the role gates from `auth/permissions.ts`.
  *
  * v40 (F12): every row carries its grey `EV-n` tag and one `SG-n` button per signal the event produced (opens the signal
- * detail dialog). The row named by `?ev=EV-12` (a Trace id on another page) is highlighted and scrolled into view. */
+ * detail dialog). Each row is an anchor: `id="EV-12"` (so `#EV-12` works) and `data-ev`. The row named by `?ev=EV-12` (a Trace
+ * id on another page) is highlighted, scrolled into view, focused (a visible focus ring) and announced politely to screen readers. */
 export function Timeline({ interactions }: { interactions: Interaction[] }) {
   const { t, L, lang } = useI18n()
   const { role } = useRole()
@@ -58,6 +59,11 @@ export function Timeline({ interactions }: { interactions: Interaction[] }) {
   const isTarget = (i: Interaction) => !!targetEvent && (targetEvent === evId(i.id) || targetEvent === i.id)
   const hasTarget = interactions.some(isTarget)
   useScrollToTarget(targetRef, hasTarget, 'center')
+  // The row takes focus without scrolling (the hook above keeps it in view), so a keyboard user starts from the event.
+  useEffect(() => {
+    if (hasTarget) targetRef.current?.focus({ preventScroll: true })
+  }, [hasTarget, targetEvent])
+  const targetInteraction = hasTarget ? interactions.find(isTarget) : undefined
 
   return (
     <SectionCard
@@ -84,6 +90,9 @@ export function Timeline({ interactions }: { interactions: Interaction[] }) {
         </>
       }
     >
+      <p aria-live="polite" aria-atomic="true" data-testid="timeline-live" className="sr-only">
+        {targetInteraction ? t(`Event ${evId(targetInteraction.id)} is highlighted in the timeline.`, `الحدث ${evId(targetInteraction.id)} مُظلَّل في الجدول الزمني.`) : ''}
+      </p>
       {!sorted.length ? (
         <EmptyState title={t('No interactions on this channel.', 'لا توجد تفاعلات على هذه القناة.')} />
       ) : (
@@ -97,7 +106,16 @@ export function Timeline({ interactions }: { interactions: Interaction[] }) {
             const target = isTarget(i)
             const produced = signalsByEvent.get(i.id) ?? []
             return (
-              <li key={i.id} ref={target ? targetRef : undefined} id={`ev-${evId(i.id)}`} data-ev={evId(i.id)} data-highlighted={target ? 'true' : undefined} className="relative flex scroll-mt-24 gap-3 pb-5 last:pb-0">
+              <li
+                key={i.id}
+                ref={target ? targetRef : undefined}
+                id={evId(i.id)}
+                data-ev={evId(i.id)}
+                data-trace-id={evId(i.id)}
+                data-highlighted={target ? 'true' : undefined}
+                tabIndex={target ? -1 : undefined}
+                className="relative flex scroll-mt-24 gap-3 rounded-lg pb-5 outline-none last:pb-0 focus-visible:ring-[3px] focus-visible:ring-ring/60"
+              >
                 {!isLast && <span aria-hidden className="absolute start-4 top-9 bottom-0 w-px -translate-x-1/2 bg-border rtl:translate-x-1/2" />}
                 <span
                   aria-hidden

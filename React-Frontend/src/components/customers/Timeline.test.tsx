@@ -92,6 +92,30 @@ describe('Timeline trace ids (v40 F12)', () => {
     expect(document.querySelectorAll('li[data-highlighted="true"]')).toHaveLength(1)
   })
 
+  it('each row is an anchor (id EV-n), and the target row takes focus and is announced politely', async () => {
+    renderWithProviders(<Timeline interactions={personEvents} />, { route: `/customers/${signal.personId}?ev=${evDisplay}` })
+    const row = await waitFor(() => {
+      const el = document.getElementById(evDisplay)
+      expect(el).not.toBeNull()
+      return el as HTMLElement
+    })
+    expect(row.tagName).toBe('LI')
+    await waitFor(() => expect(row).toHaveFocus())
+    expect(row).toHaveAttribute('tabindex', '-1')
+    const live = screen.getByTestId('timeline-live')
+    expect(live).toHaveAttribute('aria-live', 'polite')
+    expect(live).toHaveTextContent(`Event ${evDisplay} is highlighted in the timeline.`)
+    // Other rows are anchors but not tab stops.
+    const other = personEvents.map((i) => document.getElementById(`EV-${Number(i.id.replace(/\D/g, ''))}`)).find((el) => el && el !== row)
+    if (other) expect(other).not.toHaveAttribute('tabindex')
+  })
+
+  it('announces nothing without ?ev=', async () => {
+    renderWithProviders(<Timeline interactions={personEvents} />, { route: `/customers/${signal.personId}` })
+    await screen.findAllByRole('listitem')
+    expect(screen.getByTestId('timeline-live')).toBeEmptyDOMElement()
+  })
+
   it('highlights nothing when ?ev= names an event of another person', async () => {
     renderWithProviders(<Timeline interactions={personEvents} />, { route: `/customers/${signal.personId}?ev=EV-99999` })
     await screen.findAllByRole('listitem')

@@ -3,6 +3,7 @@ import { Outlet, useLocation } from 'react-router-dom'
 import { useI18n } from '@/i18n'
 import { PageHeader } from '@/components/common/PageHeader'
 import { LoadingState } from '@/components/common/LoadingState'
+import { LandingBrief } from '@/components/home/LandingBrief'
 import { NextBox } from '@/components/common/NextBox'
 import { RouteTransition } from '@/components/layout/RouteTransition'
 import { RouteTabs } from '@/components/common/Tabs'
@@ -22,6 +23,8 @@ export default function ActionsLayout() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader term="Corrective action" title={t('Actions', 'الإجراءات')} description={t('What is being fixed, why, and did it work.', 'ما الذي يتم إصلاحه، ولماذا، وهل نجح؟')} />
+      {/* v40 F09: the HR specialist lands on the fixes tab, not on Home, so the Daily brief sits at the top of that landing page. */}
+      {pathname === '/actions/corrective' && <LandingBrief roles={['hrspec']} />}
       <NextBox next={actionsNext(tabKind(pathname))} />
       <RouteTabs items={ACTIONS_TABS} label={t('Actions sections', 'أقسام الإجراءات')} />
       <Suspense fallback={<LoadingState rows={5} />}>

@@ -5,6 +5,7 @@ import { useI18n } from '@/i18n'
 import { useCorrectiveActions, useLdRequests, useShopperCases } from '@/services/queries'
 import { useStandardsRegister, useTrainingMaterials, useTrainingSessions } from '@/services/referenceQueries'
 import { LD_COMPLAINT_TYPE, MATERIAL_STATUS, REGISTER_STATUS, type LdComplaintType } from '@/data/v38Reference'
+import { LandingBrief } from '@/components/home/LandingBrief'
 import { KpiTile } from '@/components/common/KpiTile'
 import {
   CORRECTIVE_STATUS_LABEL,
@@ -57,6 +58,8 @@ export default function Ld() {
         title={t('L&D: training & materials', 'التعلم والتطوير')}
         description={t('Training-gap actions, L&D requests, and the standards L&D owns and writes.', 'إجراءات فجوة التدريب، طلبات التعلم والتطوير، والمعايير التي يملكها ويكتبها قسم التعلم والتطوير.')}
       />
+      {/* v40 F09: L&D lands here, not on Home, so the Daily brief sits at the top of this page. */}
+      <LandingBrief roles={['ld']} />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiTile label={t('Training-gap actions', 'إجراءات فجوة التدريب')} value={trainingGapActions.length} accent="var(--warning)" loading={actionsLoading} />

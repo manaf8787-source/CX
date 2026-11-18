@@ -139,3 +139,61 @@ describe('Escalation matrix: editing a cell', () => {
     expect(resolveHoursFor({ product: 're', kind: 'service_behaviour' })).toBe(27)
   })
 })
+
+describe('Escalation matrix: confirm a default as it stands', () => {
+  const rowOf = (product: 'to' | 'ev', kind: string) => mock.MOCK_MATRIX[product].find((r) => r.kind === kind)!
+
+  it('the CX manager gets a "Confirm default" button on every cell still at its default; confirming clears that cell’s [Proposed] and records who and when', async () => {
+    await open('/settings/escalation-matrix?product=to')
+    const table = screen.getByRole('table')
+    expect(within(table).getAllByRole('button', { name: /^Confirm default:/ })).toHaveLength(50)
+    await userEvent.click(within(table).getByRole('button', { name: 'Confirm default: Legal and privacy · First receiver' }))
+    await waitFor(() => expect(rowOf('to', 'legal').isDefault.receiver).toBe(false))
+    expect(rowOf('to', 'legal').confirmed?.receiver).toMatchObject({ byRole: 'cxmgr' })
+    expect(Date.parse(rowOf('to', 'legal').confirmed!.receiver!.at)).toBeLessThanOrEqual(Date.now())
+    // the value is unchanged, the badge and the button of that cell are gone, a "Confirmed" mark is there
+    expect(rowOf('to', 'legal').cells.receiver?.en).toBe('Legal')
+    await waitFor(() => expect(within(table).getAllByText('[Proposed]')).toHaveLength(49))
+    expect(within(table).queryByRole('button', { name: 'Confirm default: Legal and privacy · First receiver' })).not.toBeInTheDocument()
+    expect(within(table).getByTestId('matrix-confirmed')).toHaveTextContent('Confirmed')
+    expect(within(table).getByTestId('matrix-confirmed')).toHaveTextContent('by CX manager')
+    // another product is untouched
+    expect(mock.MOCK_MATRIX.ev.find((r) => r.kind === 'legal')!.isDefault.receiver).toBe(true)
+  })
+
+  it('the CX team reads and sees no "Confirm default" button', async () => {
+    await open('/settings/escalation-matrix?product=ev', 'cxteam')
+    expect(screen.queryAllByRole('button', { name: /^Confirm default:/ })).toHaveLength(0)
+    expect(screen.getAllByText('[Proposed]').length).toBe(50)
+  })
+
+  it('the Internal Audit and Marketing Lead may confirm', async () => {
+    await open('/settings/escalation-matrix?product=ev', 'auditmkt')
+    await userEvent.click(screen.getByRole('button', { name: 'Confirm default: Marketing · Informed' }))
+    await waitFor(() => expect(rowOf('ev', 'marketing').isDefault.informed).toBe(false))
+    expect(rowOf('ev', 'marketing').confirmed?.informed).toMatchObject({ byRole: 'auditmkt' })
+  })
+
+  it('editing a confirmed cell takes the confirmation back (a new value is a new proposal to the owner’s own edit, not a stale stamp)', async () => {
+    await open('/settings/escalation-matrix?product=ev', 'auditmkt')
+    const input = screen.getByRole('textbox', { name: 'Marketing · Informed' })
+    await userEvent.clear(input)
+    await userEvent.type(input, 'Head of Marketing Operations')
+    await userEvent.tab()
+    await waitFor(() => expect(rowOf('ev', 'marketing').cells.informed?.en).toBe('Head of Marketing Operations'))
+    expect(rowOf('ev', 'marketing').confirmed?.informed).toBeUndefined()
+  })
+
+  it('reads in Arabic', async () => {
+    await open('/settings/escalation-matrix?product=to', 'cxmgr', 'ar')
+    expect(screen.getAllByRole('button', { name: /^تأكيد القيمة الافتراضية:/ }).length).toBe(49)
+  })
+
+  it('a cell that is no longer a default cannot be confirmed again', async () => {
+    const { useConfirmMatrixCell } = await import('@/services/queriesV40')
+    const { renderHookWithProviders } = await import('@/test/render')
+    const { act } = await import('@testing-library/react')
+    const { result } = renderHookWithProviders(() => useConfirmMatrixCell(), { role: 'cxmgr' })
+    await expect(act(() => result.current.mutateAsync({ product: 'to', kind: 'legal', field: 'receiver' }))).rejects.toThrow('still at its default')
+  })
+})

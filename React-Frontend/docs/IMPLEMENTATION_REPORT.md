@@ -105,7 +105,7 @@ Requested by Manaf: "add animation in my website and login screen". Details and 
 
 **Sign-in.** A new `/login` page with two parts:
 - a navy brand panel: a placeholder logo (marked `[Proposed]`, because the real PSI logo is not confirmed), a tagline and three product points;
-- a sign-in card: a bilingual "Sample sign-in — no real authentication" notice, the 12 roles as selectable cards with the selected role's full description underneath, an optional display name, and React Hook Form + Zod validation (role required, name ≤ 40 characters). There is no password field.
+- a sign-in card: a bilingual "Sample sign-in — no real authentication" notice, the 12 roles as selectable cards with the selected role's full description underneath (**v40: changed**, section 14: six main roles, the other six folded under "Other roles used in the demo"), an optional display name, and React Hook Form + Zod validation (role required, name ≤ 40 characters). There is no password field.
 
 The session persists in `localStorage`. Every other route redirects to `/login`, then returns to the page the person wanted (or the role's home page). The header gains a user menu with initials and Sign out. The login page has its own language and theme switches, and on phones the brand panel collapses into a compact header.
 
@@ -193,7 +193,7 @@ A permanent test suite, so the business rules and role rules are checked on ever
 - `MOCK_PATTERNS` now calls `detectPatterns(signals, { windowDays: 30 })`, as Rules and Definitions Decision 1 sets.
 - The sample was reshaped, not the rule. Changes in `services/mockData.ts`:
   - 90% of problem contacts fall in the last 29 days; the rest stay 30–180 days back.
-  - People are weighted towards the largest market: Dubai 42%, Abu Dhabi 24%, Amman 18%, Sharjah 16%.
+  - People are weighted towards the largest market: Dubai 42%, Abu Dhabi 24%, Amman 18%, Sharjah 16%. **v40: changed**: the three CRM environments are Dubai, Abu Dhabi and PSI Assets (45, 30, 25%); Amman and Sharjah are gone (section 14).
   - Signal categories skew by place: Dubai towards slow replies, Sharjah towards repeat contacts. The environment-concentration rule exists for exactly this.
 - Result: 37 signals, 34 inside the window, and 11 patterns.
   - Same issue: slow replies (19 signals) and repeat contacts (12) both reach the minimum sample of 10.
@@ -281,4 +281,88 @@ Pass I closed the five rows of `docs/FIDELITY_REVIEW.md` still marked Partial (e
 
 ## Final status
 
-The app builds, type-checks, and lints clean (3 long-standing fast-refresh warnings). 107 unit tests and 125 end-to-end tests pass, and the end-to-end tests include a zero-violation axe WCAG 2.1 AA scan of every route in both languages and both themes, plus a keyboard-only pass. A full click-through across every route, both languages/directions, both themes, and all 12 roles found zero console errors and no visual defects. It is a complete, working, mock-data prototype of the v38 PSI CX Portal IA — ready to view and demo, not yet connected to a real backend.
+The app builds, type-checks, and lints clean (3 long-standing fast-refresh warnings). **v40 update (18 Nov): 610 unit tests in 55 files and 334 end-to-end tests pass (section 14); the figures below are the v38 close.** 107 unit tests and 125 end-to-end tests passed then, and the end-to-end tests include a zero-violation axe WCAG 2.1 AA scan of every route in both languages and both themes, plus a keyboard-only pass. A full click-through across every route, both languages/directions, both themes, and all 12 roles found zero console errors and no visual defects. It is a complete, working, mock-data prototype of the v38 PSI CX Portal IA — ready to view and demo, not yet connected to a real backend.
+
+
+## 14. The v39/v40 pass (18 Nov 2026): foundation, three workstreams, integration
+
+Analysis: `docs/V40_DELTA.md` (36 features, F01 to F36). Contract: `docs/V40_FOUNDATION_API.md`. What each workstream built, left and asked for: `V40_WS_A.md`, `V40_WS_B.md`, `V40_WS_C.md`. Owner decisions of 18 Nov: `DECISIONS-2026-11-18.md`. Feature-by-feature status with code and test: `FIDELITY_REVIEW.md`, section "v40 features". Everything is sample data; nothing is committed by hand (the hourly task does it).
+
+### 14.1 Who built what
+
+| Stage | Scope | Result |
+|---|---|---|
+| Foundation | types, data files, utilities, hooks (environment switch, rules, indicators, brief, inbox, trace, matrix, feeds, mapping, questions, weekly sample), the shared primitives (`StepStrip`, `NextBox`, `TraceId`, `AgentChip`, `DayChip`, `ProposedBadge`), menu and redirects, role permissions, nine stub pages, sign-in with six main roles | 355 unit tests in 29 files, 188 e2e at hand-over |
+| A | Home rebuilt, six-step line, indicators per product, "New here", Your work today, Daily brief (Agent 9), My inbox, "Data as of" bar and environment switch, sign-in polish, demo role switch, Arabic agent chips, Agent 9 text | `V40_WS_A.md` |
+| B | Trace card and signal dialog, ids on rows, Rules pointer, What if, hand-offs folded, audit trail, escalation matrix per product, investigation result, next-step box on fixes | `V40_WS_B.md` |
+| C | Customers tabs and list with export, consent and DNCR, feeds, CRM mapping, survey questions, public mentions, weekly sample, skipped-survey reasons, Close the loop calling rules, Surveys under Settings | `V40_WS_C.md` |
+| Integration (this section) | the failing and stale tests, the carry-over fixes below, the contrast flake on the sign-in page, the full e2e run, the docs | below |
+
+### 14.2 Integration pass: what was fixed
+
+| # | Fix | Where |
+|---|---|---|
+| 1 | The stub-marker test is replaced by "no `FOUNDATION STUB` marker is left" (every loader still resolves); the markers are removed; test timeouts are 20 s and `findBy`/`waitFor` wait 5 s, so a busy worker does not fail a test | `routes/pages.test.ts`, `vitest.config.ts`, `src/test/setup.ts` |
+| 2a | `dayChipLabel` agrees: "1 day left", "1 working day late"; Arabic singular (يوم واحد), dual (يومان, يومين), plural 3 to 10 (أيام), accusative from 11 (يوماً) | `utils/inbox.ts` `daysPhrase` |
+| 2b | "No answer": an AI campaign row hands over to a person after `aiNoAnswers` (2, no WhatsApp from the campaign), a CX list row after `callTries` (3, WhatsApp); the row line reads the right limit; the seed follows each row's limit; an inbox row handed over names the CX team | `utils/callSchedule.ts`, `useRecordNoAnswer`, `services/mockData.ts` |
+| 2c | `MappingRow.confirmed?`: the page clears a row's `[Proposed]` when confirmed; "Confirm" per row for the CX manager and the Internal Audit and Marketing Lead (`useConfirmMapping`); a changed value takes the confirmation back; data default unconfirmed | `types/v40.ts`, `pages/settings/CrmMapping.tsx` |
+| 2d | `useDetractorCallItems()` returns copies, not the register | `services/queries.ts` |
+| 2e | Timeline rows are anchors (`id="EV-12"`, `data-ev`); `?ev=` highlights, scrolls, focuses (visible focus ring) and announces politely (an `aria-live` region without `role="status"`, because the e2e "page ready" check treats `role="status"` as a loading indicator) | `components/customers/Timeline.tsx` |
+| 2f | `<LandingBrief roles={[...]} />` (the Daily brief) on the L&D page, the HR team page, the Overview for the Internal Audit and Marketing Lead and the fixes tab (the landing of `/actions`) for the HR specialist; shows to those roles only, links filtered by `canAccessPath` | `components/home/LandingBrief.tsx` |
+| 2g | Owner titles are bilingual through a lookup (`ownerTitle(owner)` in `data/ownerTitles.ts`: roles, matrix defaults, default receiver per kind, assistant plan owners, "Direct manager (X environment manager)"); `CorrectiveAction.owner` stays a string; free text passes through | fix card, inbox, Monthly pack |
+| 2h | Stale text: `services/envScope.ts` comment, `WEEKLY_SAMPLE_COPY.namesNote` (the rule is `canViewCustomerNames`), the dialog and sheet close label bilingual (`إغلاق`), `ESCALATION_ROWS` and `ESCALATION_COLUMNS` removed | various |
+| 2i | `useFixDue` returns the stored date for a fix past the proposal (source `recorded` when it has none) and a preview only before; `createActionFromPattern` stamps the due date from the matrix itself (the dialog no longer passes it) | `queriesV40.ts`, `queries.ts`, `fixClockStore.ts` `dueFromMatrix` |
+| 2j | Signal dialog severity or source chip: not added, `Signal` has neither field (stated gap) | none |
+| 2k | "Confirm default" per unedited matrix cell for the CX manager and the Internal Audit and Marketing Lead: clears the cell's `[Proposed]`, `MatrixRow.confirmed` keeps who and when (a role title), an edit takes it back | `EscalationMatrix.tsx`, `useConfirmMatrixCell` |
+| 2l | The fix cards fold their details (lifecycle, matrix line, classification, AI panel, audit trail, Trace card) behind a "Details" button (`aria-expanded`, keyboard); the first card and the `?fix=` one are open; "Expand all" and "Collapse all"; the next-step box and the header always show | `FixCard.tsx`, `Corrective.tsx` |
+| 3 | The sign-in contrast failure seen once was a mid-fade frame: the brand panel's entrance is JS-driven and sits in a `section` beside `<main>`, which the helper did not wait for. The four theme and language scans now wait for it; no colour changed. 40 repeated runs green | `e2e/helpers.ts`, `e2e/a11y.spec.ts` |
+
+### 14.3 Checks
+
+| Check | Result |
+|---|---|
+| `npm run typecheck` | clean |
+| `npm run lint` | the 3 known react-refresh warnings only |
+| `npm run test` | 610 tests in 55 files |
+| `npm run build` | green |
+| `npm run test:e2e` (default port 4321, fresh build) | 334 of 334 passed; new spec `e2e/v40-integration.spec.ts` |
+
+Counts over time: 141 unit and 135 e2e at the v38 close (pass I); 355 and 188 after the foundation; 610 and 334 now. With ten parallel browsers (Playwright's default on this 20-core machine, beside several dev servers) four or five tests per run stalled on a page stuck at "Loading…" and passed alone; `playwright.config.ts` now caps the workers at 6 (`E2E_WORKERS` overrides it), and the full suite is green at 6.
+
+### 14.4 Decisions of 18 Nov applied
+
+| # | Decision | Built as |
+|---|---|---|
+| 1 | Working week Monday to Friday | `rule_working_days` `[1,2,3,4,5]`, no badge; `utils/workingDays.ts` |
+| 2 | One escalation matrix per product, a row per fix kind (eight kinds, two case types) | `EscalationMatrix.tsx`; per-category template removed; per-cell `[Proposed]` and "Confirm default" |
+| 3 | A fix's due date from the matrix "Resolve (h)" in working hours from approval; 14 days when the cell is empty; 5-working-day approval window; 60-day check from "done" | `utils/fixClock.ts`, `fixClockStore.ts`, `useFixDue`, `createActionFromPattern` |
+| 4 | Public replies are Marketing's, 48 h, CX watches the clock | `PublicMentions.tsx`, `usePublicReplyBreaches`, brief line |
+| 5 | Calling 09:00 to 18:00 UAE, 3 attempts for the CX list, WhatsApp after the last; 2 no-answers for an AI campaign | `utils/callSchedule.ts` (per row since the integration pass), note "Legal to confirm the hours", no badge |
+| 6 | Weekly sample: 50 by Thursday, no names to Internal Audit, a wrong lowers the pass rate and becomes a supervisor test | `WeeklySample.tsx`, `utils/passRate.ts`, `canViewCustomerNames` |
+| 7 | The environment switch narrows everything, the call list included; exports show mobiles only to roles that see names | `utils/envScope.ts`, `peopleCsvRows` |
+
+### 14.5 Still `[Proposed]` in the UI
+
+| Item | Badge |
+|---|---|
+| Matrix cells still at their default | per cell (confirm with "Confirm default") |
+| CRM mapping rows | per row (confirm with "Confirm") |
+| Survey wording for PSI Club, Tour Estate, PSI Events | per set |
+| Daily brief line set per role | on the brief card |
+| Pass-rate formula of the weekly sample | on the pass-rate card |
+| Not badged, still proposed | counts under the six steps; "Most urgent" wording; which indicator cards a role with a product sees; the report line RP only for effective or failed fixes; consent flags (tooltip); KPI colour thresholds; customer types; role page deltas (F35) |
+
+### 14.6 Known gaps
+
+| Gap | Note |
+|---|---|
+| No severity or source chip on the signal dialog | `Signal` has neither field |
+| No verdict buttons (effective, partial, failed) on a fix | Agent 6's call; only the seeded verdicts exist |
+| Matrix and mapping edits live in the session | as in the prototype; the matrix keeps a confirmation stamp, edits are not audited |
+| The Arabic titles of the matrix, the owner lookup and the new copy | written for this build, need native review |
+| The inbox is a table that scrolls sideways on a phone, not cards | F34 asked for scroll |
+| "Due" dates use the browser locale format | |
+| Radix Select cannot be driven in jsdom | the environment switch is proved in e2e |
+| Mapping "unmapped values" queue | the page shows rows set to Ignore; no list of unseen values (no data) |
+| Home shows each live product's card to roles without a product (CX, Executive, Marketing) | one line in `pages/Home.tsx` if Marketing should not read NPS there |
+| Ten parallel e2e workers can starve on a busy machine | the config caps them at 6, see 14.3 |

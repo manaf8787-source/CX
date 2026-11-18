@@ -4,6 +4,7 @@ import { useRole } from '@/auth/RoleContext'
 import { canAccessPath } from '@/auth/access'
 import { MONTHLY_PACK_BUTTON, OVERVIEW_NEXT } from '@/data/steps'
 import { Button } from '@/components/ui/button'
+import { LandingBrief } from '@/components/home/LandingBrief'
 import { NextBox } from '@/components/common/NextBox'
 import { PageHeader } from '@/components/common/PageHeader'
 import SettingsOverview from './settings/Overview'
@@ -24,6 +25,8 @@ export default function OverviewPage() {
         title={t('CX indicators', 'مؤشرات تجربة العملاء')}
         description={t('Headline experience scores, per product: never one blended number.', 'مؤشرات التجربة الرئيسية لكل منتج: دون رقم إجمالي واحد أبداً.')}
       />
+      {/* v40 F09: the Internal Audit and Marketing Lead lands here, not on Home, so the Daily brief sits at the top of this page. */}
+      <LandingBrief roles={['auditmkt']} />
       <NextBox
         next={OVERVIEW_NEXT}
         action={

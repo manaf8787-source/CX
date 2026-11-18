@@ -3,6 +3,7 @@ import { useI18n } from '@/i18n'
 import { useNow } from '@/hooks/useNow'
 import { useHrPool, useShopperCases } from '@/services/queries'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { LandingBrief } from '@/components/home/LandingBrief'
 import { KpiTile } from '@/components/common/KpiTile'
 import { SectionCard } from '@/components/common/SectionCard'
 import { StatusBadge } from '@/components/common/StatusBadge'
@@ -31,6 +32,8 @@ export default function HrTeamPerf() {
         title={t('HR team performance', 'أداء فريق الموارد البشرية')}
         description={t('Informed only: team numbers and a late alert. No access to individual cases.', 'للعلم فقط: أرقام الفريق وتنبيه التأخير. لا صلاحية وصول للحالات الفردية.')}
       />
+      {/* v40 F09: the HR manager lands here, not on Home, so the Daily brief sits at the top of this page. */}
+      <LandingBrief roles={['hrmgr']} />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <KpiTile label={t('Open conduct cases', 'حالات السلوك المفتوحة')} value={open.length} icon={<FolderOpen />} accent="var(--chart-4)" loading={casesLoading} />

@@ -62,7 +62,7 @@ test('Close the loop shows the 60-day recovered rule', async ({ page }) => {
   // v40 (F27): the calling rules, the attempts on a row and the "No answer" action.
   await expect(page.getByTestId('calling-rules')).toContainText('09:00 and 18:00 UAE time, up to 3 attempts')
   await expect(page.getByRole('button', { name: 'No answer' }).first()).toBeVisible()
-  await expect(page.getByText(/attempt \d of 3 · next/).first()).toBeVisible()
+  await expect(page.getByText(/attempt \d of [23] · next/).first()).toBeVisible()
 })
 
 test('Settings: the CX manager edits notices, the CX team only reads them', async ({ browser }) => {

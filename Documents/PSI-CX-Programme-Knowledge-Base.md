@@ -2,7 +2,7 @@
 
 Owner: Manaf Obeidat, Delivery and CX Manager, PSI Real Estate (Amman)
 Audience: the chairman's review, the CX team, and the developers who will build the real platform
-Status: prototype v40 with sample data, last updated 18 November 2026 (sections 28 to 44: the omnichannel rebuild, the rules layer and the intelligent CX team; the module-by-module Knowledge Base with screenshots is `PSI-CX-Portal-Knowledge-Base-Modules.md` and the illustrated Word and PDF document)
+Status: prototype v41 with sample data, last updated 18 November 2026 (sections 28 to 45: the omnichannel rebuild, the rules layer and the intelligent CX team; the module-by-module Knowledge Base with screenshots is `PSI-CX-Portal-Knowledge-Base-Modules.md` and the illustrated Word and PDF document)
 
 Everything in this document is either something Manaf decided or said, or something Claude proposed and built into the prototype. Anything proposed but not yet confirmed is marked **[Proposed]** or listed in the open questions at the end.
 
@@ -525,7 +525,7 @@ Manaf's feedback on 17 Nov: the portal had grown page by page and he could not f
 
 **v40 (P2).** One sign-in with six main roles (the demo roles folded away). A browsable customers list with filters and export. Public mentions list with reply status and owner. Weekly sample page: 50 outputs, right or wrong, wrong becomes a test. "What if" on the thresholds showing how many patterns each value would produce. Arabic completed on agent chips; tables scroll on mobile.
 
-Still sample data; nothing is sent. The knowledge base documents (Modules, Word, PDF) describe v38 and will be regenerated once Manaf has reviewed v40.
+Still sample data; nothing is sent. The knowledge base documents (Modules, Word, PDF) were regenerated for v40 and again for v41.
 
 ### Decisions confirmed on 18 November (after the React team's questions)
 
@@ -566,3 +566,11 @@ Written into "CX Portal: Rules and Definitions" as the section "Decisions added 
 7. The Jira CXP project: Manaf creates it, then the backlog draft is reviewed before posting.
 8. PSI brand colours, fonts and logo files; real HR pool members and environment names; real SLA targets; call recording as a policy decision; retention periods with Legal.
 9. Earlier open questions in section 14 that are still open: After-Sales real call script, calling hours and consent rules, data residency, the real mailboxes.
+
+## 45. Prototype v41: the guided tour inside the portal (18 Nov 2026)
+
+Manaf asked for the training to live inside the portal rather than in a video or a document: a new user who enters as a role should be shown how to work, starting from the inbox and which button to press for a follow-up. Built as v41 the same day.
+
+**What it is.** The first time a person signs in under a role, the portal dims the screen, highlights the real element and shows a small card: what it is, why it matters, what to do next, with Next, Back and Skip. Some steps act for the user ("Do it and continue" opens My inbox or a fix waiting for a yes) and the next card appears on the page that opened. One path per role: CX manager and CX team get 13 steps (six steps → daily brief → CX indicators → My inbox → one row one thing → where you are and what happens next → open a fix → your decision → the trace → close the loop → find anyone → all the numbers → end); environment managers and team leads stop after the fix and the search; Marketing gets personas and campaigns; L&D and Internal audit get their own briefs and pages; other roles get Home only. Runs once per role; replay from "How do I use this?" at the bottom of the menu. Bilingual, right-to-left in Arabic.
+
+**For the React team (V40_DELTA F28, [Proposed]).** The tour is data: a list of steps per role, each with a page, an optional tab, a CSS target, a title and a text in both languages. Highlight box and card are positioned from the target element; a step marked "click" performs the real action; completion is stored per role per user. No new backend.

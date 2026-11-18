@@ -1,4 +1,5 @@
 import type { Bi, ChannelId, EnvId, ProductId } from './common'
+import type { RoleId } from './roles'
 import type { CorrectiveActionStatus, SignalKind } from './domain'
 
 /**
@@ -129,6 +130,11 @@ export interface MappingRow {
   crmValue: string
   /** Id of a MappingOption of the same kind ('ignore' is always an option). */
   portalValue: string
+  /**
+   * The CRM owner has confirmed this row. Absent or false = still `[Proposed]` (the data default: nothing is confirmed
+   * until the owner says so). Changing the portal value clears it again.
+   */
+  confirmed?: boolean
 }
 
 export interface CrmMapping {
@@ -168,6 +174,8 @@ export interface MatrixRow {
   cells: MatrixCells
   /** True while the cell still holds the default; defaults are [Proposed] until the owners confirm them. */
   isDefault: Record<MatrixField, boolean>
+  /** A default cell an owner confirmed as it stands ("Confirm default"): the badge is gone and the stamp says who and when (by role title). */
+  confirmed?: Partial<Record<MatrixField, { at: string; byRole: RoleId }>>
 }
 
 /** Where the fix's matrix line comes from (F22): the fix's product, else its first signal's product, else Real Estate. */

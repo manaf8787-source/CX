@@ -235,7 +235,9 @@ export default function CloseTheLoop() {
               <StatusBadge tone="danger" dot>
                 {L(CALL_COPY.needsHuman)}
               </StatusBadge>
-              <span className="text-xs text-muted-foreground">{t('WhatsApp sent after the last attempt', 'أُرسل واتساب بعد آخر محاولة')}</span>
+              <span className="text-xs text-muted-foreground">
+                {i.channel === 'ai_campaign' ? L(CALL_COPY.handedOverNote) : t('WhatsApp sent after the last attempt', 'أُرسل واتساب بعد آخر محاولة')}
+              </span>
             </span>
           )
         if (i.status === 'no_answer')

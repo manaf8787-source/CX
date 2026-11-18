@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useMemo } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { AlertTriangle, ArrowLeft, CalendarClock, ChevronDown, Layers, MessagesSquare, Radio } from 'lucide-react'
 import { useI18n } from '@/i18n'
@@ -46,17 +46,6 @@ function CustomersHome() {
   )
 }
 
-/** The trace links of the other pages land here with `?ev=EV-12`: bring that event into view when the timeline marks it. */
-function useScrollToEvent(ready: boolean) {
-  const [params] = useSearchParams()
-  const ev = params.get('ev')
-  useEffect(() => {
-    if (!ev || !ready) return
-    const el = document.getElementById(ev) ?? document.querySelector(`[data-trace-id="${CSS.escape(ev)}"]`)
-    el?.scrollIntoView({ block: 'center' })
-  }, [ev, ready])
-}
-
 function CustomerDetail({ personId }: { personId: string }) {
   const { t, L } = useI18n()
   const { role } = useRole()
@@ -67,7 +56,6 @@ function CustomerDetail({ personId }: { personId: string }) {
   const person = persons?.find((p) => p.id === personId)
   const onePerson = useMemo(() => (person ? [person] : undefined), [person])
   const { facts, isLoading: factsLoading } = usePeopleFacts(onePerson)
-  useScrollToEvent(!!interactions)
 
   const problemCounts = useMemo(() => {
     const counts = new Map<string, number>()

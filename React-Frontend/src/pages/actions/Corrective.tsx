@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { CheckCircle2, Clock4, Inbox, ListChecks } from 'lucide-react'
+import { CheckCircle2, ChevronsDownUp, ChevronsUpDown, Clock4, Inbox, ListChecks } from 'lucide-react'
 import { toast } from 'sonner'
 import { useI18n } from '@/i18n'
 import { useRole } from '@/auth/RoleContext'
@@ -9,6 +9,7 @@ import { useSendToInvestigation } from '@/services/referenceQueries'
 import { useNow } from '@/hooks/useNow'
 import { visibleFixes } from '@/utils/inbox'
 import { caId } from '@/utils/trace'
+import { Button } from '@/components/ui/button'
 import { KpiTile } from '@/components/common/KpiTile'
 import { CORRECTIVE_STATUS_LABEL } from '@/lib/status'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -42,6 +43,26 @@ export default function Corrective() {
     [actions, patterns, role, dataUpdatedAt],
   )
   const visible = scoped.filter((a) => statusFilter === 'all' || a.status === statusFilter)
+
+  // The cards fold their details so the page is not extremely long: the first card is open, and the one a link named (`?fix=`).
+  // Until the person touches a toggle the open set is derived (first visible card plus the selected one); after that it is theirs.
+  const isSelected = (a: { id: string }) => !!selectedFix && (selectedFix === caId(a.id) || selectedFix === a.id)
+  const [openIds, setOpenIds] = useState<ReadonlySet<string> | null>(null)
+  const derivedOpen = useMemo(() => new Set(visible.filter((a, i) => i === 0 || isSelected(a)).map((a) => a.id)), [visible, selectedFix]) // oxlint-disable-line react-hooks/exhaustive-deps
+  const openNow = openIds ?? derivedOpen
+  const setOpen = (id: string, open: boolean) =>
+    setOpenIds((prev) => {
+      const next = new Set(prev ?? derivedOpen)
+      if (open) next.add(id)
+      else next.delete(id)
+      return next
+    })
+  // A link that names a fix after the person has already folded things opens that fix.
+  useEffect(() => {
+    const target = scoped.find(isSelected)
+    if (target) setOpenIds((prev) => (prev && !prev.has(target.id) ? new Set(prev).add(target.id) : prev))
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedFix])
   const closed = ['effective', 'partial', 'failed']
   const tally = {
     proposed: scoped.filter((a) => a.status === 'proposed').length,
@@ -79,9 +100,17 @@ export default function Corrective() {
             </SelectContent>
           </Select>
         </div>
-        <span className="text-sm text-muted-foreground tabular-nums">
-          {visible.length} {t('actions', 'إجراء')}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground tabular-nums">
+            {visible.length} {t('actions', 'إجراء')}
+          </span>
+          {visible.length > 1 && (
+            <Button variant="outline" size="sm" className="h-9" onClick={() => setOpenIds(openNow.size >= visible.length ? new Set() : new Set(visible.map((a) => a.id)))}>
+              {openNow.size >= visible.length ? <ChevronsDownUp aria-hidden /> : <ChevronsUpDown aria-hidden />}
+              {openNow.size >= visible.length ? t('Collapse all', 'طيّ الكل') : t('Expand all', 'فتح الكل')}
+            </Button>
+          )}
+        </div>
       </div>
 
       {isLoading ? (
@@ -97,9 +126,11 @@ export default function Corrective() {
               key={a.id}
               fix={a}
               pattern={patterns?.find((p) => p.id === a.patternId)}
-              selected={!!selectedFix && (selectedFix === caId(a.id) || selectedFix === a.id)}
+              selected={isSelected(a)}
               now={now}
               onDecide={setDecidingId}
+              open={openNow.has(a.id)}
+              onOpenChange={(o) => setOpen(a.id, o)}
             />
           ))}
         </ul>

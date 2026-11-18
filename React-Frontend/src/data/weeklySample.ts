@@ -26,6 +26,9 @@ export const WEEKLY_SAMPLE_COPY = {
   wrong: b('✗ Wrong', '✗ خطأ'),
   chipRight: b('Right', 'صح'),
   chipWrong: b('Wrong → new test', 'خطأ ← اختبار جديد'),
-  /** Names are shown only to the CX manager and the CX team; everyone else sees a reference. */
-  namesNote: b('Customer names are shown only to the CX manager and the CX team; others see a reference.', 'تظهر أسماء الزبائن لمدير فريق CX وفريقه فقط؛ الآخرون يرون مرجعاً.'),
+  /** The one rule `canViewCustomerNames` (decided 18 Nov: no customer names to Internal Audit): every role that works with people sees names; the Internal Audit and Marketing Lead sees a reference. */
+  namesNote: b(
+    'Customer names are shown to the roles that work with customers; the Internal Audit and Marketing Lead sees a reference (P-005), never a name.',
+    'تظهر أسماء الزبائن للأدوار التي تعمل مع الزبائن؛ أما مسؤول التدقيق الداخلي والتسويق فيرى مرجعاً (P-005) ولا يرى اسماً أبداً.',
+  ),
 }

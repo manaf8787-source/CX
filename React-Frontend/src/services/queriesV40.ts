@@ -130,7 +130,24 @@ export function useSaveMapping() {
       const row = mock.MOCK_MAPPING.rows.find((r) => r.kind === input.kind && r.crmValue === input.crmValue)
       if (!row) throw new Error('Mapping row not found')
       if (!mock.MOCK_MAPPING.options[input.kind].some((o) => o.id === input.portalValue)) throw new Error('Unknown portal value')
+      // A changed value is a new proposal: it needs the CRM owner's yes again.
+      if (row.portalValue !== input.portalValue) row.confirmed = false
       row.portalValue = input.portalValue
+      return { ...row }
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['crm-mapping'] }),
+  })
+}
+
+/** Record that the CRM owner confirmed one mapping row as it stands: its `[Proposed]` badge goes (same roles as `useSaveMapping`). */
+export function useConfirmMapping() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (input: { kind: MappingKind; crmValue: string }) => {
+      await latency(LATENCY_MS)
+      const row = mock.MOCK_MAPPING.rows.find((r) => r.kind === input.kind && r.crmValue === input.crmValue)
+      if (!row) throw new Error('Mapping row not found')
+      row.confirmed = true
       return { ...row }
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['crm-mapping'] }),
@@ -145,7 +162,7 @@ export const useMatrix = (product: ProductId = 're') =>
     queryKey: ['matrix', product],
     queryFn: async (): Promise<MatrixRow[]> => {
       await latency(LATENCY_MS)
-      return mock.MOCK_MATRIX[product].map((r) => ({ ...r, cells: { ...r.cells }, isDefault: { ...r.isDefault } }))
+      return mock.MOCK_MATRIX[product].map((r) => ({ ...r, cells: { ...r.cells }, isDefault: { ...r.isDefault }, ...(r.confirmed ? { confirmed: { ...r.confirmed } } : {}) }))
     },
   })
 
@@ -168,7 +185,32 @@ export function useSaveMatrixCell() {
         row.cells[input.field] = text ? { en: input.lang === 'ar' ? (current?.en ?? text) : text, ar: input.lang === 'ar' ? text : (current?.ar ?? text) } : null
       }
       row.isDefault[input.field] = false
+      // An edit replaces the value, so an earlier confirmation of the default no longer applies.
+      if (row.confirmed) delete row.confirmed[input.field]
       return { ...row, cells: { ...row.cells }, isDefault: { ...row.isDefault } }
+    },
+    onSuccess: (_row, v) => qc.invalidateQueries({ queryKey: ['matrix', v.product] }),
+  })
+}
+
+/**
+ * "Confirm default": an owner accepts a cell that still holds its default as it stands. The cell stops being a default (its
+ * `[Proposed]` badge goes) and the row records who confirmed it and when (`confirmed`, in the mock store; the page shows it).
+ * Only a cell still at its default can be confirmed. The CX manager and the Internal Audit and Marketing Lead only (the page
+ * enforces it with `canEditEscalationMatrix`).
+ */
+export function useConfirmMatrixCell() {
+  const qc = useQueryClient()
+  const { role } = useRole()
+  return useMutation({
+    mutationFn: async (input: { product: ProductId; kind: MatrixKind; field: MatrixField; byRole?: RoleId }) => {
+      await latency(LATENCY_MS)
+      const row = mock.MOCK_MATRIX[input.product].find((r) => r.kind === input.kind)
+      if (!row) throw new Error('Matrix row not found')
+      if (!row.isDefault[input.field]) throw new Error('Only a cell still at its default can be confirmed')
+      row.isDefault[input.field] = false
+      row.confirmed = { ...row.confirmed, [input.field]: { at: new Date().toISOString(), byRole: input.byRole ?? role.id } }
+      return { ...row, cells: { ...row.cells }, isDefault: { ...row.isDefault }, confirmed: { ...row.confirmed } }
     },
     onSuccess: (_row, v) => qc.invalidateQueries({ queryKey: ['matrix', v.product] }),
   })
@@ -539,17 +581,24 @@ export const useSupervisorTests = () =>
 
 // --- Fix clocks (decided 18 Nov) -------------------------------------------------------------------------------------
 
+/** A due date held on the fix: the matrix or the fallback (written by approval), or `recorded` (a sample fix that holds a date and no source). */
+export type FixDueView = Omit<FixDue, 'source'> & { source: FixDue['source'] | 'recorded'; preview: boolean }
+
 /**
- * The due date of a fix. Once approved it is the stored one (`dueSource` 'matrix' or 'fallback'); before that, a preview
- * of what approval now would give: the matrix "Resolve (h)" for its product and kind in working hours, or Agent 5's 14 days
- * when the cell is empty. `preview` says which. Undefined until the matrix has loaded.
+ * The due date of a fix. A fix that holds one returns it: approval writes it with its source (`dueSource` 'matrix' or
+ * 'fallback'), and a fix past the proposal (approved, in progress, checked) keeps its stored date even when it has no source
+ * (a sample fix: `source` 'recorded'). Only when there is none to show, a fix still waiting for its yes (or a form with no
+ * date), the hook previews what approval now would give: the matrix "Resolve (h)" for its product and kind in working hours,
+ * or Agent 5's 14 days when the cell is empty. `preview` says which. Undefined until the matrix has loaded.
  */
-export function useFixDue(fix?: Pick<CorrectiveAction, 'kind' | 'product' | 'dueDate' | 'dueSource'>): (FixDue & { preview: boolean }) | undefined {
+export function useFixDue(fix?: Pick<CorrectiveAction, 'kind' | 'product' | 'dueDate' | 'dueSource'> & Partial<Pick<CorrectiveAction, 'status'>>): FixDueView | undefined {
   const rules = useRules()
   const now = useNow()
   const { data: rows } = useMatrix(fix?.product ?? 're')
   if (!fix) return undefined
   if (fix.dueSource) return { dueAt: fix.dueDate, source: fix.dueSource, preview: false }
+  // A proposed fix's stored date is only the placeholder from when it was proposed; past the proposal the stored date is the fix's own.
+  if (fix.dueDate && fix.status !== undefined && fix.status !== 'proposed') return { dueAt: fix.dueDate, source: 'recorded', preview: false }
   if (!rows) return undefined
   const resolveH = rows.find((r) => r.kind === MATRIX_KEY_BY_FIX_KIND[fix.kind])?.cells.resolveH ?? null
   return { ...fixDue(now, resolveH, rules), preview: true }
@@ -588,8 +637,9 @@ export function useMarkReplied() {
 // --- Close the loop: no answer (F27) ----------------------------------------------------------------------------------
 
 /**
- * "No answer": attempts + 1, next attempt the following working day; on the last attempt a WhatsApp message goes
- * out and the row becomes "needs a human" (still open). Refuses a DNCR person. Resolves with the updated row, the
+ * "No answer": attempts + 1, next attempt the following working day; on the last attempt the row becomes "needs a human"
+ * (still open): the CX team's list after `callTries` (3) with a WhatsApp message, an AI campaign row after `aiNoAnswers` (2)
+ * as a hand-over to a person. Refuses a DNCR person. Resolves with the updated row, the
  * result and the toast text to show.
  */
 export function useRecordNoAnswer() {
@@ -606,7 +656,7 @@ export function useRecordNoAnswer() {
       item.attempts = result.attempts
       item.status = result.status
       item.nextAttemptOn = result.nextAttemptOn
-      const toast: Bi = result.needsHuman ? CALL_COPY.noAnswerLast(result.attempts) : CALL_COPY.noAnswerMore(result.nextAttemptOn as string)
+      const toast: Bi = result.handedOver ? CALL_COPY.noAnswerHandOff(result.attempts) : result.needsHuman ? CALL_COPY.noAnswerLast(result.attempts) : CALL_COPY.noAnswerMore(result.nextAttemptOn as string)
       return { item: { ...item }, result, toast }
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['detractor-call-items'] }),

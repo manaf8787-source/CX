@@ -161,7 +161,7 @@ test.describe('Close the loop: calling rules (F27, F07)', () => {
     await expect(row).toBeVisible()
     await row.getByRole('button', { name: 'No answer' }).click()
     await expect(page.getByText(/No answer\. Next attempt .* within calling hours\./)).toBeVisible()
-    await expect(page.locator('main tbody').getByText(/attempt 2 of 3 · next/).first()).toBeVisible()
+    await expect(page.locator('main tbody').getByText(/attempt 2 of [23] · next/).first()).toBeVisible()
   })
 
   test('after the last attempt the row is "Needs a human" and a WhatsApp goes out', async ({ page }) => {
@@ -172,6 +172,16 @@ test.describe('Close the loop: calling rules (F27, F07)', () => {
     await row.getByRole('button', { name: 'No answer' }).click()
     await expect(page.getByText('No answer after 3 attempts: WhatsApp sent, flagged "needs a human".')).toBeVisible()
     await expect(page.locator('main tbody tr', { hasText: 'Needs a human' }).first()).toBeVisible()
+  })
+
+  test('an AI campaign row hands over to a person after 2 no-answers (decided 18 Nov), not 3', async ({ page }) => {
+    await open(page, 'cxmgr', '/close-the-loop')
+    await expect(rowsOf(page).first()).toBeVisible({ timeout: 15_000 })
+    const row = await rowWith(page, 'attempt 2 of 2')
+    await expect(row).toBeVisible()
+    await row.getByRole('button', { name: 'No answer' }).click()
+    await expect(page.getByText('No answer 2 times: the campaign hands this call to a person, flagged "needs a human".')).toBeVisible()
+    await expect(page.locator('main tbody tr', { hasText: 'Handed over by the AI campaign' }).first()).toBeVisible()
   })
 
   test('a row opened from the inbox (?item=) is shown first, with its actions', async ({ page }) => {

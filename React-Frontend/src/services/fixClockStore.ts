@@ -2,12 +2,20 @@ import { mock } from './mockStore'
 import { MATRIX_KEY_BY_FIX_KIND } from '../data/escalationDefaults'
 import { fixDue, verificationDue } from '../utils/fixClock'
 import { rulesFromConfig } from '../utils/ruleValues'
-import type { CorrectiveAction } from '../types'
+import type { CorrectiveAction, FixDue } from '../types'
 
 /** The matrix "Resolve (h)" for a fix's product and kind; null when the cell is empty. */
 export function resolveHoursFor(fix: Pick<CorrectiveAction, 'product' | 'kind'>): number | null {
   const row = mock.MOCK_MATRIX[fix.product]?.find((r) => r.kind === MATRIX_KEY_BY_FIX_KIND[fix.kind])
   return row?.cells.resolveH ?? null
+}
+
+/**
+ * What approval at `from` would give for a fix of this product and kind: the matrix "Resolve (h)" in working hours, or Agent 5's
+ * 14 days when the cell is empty. A new fix is stamped with this date when it is proposed (approval overwrites it).
+ */
+export function dueFromMatrix(fix: Pick<CorrectiveAction, 'product' | 'kind'>, from: Date = new Date()): FixDue {
+  return fixDue(from, resolveHoursFor(fix), rulesFromConfig(mock.MOCK_RULES_CONFIG))
 }
 
 /**

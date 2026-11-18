@@ -1,4 +1,4 @@
-import type { Bi, CorrectiveActionKind, ProductId } from '../types'
+import type { Bi, ProductId } from '../types'
 
 /**
  * Reference data transcribed from the v38 prototype export
@@ -341,28 +341,7 @@ export const CRM_FIELDS: { field: string; usedFor: Bi }[] = [
   { field: 'lead opened (yes or no)', usedFor: b('Digital channels are rated only when a lead opens', 'القنوات الرقمية تُقيَّم فقط عند فتح عميل محتمل') },
 ]
 
-// --- Escalation matrix: template and principles (KB §12) ---
-
-export const ESCALATION_ROWS: { key: CorrectiveActionKind | 'shopper_critical' | 'legal_case'; label: Bi }[] = [
-  { key: 'employee', label: b('Employee', 'موظف') },
-  { key: 'service_behaviour', label: b('Service and behaviour', 'الخدمة والسلوك') },
-  { key: 'training_gap', label: b('Training gap', 'فجوة تدريبية') },
-  { key: 'product_app', label: b('Product and app', 'المنتج والتطبيق') },
-  { key: 'process', label: b('Process', 'العملية') },
-  { key: 'environment', label: b('Environment', 'البيئة') },
-  { key: 'legal_privacy', label: b('Legal and privacy', 'قانوني وخصوصية') },
-  { key: 'marketing', label: b('Marketing', 'التسويق') },
-  { key: 'shopper_critical', label: b('Case: critical shopper finding', 'حالة: نتيجة تسوق سري حرجة') },
-  { key: 'legal_case', label: b('Case: legal', 'حالة: قانونية') },
-]
-
-export const ESCALATION_COLUMNS: Bi[] = [
-  b('First receiver', 'المستلم الأول'),
-  b('Informed', 'للعلم'),
-  b('Backup', 'البديل'),
-  b('Response (working hours)', 'الرد (ساعات عمل)'),
-  b('Resolution (working hours)', 'الحل (ساعات عمل)'),
-]
+// --- Escalation matrix: principles (KB §12; the table itself is `data/escalationDefaults.ts`, one per product) ---
 
 export const ESCALATION_PRINCIPLES: Bi[] = [
   b('The receiver is the person who can fix it, never top management.', 'المستلم هو من يستطيع الإصلاح، وليس الإدارة العليا أبداً.'),

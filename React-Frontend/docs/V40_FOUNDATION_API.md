@@ -2,6 +2,8 @@
 
 Date: 18 Nov 2026 (updated the same day for the owner's confirmed decisions). Written by the foundation engineer (F0.1 and F0.2 delivered together). Read this instead of the code. The analysis is `docs/V40_DELTA.md` (section letters and F-numbers below refer to it); where it says `[Proposed]` and the owner has since decided, **`docs/DECISIONS-2026-11-18.md` wins** (section 1a lists each decision and where it is built). Everything is sample data. `[Proposed]` = suggested by the build, not confirmed by the owner; what is still `[Proposed]` is listed in section 1b.
 
+**Integration update (18 Nov, after A, B and C).** Every stub in section 6 is replaced by its owner (the `FOUNDATION STUB` markers are gone and `routes/pages.test.ts` now asserts none is left). Section 6a lists the hooks and helpers the integration pass added or changed; sections 7 and 11 are otherwise as built. Counts now: 610 unit tests in 55 files, 334 e2e passed (section 12 keeps the hand-over figures).
+
 **State at hand-over.** `npm run typecheck`, `npm run lint` (only the 3 known react-refresh warnings), `npm run test` (see section 12 for counts), `npm run build` are green. The e2e suite was run once at the end; section 12 lists what failed and why. Nothing is committed (the hourly task does it).
 
 **Rules for A, B, C.** Import from these modules; do not edit foundation files except where section 13 allows. Keep every v40 value in data files. Every string goes through `t(en, ar)` or `Bi`; the completeness test scans `src/data/*.ts`, `src/lib/*.ts`, `src/utils/*.ts`, `src/services/mockData.ts`, `src/services/mockDataV40.ts` and every `t()` call. Logical CSS utilities only (`ms-`, `pe-`, `text-start`).
@@ -173,25 +175,45 @@ Role homes (`RoleDef.home`): marketing `/home` (was `/personas`), auditmkt `/ove
 
 **Stub pages** (each overwritten by its owner; each is a working page over the real hooks):
 
-| Route | File | Owner |
+| Route | File | Owner (status) |
 |---|---|---|
-| `/inbox` | `pages/inbox/Inbox.tsx` | A |
-| `/overview` | `pages/OverviewPage.tsx` (wraps `settings/Overview.tsx`) | C |
-| `/settings/feeds` | `pages/settings/Feeds.tsx` | C |
-| `/settings/crm-mapping` | `pages/settings/CrmMapping.tsx` | C |
-| `/settings/survey-questions` | `pages/settings/SurveyQuestions.tsx` | C |
-| `/settings/weekly-sample` | `pages/settings/WeeklySample.tsx` | C |
-| `/settings/public-mentions` | `pages/settings/PublicMentions.tsx` | C |
-| `/settings/escalation-matrix` | `pages/settings/EscalationMatrix.tsx` | B |
-| `/settings/surveys` | existing `pages/Surveys.tsx` (rendered inside `SettingsLayout`; it still has its own `PageHeader` `h1`, so there are two `h1`s until C switches it to `SubPageHeader`) | C |
-| mount `<AsOfBar/>` | `components/layout/AsOfBar.tsx` | A |
-| mount `<TraceHost/>` | `components/trace/TraceHost.tsx` | B |
+| `/inbox` | `pages/inbox/Inbox.tsx` | A (replaced) |
+| `/overview` | `pages/OverviewPage.tsx` (wraps `settings/Overview.tsx`) | C (replaced) |
+| `/settings/feeds` | `pages/settings/Feeds.tsx` | C (replaced) |
+| `/settings/crm-mapping` | `pages/settings/CrmMapping.tsx` | C (replaced) |
+| `/settings/survey-questions` | `pages/settings/SurveyQuestions.tsx` | C (replaced) |
+| `/settings/weekly-sample` | `pages/settings/WeeklySample.tsx` | C (replaced) |
+| `/settings/public-mentions` | `pages/settings/PublicMentions.tsx` | C (replaced) |
+| `/settings/escalation-matrix` | `pages/settings/EscalationMatrix.tsx` | B (replaced) |
+| `/settings/surveys` | existing `pages/Surveys.tsx` (rendered inside `SettingsLayout`; C switched it to `SubPageHeader`: one `h1`) | C (replaced) |
+| mount `<AsOfBar/>` | `components/layout/AsOfBar.tsx` | A (replaced) |
+| mount `<TraceHost/>` | `components/trace/TraceHost.tsx` | B (replaced; the dialog is `SignalDetailDialog`) |
 
-Find them with `grep -r "FOUNDATION STUB"`. Remove the marker comment when you overwrite one. A test (`routes/pages.test.ts`) checks that the markers exist and that every lazy loader resolves.
+**All replaced (integration pass).** `grep -r "FOUNDATION STUB" src` finds nothing; `routes/pages.test.ts` asserts that no marker is left and that every lazy loader resolves.
 
 **Mount points in `Shell.tsx`:** `<AsOfBar/>` under the top bar (every signed-in page), `<TraceHost/>` inside the provider (opens the signal dialog from `?sg=`). `EnvScopeProvider` wraps the router in `App.tsx` and in `renderWithProviders`.
 
 ---
+
+## 6a. Integration pass: added or changed (18 Nov, after A, B and C)
+
+| What | Where | Contract |
+|---|---|---|
+| `daysPhrase(n, unit, case?)`, `dayChipLabel` | `utils/inbox.ts` | singular, dual, plural in English and Arabic ("1 day left", "متبقٍ يومان"); `DayChip` and the inbox read it |
+| `attemptsAllowed(item, rules)`; `recordNoAnswer(item, now, rules)` takes the row's `channel` and returns `handedOver` | `utils/callSchedule.ts` | an AI campaign row hands over after `aiNoAnswers` (2, no WhatsApp from the campaign), a CX list row after `callTries` (3, WhatsApp); `attemptLine` reads the same limit; `CALL_COPY.noAnswerHandOff`, `handedOverNote` |
+| `useRecordNoAnswer()` | `queriesV40.ts` | uses the above; the toast says "the campaign hands this call to a person" for a campaign row |
+| `MappingRow.confirmed?: boolean`; `useConfirmMapping()` `{ kind, crmValue }` | `types/v40.ts`, `queriesV40.ts` | unconfirmed by default; `useSaveMapping` with a changed value clears it |
+| `MatrixRow.confirmed?: { [field]: { at, byRole } }`; `useConfirmMatrixCell()` `{ product, kind, field, byRole? }` | `types/v40.ts`, `queriesV40.ts` | the cell stops being a default (badge gone), the stamp says who and when; rejects a cell that is not a default; `useSaveMatrixCell` clears the stamp of that field |
+| `useDetractorCallItems()` | `queries.ts` | returns copies (as `usePublicMentions` does); `dataUpdatedAt` is still the change signal for derived data |
+| `useFixDue(fix)` | `queriesV40.ts` | returns `{ dueAt, source: 'matrix' \| 'fallback' \| 'recorded', preview }`: the stored date when `dueSource` is set or the fix is past `proposed` (a sample fix: `recorded`), a preview only before; takes an optional `status` |
+| `createActionFromPattern({ pattern, kind, owner })` (`useCreateActionFromPattern`) | `queries.ts` | `dueDate` is optional and no caller passes it: the mutation stamps it from the matrix with `dueFromMatrix` (`services/fixClockStore.ts`) |
+| `ownerTitle(owner: string): Bi` | `data/ownerTitles.ts` | the Arabic title of a fix owner (roles, matrix defaults, default receivers, assistant plan owners, "Direct manager (X environment manager)"); an unknown title passes through; `CorrectiveAction.owner` stays a string |
+| `<LandingBrief roles={[...]} />` | `components/home/LandingBrief.tsx` | the Daily brief on the landing page of a role that does not land on Home; mounted on `settings/Ld` (`ld`), `settings/HrTeamPerf` (`hrmgr`), `OverviewPage` (`auditmkt`), `ActionsLayout` fixes tab (`hrspec`) |
+| Timeline anchors | `components/customers/Timeline.tsx` | each row `id="EV-12"`, `data-ev`, `data-trace-id`; `?ev=` focuses the row and fills an `aria-live` region (`data-testid="timeline-live"`, no `role="status"`: the e2e page-ready check counts that role as loading) |
+| Fix cards fold | `pages/actions/components/FixCard.tsx`, `Corrective.tsx` | props `open`, `onOpenChange`; the page keeps the first card and the `?fix=` one open; "Expand all" and "Collapse all" |
+| Dialog and sheet close label | `components/ui/dialog.tsx`, `sheet.tsx` | `t('Close', 'إغلاق')`; they now need the i18n provider (always present in the app and in `renderWithProviders`) |
+| Removed | `data/v38Reference.ts` | `ESCALATION_ROWS`, `ESCALATION_COLUMNS` (unused); `Customers.tsx` `useScrollToEvent` (the timeline does it) |
+| Test settings | `vitest.config.ts`, `src/test/setup.ts` | `testTimeout` and `hookTimeout` 20 s; testing-library `asyncUtilTimeout` 5 s |
 
 ## 7. Hooks
 
@@ -223,7 +245,7 @@ Import from `@/services/queriesV40` unless stated. All reads go through the mock
 - `useReturnInvestigation()` mutate `{ id, resultSummary }` -> the `Investigation`: sets `status 'returned'`, `result`, `resultSummary`, `doneCount = requestedCount`; if its pattern has no fix, creates a `proposed` fix by Agent 5 (kind `training_gap`, owner `L&D manager`, `source`, `proposedBy`, `proposedAt` now, one audit line by `system`) and sets `proposedFixId`. **Page toast rule: if `inv.proposedFixId` is set show "Result recorded as evidence; a fix was proposed for approval.", else show "evidence" only.** Invalidates investigations, fixes, home summary.
 - `useInvestigationEvidence()` -> `{ data: Record<patternId, { investigationId, traceId: 'INV-1', result: Bi }> }`: the green "Evidence from investigation · INV-1: ..." line on a pattern card.
 - `useFixMatrixLine(fix)` -> `FixMatrixLine | undefined` (`{ product, kind, row }`): the "From the matrix (product): receiver ... [Matrix]" line.
-- **`useFixDue(fix)`** -> `{ dueAt, source: 'matrix' | 'fallback', preview: boolean } | undefined`: the due date of a fix. Once approved it is the stored `dueDate` (`fix.dueSource` set, `preview: false`); before approval it previews what approval now would give (matrix "Resolve (h)" for its product and kind in working hours, or the 14-day fallback). Approval (`useDecideCorrectiveAction` with `approved`, or `useSetFixStatus` to `approved`) writes `dueDate` and `dueSource`; marking done (`useSetFixStatus` to `verification`) starts the 60-day check. The "Next step" box for a fix can show `useFixDue(fix)`.
+- **`useFixDue(fix)`** -> `{ dueAt, source: 'matrix' | 'fallback' | 'recorded', preview: boolean } | undefined`: the due date of a fix. Once approved (or for any fix past `proposed`) it is the stored `dueDate` (`preview: false`; `recorded` when a sample fix holds a date and no `dueSource`); before approval it previews what approval now would give (matrix "Resolve (h)" for its product and kind in working hours, or the 14-day fallback). Approval (`useDecideCorrectiveAction` with `approved`, or `useSetFixStatus` to `approved`) writes `dueDate` and `dueSource`; marking done (`useSetFixStatus` to `verification`) starts the 60-day check. The "Next step" box for a fix can show `useFixDue(fix)`.
 
 ### Registers
 | Hook | Args | Returns / mutation |
@@ -242,7 +264,9 @@ Import from `@/services/queriesV40` unless stated. All reads go through the mock
 | `usePublicMentions()` (`referenceQueries`) | - | copies of the mentions in the current scope (16 for All), with `owner` (Marketing, channel owner) |
 | `usePublicReplyBreaches()` | - | `{ data: PublicMention[] }`: mentions with no reply past the reply clock (`rule_public_reply`, 48 h): CX raises a signal for each; also `BriefInputs.publicMentions.overdue` |
 | `useMarkReplied()` | `{ id }` | sets `replied`, `replyHours = max(1, days since x 24)`, `repliedAt` |
-| `useRecordNoAnswer()` | `{ id }` | resolves `{ item, result: NoAnswerResult, toast: Bi }`; rejects a DNCR person and a done row. Attempt n+1, next attempt = following working day; at `callTries` the status is `needs_human` (still open) |
+| `useRecordNoAnswer()` | `{ id }` | resolves `{ item, result: NoAnswerResult, toast: Bi }`; rejects a DNCR person and a done row. Attempt n+1, next attempt = following working day; at the row's limit (`callTries` for the CX list, `aiNoAnswers` for an AI campaign row) the status is `needs_human` (still open) |
+| `useConfirmMapping()` | `{ kind, crmValue }` | integration pass: sets `confirmed` on the row (section 6a) |
+| `useConfirmMatrixCell()` | `{ product, kind, field }` | integration pass: confirms a default cell (section 6a) |
 | `useRecordInterview()` (edited) | as before | now also sets `attempts >= 1`, `status 'done'` |
 | `useUpdateRuleConfig()` (edited) | `{ id, value?, days? }` | refreshes rules and patterns |
 
@@ -324,3 +348,19 @@ E2E helpers (`e2e/helpers.ts`): `ROUTES` (now includes the new routes, so the ax
 | `docs/FIDELITY_REVIEW.md` rows ("Five live numbers, each a button", Marketing and environment limits on Home) and `docs/IMPLEMENTATION_REPORT.md` (environments Amman and Sharjah, 141 and 135 test counts, 12-role sign-in) | stale after v40; update at the documentation pass | all |
 
 **Open items I did not do (not in foundation):** the Home page, `components/home/*`, `utils/brief.ts` (A); `agentRegistry.ts` id 9 `trigger` and `runsOn`, `glossary.ts` CES text (A); Trace card, signal dialog body, audit card, matrix editing, What if card, hand-offs move, evidence line, next-step boxes on fixes (B); Customers tabs and list, consent chips, attempts UI, feeds, mapping, questions, public mentions, weekly sample, `Surveys` heading (C); the `?fix=`, `?ev=`, `?pt=`, `?item=`, `?inv=` search params that the trace and inbox links produce (B and C read them); an `h1`-less `Surveys` page inside Settings gives two `h1`s until C changes its header. The v40 labels "30-day check" are not ported anywhere (the app keeps "60-day check"); the intelligent CX team intro still says "ten agents".
+
+
+---
+
+## 13a. Final hook list (after the integration pass)
+
+Everything in `@/services/queriesV40` (V40 hooks) and the edited hooks of `queries.ts` and `referenceQueries.ts`, with the integration additions marked **new**.
+
+| Area | Hooks |
+|---|---|
+| Environment | `useEnvScope`, `usePersonsAll`, `useSignalsAll`, `usePatternsAll`, `useCorrectiveActionsAll`; env-aware `usePersons`, `useSignals`, `useShopperCases`, `usePatterns`, `useCorrectiveActions`, `useDetractorCallItems` (copies, **changed**), `useInvestigations`, `useHandoffs`, `usePublicMentions`, `useHomeSummary` |
+| Rules, indicators, brief, inbox | `useRules`, `useUpdateRuleConfig`, `useIndicators`, `useBriefInputs`, `useInbox` |
+| Trace | `useTraceIndex`, `useTrace`, `useSignalDetail`, `useTraceNav` |
+| Fixes, audit, investigations | `useDecideCorrectiveAction`, `useSetFixStatus`, `useCreateActionFromPattern` (due date from the matrix, **changed**), `useCreateProposedActions`, `useProposeFromInsight`, `useSendToInvestigation`, `useReturnInvestigation`, `useInvestigationEvidence`, `useFixMatrixLine`, `useFixDue` (**changed**) |
+| Registers | `useFeeds`, `useFeedScope`, `useCrmMapping`, `useSaveMapping`, `useConfirmMapping` (**new**), `useMatrix`, `useSaveMatrixCell`, `useConfirmMatrixCell` (**new**), `useQuestionSets`, `useWeeklySample`, `useJudgeSample`, `useAgentPassRates`, `useSupervisorTests`, `usePublicReplyBreaches`, `useMarkReplied`, `useRecordNoAnswer` (per channel, **changed**), `useRecordInterview` |
+| Helpers added | `ownerTitle` (`data/ownerTitles.ts`, **new**), `daysPhrase` (`utils/inbox.ts`, **new**), `attemptsAllowed` (`utils/callSchedule.ts`, **new**), `dueFromMatrix` (`services/fixClockStore.ts`, **new**), `LandingBrief` (**new**) |

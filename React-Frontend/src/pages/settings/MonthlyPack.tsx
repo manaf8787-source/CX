@@ -5,6 +5,7 @@ import { useI18n } from '@/i18n'
 import { useNow } from '@/hooks/useNow'
 import { useRole } from '@/auth/RoleContext'
 import { useCorrectiveActions, useSignals } from '@/services/queries'
+import { ownerTitle } from '@/data/ownerTitles'
 import { evaluateEffectiveness, EFFECTIVENESS_LABEL } from '@/utils/effectiveness'
 import { downloadCsv } from '@/utils/csv'
 import { Button } from '@/components/ui/button'
@@ -147,7 +148,7 @@ export default function MonthlyPack() {
                   return (
                     <TableRow key={a.id}>
                       <TableCell className="px-3 text-sm whitespace-normal">{L(a.title)}</TableCell>
-                      <TableCell className="px-3 text-sm text-muted-foreground">{a.owner}</TableCell>
+                      <TableCell className="px-3 text-sm text-muted-foreground">{L(ownerTitle(a.owner))}</TableCell>
                       <TableCell className="px-3 text-end text-sm tabular-nums">
                         <bdi dir="ltr">{Math.round(res.changePct * 100)}%</bdi>
                       </TableCell>

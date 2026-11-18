@@ -620,7 +620,8 @@ function buildDetractorCallItems(persons: Person[]): DetractorCallItem[] {
       instrument,
       incidentAt: new Date(incidentMs).toISOString(),
       followUps,
-      ...seedCallAttempts(idx, open, 3),
+      // An AI campaign row hands over after its 2 no-answers (decided 18 Nov), the CX team's own list after 3.
+      ...seedCallAttempts(idx, open, channel === 'ai_campaign' ? 2 : 3),
     }
   })
 }

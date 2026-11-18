@@ -5,7 +5,7 @@ import { scoreChecklist } from '../utils/mysteryShopper'
 import { PRODUCTS } from '../data/products'
 import { inEnvScope } from '../data/environments'
 import { envsOfFix, inScopeAny } from '../utils/envScope'
-import { applyApprovalClock } from './fixClockStore'
+import { applyApprovalClock, dueFromMatrix } from './fixClockStore'
 import { useRole } from '../auth/RoleContext'
 import { decisionAudit, proposedStamp, productOfPattern } from '../utils/audit'
 import { detectPatternsCached } from '../utils/patterns'
@@ -112,9 +112,10 @@ async function fetchInvestigations(env: EnvScope = 'all') {
   return mock.MOCK_INVESTIGATIONS.filter((i) => inScopeAny(env, envsOfFix(i, patternById, signalById)))
 }
 
+/** Copies, not the register: the mutations edit the mock rows in place, so a page must not hold the register itself. */
 async function fetchDetractorCallItems(env: EnvScope = 'all') {
   await latency(LATENCY_MS)
-  return scopedLoop(env)
+  return scopedLoop(env).map((d) => ({ ...d }))
 }
 
 async function fetchAllInteractions() {
@@ -284,18 +285,24 @@ async function decideCorrectiveAction(input: DecideInput) {
   return action
 }
 
-async function createActionFromPattern(input: { pattern: Pattern; kind: CorrectiveActionKind; owner: string; dueDate: string; byRole?: RoleId }) {
+/**
+ * A new proposed fix. Its due date is not typed: it comes from the matrix "Resolve (h)" of the fix's product and kind, in
+ * working hours (Agent 5's 14 days when the cell is empty), as approval today would give it. Approval later overwrites it
+ * and records where it came from (`dueSource`). `dueDate` is an optional override and no caller needs it.
+ */
+async function createActionFromPattern(input: { pattern: Pattern; kind: CorrectiveActionKind; owner: string; dueDate?: string; byRole?: RoleId }) {
   await latency(LATENCY_MS)
+  const product = productOfPattern(input.pattern, mock.MOCK_SIGNALS)
   const action: CorrectiveAction = {
     id: `ca-${mock.MOCK_CORRECTIVE_ACTIONS.length + 1}`,
     kind: input.kind,
     patternId: input.pattern.id,
     title: { en: `Address ${input.pattern.category.replace(/_/g, ' ')} in ${input.pattern.team}`, ar: 'معالجة النمط المرصود لهذا الفريق' },
     owner: input.owner,
-    dueDate: input.dueDate,
+    dueDate: input.dueDate ?? dueFromMatrix({ product, kind: input.kind }).dueAt,
     status: 'proposed',
     verificationDueAt: new Date(Date.now() + 60 * 86_400_000).toISOString(),
-    ...proposedStamp({ product: productOfPattern(input.pattern, mock.MOCK_SIGNALS), byRole: input.byRole ?? 'system' }),
+    ...proposedStamp({ product, byRole: input.byRole ?? 'system' }),
   }
   mock.MOCK_CORRECTIVE_ACTIONS.push(action)
   return action

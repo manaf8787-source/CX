@@ -338,7 +338,7 @@ const createSchema = z.object({
 })
 type CreateValues = z.infer<typeof createSchema>
 
-function CreateActionDialog({ pattern, onCancel, onCreate }: { pattern: Pattern; onCancel: () => void; onCreate: (v: CreateValues & { dueDate: string }) => void }) {
+function CreateActionDialog({ pattern, onCancel, onCreate }: { pattern: Pattern; onCancel: () => void; onCreate: (v: CreateValues) => void }) {
   const { t, L, lang } = useI18n()
   const { data: signals } = useSignalsAll()
   const { register, handleSubmit, control, formState: { errors } } = useForm<CreateValues>({
@@ -346,15 +346,15 @@ function CreateActionDialog({ pattern, onCancel, onCreate }: { pattern: Pattern;
     defaultValues: { kind: 'process', owner: `${pattern.team.replace(' team', '')} environment manager` },
   })
   // The due date is not typed: approval sets it from the matrix "Resolve (h)" of the fix's product and kind, in working hours
-  // (Agent 5's 14 days when that cell is empty). Here: what approval today would give, which is also the proposal's placeholder date.
+  // (Agent 5's 14 days when that cell is empty). Here: what approval today would give; the mutation stamps the same date on the proposal.
   const kind = useWatch({ control, name: 'kind' })
   const product = productOfPattern(pattern, signals ?? [])
-  const due = useFixDue({ kind, product, dueDate: '', dueSource: undefined })
+  const due = useFixDue({ kind, product, dueDate: '', dueSource: undefined, status: 'proposed' })
 
   return (
     <Dialog open onOpenChange={(open) => !open && onCancel()}>
       <DialogContent className="sm:max-w-lg">
-        <form onSubmit={handleSubmit((v) => onCreate({ ...v, dueDate: due?.dueAt ?? new Date().toISOString() }))} className="flex flex-col gap-5">
+        <form onSubmit={handleSubmit((v) => onCreate(v))} className="flex flex-col gap-5">
           <DialogHeader>
             <DialogTitle>{t('Create a corrective action', 'إنشاء إجراء تصحيحي')}</DialogTitle>
             <DialogDescription>

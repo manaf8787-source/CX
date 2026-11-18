@@ -4,11 +4,14 @@ import { toast } from 'sonner'
 import { useI18n } from '@/i18n'
 import { useRole } from '@/auth/RoleContext'
 import { canEditEscalationMatrix } from '@/auth/permissions'
-import { useMatrix, useSaveMatrixCell } from '@/services/queriesV40'
+import { useConfirmMatrixCell, useMatrix, useSaveMatrixCell } from '@/services/queriesV40'
 import { MATRIX_COPY, MATRIX_FIELDS } from '@/data/escalationDefaults'
 import { PRODUCTS } from '@/data/products'
+import { roleDef } from '@/data/roles'
 import { LoadingState } from '@/components/common/LoadingState'
 import { ProposedBadge } from '@/components/common/ProposedBadge'
+import { Check } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
@@ -21,8 +24,8 @@ const PRODUCT_IDS = PRODUCTS.map((p) => p.id)
  * The escalation matrix (v40 F22, S9; decided 18 Nov): one table per product, a row per fix kind (eight kinds and two case types),
  * six columns: kind, first receiver, informed, backup, respond (h), resolve (h). Hours are working hours (9 = one working day).
  * The CX manager and the Internal Audit and Marketing Lead edit the cells (text for titles, a number for hours; an empty text cell
- * means nobody); everyone else reads. A cell still at its default carries [Proposed] until an owner edits it; there is no header
- * badge. A fix reads its own product's row: the "From the matrix" line and, at approval, the due date from "Resolve (h)".
+ * means nobody); everyone else reads. A cell still at its default carries [Proposed] until an owner edits it or confirms it as
+ * it stands ("Confirm default", the same two roles; the row keeps who confirmed it and when); there is no header badge. A fix reads its own product's row: the "From the matrix" line and, at approval, the due date from "Resolve (h)".
  * `?product=af` opens another product (the "Matrix" button on a fix links here).
  */
 export default function EscalationMatrix() {
@@ -98,8 +101,9 @@ const cellText = (v: MatrixCells[MatrixField], lang: 'en' | 'ar'): string => (v 
 
 /** One cell: an input for the roles that may edit (saved on blur or Enter), plain text for the rest; [Proposed] while it holds the default. */
 function MatrixCell({ product, row, field, canEdit }: { product: ProductId; row: MatrixRow; field: MatrixField; canEdit: boolean }) {
-  const { t, lang } = useI18n()
+  const { t, L, lang } = useI18n()
   const save = useSaveMatrixCell()
+  const confirm = useConfirmMatrixCell()
   const hours = field === 'respondH' || field === 'resolveH'
   const stored = cellText(row.cells[field], lang)
   // What is typed. It stays on screen after a save until the stored value arrives (then `base` no longer matches and it falls away).
@@ -107,6 +111,8 @@ function MatrixCell({ product, row, field, canEdit }: { product: ProductId; row:
   const shown = edit && edit.base === stored ? edit.text : stored
   const columnLabel = MATRIX_COPY.columns[field][lang]
   const label = `${row.label[lang]} · ${columnLabel}`
+  const confirmed = row.confirmed?.[field]
+  const by = confirmed ? roleDef(confirmed.byRole)?.name : undefined
 
   function commit() {
     if (!edit || edit.base !== stored) return
@@ -153,7 +159,39 @@ function MatrixCell({ product, row, field, canEdit }: { product: ProductId; row:
       ) : (
         <bdi className="text-sm">{stored || '–'}</bdi>
       )}
-      {row.isDefault[field] && <ProposedBadge />}
+      {row.isDefault[field] && (
+        <span className="flex flex-wrap items-center gap-1.5">
+          <ProposedBadge />
+          {canEdit && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-xs"
+              disabled={confirm.isPending}
+              aria-label={t(`Confirm default: ${label}`, `تأكيد القيمة الافتراضية: ${label}`)}
+              onClick={() =>
+                confirm.mutate(
+                  { product, kind: row.kind as MatrixKind, field },
+                  { onSuccess: () => toast.success(t(`Confirmed: ${label}`, `تم التأكيد: ${label}`)), onError: (e) => toast.error(e instanceof Error ? e.message : t('Could not confirm the cell.', 'تعذّر تأكيد الخلية.')) },
+                )
+              }
+            >
+              {t('Confirm default', 'تأكيد الافتراضي')}
+            </Button>
+          )}
+        </span>
+      )}
+      {confirmed && (
+        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground" data-testid="matrix-confirmed">
+          <Check aria-hidden className="size-3.5 text-success-text" />
+          {t('Confirmed', 'مؤكَّد')}
+          <span className="sr-only">
+            {' '}
+            {t('by', 'بواسطة')} {by ? L(by) : confirmed.byRole} {new Date(confirmed.at).toLocaleDateString(lang)}
+          </span>
+        </span>
+      )}
     </div>
   )
 }

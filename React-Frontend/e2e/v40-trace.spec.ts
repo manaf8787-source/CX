@@ -1,5 +1,5 @@
 import AxeBuilder from '@axe-core/playwright'
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Locator, type Page } from '@playwright/test'
 import { collectErrors, expectPageReady, signInAs, waitForAnimations, type RoleId } from './helpers.ts'
 
 /**
@@ -31,6 +31,13 @@ async function firstSignalId(page: Page) {
 
 const signalsTable = (page: Page) => page.getByRole('columnheader', { name: 'Date' }).locator('xpath=ancestor::table')
 const fixCard = (page: Page, ca: string) => page.locator(`li[data-fix="${ca}"]`)
+/** The fix cards fold their details (only the first and the ?fix= one are open): open one before reading its matrix line, audit trail or Trace card. */
+async function openFix(card: Locator) {
+  const toggle = card.getByRole('button', { name: /^(Details|التفاصيل)/ })
+  await expect(toggle).toBeVisible({ timeout: 15_000 })
+  if ((await toggle.getAttribute('aria-expanded')) !== 'true') await toggle.click()
+  await expect(toggle).toHaveAttribute('aria-expanded', 'true')
+}
 
 test.describe('the Trace card walks the chain both ways', () => {
   test('a signal opens its detail dialog from the Signals page and its Trace card lists the chain', async ({ page }) => {
@@ -185,6 +192,7 @@ test.describe('the fix in full', () => {
   test('every fix has its next-step box above it, the matrix line, the audit trail and the Trace card', async ({ page }) => {
     await open(page, '/actions/corrective')
     await expect(fixCard(page, 'CA-201')).toBeVisible({ timeout: 15_000 })
+    await page.getByRole('button', { name: 'Expand all' }).click()
     const cards = page.locator('li[data-fix]')
     const n = await cards.count()
     expect(n).toBeGreaterThanOrEqual(4)
@@ -215,6 +223,7 @@ test.describe('the fix in full', () => {
     await open(page, '/actions/corrective')
     const card = fixCard(page, 'CA-202')
     await expect(card).toContainText('within 5 working days', { timeout: 15_000 })
+    await openFix(card)
     await expect(card).toContainText('if approved today: matrix Resolve 45 h, in working hours')
     await card.getByRole('button', { name: 'Decide' }).click()
     await page.getByRole('dialog').getByRole('button', { name: 'Save decision' }).click()
@@ -237,6 +246,7 @@ test.describe('the fix in full', () => {
 
   test('How the AI found this carries the agent chips, in Arabic too', async ({ page }) => {
     await open(page, '/actions/corrective', 'cxmgr', 'ar')
+    await openFix(fixCard(page, 'CA-202'))
     const chips = fixCard(page, 'CA-202').getByTestId('found-agents')
     await expect(chips).toContainText('الوكيل 3', { timeout: 15_000 })
     await expect(chips).toContainText('الوكيل 5')
@@ -273,6 +283,7 @@ test.describe('the fix in full', () => {
     await ld.close()
     const lead = await browser.newPage()
     await open(lead, '/actions/corrective', 'teamlead')
+    await openFix(fixCard(lead, 'CA-202'))
     await expect(fixCard(lead, 'CA-202').getByTestId('matrix-line')).toBeVisible({ timeout: 15_000 })
     await expect(lead.getByRole('link', { name: 'Matrix' })).toHaveCount(0)
     await lead.close()
@@ -317,6 +328,7 @@ test.describe('the escalation matrix', () => {
     await page.getByRole('link', { name: '2–4 · Signals and fixes' }).click()
     await page.getByRole('link', { name: 'Corrective actions' }).click()
     await expectPageReady(page)
+    await openFix(fixCard(page, 'CA-202'))
     await expect(fixCard(page, 'CA-202').getByTestId('matrix-line')).toContainText('receiver Head of Digital Marketing', { timeout: 15_000 })
   })
 

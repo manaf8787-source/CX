@@ -82,7 +82,10 @@ describe('close the loop attempts (v40 F27)', () => {
     const statuses = new Set(items.map((i) => i.status))
     expect(statuses).toEqual(new Set(['to_do', 'no_answer', 'needs_human', 'done']))
     expect(items.filter((i) => i.status === 'no_answer').map((i) => i.attempts).sort()).toEqual([1, 2])
-    expect(items.find((i) => i.status === 'needs_human')?.attempts).toBe(3)
+    // The last attempt is the row's own limit: 2 no-answers for an AI campaign row, 3 attempts for the CX team's list.
+    const needsHuman = items.find((i) => i.status === 'needs_human')!
+    expect(needsHuman.attempts).toBe(needsHuman.channel === 'ai_campaign' ? 2 : 3)
+    for (const i of items.filter((x) => x.status === 'no_answer')) expect(i.attempts).toBeLessThan(i.channel === 'ai_campaign' ? 2 : 3)
     expect(items.find((i) => i.status === 'to_do')?.attempts).toBe(0)
   })
 
@@ -101,6 +104,9 @@ describe('close the loop attempts (v40 F27)', () => {
     expect(seedCallAttempts(5, true, 3, today)).toMatchObject({ attempts: 1, status: 'no_answer', nextAttemptOn: '2026-11-18' })
     expect(seedCallAttempts(8, true, 3, today)).toMatchObject({ attempts: 2, nextAttemptOn: '2026-11-19' })
     expect(seedCallAttempts(11, true, 3, today)).toMatchObject({ attempts: 3, status: 'needs_human' })
+    // An AI campaign row hands over after 2: the same slots stay inside that limit.
+    expect(seedCallAttempts(8, true, 2, today)).toMatchObject({ attempts: 1, status: 'no_answer' })
+    expect(seedCallAttempts(11, true, 2, today)).toMatchObject({ attempts: 2, status: 'needs_human' })
   })
 })
 

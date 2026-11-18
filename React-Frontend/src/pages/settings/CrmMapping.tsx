@@ -1,11 +1,12 @@
-import { ArrowRight, EyeOff } from 'lucide-react'
+import { ArrowRight, Check, EyeOff } from 'lucide-react'
 import { toast } from 'sonner'
 import { useI18n } from '@/i18n'
 import { useRole } from '@/auth/RoleContext'
 import { canEditCrmMapping } from '@/auth/permissions'
-import { useCrmMapping, useSaveMapping } from '@/services/queriesV40'
+import { useConfirmMapping, useCrmMapping, useSaveMapping } from '@/services/queriesV40'
 import { CRM_MAPPING_COPY as COPY, mappingCounts } from '@/data/crmMapping'
 import type { MappingKind } from '@/types'
+import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -21,8 +22,9 @@ const KINDS: MappingKind[] = ['src', 'stg', 'act']
  * CRM mapping (v40 F15): the translation from what the CRM says to what the portal says, kept as configuration and filled
  * once with the CRM owner. Three tabs: Media to source, lead stage to funnel stage, activity category to event. The CX
  * manager and the Internal Audit and Marketing Lead edit it; everyone else reads. A value with no mapping defaults to
- * "Ignore" and is queued for review in the weekly sample. Every row carries [Proposed] until the CRM owner confirms it
- * (there is no confirmation to record yet, so every row still carries it). Counts come from the data, not from the
+ * "Ignore" and is queued for review in the weekly sample. Every row carries [Proposed] until the CRM owner confirms it:
+ * `row.confirmed` clears the badge, and a role that may edit records the confirmation with "Confirm" (changing a value
+ * takes it back). The data default is unconfirmed, so today every row still carries it. Counts come from the data, not from the
  * prototype's sentence (it said 13 stages and listed 14).
  */
 export default function CrmMapping() {
@@ -30,6 +32,7 @@ export default function CrmMapping() {
   const { role } = useRole()
   const { data: mapping, isLoading, isError, refetch } = useCrmMapping()
   const save = useSaveMapping()
+  const confirm = useConfirmMapping()
   const canEdit = canEditCrmMapping(role.id)
   const counts = mapping ? mappingCounts(mapping) : null
   const countOf = (k: MappingKind) => (k === 'src' ? counts?.sources.crm : k === 'stg' ? counts?.stages.crm : counts?.events.crm)
@@ -121,7 +124,29 @@ export default function CrmMapping() {
                             <TableCell className="min-w-56 px-3 py-2.5 whitespace-normal text-muted-foreground">{L(COPY.ruleHint[kind])}</TableCell>
                             <TableCell className="px-3 py-2.5">
                               <span className="flex flex-wrap items-center gap-1.5">
-                                <ProposedBadge title={t('Not confirmed by the CRM owner yet.', 'لم يؤكده مالك CRM بعد.')} />
+                                {r.confirmed ? (
+                                  <StatusBadge tone="success" icon={<Check aria-hidden />}>
+                                    {t('Confirmed', 'مؤكَّد')}
+                                  </StatusBadge>
+                                ) : (
+                                  <>
+                                    <ProposedBadge title={t('Not confirmed by the CRM owner yet.', 'لم يؤكده مالك CRM بعد.')} />
+                                    {canEdit && (
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-7 px-2 text-xs"
+                                        disabled={confirm.isPending}
+                                        aria-label={t(`Confirm the mapping of ${r.crmValue}`, `تأكيد ربط ${r.crmValue}`)}
+                                        onClick={() =>
+                                          confirm.mutate({ kind, crmValue: r.crmValue }, { onSuccess: () => toast(t('Mapping confirmed (prototype).', 'تم تأكيد الربط (نموذج أولي).')), onError: (e) => toast.error(e instanceof Error ? e.message : t('Could not confirm the mapping.', 'تعذّر تأكيد الربط.')) })
+                                        }
+                                      >
+                                        {t('Confirm', 'تأكيد')}
+                                      </Button>
+                                    )}
+                                  </>
+                                )}
                                 {ignored && (
                                   <StatusBadge tone="neutral" icon={<EyeOff aria-hidden />}>
                                     {t('Ignored · queued for review', 'متجاهَل · في طابور المراجعة')}

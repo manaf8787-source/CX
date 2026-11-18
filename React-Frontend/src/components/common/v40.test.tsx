@@ -156,7 +156,8 @@ describe('DayChip (v40 F20, S7)', () => {
     [-3, 'wd', '3 working days late'],
     [-3, 'd', '3 days late'],
     [0, 'd', 'today'],
-    [1, 'wd', '1 working days left'],
+    [1, 'wd', '1 working day left'],
+    [-1, 'd', '1 day late'],
     [9, 'd', '9 days left'],
   ] as const)('%s %s reads "%s"', (daysLeft, unit, text) => {
     renderWithProviders(<DayChip daysLeft={daysLeft} unit={unit} />)
@@ -168,7 +169,7 @@ describe('DayChip (v40 F20, S7)', () => {
     expect(container.querySelectorAll('[class*="rounded-full"]')).toHaveLength(0)
     unmount()
     renderWithProviders(<DayChip daysLeft={4} unit="wd" />, { lang: 'ar' })
-    expect(screen.getByText('متبقٍ 4 يوم عمل')).toBeInTheDocument()
+    expect(screen.getByText('متبقٍ 4 أيام عمل')).toBeInTheDocument()
   })
 })
 

@@ -101,6 +101,27 @@ describe('CRM mapping (v40 F15)', () => {
     mock.MOCK_MAPPING.rows.find((r) => r.kind === 'src' && r.crmValue === 'Youngsters')!.portalValue = 'event'
   })
 
+  it('a confirmed row loses its [Proposed] badge; the CX manager confirms one with "Confirm", the CX team has no button', async () => {
+    const row = mock.MOCK_MAPPING.rows.find((r) => r.kind === 'src' && r.crmValue === 'Youngsters')!
+    expect(row.confirmed).toBeFalsy() // the data default: nothing is confirmed until the owner says so
+    const { unmount } = renderWithProviders(<CrmMapping />, { role: 'cxteam' })
+    const readOnly = await screen.findByRole('table', {}, T)
+    expect(within(readOnly).queryByRole('button', { name: /^Confirm the mapping/ })).not.toBeInTheDocument()
+    unmount()
+
+    renderWithProviders(<CrmMapping />, { role: 'cxmgr' })
+    const table = await screen.findByRole('table', {}, T)
+    const tr = within(table).getByText('Youngsters').closest('tr')!
+    expect(within(tr).getByText('[Proposed]')).toBeInTheDocument()
+    await userEvent.click(within(tr).getByRole('button', { name: 'Confirm the mapping of Youngsters' }))
+    await waitFor(() => expect(within(table).getByText('Youngsters').closest('tr')).not.toHaveTextContent('[Proposed]'))
+    expect(within(table).getByText('Youngsters').closest('tr')).toHaveTextContent('Confirmed')
+    // The other rows are untouched.
+    expect(within(table).getAllByText('[Proposed]')).toHaveLength(12)
+    expect(row.confirmed).toBe(true)
+    row.confirmed = false // put it back for the other tests
+  })
+
   it('speaks Arabic', async () => {
     renderWithProviders(<CrmMapping />, { role: 'cxteam', lang: 'ar' })
     expect(await screen.findByText('ربط قيم CRM', {}, T)).toBeInTheDocument()
