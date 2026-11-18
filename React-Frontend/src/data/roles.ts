@@ -1,4 +1,4 @@
-import type { RoleDef, RoleId } from '../types'
+import type { MainRoleId, RoleDef, RoleId } from '../types'
 
 /** The v38 target role list — docs/analysis/USER_ROLES_AND_PERMISSIONS.md.
  * `marketing` and `auditmkt` are net-new versus the pre-omnichannel scaffold;
@@ -26,6 +26,7 @@ export const ROLE_DEFS: RoleDef[] = [
     home: '/home',
     product: 're',
     environment: 'Dubai',
+    envId: 'dub',
   },
   {
     id: 'teamlead',
@@ -63,13 +64,15 @@ export const ROLE_DEFS: RoleDef[] = [
     id: 'marketing',
     name: { en: 'Marketing manager', ar: 'مدير التسويق' },
     description: { en: 'Receives personas and campaign recommendations — no conversation text, no agent names.', ar: 'يستلم الشخصيات وتوصيات الحملات — دون نص المحادثات أو أسماء الوكلاء.' },
-    home: '/personas',
+    // v40 (F35): Marketing lands on Home (it was Personas); Personas is a tab of Customers.
+    home: '/home',
   },
   {
     id: 'auditmkt',
     name: { en: 'Internal Audit and Marketing Lead', ar: 'مسؤول التدقيق الداخلي والتسويق' },
     description: { en: 'Aggregates and audit views only: feed trust, standards compliance, persona/campaign criteria. No cases, no conversation text, no agent names.', ar: 'عرض إجمالي ورقابي فقط: موثوقية البيانات، الامتثال للمعايير، معايير الشخصيات والحملات. دون حالات أو نص محادثات أو أسماء وكلاء.' },
-    home: '/settings/overview',
+    // v40 (F35): the Internal Audit and Marketing Lead lands on the Overview, now "6 · CX indicators" at /overview.
+    home: '/overview',
   },
   {
     id: 'exec',
@@ -87,4 +90,26 @@ export const ROLE_DEFS: RoleDef[] = [
 
 export function roleDef(id: RoleId | null): RoleDef | undefined {
   return ROLE_DEFS.find((r) => r.id === id)
+}
+
+/** The six roles on the sign-in screen (v40 F28): CX manager, CX team, Environment manager, Marketing, L&D, Internal Audit and Marketing Lead. */
+export const MAIN_ROLE_IDS: readonly MainRoleId[] = ['cxmgr', 'cxteam', 'envmgmt', 'marketing', 'ld', 'auditmkt']
+
+/** The rest, folded under "Other roles used in the demo" on the sign-in screen. */
+export const FOLDED_ROLE_IDS: readonly RoleId[] = ROLE_DEFS.map((r) => r.id).filter((id) => !(MAIN_ROLE_IDS as readonly RoleId[]).includes(id))
+
+export const mainRoleDefs = (): RoleDef[] => MAIN_ROLE_IDS.map((id) => roleDef(id)!)
+export const foldedRoleDefs = (): RoleDef[] => FOLDED_ROLE_IDS.map((id) => roleDef(id)!)
+
+/** Sign-in copy (v40 S12). */
+export const SIGN_IN_COPY = {
+  title: { en: 'Sign in', ar: 'تسجيل الدخول' },
+  note: {
+    en: 'In the real platform this is one company sign-in and the role comes from the directory. In the prototype, choose who you are.',
+    ar: 'في المنصة الحقيقية هذا تسجيل دخول واحد للشركة والدور يأتي من الدليل. في النموذج، اختر من أنت.',
+  },
+  otherRoles: {
+    en: 'Other roles used in the demo (team leads, HR, executives, product teams, mystery shoppers)',
+    ar: 'أدوار أخرى تُستخدم في العرض (قادة الفرق، الموارد البشرية، التنفيذيون، فرق المنتجات، المتسوقون)',
+  },
 }

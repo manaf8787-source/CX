@@ -35,7 +35,7 @@ export default function SurveysReference() {
         )}
         actions={
           <Button size="sm" asChild>
-            <Link to="/surveys">
+            <Link to="/settings/surveys">
               {t('Open Surveys and triggers (live)', 'فتح الاستبيانات والمحفزات (الحيّة)')}
               <ArrowRight aria-hidden className="rtl:rotate-180" />
             </Link>

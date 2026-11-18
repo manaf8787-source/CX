@@ -11,26 +11,20 @@ export interface NavGroup {
   items: NavLeaf[]
 }
 
-/** The v38 primary navigation — docs/analysis/IMPLEMENTATION_PLAN.md §2.
- * "Settings and reference" is one folded entry holding the whole
- * pre-omnichannel scaffold's page set (see settingsNav.ts), not expanded here. */
+/** The v40 merged menu (docs/V40_DELTA.md F08): six main items in step order, then the folded
+ * "Settings and reference" entry. Customers holds Find a person, Who is leaving and Personas and
+ * campaigns as tabs (CUSTOMERS_TABS); Surveys and triggers and the AI team page live under Settings.
+ * The sidebar puts the live products group between the two groups. */
 export const PRIMARY_NAV: NavGroup[] = [
   {
     label: { en: 'Workspace', ar: 'مساحة العمل' },
     items: [
       { path: '/home', label: { en: 'Home', ar: 'الرئيسية' } },
-      { path: '/customers', label: { en: 'Customers', ar: 'العملاء' } },
-      { path: '/runaway', label: { en: 'Runaway customers', ar: 'العملاء الهاربون' } },
-      { path: '/actions', label: { en: 'Actions', ar: 'الإجراءات' } },
-      { path: '/close-the-loop', label: { en: 'Close the loop', ar: 'إغلاق الحلقة' } },
-      { path: '/personas', label: { en: 'Personas and campaigns', ar: 'الشخصيات والحملات' } },
-      { path: '/surveys', label: { en: 'Surveys and triggers', ar: 'الاستبيانات والمحفزات' } },
-    ],
-  },
-  {
-    label: { en: 'Team', ar: 'الفريق' },
-    items: [
-      { path: '/intelligent-cx-team', label: { en: 'Intelligent CX team', ar: 'فريق تجربة العملاء الذكي' } },
+      { path: '/customers', label: { en: '1 · Customers', ar: '1 · العملاء' } },
+      { path: '/inbox', label: { en: 'My inbox', ar: 'صندوقي' } },
+      { path: '/actions', label: { en: '2–4 · Signals and fixes', ar: '2–4 · الإشارات والحلول' } },
+      { path: '/close-the-loop', label: { en: '5 · Close the loop', ar: '5 · إغلاق الحلقة' } },
+      { path: '/overview', label: { en: '6 · CX indicators', ar: '6 · مؤشرات تجربة العملاء' } },
     ],
   },
   {
@@ -41,6 +35,27 @@ export const PRIMARY_NAV: NavGroup[] = [
   },
 ]
 
+/** The three tabs at the top of Customers (F17). Each is its own URL; a tab shows only when the role can open the page. */
+export const CUSTOMERS_TABS: NavLeaf[] = [
+  { path: '/customers', label: { en: 'Find a person', ar: 'ابحث عن شخص' } },
+  { path: '/runaway', label: { en: 'Who is leaving', ar: 'من يبتعد' } },
+  { path: '/personas', label: { en: 'Personas and campaigns', ar: 'الشخصيات والحملات' } },
+]
+
+/** Old URLs that still work: the page moved, the old path redirects (F08, F18). Search and hash are kept. */
+export const LEGACY_REDIRECTS: Record<string, string> = {
+  '/surveys': '/settings/surveys',
+  '/settings/overview': '/overview',
+}
+
+/** The new path for a legacy one (exact match or a child path), or undefined. */
+export function legacyRedirect(pathname: string): string | undefined {
+  for (const [from, to] of Object.entries(LEGACY_REDIRECTS)) {
+    if (pathname === from || pathname.startsWith(`${from}/`)) return to + pathname.slice(from.length)
+  }
+  return undefined
+}
+
 export const ACTIONS_TABS: NavLeaf[] = [
   { path: '/actions/corrective', label: { en: 'Corrective actions', ar: 'الإجراءات التصحيحية' } },
   { path: '/actions/signals', label: { en: 'Signals & patterns', ar: 'الإشارات والأنماط' } },
@@ -49,18 +64,26 @@ export const ACTIONS_TABS: NavLeaf[] = [
   { path: '/actions/investigations', label: { en: 'Investigations', ar: 'التحقيقات' } },
 ]
 
-/** "Settings and reference" sub-navigation — where the whole pre-omnichannel
- * scaffold's page set lands, almost one-to-one (APPLICATION_MODULES.md §C). */
+/** "Settings and reference" sub-navigation, in the v40 order (F08): the AI team page, the registers
+ * (weekly sample, public mentions), then the older pages and the new data and configuration pages.
+ * The Overview is no longer here: it is "6 · CX indicators" at /overview. */
 export const SETTINGS_NAV: NavLeaf[] = [
-  { path: '/settings/overview', label: { en: 'Overview', ar: 'نظرة عامة' } },
+  { path: '/intelligent-cx-team', label: { en: 'How the portal works (the AI team)', ar: 'كيف تعمل البوابة (فريق الذكاء الاصطناعي)' } },
+  { path: '/settings/weekly-sample', label: { en: 'Weekly sample', ar: 'العينة الأسبوعية' } },
+  { path: '/settings/public-mentions', label: { en: 'Public mentions', ar: 'الإشارات العامة' } },
   { path: '/settings/monthly-pack', label: { en: 'Monthly CX pack', ar: 'الحزمة الشهرية' } },
   { path: '/settings/mystery-shopper', label: { en: 'Mystery shopper', ar: 'التسوق السري' } },
   { path: '/settings/standards', label: { en: 'Standards register', ar: 'سجل المعايير' } },
+  { path: '/settings/surveys', label: { en: 'Surveys and triggers', ar: 'الاستبيانات والمحفزات' } },
   { path: '/settings/voc', label: { en: 'Voice of Customer', ar: 'صوت العميل' } },
-  { path: '/settings/surveys-reference', label: { en: 'Surveys (reference)', ar: 'الاستبيانات (مرجع)' } },
+  { path: '/settings/surveys-reference', label: { en: 'Surveys (legacy reference)', ar: 'الاستبيانات (مرجع قديم)' } },
   { path: '/settings/ld', label: { en: 'L&D: training & materials', ar: 'التعلم والتطوير' } },
   { path: '/settings/teams-structure', label: { en: 'Teams and structure', ar: 'الفرق والهيكل' } },
   { path: '/settings/hr-team', label: { en: 'HR team performance', ar: 'أداء فريق الموارد البشرية' } },
+  { path: '/settings/feeds', label: { en: 'Data feeds', ar: 'تغذيات البيانات' } },
+  { path: '/settings/crm-mapping', label: { en: 'CRM mapping', ar: 'ربط قيم CRM' } },
+  { path: '/settings/escalation-matrix', label: { en: 'Escalation matrix', ar: 'مصفوفة التصعيد' } },
+  { path: '/settings/survey-questions', label: { en: 'Survey questions', ar: 'أسئلة الاستبيانات' } },
   { path: '/settings/admin', label: { en: 'Settings: launch, HR pool, notices', ar: 'الإعدادات: الإطلاق، الموارد البشرية، الإشعارات' } },
   { path: '/settings/rules', label: { en: 'Rules as configuration', ar: 'القواعد كإعدادات' } },
   { path: '/settings/ai-insights-access', label: { en: 'AI Insights access matrix', ar: 'مصفوفة صلاحيات رؤى الذكاء الاصطناعي' } },

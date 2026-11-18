@@ -76,6 +76,35 @@ export function canViewPersonaAudit(role: RoleId): boolean {
   return role === 'auditmkt' || role === 'cxmgr'
 }
 
+/** v40 (F35): the CRM mapping and the escalation matrix are filled by the CX manager and the Internal Audit and Marketing Lead; everyone else reads. Feeds are read-only for everyone. */
+export function canEditCrmMapping(role: RoleId): boolean {
+  return role === 'cxmgr' || role === 'auditmkt'
+}
+
+export function canEditEscalationMatrix(role: RoleId): boolean {
+  return role === 'cxmgr' || role === 'auditmkt'
+}
+
+/** v40 (F31) [Proposed]: the weekly sample is judged by the CX manager, the CX team and the Internal Audit and Marketing Lead; Executive reads. */
+export function canJudgeSample(role: RoleId): boolean {
+  return role === 'cxmgr' || role === 'cxteam' || role === 'auditmkt'
+}
+
+/** v40 (F31) [Proposed]: customer names in the weekly sample only for the CX manager and the CX team; everyone else sees the reference (`P-005`), never a name. */
+export function canViewNamesInSample(role: RoleId): boolean {
+  return role === 'cxmgr' || role === 'cxteam'
+}
+
+/** v40 (F30): "Mark replied" on a public mention: CX roles and Marketing. */
+export function canMarkMentionReplied(role: RoleId): boolean {
+  return role === 'cxmgr' || role === 'cxteam' || role === 'marketing'
+}
+
+/** v40 (F27): recording a call attempt ("No answer") is a CX action. */
+export function canRecordCallAttempt(role: RoleId): boolean {
+  return role === 'cxmgr' || role === 'cxteam'
+}
+
 export interface AgentDisplay {
   visible: boolean
   label: string

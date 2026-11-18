@@ -336,7 +336,7 @@ export function FunnelSummary() {
       description={t('PSI Real Estate, sample figures; stages [Proposed] until Marketing confirms them.', 'العقارية، أرقام توضيحية؛ المراحل [مقترحة] حتى يؤكدها التسويق.')}
       actions={
         <Button variant="outline" size="sm" asChild>
-          <Link to="/surveys">
+          <Link to="/settings/surveys">
             {t('Source split and why they stopped', 'المصادر وأسباب التوقف')}
             <ArrowRight aria-hidden className="rtl:rotate-180" />
           </Link>

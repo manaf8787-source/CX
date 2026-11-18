@@ -1,4 +1,4 @@
-import type { Bi, ChannelId, ProductId, Severity } from './common'
+import type { Bi, ChannelId, ConsentFlags, EnvId, LeadSource, PersonSegment, ProductId, Severity } from './common'
 import type { RoleId } from './roles'
 
 // --- Identity / Customers (the journey) ------------------------------------
@@ -17,8 +17,16 @@ export interface Person {
     crmContactId?: string
   }
   type: CustomerType
+  /** v40 (F29): six types for the customers list; `type` is kept for existing code (lead | customer). */
+  segment: PersonSegment
+  /** v40 (F29): where the lead originally came from. */
+  sourceOfLead: LeadSource
+  /** v40 (F24): consent and DNCR as held by the CRM. A DNCR person is never callable and never surveyed by call. */
+  consent: ConsentFlags
   name: string
+  /** Short English label ('Dubai', 'Abu Dhabi', 'PSI Assets'); `envId` is the canonical id. */
   environment: string
+  envId: EnvId
   products: ProductId[]
   unitsOrDeals: number
   residence?: string
@@ -85,6 +93,7 @@ export interface Interaction {
   occurredAt: string // ISO
   product: ProductId
   environment: string
+  envId: EnvId
   /** CRM agent id — resolve to a display name only through a role-gated lookup (NFR-2), never read this field directly for display. */
   agentRef?: string
   reason?: string
@@ -107,13 +116,18 @@ export type SignalKind = 'complaint' | 'low_score' | 'breach' | 'public_mention'
 export interface Signal {
   id: string
   kind: SignalKind
-  personId?: string // absent for an un-identified public mention (FR-4.8)
+  /** Absent for a public mention (FR-4.8): invariant `kind === 'public_mention'` implies no personId, no eventIds, isPublic. */
+  personId?: string
   product: ProductId
   environment: string
+  envId: EnvId
   category: string
   occurredAt: string
   agentRef?: string
+  /** True exactly when `kind === 'public_mention'`. */
   isPublic: boolean
+  /** v40 trace (F10): the interactions (events) that produced this signal. Empty for a public mention. */
+  eventIds: string[]
   /** Public-reply SLA clock, FR-4.8 — only set when `isPublic`. */
   publicReplyDueAt?: string
 }
@@ -123,7 +137,12 @@ export type PatternThresholdKind = 'same_agent' | 'same_issue' | 'environment_co
 
 /** FR-4.6 — a group of signals past threshold (same agent x3, same issue x5, or >=50% one environment, 30-day window, sample >=10). */
 export interface Pattern {
+  /** Stable across recomputations (equals `key`), so fixes and investigations keep pointing at the same pattern when a threshold changes. */
   id: string
+  /** Stable key: `same_issue:<category>`, `same_agent:<agentRef>` or `environment_concentration:<category>:<env>`. */
+  key: string
+  /** Display id `PT-nnn` (hash of the key, collision-free within one result set). */
+  traceId: string
   signalIds: string[]
   team: string
   category: string
@@ -162,6 +181,13 @@ export type CorrectiveActionStatus =
   | 'failed'
 
 /** FR-4.1/4.4 — one proposed fix, never auto-applied; the responsible manager must say yes. */
+/** v40 (F21): one line of a fix's audit trail. `byRole` is a role, never a person; 'system' when no role acted. */
+export interface AuditEntry {
+  at: string // ISO
+  what: Bi
+  byRole: RoleId | 'system'
+}
+
 export interface CorrectiveAction {
   id: string
   kind: CorrectiveActionKind
@@ -183,6 +209,16 @@ export interface CorrectiveAction {
   sentToInvestigation?: boolean
   /** KB §6: "suggestions become proposed corrective actions" — the AI Insights suggestion this came from. */
   fromInsight?: { subjectId: string; suggestionId: string; recovery: Bi }
+  /** v40 (F20/F21): when the fix was proposed; the 5-working-day approval window counts from here. */
+  proposedAt: string // ISO
+  /** v40 (F22): the product whose escalation matrix applies. */
+  product: ProductId
+  /** v40 (F21): every status change and decision, oldest first in storage (UIs show newest first). Nothing is deleted. */
+  auditLog: AuditEntry[]
+  /** v40 (F26): set when the fix was proposed from a returned investigation. */
+  source?: { investigationId: string }
+  /** v40 (F26): who proposed it when it was not the standard flow, e.g. "Agent 5, from the investigation". */
+  proposedBy?: Bi
 }
 
 /** FR-4.2 — "How the AI found this", one per corrective action: sources,
@@ -216,6 +252,7 @@ export interface ShopperCase {
   assignmentId: string
   product: ProductId
   environment: string
+  envId: EnvId
   openedAt: string
   respondDueAt: string
   resolveDueAt: string
@@ -248,6 +285,12 @@ export interface Investigation {
   lookFor?: Bi
   status: 'requested' | 'in_progress' | 'returned'
   resultSummary?: Bi
+  /** v40 (F26): the recorded result (same text as `resultSummary`), kept as evidence on the pattern. */
+  result?: Bi
+  /** v40 (F26): interviews done; equals `requestedCount` once the result is recorded. */
+  doneCount?: number
+  /** v40 (F26): the fix proposed when the result was recorded, if the pattern had none. */
+  proposedFixId?: string
 }
 
 // --- Close the loop ----------------------------------------------------
@@ -267,12 +310,16 @@ export type ReasonCode =
 
 export type InterviewOutcome = 'reached' | 'resolved_on_call' | 'declined' | 'callback_requested'
 
+/** v40 (F27): where a close-the-loop row stands. 'needs_human' still counts as open. */
+export type CallStatus = 'to_do' | 'no_answer' | 'needs_human' | 'done'
+
 /** FR-5.1/5.3 — the monthly detractor call list, one row per person. */
 export interface DetractorCallItem {
   id: string
   personId: string
   product: ProductId
   environment: string
+  envId: EnvId
   severity: Severity
   firstScore: number
   channel: 'human' | 'ai_campaign'
@@ -292,6 +339,14 @@ export interface DetractorCallItem {
   incidentAt?: string
   /** What the person did after the incident, read from the timeline (Rules and Definitions, Decision 3). */
   followUps?: RecoveryEvent[]
+  /** v40 (F27): calls attempted so far (0 = none). */
+  attempts: number
+  /** v40 (F27): date (YYYY-MM-DD) of the next attempt, a working day inside calling hours. */
+  nextAttemptOn?: string
+  /** v40 (F27): date (YYYY-MM-DD) the first call is due (within 5 working days of listing). */
+  dueOn?: string
+  /** v40 (F27): derived and kept in step by the mutations: to_do, no_answer, needs_human, done. */
+  status: CallStatus
 }
 
 export type FeedbackInstrument = 'nps' | 'csat' | 'ces'

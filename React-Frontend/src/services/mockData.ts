@@ -1,5 +1,7 @@
 import type {
   Access,
+  EnvId,
+  Environment,
   AgentActivityEntry,
   AgentDirectoryEntry,
   AgentOutputEnvelope,
@@ -49,6 +51,12 @@ import type { InsightCategory } from '../data/insightSuggestions'
 import { PATTERN_RULES, detectPatterns } from '../utils/patterns'
 import { classifyRunaway } from '../utils/runaway'
 import { GLOSSARY_TERMS } from '../data/glossary'
+import { ENVIRONMENTS as ENVIRONMENT_LIST, environmentById } from '../data/environments'
+import { RULE_IDS } from '../utils/ruleValues'
+import { MON_FRI } from '../utils/workingDays'
+import { WEEKLY_SAMPLE_SIZE, buildWeeklySample, seedAuditLog, seedCallAttempts } from './mockDataV40'
+
+export * from './mockDataV40'
 
 /** Sample data only, matching the scale the source documents use throughout
  * (~30 people, ~120 interactions) — never a real PSI number
@@ -56,47 +64,70 @@ import { GLOSSARY_TERMS } from '../data/glossary'
 const SEED = 20261117
 const rng = seededRandom(SEED)
 
-const ENVIRONMENTS = ['Dubai', 'Abu Dhabi', 'Amman', 'Sharjah']
+// The three v40 CRM environments: Dubai, Abu Dhabi, PSI Assets (rental). The legacy `environment` string
+// fields hold the short English label; `envId` is the canonical key.
+const ENVIRONMENTS = ENVIRONMENT_LIST.map((e) => e.short)
+const envFields = (e: Environment) => ({ environment: e.short, envId: e.id })
+
 // Sample people are not spread evenly: the largest market holds the most customers.
 // One rng() draw, same as a uniform pick.
-const ENVIRONMENT_WEIGHTS: [string, number][] = [
-  ['Dubai', 0.42],
-  ['Abu Dhabi', 0.24],
-  ['Amman', 0.18],
-  ['Sharjah', 0.16],
+const ENVIRONMENT_WEIGHTS: [EnvId, number][] = [
+  ['dub', 0.45],
+  ['auh', 0.3],
+  ['ast', 0.25],
 ]
 
-function pickPersonEnvironment(): string {
+function pickPersonEnvironment(): Environment {
   let r = rng()
-  for (const [environment, weight] of ENVIRONMENT_WEIGHTS) {
-    if (r < weight) return environment
+  for (const [id, weight] of ENVIRONMENT_WEIGHTS) {
+    if (r < weight) return environmentById(id)
     r -= weight
   }
-  return ENVIRONMENT_WEIGHTS[0][0]
+  return environmentById(ENVIRONMENT_WEIGHTS[0][0])
 }
 const CHANNELS: ChannelId[] = ['website', 'app', 'whatsapp', 'call', 'branch', 'email']
 const FIRST_NAMES = ['Sara', 'Omar', 'Lina', 'Khaled', 'Maya', 'Yousef', 'Rana', 'Tariq', 'Dana', 'Fadi', 'Noura', 'Hassan', 'Aisha', 'Zaid', 'Lara']
 const LAST_NAMES = ['Haddad', 'Khoury', 'Saleh', 'Nasser', 'Qasim', 'Hamad', 'Farouk', 'Aziz']
 
+// v40 sample pattern (F24): DNCR for index 4, 13 and 22; WhatsApp off for 3, 10, 17, 24; email off for every
+// fifth person from 2; SMS always on. [Proposed] these flags are synthetic until the CRM supplies them.
+const DNCR_INDEXES = new Set([4, 13, 22])
+const NO_WHATSAPP_INDEXES = new Set([3, 10, 17, 24])
+const CUSTOMER_SEGMENTS: Person['segment'][] = ['buyer', 'tenant', 'owner', 'investor', 'buyer']
+const LEAD_SOURCES: Person['sourceOfLead'][] = ['website', 'app', 'whatsapp', 'website', 'crm']
+
 function buildPersons(count: number): Person[] {
   return Array.from({ length: count }, (_, i) => {
+    // The draws below keep the order of the original object literal, so the seeded sample is stable.
     const products: ProductId[] = [pick(rng, ['re', 'af', 'cl', 'to', 'ev', 'wl'] as ProductId[])]
+    const mobile = `+9715${intBetween(rng, 10000000, 99999999)}`
+    const type: Person['type'] = rng() > 0.35 ? 'customer' : 'lead'
+    const name = `${pick(rng, FIRST_NAMES)} ${pick(rng, LAST_NAMES)}`
+    const env = pickPersonEnvironment()
+    const unitsOrDeals = intBetween(rng, 0, 3)
+    const preferredChannel = pick(rng, CHANNELS)
+    const language: Person['language'] = rng() > 0.5 ? 'en' : 'ar'
+    const vip = rng() > 0.85
+    const createdAt = daysAgoIso(rng, 540)
     return {
       id: `p-${String(i + 1).padStart(3, '0')}`,
       identity: {
-        mobile: `+9715${intBetween(rng, 10000000, 99999999)}`,
+        mobile,
         email: `sample.contact${i + 1}@example.test`,
         crmContactId: `crm-${1000 + i}`,
       },
-      type: rng() > 0.35 ? 'customer' : 'lead',
-      name: `${pick(rng, FIRST_NAMES)} ${pick(rng, LAST_NAMES)}`,
-      environment: pickPersonEnvironment(),
+      type,
+      segment: type === 'lead' ? 'lead' : vip ? 'member' : CUSTOMER_SEGMENTS[i % CUSTOMER_SEGMENTS.length],
+      sourceOfLead: vip ? 'club' : LEAD_SOURCES[i % LEAD_SOURCES.length],
+      consent: { dncr: DNCR_INDEXES.has(i), whatsapp: !NO_WHATSAPP_INDEXES.has(i), email: i % 5 !== 2, sms: true },
+      name,
+      ...envFields(env),
       products,
-      unitsOrDeals: intBetween(rng, 0, 3),
-      preferredChannel: pick(rng, CHANNELS),
-      language: rng() > 0.5 ? 'en' : 'ar',
-      vip: rng() > 0.85,
-      createdAt: daysAgoIso(rng, 540),
+      unitsOrDeals,
+      preferredChannel,
+      language,
+      vip,
+      createdAt,
     }
   })
 }
@@ -151,6 +182,7 @@ function buildInteractions(persons: Person[], total: number): Interaction[] {
       occurredAt: hasProblem ? problemOccurredAt() : daysAgoIso(rng, 180),
       product: person.products[0],
       environment: person.environment,
+      envId: person.envId,
       agentRef: `agent-${intBetween(rng, 1, 12)}`,
       language: person.language,
       score: rng() > 0.5 ? intBetween(rng, 0, 10) : undefined,
@@ -193,7 +225,7 @@ const SIGNAL_CATEGORY_WEIGHTS: [string, number][] = [
 ]
 
 // Local process issues concentrate in one place (the environment-concentration rule exists
-// for exactly this): Dubai's sample skews to slow replies, Sharjah's to repeat contacts.
+// for exactly this): Dubai's sample skews to slow replies, PSI Assets' (rental) to repeat contacts.
 const ENVIRONMENT_CATEGORY_WEIGHTS: Record<string, [string, number][]> = {
   Dubai: [
     ['slow_response', 0.6],
@@ -202,7 +234,7 @@ const ENVIRONMENT_CATEGORY_WEIGHTS: Record<string, [string, number][]> = {
     ['promise_not_kept', 0.07],
     ['unapproved_discount', 0.05],
   ],
-  Sharjah: [
+  'PSI Assets': [
     ['repeat_contact', 0.6],
     ['slow_response', 0.15],
     ['wrong_language', 0.1],
@@ -221,21 +253,46 @@ function pickSignalCategory(environment: string): string {
   return SIGNAL_CATEGORY_WEIGHTS[0][0]
 }
 
+/** v40 trace (F10): a signal lists the event that produced it and, for every third one, the nearest other event of
+ * the same person (same environment and product, flagged ones first). Deterministic: no random draws. */
+function secondEvent(i: Interaction, byPerson: Map<string, Interaction[]>): Interaction | undefined {
+  const t = Date.parse(i.occurredAt)
+  return (byPerson.get(i.personKey) ?? [])
+    .filter((x) => x.id !== i.id && x.envId === i.envId && x.product === i.product)
+    .sort((a, b) => Number(b.problemFlags.length > 0) - Number(a.problemFlags.length > 0) || Math.abs(Date.parse(a.occurredAt) - t) - Math.abs(Date.parse(b.occurredAt) - t) || a.id.localeCompare(b.id))[0]
+}
+
 function buildSignals(interactions: Interaction[]): Signal[] {
+  const byPerson = new Map<string, Interaction[]>()
+  for (const i of interactions) byPerson.set(i.personKey, [...(byPerson.get(i.personKey) ?? []), i])
+  let publicSeq = 0
   return interactions
     .filter((i) => i.problemFlags.length > 0)
-    .map((i, idx) => ({
-      id: `sig-${String(idx + 1).padStart(4, '0')}`,
-      kind: rng() > 0.8 ? 'public_mention' : 'complaint',
-      personId: rng() > 0.1 ? i.personKey : undefined,
-      product: i.product,
-      environment: i.environment,
-      category: pickSignalCategory(i.environment),
-      occurredAt: i.occurredAt,
-      agentRef: i.agentRef,
-      isPublic: rng() > 0.85,
-      publicReplyDueAt: rng() > 0.85 ? daysAgoIso(rng, -2) : undefined,
-    }))
+    .map((i, idx): Signal => {
+      // Same draws, same order as before v40, so the rest of the seeded sample is unchanged.
+      const kind: Signal['kind'] = rng() > 0.8 ? 'public_mention' : 'complaint'
+      const identified = rng() > 0.1
+      const category = pickSignalCategory(i.environment)
+      rng() // formerly an independent isPublic roll; v40 makes isPublic follow kind
+      if (rng() > 0.85) daysAgoIso(rng, -2) // formerly a random reply clock; now derived below
+      const isPublic = kind === 'public_mention'
+      // A public mention never links to a person or an event (F12); its id stays PUB-3nn.
+      const second = !isPublic && idx % 3 === 0 ? secondEvent(i, byPerson) : undefined
+      return {
+        id: isPublic ? `PUB-${351 + publicSeq++}` : `sig-${String(idx + 1).padStart(4, '0')}`,
+        kind,
+        personId: !isPublic && identified ? i.personKey : undefined,
+        product: i.product,
+        environment: i.environment,
+        envId: i.envId,
+        category,
+        occurredAt: i.occurredAt,
+        agentRef: i.agentRef,
+        isPublic,
+        eventIds: isPublic ? [] : second ? [i.id, second.id] : [i.id],
+        publicReplyDueAt: isPublic ? new Date(Date.parse(i.occurredAt) + 48 * 3_600_000).toISOString() : undefined,
+      }
+    })
 }
 
 const CORRECTIVE_KINDS: CorrectiveActionKind[] = ['employee', 'service_behaviour', 'training_gap', 'product_app', 'process', 'environment', 'legal_privacy', 'marketing']
@@ -249,8 +306,9 @@ function recoverySentence(tried: number, recovered: number): { en: string; ar: s
   }
 }
 
-function buildCorrectiveActions(patterns: Pattern[]): CorrectiveAction[] {
+function buildCorrectiveActions(patterns: Pattern[], signals: Signal[]): CorrectiveAction[] {
   const eligible = patterns.filter((p) => p.hasMinimumSample)
+  const signalById = new Map(signals.map((s) => [s.id, s]))
   return eligible.map((p, idx) => {
     const status = pick(rng, ['proposed', 'approved', 'in_progress', 'verification', 'effective', 'partial', 'failed'] as const)
     const startedMonthIndex = 3
@@ -287,19 +345,28 @@ function buildCorrectiveActions(patterns: Pattern[]): CorrectiveAction[] {
       legal_privacy: 'Legal',
       marketing: 'Internal Audit and Marketing Lead',
     }
+    const dueDate = daysAgoIso(rng, -14)
+    const verificationDueAt = daysAgoIso(rng, -60)
+    // v40: a proposed fix was proposed in the last few days (some are close to the 5-working-day window);
+    // the others were proposed weeks ago. Deterministic from the index, no extra draws.
+    const proposedAt = new Date(Date.now() - (status === 'proposed' ? 2 + idx * 2 : 20 + idx * 4) * 86_400_000).toISOString()
+    const decisionReason: Bi | undefined = decision ? { en: 'Scope narrowed to the current quarter.', ar: 'تم تضييق النطاق للربع الحالي.' } : undefined
     return {
       id: `ca-${idx + 1}`,
       kind,
       patternId: p.id,
       title: { en: `Address ${p.category.replace(/_/g, ' ')} in ${p.team}`, ar: 'معالجة النمط المرصود لهذا الفريق' },
       owner: owner[kind] ?? envManager,
-      dueDate: daysAgoIso(rng, -14),
+      dueDate,
       status,
-      ...(decision ? { decision, decisionReason: { en: 'Scope narrowed to the current quarter.', ar: 'تم تضييق النطاق للربع الحالي.' } } : {}),
-      verificationDueAt: daysAgoIso(rng, -60),
+      ...(decision ? { decision, decisionReason } : {}),
+      verificationDueAt,
       verificationResult: status === 'effective' || status === 'partial' || status === 'failed' ? status : undefined,
       monthlySignalSeries,
       startedMonthIndex,
+      proposedAt,
+      product: p.signalIds.map((id) => signalById.get(id)).find((s) => !!s)?.product ?? 're',
+      auditLog: seedAuditLog({ kind, status, decision, decisionReason }, proposedAt, p.traceId),
     }
   })
 }
@@ -343,7 +410,7 @@ function buildShopperCases(): ShopperCase[] {
       severity,
       assignmentId: `asn-${100 + i}`,
       product: pick(rng, ['re', 'af'] as ProductId[]),
-      environment: pick(rng, ENVIRONMENTS),
+      ...envFields(pick(rng, ENVIRONMENT_LIST)),
       openedAt: daysAgoIso(rng, 20),
       // Critical opens same-day: respond within 1 working day, resolve within 5 (FR-4.14).
       respondDueAt: severity === 'critical' ? daysAgoIso(rng, -1) : daysAgoIso(rng, -3),
@@ -391,6 +458,9 @@ function buildInvestigations(patterns: Pattern[]): Investigation[] {
       scenario: kind === 'mystery_shopper_check' ? { en: `${p.category.replace(/_/g, ' ')} scenario, ${p.team}`, ar: `سيناريو ${p.team}` } : undefined,
       status,
       resultSummary: status === 'returned' ? { en: 'Evidence returned: root cause confirmed, ready to propose an action.', ar: 'عادت الأدلة: تم تأكيد السبب الجذري، جاهز لاقتراح إجراء.' } : undefined,
+      // v40 (F26): the recorded result is the evidence on the pattern; interviews done count up to the request.
+      result: status === 'returned' ? { en: 'Evidence returned: root cause confirmed, ready to propose an action.', ar: 'عادت الأدلة: تم تأكيد السبب الجذري، جاهز لاقتراح إجراء.' } : undefined,
+      doneCount: kind === 'customer_interviews' ? (status === 'returned' ? 5 : status === 'in_progress' ? 3 : 0) : undefined,
     }
   })
 }
@@ -519,7 +589,8 @@ const DETRACTOR_FOLLOW_UPS: [number, Omit<RecoveryEvent, 'at'>][][] = [
 const INSTRUMENT_CYCLE: FeedbackInstrument[] = ['nps', 'csat', 'ces']
 
 function buildDetractorCallItems(persons: Person[]): DetractorCallItem[] {
-  return persons.slice(0, 12).map((p, idx) => {
+  // A person on the do-not-call register is never callable, so never on this list (v40, F24).
+  return persons.filter((p) => !p.consent.dncr).slice(0, 12).map((p, idx) => {
     const severity = pick(rng, ['critical', 'medium', 'low'] as const)
     const rawScore = intBetween(rng, 0, 6)
     const channel: DetractorCallItem['channel'] = rng() > 0.5 ? 'human' : 'ai_campaign'
@@ -533,19 +604,22 @@ function buildDetractorCallItems(persons: Person[]): DetractorCallItem[] {
       ...e,
       at: new Date(incidentMs + after * 86_400_000).toISOString(),
     }))
+    // A third of the month's list is still waiting for its call, so the interview flow has work to do.
+    const open = idx % 3 === 2
     return {
       id: `dcl-${idx + 1}`,
       personId: p.id,
       product: p.products[0],
       environment: p.environment,
+      envId: p.envId,
       severity,
       firstScore,
       channel,
-      // A third of the month's list is still waiting for its call, so the interview flow has work to do.
-      outcome: idx % 3 === 2 ? undefined : outcome,
+      outcome: open ? undefined : outcome,
       instrument,
       incidentAt: new Date(incidentMs).toISOString(),
       followUps,
+      ...seedCallAttempts(idx, open, 3),
     }
   })
 }
@@ -1051,6 +1125,11 @@ function buildRulesConfig(): RuleConfigItem[] {
     { id: 'rule_effective_drop', area: bi('Corrective actions', 'الإجراءات التصحيحية'), label: bi('Effective when the signals drop by', 'فعّال عندما تنخفض الإشارات بنسبة'), value: 50, unit: bi('%', '%'), source: 'KB §12 D3' },
     { id: 'rule_effective_hold', area: bi('Corrective actions', 'الإجراءات التصحيحية'), label: bi('… and do not return for', '… ولا تعود خلال'), value: 90, unit: bi('days', 'يوم'), source: 'KB §12 D3' },
     { id: 'rule_calls_per_hour', area: bi('Close the loop', 'إغلاق الحلقة'), label: bi('Calls per hour in the capacity formula', 'المكالمات في الساعة في معادلة السعة'), value: 4, unit: bi('calls', 'مكالمات'), source: 'KB §12 D3' },
+    // v40 (F20, F27), all [Proposed]: the working week and the calling rules are settings, not constants.
+    { id: RULE_IDS.workingDays, area: bi('Close the loop', 'إغلاق الحلقة'), label: bi('Working days per week (Monday to Friday)', 'أيام العمل في الأسبوع (من الإثنين إلى الجمعة)'), value: MON_FRI.length, days: [...MON_FRI], unit: bi('days', 'أيام'), source: 'v40 F20', proposed: true },
+    { id: RULE_IDS.callFrom, area: bi('Close the loop', 'إغلاق الحلقة'), label: bi('Calling hours start (hour of day, UAE time)', 'بداية ساعات الاتصال (الساعة، توقيت الإمارات)'), value: 9, unit: bi('o’clock', 'الساعة'), source: 'v40 F27', proposed: true },
+    { id: RULE_IDS.callTo, area: bi('Close the loop', 'إغلاق الحلقة'), label: bi('Calling hours end (hour of day, UAE time)', 'نهاية ساعات الاتصال (الساعة، توقيت الإمارات)'), value: 18, unit: bi('o’clock', 'الساعة'), source: 'v40 F27', proposed: true },
+    { id: RULE_IDS.callTries, area: bi('Close the loop', 'إغلاق الحلقة'), label: bi('Call attempts before "needs a human"', 'محاولات الاتصال قبل "يحتاج إنساناً"'), value: 3, unit: bi('attempts', 'محاولات'), source: 'v40 F27', proposed: true },
     { id: 'rule_silence_why', area: bi('Surveys and triggers', 'الاستبيانات والمحفزات'), label: bi('"What stopped you?" after silence of', '"ما الذي أوقفك؟" بعد صمت لمدة'), value: 14, unit: bi('days', 'يوم'), source: 'KB §12 D5' },
   ]
 }
@@ -1106,7 +1185,7 @@ export const MOCK_INTERACTIONS = buildInteractions(MOCK_PERSONS, 120)
 export const MOCK_EFFORT_SUMMARIES = buildEffortSummaries(MOCK_PERSONS, MOCK_INTERACTIONS)
 export const MOCK_SIGNALS = buildSignals(MOCK_INTERACTIONS)
 export const MOCK_PATTERNS = detectPatterns(MOCK_SIGNALS, { windowDays: PATTERN_RULES.windowDays })
-export const MOCK_CORRECTIVE_ACTIONS = buildCorrectiveActions(MOCK_PATTERNS)
+export const MOCK_CORRECTIVE_ACTIONS = buildCorrectiveActions(MOCK_PATTERNS, MOCK_SIGNALS)
 export const MOCK_CORRECTIVE_RATIONALES = buildCorrectiveRationales(MOCK_CORRECTIVE_ACTIONS, MOCK_PATTERNS)
 export const MOCK_SHOPPER_CASES = buildShopperCases()
 export const MOCK_AI_INSIGHTS = buildAiInsightEnvelopes(MOCK_SHOPPER_CASES)
@@ -1120,6 +1199,15 @@ export const MOCK_LEAD_FUNNEL = buildLeadFunnel()
 export const MOCK_PRODUCT_SURVEY_MOMENTS = buildProductSurveyMoments()
 export const MOCK_AI_JOURNEY_READINGS = buildAiJourneyReadings(MOCK_PERSONS, MOCK_INTERACTIONS, MOCK_EFFORT_SUMMARIES)
 export const MOCK_AI_CAMPAIGNS = buildAiCampaigns(MOCK_DETRACTOR_CALL_ITEMS)
+export const MOCK_WEEKLY_SAMPLE = buildWeeklySample({
+  fixes: MOCK_CORRECTIVE_ACTIONS,
+  signals: MOCK_SIGNALS,
+  patterns: MOCK_PATTERNS,
+  loopItems: MOCK_DETRACTOR_CALL_ITEMS,
+  persons: MOCK_PERSONS,
+  readings: MOCK_AI_JOURNEY_READINGS,
+})
+export const MOCK_WEEKLY_SAMPLE_SIZE = WEEKLY_SAMPLE_SIZE
 export const MOCK_AGENT_ACTIVITY = buildAgentActivity(
   MOCK_INTERACTIONS,
   MOCK_SIGNALS,

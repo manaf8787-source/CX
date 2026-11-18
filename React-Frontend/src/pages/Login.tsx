@@ -8,7 +8,7 @@ import * as m from 'motion/react-m'
 import { ArrowRight, Check, Info, Layers, Loader2, ShieldCheck, Target } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { useAuth } from '@/auth/session'
-import { ROLE_DEFS, roleDef } from '@/data/roles'
+import { FOLDED_ROLE_IDS, ROLE_DEFS, SIGN_IN_COPY, foldedRoleDefs, mainRoleDefs, roleDef } from '@/data/roles'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Field, FieldDescription, FieldError, FieldLabel } from '@/components/ui/field'
@@ -16,7 +16,7 @@ import { LangSwitch } from '@/components/common/LangSwitch'
 import { ThemeSwitch } from '@/components/common/ThemeSwitch'
 import { dirSign, DURATION, EASE_OUT, EXIT } from '@/lib/motion'
 import { cn } from '@/lib/utils'
-import type { RoleId } from '@/types'
+import type { RoleDef, RoleId } from '@/types'
 
 const ROLE_IDS = ROLE_DEFS.map((r) => r.id) as [RoleId, ...RoleId[]]
 
@@ -27,6 +27,10 @@ const BRAND_POINTS = [
 ]
 
 const brandList = { hidden: {}, show: { transition: { staggerChildren: 0.07, delayChildren: 0.05 } } }
+// v40 (F28): six main roles on the sign-in screen; the others sit under "Other roles used in the demo".
+const MAIN_ROLES = mainRoleDefs()
+const FOLDED_ROLES = foldedRoleDefs()
+
 const brandItem = { hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0, transition: { duration: DURATION.slow, ease: EASE_OUT } } }
 
 /** Placeholder brand mark. [Proposed]: the real PSI logo has not been confirmed. */
@@ -161,6 +165,40 @@ export default function Login() {
 
   const sign = dirSign(dir)
 
+  const roleCard = (r: RoleDef) => {
+    const isSelected = selected === r.id
+    return (
+      <label
+        key={r.id}
+        className={cn(
+          'group relative flex min-h-14 cursor-pointer flex-col justify-center gap-0.5 rounded-xl border bg-card px-3 py-2.5 pe-9 text-start lg:min-h-12 lg:py-2',
+          'transition-[border-color,background-color,box-shadow,translate,scale] duration-200 ease-out',
+          'hover:-translate-y-px hover:border-primary/40 hover:shadow-sm active:scale-[0.99]',
+          'motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100',
+          'has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-ring/50',
+          isSelected && 'border-primary bg-primary/5 shadow-sm ring-1 ring-primary dark:bg-primary/10',
+        )}
+      >
+        <input type="radio" value={r.id} className="sr-only" {...register('role')} disabled={phase !== 'idle'} />
+        <span className="text-sm font-semibold">{L(r.name)}</span>
+        <span className="line-clamp-2 text-xs text-muted-foreground">{L(r.description)}</span>
+        <AnimatePresence>
+          {isSelected && (
+            <m.span
+              aria-hidden
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.5, transition: EXIT }}
+              className="absolute end-3 top-3 flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground"
+            >
+              <Check className="size-3.5" strokeWidth={3} />
+            </m.span>
+          )}
+        </AnimatePresence>
+      </label>
+    )
+  }
+
   return (
     <div className="grid min-h-svh bg-background lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
       <BrandPanel />
@@ -205,41 +243,11 @@ export default function Login() {
 
                   <fieldset className="flex min-w-0 flex-col gap-3" aria-invalid={!!errors.role} aria-describedby={errors.role ? 'role-error' : undefined}>
                     <legend className="mb-3 text-sm font-medium lg:mb-2">{t('Sign in as', 'تسجيل الدخول بصفة')}</legend>
-                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
-                      {ROLE_DEFS.map((r) => {
-                        const isSelected = selected === r.id
-                        return (
-                          <label
-                            key={r.id}
-                            className={cn(
-                              'group relative flex min-h-14 cursor-pointer flex-col justify-center gap-0.5 rounded-xl border bg-card px-3 py-2.5 pe-9 text-start lg:min-h-12 lg:py-2',
-                              'transition-[border-color,background-color,box-shadow,translate,scale] duration-200 ease-out',
-                              'hover:-translate-y-px hover:border-primary/40 hover:shadow-sm active:scale-[0.99]',
-                              'motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100',
-                              'has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-ring/50',
-                              isSelected && 'border-primary bg-primary/5 shadow-sm ring-1 ring-primary dark:bg-primary/10',
-                            )}
-                          >
-                            <input type="radio" value={r.id} className="sr-only" {...register('role')} disabled={phase !== 'idle'} />
-                            <span className="text-sm font-semibold">{L(r.name)}</span>
-                            <span className="truncate text-xs text-muted-foreground">{L(r.description)}</span>
-                            <AnimatePresence>
-                              {isSelected && (
-                                <m.span
-                                  aria-hidden
-                                  initial={{ opacity: 0, scale: 0.5 }}
-                                  animate={{ opacity: 1, scale: 1 }}
-                                  exit={{ opacity: 0, scale: 0.5, transition: EXIT }}
-                                  className="absolute end-3 top-3 flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground"
-                                >
-                                  <Check className="size-3.5" strokeWidth={3} />
-                                </m.span>
-                              )}
-                            </AnimatePresence>
-                          </label>
-                        )
-                      })}
-                    </div>
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">{MAIN_ROLES.map(roleCard)}</div>
+                    <details className="group/other rounded-xl border bg-card px-3 py-2" open={FOLDED_ROLE_IDS.includes(selected as RoleId) || undefined}>
+                      <summary className="cursor-pointer text-sm font-medium outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50">{L(SIGN_IN_COPY.otherRoles)}</summary>
+                      <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">{FOLDED_ROLES.map(roleCard)}</div>
+                    </details>
                     {errors.role && <FieldError id="role-error">{errors.role.message}</FieldError>}
                     <div aria-live="polite" className="min-h-0">
                       <AnimatePresence mode="wait" initial={false}>

@@ -18,6 +18,9 @@ import {
 import type { CampaignBriefDraft, PlanLine } from '../components/ai/assistantIntents'
 import type { Bi, CorrectiveAction, CorrectiveActionKind, Investigation } from '../types'
 import { isTopManagementTitle } from '../auth/permissions'
+import { useRole } from '../auth/RoleContext'
+import { auditEntry, proposedStamp } from '../utils/audit'
+import { invId } from '../utils/trace'
 import { suggestionSentence, type InsightSuggestion } from '../data/insightSuggestions'
 
 /**
@@ -34,7 +37,8 @@ async function read<T>(value: T): Promise<T> {
 }
 
 export const useStandardsRegister = () => useQuery({ queryKey: ['standards-register'], queryFn: () => read(STANDARDS_REGISTER) })
-export const usePublicMentions = () => useQuery({ queryKey: ['public-mentions'], queryFn: () => read(PUBLIC_MENTIONS) })
+/** v40 (F30): a mutable list (`useMarkReplied` in queriesV40.ts), returned as copies so a change re-renders. */
+export const usePublicMentions = () => useQuery({ queryKey: ['public-mentions'], queryFn: () => read(PUBLIC_MENTIONS.map((m) => ({ ...m }))) })
 export const useNpsTrend = () => useQuery({ queryKey: ['nps-trend'], queryFn: () => read(NPS_TREND) })
 export const useDetractorReasons = () => useQuery({ queryKey: ['detractor-reasons'], queryFn: () => read(DETRACTOR_REASONS) })
 export const useSurveyInstruments = () => useQuery({ queryKey: ['survey-instruments'], queryFn: () => read(SURVEY_INSTRUMENTS) })
@@ -89,6 +93,7 @@ export function useSaveCampaignBrief() {
  * owner still approves, changes, rejects or investigates (KB §1). */
 export function useCreateProposedActions() {
   const qc = useQueryClient()
+  const { role } = useRole()
   return useMutation({
     mutationFn: async (input: { plan: PlanLine[]; scope: Bi }) => {
       await latency(LATENCY_MS)
@@ -100,6 +105,7 @@ export function useCreateProposedActions() {
         dueDate: new Date(Date.now() + 14 * 86_400_000).toISOString(),
         status: 'proposed',
         verificationDueAt: new Date(Date.now() + 74 * 86_400_000).toISOString(),
+        ...proposedStamp({ product: 're', byRole: role.id, note: { en: 'Proposed from the assistant’s plan', ar: 'اقتُرح من خطة المساعد' } }),
       }))
       mock.MOCK_CORRECTIVE_ACTIONS.push(...created)
       return created
@@ -116,6 +122,7 @@ export function useCreateProposedActions() {
  * receiver is a title (never top management), and nothing is approved here. */
 export function useProposeFromInsight() {
   const qc = useQueryClient()
+  const { role } = useRole()
   return useMutation({
     mutationFn: async (input: { insightSubjectId: string; suggestion: InsightSuggestion; environment: string; kind: CorrectiveActionKind; owner: string; dueDate: string }) => {
       await latency(LATENCY_MS)
@@ -132,6 +139,7 @@ export function useProposeFromInsight() {
         dueDate: new Date(`${input.dueDate}T12:00:00`).toISOString(),
         status: 'proposed',
         verificationDueAt: new Date(new Date(`${input.dueDate}T12:00:00`).getTime() + 60 * 86_400_000).toISOString(),
+        ...proposedStamp({ product: 're', byRole: role.id, note: { en: 'Proposed from an AI Insights suggestion', ar: 'اقتُرح من اقتراح رؤى الذكاء الاصطناعي' } }),
         fromInsight: { subjectId: input.insightSubjectId, suggestionId: input.suggestion.id, recovery: suggestionSentence(input.suggestion) },
       }
       mock.MOCK_CORRECTIVE_ACTIONS.push(action)
@@ -147,6 +155,7 @@ export function useProposeFromInsight() {
 /** KB §6: the manager may "ask for an investigation first" instead of deciding. */
 export function useSendToInvestigation() {
   const qc = useQueryClient()
+  const { role } = useRole()
   return useMutation({
     mutationFn: async (input: { actionId: string; patternId?: string; environment?: string; reason?: string }) => {
       await latency(LATENCY_MS)
@@ -164,6 +173,8 @@ export function useSendToInvestigation() {
         status: 'requested',
       }
       mock.MOCK_INVESTIGATIONS.push(inv)
+      // v40 (F21): the decision to investigate is an audit line too.
+      action.auditLog.push(auditEntry(role.id, { en: `Sent to investigation ${invId(inv.id)}`, ar: `أُرسل إلى التحقيق ${invId(inv.id)}` }))
       return inv
     },
     onSuccess: () => {

@@ -122,7 +122,7 @@ export const AGENT_JDS: AgentJobDescription[] = [
   { id: 6, stage: 'shadow', approvalPct: 99, inputs: b('Actions and status history, events before and after, scores, CRM transactions, runaway flags', 'الإجراءات وتاريخ حالاتها، الأحداث قبل وبعد، التقييمات، صفقات CRM، أعلام الهاربين'), output: b('verification {before, after, drop, verdict, note}; recovery {person, recovered or null}', 'تحقق {قبل، بعد، انخفاض، حكم، ملاحظة}؛ تعافٍ {شخص، تعافى أو غير محدد}'), rules: b('Approve within 5 working days; 60-day window; drop ≥ 50% and no return in 90 days = effective; recovered = 4+ rating, promoter or passive, transaction, or new contact without a complaint within 60 days', 'اعتماد خلال 5 أيام عمل؛ نافذة 60 يوماً؛ انخفاض ≥ 50% بلا عودة خلال 90 يوماً = فعّال؛ تعافى = تقييم 4+، مروّج أو محايد، صفقة، أو تواصل جديد بلا شكوى خلال 60 يوماً'), model: b('Only the verification note', 'ملاحظة التحقق فقط'), supervisorChecks: b('Every number recomputed; windows correct; recovered null before 60 days', 'كل رقم يُعاد حسابه؛ النوافذ صحيحة؛ التعافي غير محدد قبل 60 يوماً'), showsOn: b('Action status, effective rate on AI Insights, recovery on journeys', 'حالة الإجراء، نسبة الفعالية في رؤى الذكاء الاصطناعي، التعافي على الرحلات') },
   { id: 7, stage: 'shadow', approvalPct: 91, inputs: b('All events, classifications, scores, allowed CRM profile fields, transactions', 'كل الأحداث والتصنيفات والتقييمات وحقول CRM المسموحة والصفقات'), output: b('journey {narrative, problems, channels, reach index, runaway type, persona}; persona {rules, size, recommendation, audit status}', 'رحلة {سرد، مشاكل، قنوات، مؤشر وصول، نوع هروب، شخصية}؛ شخصية {قواعد، حجم، توصية، حالة التدقيق}'), rules: b('Runaway types by rule; forced switch 48 h; persona by rules first; minimum persona size 25', 'أنواع الهروب بقاعدة؛ انتقال قسري 48 ساعة؛ الشخصية بالقواعد أولاً؛ أدنى حجم للشخصية 25'), model: b('The narrative, every claim tied to an event id; the persona pattern and recommendation', 'السرد وكل ادعاء مربوط بمعرّف حدث؛ نمط الشخصية والتوصية'), supervisorChecks: b('Cited events exist; allowed fields only; no sensitive inference', 'الأحداث المذكورة موجودة؛ الحقول المسموحة فقط؛ لا استنتاج حساس'), showsOn: b('Customers, Runaway, Personas pages', 'صفحات العملاء والهاربين والشخصيات') },
   { id: 8, stage: 'shadow', approvalPct: 93, inputs: b('Detractor events, capacity settings, interview forms, reason codes, campaign scripts and rules', 'أحداث المنتقدين، إعدادات السعة، نماذج المقابلات، رموز الأسباب، نصوص الحملات وقواعدها'), output: b('call item {priority, due, brief}; interview {outcome, answers, codes, summary, interviewer human or AI}', 'سطر اتصال {أولوية، موعد، ملخص}؛ مقابلة {نتيجة، إجابات، رموز، ملخص، المحاوِر بشري أو ذكاء اصطناعي}'), rules: b('Capacity = people × hours × 4 × working days; critical always 100% and always a person; cooldown 90 days; hand-off rules on every campaign', 'السعة = أشخاص × ساعات × 4 × أيام العمل؛ الحرج 100% ودائماً شخص؛ فترة راحة 90 يوماً؛ قواعد التحويل على كل حملة'), model: b('The brief before the call; the coded summary after it', 'الملخص قبل المكالمة؛ الملخص المرمّز بعدها'), supervisorChecks: b('Capacity arithmetic; critical coverage 100%; brief contains only facts from events', 'حساب السعة؛ تغطية الحرج 100%؛ الملخص من وقائع الأحداث فقط'), showsOn: b('Close the loop page, journey events, report KPI', 'صفحة إغلاق الحلقة، أحداث الرحلة، مؤشر التقرير') },
-  { id: 9, stage: 'shadow', approvalPct: 100, inputs: b('The metric store only', 'مخزن المؤشرات فقط'), output: b('report {period, audience, figures, narrative}', 'تقرير {فترة، جمهور، أرقام، سرد}'), rules: b('Every figure from the store with its sample size; below minimum sample = "too early"; no group NPS; audience rules', 'كل رقم من المخزن مع حجم عينته؛ تحت العينة = "مبكر"؛ لا NPS مجمّع؛ قواعد الجمهور'), model: b('The narrative, every sentence tied to a figure', 'السرد وكل جملة مربوطة برقم'), supervisorChecks: b('Every number in the narrative appears in the table with the same value', 'كل رقم في السرد موجود في الجدول بنفس القيمة'), showsOn: b('Monthly CX pack, per audience', 'الحزمة الشهرية لكل جمهور') },
+  { id: 9, stage: 'shadow', approvalPct: 100, inputs: b('The metric store only', 'مخزن المؤشرات فقط'), output: b('The daily brief per role; the Monthly CX pack; the role summaries; every figure traceable to its register', 'الموجز اليومي لكل دور؛ حزمة CX الشهرية؛ ملخصات الأدوار؛ كل رقم له أثر إلى سجله'), rules: b('Every figure from the store with its sample size; below minimum sample = "too early"; no group NPS; audience rules', 'كل رقم من المخزن مع حجم عينته؛ تحت العينة = "مبكر"؛ لا NPS مجمّع؛ قواعد الجمهور'), model: b('The narrative, every sentence tied to a figure', 'السرد وكل جملة مربوطة برقم'), supervisorChecks: b('Every number in the narrative appears in the table with the same value', 'كل رقم في السرد موجود في الجدول بنفس القيمة'), showsOn: b('Daily brief on Home and on each role’s landing page; Monthly CX pack, per audience', 'الموجز اليومي في الرئيسية وفي صفحة هبوط كل دور؛ الحزمة الشهرية لكل جمهور') },
   { id: 10, stage: 'shadow', approvalPct: 98, inputs: b('Events and CRM stages, instrument definitions, caps, survey history, consent flags, approved templates, original source and service', 'الأحداث ومراحل CRM، تعريفات الأدوات، السقوف، سجل الاستبيانات، أعلام الموافقة، القوالب المعتمدة، المصدر الأصلي والخدمة'), output: b('survey_send {person, instrument, trigger, channel, source, stage}; survey_answer; survey_skip {reason}', 'إرسال {شخص، أداة، محفّز، قناة، مصدر، مرحلة}؛ إجابة؛ تخطٍّ {السبب}'), rules: b('NPS only on a completed milestone · interaction survey once per 30 days, viewing > offer > call · NPS once per 90 days, relationship NPS yearly · "What stopped you?" once per lead at 14 days silent · re-survey 7 to 14 days after resolution, exempt · nobody unidentified, opted out or on an open case', 'NPS فقط عند معلم مكتمل · استبيان تفاعل مرة كل 30 يوماً، معاينة > عرض > مكالمة · NPS مرة كل 90 يوماً، NPS العلاقة سنوياً · "ما الذي أوقفك" مرة لكل عميل محتمل بعد 14 يوم صمت · إعادة الاستبيان بعد 7 إلى 14 يوماً من الحل، معفاة · لا أحد غير معرَّف أو رافض أو في حالة مفتوحة'), model: b('Only the greeting line in the person’s language; the scored questions are fixed text', 'فقط سطر التحية بلغة الشخص؛ الأسئلة المقيَّمة نص ثابت'), supervisorChecks: b('Trigger exists and is allowed for the instrument; caps recomputed; no send to unidentified, opted-out or open-case people; template approved; never NPS without a milestone', 'المحفّز موجود ومسموح للأداة؛ السقوف تُعاد حسابها؛ لا إرسال لغير المعرَّفين أو الرافضين أو أصحاب الحالات المفتوحة؛ القالب معتمد؛ لا NPS بلا معلم'), showsOn: b('Surveys and triggers page (sent, answered, skipped and why), each product page', 'صفحة الاستبيانات والمحفّزات (أُرسل، أُجيب، تُخطّي ولماذا)، صفحة كل منتج') },
 ]
 
@@ -161,7 +161,16 @@ export interface PublicMention {
   replyHours: number | null
   /** The person later identified themselves on a private channel. */
   becameIdentified: boolean
+  /** v40 (F30): who owns the public reply. [Proposed] "Marketing · channel owner" for every row; the KB does not name an owner. */
+  owner: Bi
+  /** v40 (F30): when the mention was marked replied (ISO), set by `useMarkReplied`. */
+  repliedAt?: string
+  /** v40 (F30): the private channel a person moved to. The prototype says "WhatsApp" whatever the channel; this says it per row when known. */
+  channelMovedTo?: 'whatsapp' | 'app'
 }
+
+/** [Proposed] The owner column of the public mentions page; asked of the owner (who owns public replies). */
+export const PUBLIC_REPLY_OWNER: Bi = b('Marketing · channel owner', 'التسويق · مسؤول القناة')
 
 const PUB_ROWS: [PublicPlatform, string, string, string, -1 | 0 | 1, boolean, boolean][] = [
   ['facebook', '2026-10-03', 'Abu Dhabi', 'Nobody called me back after I filled the form on your page.', -1, true, true],
@@ -193,6 +202,7 @@ export const PUBLIC_MENTIONS: PublicMention[] = PUB_ROWS.map(([platform, date, e
   replied,
   replyHours: replied ? REPLY_HOURS[k % REPLY_HOURS.length] : null,
   becameIdentified,
+  owner: PUBLIC_REPLY_OWNER,
 }))
 
 /** Google rating, average of the last 90 days (prototype repIndex sample). */
@@ -242,16 +252,29 @@ export const SURVEY_INSTRUMENTS: SurveyInstrument[] = [
   { id: 'call', name: b('No survey: a person calls', 'لا استبيان: يتصل شخص'), kind: b('Interview', 'مقابلة'), trigger: b('Signed then stalled or cancelled; any critical category; any detractor on the call list', 'وقّع ثم تجمّد أو ألغى؛ أي فئة حرجة؛ أي منتقد في قائمة المكالمات'), channel: b('Phone', 'هاتف'), cap: b('Within 5 working days', 'خلال 5 أيام عمل'), never: b('Critical detractors are never in an AI campaign', 'المنتقدون الحرجون لا يدخلون حملة ذكاء اصطناعي أبداً'), sent: 16, answered: 11 },
 ]
 
-/** Agent 10's log for last month (prototype sample). */
+/** People flagged DNCR in the sample (index 4, 13 and 22 of the 30). A test keeps this equal to the mock people. */
+export const DNCR_PEOPLE_IN_SAMPLE = 3
+
+/**
+ * Agent 10's log for last month (prototype sample). v40 (F25): one model of skip reasons, with sums equal to the
+ * total skipped. [Proposed] the prototype pastes "(DNCR n, cap 31, no consent 6, duplicate 9)" into the page text
+ * and contradicts its own log line; here the six reasons are data and the total is their sum. The spec's
+ * `survey_skip` enum (cap, not_identified, opted_out, open_case, no_milestone) lacks dncr, no_consent and duplicate.
+ */
+const SKIPPED_BY = [
+  { reason: b('Inside a cap', 'داخل سقف'), count: 2210 },
+  { reason: b('Not identified', 'غير معرَّف'), count: 640 },
+  { reason: b('Opted out', 'رافض'), count: 290 },
+  { reason: b('DNCR', 'DNCR'), count: DNCR_PEOPLE_IN_SAMPLE },
+  { reason: b('No consent', 'بلا موافقة'), count: 6 },
+  { reason: b('Duplicate', 'مكرر'), count: 9 },
+]
+
 export const SURVEY_DELIVERY_LAST_MONTH = {
   sent: 7609,
   answered: 2808,
-  skipped: 3140,
-  skippedBy: [
-    { reason: b('Inside a cap', 'داخل سقف'), count: 2210 },
-    { reason: b('Not identified', 'غير معرَّف'), count: 640 },
-    { reason: b('Opted out', 'رافض'), count: 290 },
-  ],
+  skipped: SKIPPED_BY.reduce((s, r) => s + r.count, 0),
+  skippedBy: SKIPPED_BY,
 }
 
 // --- Per product: "When this product asks" (KB §9/§16; prototype PROD_SV) ---

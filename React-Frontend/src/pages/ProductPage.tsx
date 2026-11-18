@@ -140,7 +140,7 @@ export default function ProductPage() {
           description={L(rule.completed)}
           actions={
             <Button variant="outline" size="sm" asChild>
-              <Link to="/surveys">
+              <Link to="/settings/surveys">
                 {t('All surveys', 'كل الاستبيانات')}
                 <ArrowRight aria-hidden className="rtl:rotate-180" />
               </Link>

@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest'
 const ARABIC = /[؀-ۿ]/
 const LATIN_WORD = /[A-Za-z]{3,}/
 
-const modules = import.meta.glob(['../data/*.ts', '../lib/*.ts', '../utils/*.ts', '../services/mockData.ts', '!../**/*.test.ts', '!../lib/motionFeatures.ts'], { eager: true })
+const modules = import.meta.glob(['../data/*.ts', '../lib/*.ts', '../utils/*.ts', '../services/mockData.ts', '../services/mockDataV40.ts', '!../**/*.test.ts', '!../lib/motionFeatures.ts'], { eager: true })
 
 interface Missing {
   where: string

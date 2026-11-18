@@ -103,7 +103,7 @@ describe('mystery shopper scoring', () => {
 })
 
 function det(id: string, severity: DetractorCallItem['severity'], product: DetractorCallItem['product'] = 're', environment = 'Dubai'): DetractorCallItem {
-  return { id, personId: id, product, environment, severity, firstScore: 1, channel: 'human' }
+  return { id, personId: id, product, environment, envId: 'dub', severity, firstScore: 1, channel: 'human', attempts: 0, status: 'to_do' }
 }
 
 describe('close the loop', () => {
@@ -136,7 +136,7 @@ describe('close the loop', () => {
   })
   it('has the ten KB reason codes, and suggests the most frequent one from the timeline', () => {
     expect(Object.keys(REASON_CODE_LABEL)).toHaveLength(10)
-    const i = (flags: Interaction['problemFlags']): Interaction => ({ id: 'i', personKey: 'p', sourceRef: 'r', channel: 'whatsapp', direction: 'inbound', occurredAt: '', product: 're', environment: 'Dubai', language: 'en', problemFlags: flags })
+    const i = (flags: Interaction['problemFlags']): Interaction => ({ id: 'i', personKey: 'p', sourceRef: 'r', channel: 'whatsapp', direction: 'inbound', occurredAt: '', product: 're', environment: 'Dubai', envId: 'dub', language: 'en', problemFlags: flags })
     expect(suggestReasonCode([i(['promise_not_kept']), i(['slow_reply', 'promise_not_kept'])])).toBe('promise_not_kept')
     expect(suggestReasonCode([])).toBe('other')
   })

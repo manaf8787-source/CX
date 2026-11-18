@@ -31,7 +31,7 @@ test('skip link jumps past the navigation to the page content', async ({ page })
 
 test('sidebar links are reachable and work with Enter', async ({ page }) => {
   await ready(page, '/home')
-  const link = page.getByRole('link', { name: /^customers$/i }).first()
+  const link = page.getByRole('link', { name: /customers$/i }).first()
   await tabUntil(page, async () => link.evaluate((el) => el === document.activeElement))
   await expect(link).toBeFocused()
   await page.keyboard.press('Enter')

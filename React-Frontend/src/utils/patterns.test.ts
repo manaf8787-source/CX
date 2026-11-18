@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Signal } from '@/types'
-import { PATTERN_RULES, detectPatterns } from './patterns'
+import { PATTERN_RULES, detectPatterns, detectPatternsCached, whatIf } from './patterns'
 
 const NOW = Date.parse('2026-11-17T12:00:00Z')
 const daysAgo = (d: number) => new Date(NOW - d * 86_400_000).toISOString()
@@ -13,9 +13,11 @@ function sig(over: Partial<Signal> = {}): Signal {
     kind: 'complaint',
     product: 're',
     environment: 'Dubai',
+    envId: 'dub',
     category: 'slow_response',
     occurredAt: daysAgo(1),
     isPublic: false,
+    eventIds: [],
     ...over,
   }
 }
@@ -55,10 +57,10 @@ describe('pattern thresholds (Rules and Definitions, Decision 1)', () => {
   })
 
   it('environment concentration: exactly 50% qualifies, under 50% does not', () => {
-    const half = [...many(5, { category: 'k', environment: 'Dubai' }), ...many(5, { category: 'k', environment: 'Sharjah' })]
+    const half = [...many(5, { category: 'k', environment: 'Dubai' }), ...many(5, { category: 'k', environment: 'PSI Assets' })]
     const envs = detectPatterns(half).filter((p) => p.thresholdKind === 'environment_concentration').map((p) => p.team)
-    expect(envs).toEqual(['Dubai team', 'Sharjah team'])
-    const under = [...many(4, { category: 'k', environment: 'Dubai' }), ...many(3, { category: 'k', environment: 'Sharjah' }), ...many(3, { category: 'k', environment: 'Ajman' })]
+    expect(envs).toEqual(['Dubai team', 'PSI Assets team'])
+    const under = [...many(4, { category: 'k', environment: 'Dubai' }), ...many(3, { category: 'k', environment: 'PSI Assets' }), ...many(3, { category: 'k', environment: 'Abu Dhabi' })]
     expect(kinds(under)).not.toContain('environment_concentration')
   })
 
@@ -90,7 +92,7 @@ describe('pattern thresholds (Rules and Definitions, Decision 1)', () => {
   })
 
   it('gives every pattern a unique id and the signals that formed it', () => {
-    const p = detectPatterns([...many(5, { category: 'q', agentRef: 'ag-2' }), ...many(5, { category: 'r', environment: 'Ajman' })])
+    const p = detectPatterns([...many(5, { category: 'q', agentRef: 'ag-2' }), ...many(5, { category: 'r', environment: 'Abu Dhabi' })])
     expect(new Set(p.map((x) => x.id)).size).toBe(p.length)
     for (const x of p) expect(x.signalIds.length).toBeGreaterThan(0)
   })
@@ -127,5 +129,80 @@ describe('sample data follows the rolling 30-day window', () => {
     const old = mock.MOCK_INTERACTIONS.filter((i) => Date.now() - Date.parse(i.occurredAt) > 30 * 86_400_000)
     expect(mock.MOCK_INTERACTIONS).toHaveLength(120)
     expect(old.length).toBeGreaterThan(40)
+  })
+})
+
+describe('patterns follow the rules (v40 B17, F16, F32)', () => {
+  const three = () => many(3, { category: 'repeat_contact' })
+
+  it('a threshold override changes what counts: same issue at 3 turns three signals into a pattern', () => {
+    expect(kinds(three())).not.toContain('same_issue')
+    const p = detectPatterns(three(), { rules: { sameIssueMin: 3 } }).find((x) => x.thresholdKind === 'same_issue')
+    expect(p).toMatchObject({ currentValue: 3, thresholdTarget: 3 })
+  })
+
+  it('the other rules are overridable too: same agent, concentration, minimum sample, window length', () => {
+    const agent = many(2, { agentRef: 'ag-7', category: 'a' })
+    expect(kinds(agent)).not.toContain('same_agent')
+    expect(kinds(agent, { rules: { sameAgentMin: 2 } })).toContain('same_agent')
+    const small = many(6, { category: 'z' })
+    expect(detectPatterns(small, { rules: { minimumSample: 5 } })[0].hasMinimumSample).toBe(true)
+    expect(detectPatterns(small, { rules: { windowDays: 45 } })[0].windowDays).toBe(45)
+    const mixed = [...many(6, { category: 'c', environment: 'Dubai' }), ...many(4, { category: 'c', environment: 'PSI Assets' })]
+    expect(detectPatterns(mixed, { rules: { environmentConcentrationPct: 60 } }).filter((p) => p.thresholdKind === 'environment_concentration').map((p) => p.team)).toEqual(['Dubai team'])
+  })
+
+  it('a pattern keeps its id and key when other signals change, so a fix stays attached to it', () => {
+    const base = many(5, { category: 'slow_response' })
+    const before = detectPatterns(base).find((p) => p.thresholdKind === 'same_issue')!
+    const after = detectPatterns([...base, ...many(6, { category: 'wrong_language' }), sig({ category: 'slow_response' })]).find((p) => p.thresholdKind === 'same_issue' && p.category === 'slow_response')!
+    expect(after.id).toBe(before.id)
+    expect(after.id).toBe(before.key)
+    expect(before.id).toBe('same_issue:slow_response')
+    expect(after.traceId).toMatch(/^PT-\d{3}$/)
+  })
+
+  it('names keys by kind: same issue by category, same agent by agent, concentration by category and environment', () => {
+    const p = detectPatterns([...many(5, { category: 'q', agentRef: 'Agent 3' }), ...many(10, { category: 'r', environment: 'Abu Dhabi' })])
+    const keys = p.map((x) => x.key)
+    expect(keys).toContain('same_issue:q')
+    expect(keys).toContain('same_agent:agent_3')
+    expect(keys).toContain('environment_concentration:r:abu_dhabi')
+    expect(new Set(p.map((x) => x.traceId)).size).toBe(p.length)
+  })
+
+  it('caches by scope, rules and day, and recomputes when a rule changes', () => {
+    const signals = [...three(), ...many(2, { category: 'wrong_language' })]
+    const rules = { ...PATTERN_RULES }
+    const a = detectPatternsCached('t-all', signals, rules, NOW)
+    expect(detectPatternsCached('t-all', signals, rules, NOW)).toBe(a)
+    expect(a.some((p) => p.thresholdKind === 'same_issue')).toBe(false)
+    const b = detectPatternsCached('t-all', signals, { ...rules, sameIssueMin: 3 }, NOW)
+    expect(b).not.toBe(a)
+    expect(b.some((p) => p.thresholdKind === 'same_issue')).toBe(true)
+    expect(detectPatternsCached('t-other', signals, rules, NOW)).not.toBe(a)
+  })
+
+  it('"What if" counts the patterns with one threshold changed and the current one flagged', () => {
+    const signals = [...many(4, { category: 'a', occurredAt: daysAgo(5) }), ...many(6, { category: 'b', occurredAt: daysAgo(40) }), ...many(3, { category: 'c', agentRef: 'ag-1', occurredAt: daysAgo(2) })]
+    const out = whatIf(signals, { ...PATTERN_RULES }, { sameIssueMin: [3, 4, 5, 6], sameAgentMin: [2, 3, 4], windowDays: [14, 30, 45, 60] }, NOW)
+    // Today (5 same issue, 3 same agent, 30 days): b is outside the window, a has 4, c has 3: only the agent pattern.
+    expect(out.total).toBe(1)
+    const row = (rule: string) => out.rows.find((r) => r.rule === rule)!
+    expect(row('sameIssueMin').cells.map((c) => c.patterns)).toEqual([3, 2, 1, 1]) // each count includes the agent pattern; same issue at 3: a and c; at 4: a; at 5 and 6: none
+    expect(row('sameIssueMin').cells.find((c) => c.isCurrent)?.value).toBe(5)
+    expect(row('sameAgentMin').cells.map((c) => c.patterns)).toEqual([1, 1, 0])
+    expect(row('windowDays').cells.map((c) => c.patterns)).toEqual([1, 1, 2, 2]) // 45 days brings b (6 signals) in
+    expect(row('windowDays').current).toBe(30)
+  })
+
+  it('the sample patterns equal the pattern detection under the default rules, as the read-time computation does', async () => {
+    const mock = await import('@/services/mockData')
+    const { rulesFromConfig } = await import('./ruleValues')
+    const rules = rulesFromConfig(mock.MOCK_RULES_CONFIG)
+    const now = Date.now()
+    const live = detectPatternsCached('t-sample', mock.MOCK_SIGNALS, rules.patterns, now)
+    expect(live.map((p) => p.id)).toEqual(mock.MOCK_PATTERNS.map((p) => p.id))
+    expect(live.map((p) => p.traceId)).toEqual(mock.MOCK_PATTERNS.map((p) => p.traceId))
   })
 })

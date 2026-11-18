@@ -67,4 +67,6 @@ src/
 
 ## Requirements and analysis
 
+**v39/v40 work (18 Nov 2026):** the analysis is [`docs/V40_DELTA.md`](docs/V40_DELTA.md); the contract that the three build workstreams rely on (new hooks, primitives, routes, permissions, data files, stub pages, config keys) is [`docs/V40_FOUNDATION_API.md`](docs/V40_FOUNDATION_API.md).
+
 Everything this app was built against — the product analysis, functional requirements, roles/permissions, module inventory, UI/UX spec, and implementation plan — lives in [`docs/analysis/`](docs/analysis/). The consolidated build report, including every `[Proposed]` placeholder and open question still unresolved in the source documents, is in [`docs/IMPLEMENTATION_REPORT.md`](docs/IMPLEMENTATION_REPORT.md).

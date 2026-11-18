@@ -60,6 +60,16 @@ test.describe('axe — login and overlays', () => {
     })
   }
 
+  test('signal detail dialog (?sg=)', async ({ page }) => {
+    await signInAs(page, 'cxmgr')
+    await page.goto('/actions/signals?sg=SG-1')
+    await expectPageReady(page)
+    await expect(page.getByRole('dialog')).toBeVisible()
+    await waitForAnimations(page)
+    const violations = blocking(await scan(page))
+    expect(violations, JSON.stringify(violations, null, 2)).toEqual([])
+  })
+
   test('assistant sheet', async ({ page }) => {
     await signInAs(page, 'cxmgr')
     await page.goto('/home')

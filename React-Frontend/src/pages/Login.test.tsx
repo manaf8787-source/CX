@@ -28,8 +28,24 @@ describe('sample sign-in', () => {
     expect(readSession()).toBeNull()
   })
 
+  it('shows the six main roles first and folds the rest under "Other roles used in the demo" (v40 F28)', () => {
+    renderWithProviders(<Login />, { route: '/login', path: '/login' })
+    const folded = document.querySelector('details')!
+    expect(screen.getAllByRole('radio')).toHaveLength(12)
+    for (const name of ['CX manager', 'CX team', 'Environment management', 'Marketing manager', 'L&D manager', 'Internal Audit and Marketing Lead']) {
+      const radio = screen.getByRole('radio', { name: (n) => n.toLowerCase().startsWith(name.toLowerCase()) })
+      expect(folded.contains(radio), `${name} is a main role`).toBe(false)
+    }
+    for (const name of ['Sales team lead', 'After-Sales team lead', 'HR specialist', 'HR manager', 'Executive', 'Mystery shopper']) {
+      const radio = screen.getByRole('radio', { name: (n) => n.toLowerCase().startsWith(name.toLowerCase()) })
+      expect(folded.contains(radio), `${name} is folded`).toBe(true)
+    }
+    expect(screen.getByText(/Other roles used in the demo/)).toBeInTheDocument()
+  })
+
   it('signs in with the chosen role and lands on that role’s home page', async () => {
     renderWithProviders(<Login />, { route: '/login', path: '/login', routes: [{ path: '/settings/mystery-shopper', element: <p>Shopper tasks</p> }] })
+    await userEvent.click(screen.getByText(/Other roles used in the demo/))
     await userEvent.click(screen.getByRole('radio', { name: (n) => n.toLowerCase().startsWith('mystery shopper') }))
     await userEvent.type(screen.getByRole('textbox'), '  Sample  ')
     await userEvent.click(screen.getByRole('button', { name: /sign in as/i }))

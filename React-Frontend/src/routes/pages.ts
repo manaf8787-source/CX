@@ -21,6 +21,15 @@ export const pageLoaders = {
   investigations: () => import('../pages/actions/Investigations'),
   settingsLayout: () => import('../pages/settings/SettingsLayout'),
   settingsOverview: () => import('../pages/settings/Overview'),
+  // v40 pages (docs/V40_FOUNDATION_API.md). Overview moved out of Settings to /overview.
+  inbox: () => import('../pages/inbox/Inbox'),
+  overview: () => import('../pages/OverviewPage'),
+  feeds: () => import('../pages/settings/Feeds'),
+  crmMapping: () => import('../pages/settings/CrmMapping'),
+  escalationMatrix: () => import('../pages/settings/EscalationMatrix'),
+  surveyQuestions: () => import('../pages/settings/SurveyQuestions'),
+  weeklySample: () => import('../pages/settings/WeeklySample'),
+  publicMentions: () => import('../pages/settings/PublicMentions'),
   monthlyPack: () => import('../pages/settings/MonthlyPack'),
   mysteryShopper: () => import('../pages/settings/MysteryShopper'),
   standards: () => import('../pages/settings/StandardsRegister'),
@@ -44,11 +53,13 @@ const PATH_LOADERS: [prefix: string, keys: LoaderKey[]][] = [
   ['/runaway', ['runaway']],
   ['/actions', ['actionsLayout', 'corrective']],
   ['/close-the-loop', ['closeTheLoop']],
+  ['/inbox', ['inbox']],
+  ['/overview', ['overview']],
   ['/personas', ['personas']],
   ['/surveys', ['surveys']],
   ['/intelligent-cx-team', ['intelligentCxTeam']],
   ['/products/', ['productPage']],
-  ['/settings', ['settingsLayout', 'settingsOverview']],
+  ['/settings', ['settingsLayout']],
 ]
 
 const started = new Set<LoaderKey>()

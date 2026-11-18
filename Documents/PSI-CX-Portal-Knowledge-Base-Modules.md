@@ -1,60 +1,72 @@
-# PSI CX Portal: Knowledge Base (v38, omnichannel with the intelligent CX team)
+# PSI CX Portal: Knowledge Base (v40, one line of six steps)
 
-Prototype on sample data. Version 38, updated 17 Nov 2026. The illustrated version (60 screenshots) is the Word and PDF document; screenshot names are listed as [Screenshot: name].
+Prototype on sample data. Version 40, updated 18 Nov 2026. The illustrated version (75 screenshots) is the Word and PDF document; screenshot names are listed as [Screenshot: name].
 
 ## Contents
 
 - 1. What the portal is now
 - 2. Who uses it and what each one sees
-- 3. Home: one search
-- 4. Customers: the journey of one person
-- 5. Runaway customers
-- 6. Actions: corrective actions, signals, AI insights, shopper cases, investigations
-- 7. Close the loop
-- 8. Personas and campaigns
-- 9. Surveys and triggers: when we ask, and the lead funnel
-- 10. Sources and public channels
-- 11. The intelligent CX team: ten agents and a supervisor
-- 12. The rules: five decisions as configuration
-- 13. The AI assistant
-- 14. What the terms mean
-- 15. Settings and reference
-- 16. Products
-- 17. Data and integration: phase one
-- 18. Standards: what L&D is writing
-- 19. Open items and version history
+- 3. Home: for anyone, whatever they know
+- 4. My inbox
+- 5. Customers: the journey of one person, everyone on record, who is leaving, personas
+- 6. Who is leaving (a tab of Customers)
+- 7. Signals and fixes: corrective actions, signals, AI insights, shopper cases, investigations
+- 8. Close the loop
+- 9. Personas and campaigns (a tab of Customers)
+- 10. Surveys and triggers: when we ask, the questions, and the lead funnel
+- 11. Sources, data feeds and public channels
+- 12. The intelligent CX team: ten agents and a supervisor
+- 13. The rules: five decisions as configuration
+- 14. The AI assistant
+- 15. What the terms mean
+- 16. Settings and reference
+- 17. Products
+- 18. Data and integration: phase one, and what the CRM review found
+- 19. Standards: what L&D is writing
+- 20. Open items and version history
 
 ## 1. What the portal is now
 
-One place where every customer signal becomes a corrective action, and the owner who fixes it. Version 38, prototype on sample data; nothing is sent.
+One line, six steps: what customers tell us becomes a fix, and the fix is checked. Version 40, prototype on sample data; nothing is sent.
 
-The portal was rebuilt around the customer on 7 to 11 November 2026 and completed on 12 to 17 November with the rules layer, the close-the-loop page, the surveys page and the intelligent CX team. It is an **omnichannel** platform: one record per person (lead or customer), every contact from every channel on one timeline, read by rules and by AI to say what happened, who is leaving and why, and what to fix. The earlier modules (mystery shopper, standards, voice of customer, L&D, structure) still exist and sit under Settings and reference.
+The portal was rebuilt around the customer on 7 to 11 November 2026, completed with the rules layer and the intelligent CX team on 12 to 17 November, and restructured on 17 to 18 November after the CX manager found it hard to follow: every page now sits on **one line of six steps**, every record shows where it is on that line and what happens next, and the CX indicators are the first thing on the home screen. It is an **omnichannel** platform: one record per person, every contact from every source on one timeline, read by rules and by ten AI agents.
+
+### The six steps
+
+| Step | What it means | Where it lives |
+|---|---|---|
+| 1 Listen | Every contact from every source lands on one person, with an EV id | Customers |
+| 2 Signal | What hurt a customer is counted, not worked one by one; SG id | Signals and fixes → Signals |
+| 3 Pattern | Repeats over the line become one pattern; PT id | Signals and fixes → Patterns |
+| 4 Fix | One suggested fix; a person approves; CA id | Signals and fixes → Corrective actions |
+| 5 Check | Did it work at 60 days, and did the customer recover; VR id; the human call to every detractor | Close the loop, and the fix itself |
+| 6 Report | One line per product, every number traceable; RP id | CX indicators, Monthly CX pack, the daily brief |
+
+[Screenshot: home] Home: the six steps at the top, then the daily brief, the indicators per product, the work on you, and the search.
 
 ### The one rule that runs the portal
 
-Everything that hurts a customer arrives as a **signal**: a complaint, a low score, a missed deadline, a bad rating, from any channel. A signal is counted, not worked one by one; the system that owns it (CRM, PSI Club, support) handles the customer. When signals form a **pattern** (same agent three times, same issue five times, or more than half from one environment, within 30 days, on a sample of at least ten), the portal proposes one **corrective action** with an owner, a due date and a 60-day check. A fix is only ever **suggested**; the responsible manager approves, changes, rejects or asks for an investigation first, and nothing starts without that yes. The only things that open a case directly are a critical item seen by the **mystery shopper** (a false promise, an unofficial channel) and a legal, privacy or safety signal, even once. Every detractor gets a human call from the CX team and a re-survey; that is the **close the loop** page. Ten single-task AI agents and one supervisor do the daily work behind these pages; people approve, read the customers' words, see names and call customers.
+Everything that hurts a customer arrives as a **signal** from any source. A signal is counted, not worked one by one. When signals form a **pattern** (same agent three times, same issue five times, or more than half from one environment, within 30 days, on a sample of at least ten), the portal **suggests** one corrective action; the responsible manager approves, changes, rejects or asks for an investigation first, within five working days, and nothing starts without that yes. Only a critical mystery shopper item or a legal, privacy or safety signal opens a case directly. Every detractor gets a human call and a re-survey. Ten single-task AI agents and one supervisor do the daily work; people approve, read the customers' words, see names and call.
 
-> Why: before this rule, the same complaint arrived twice, once through the product's own escalation (for example the PSI Club matrix) and once as a portal case. Now each product keeps its own correction, and the portal fixes the cause.
+> Why: before this rule, the same complaint arrived twice, once through the product's own escalation and once as a portal case. Now each product keeps its own correction, and the portal fixes the cause.
 
-### The seven pages
+### The menu, in step order
 
-| Page | Question it answers | Who uses it |
+| Entry | What it holds | Who uses it |
 |---|---|---|
-| Home | Who or what do you want to know? One search box for a name, a mobile, an ID or a question in your own words | Everyone with portal access |
-| Customers | What happened to this person, over the years, on every channel, and what should we do next? | CX, environment managers, Marketing (no conversation text) |
-| Runaway customers | Who left, went quiet, froze or did not renew, by type, and what did we do wrong? | CX, environment managers, Marketing, executives |
-| Actions | What are we fixing, why, and did it work? Corrective actions, with signals, AI insights, shopper cases and investigations as tabs | CX, environment managers, team leads, L&D, HR |
-| Close the loop | Which unhappy customers do we call this month, what did they tell us, and did they recover? | CX team and CX manager |
-| Personas and campaigns | Who are our customers and leads, and who should Marketing target next, on which channel? | CX, Marketing, executives |
-| Surveys | Where in the journey do we ask, what, how often, and what came back, per product? | CX, product teams, Marketing |
-
-[Screenshot: landing] The entry page: one card per user type. Each opens the portal as that role.
+| Home | The six steps, the daily brief, the CX indicators per product, your work today, the search | Everyone |
+| 1 · Customers | Find a person; everyone on record as a list; who is leaving; personas and campaigns | CX, environment managers, Marketing (no conversation text) |
+| My inbox | Everything on you with a day count: approvals, fixes due, calls, investigations | Everyone with work on them |
+| 2–4 · Signals and fixes | Corrective actions, signals and patterns, AI insights, shopper cases, investigations; hand-offs folded under the fixes | CX, environment managers, team leads, L&D, HR |
+| 5 · Close the loop | Who to call this month, the interview, the re-survey, AI campaigns | CX team and CX manager |
+| 6 · CX indicators | The full numbers per product, the lead funnel, the public reputation index | CX, executives, Marketing, Internal Audit |
+| Settings and reference | Data feeds, CRM mapping, escalation matrix, survey questions, rules as configuration, the intelligent CX team, weekly sample, public mentions, standards, teams, access | CX manager, Internal Audit and Marketing Lead, specialists |
 
 What stays out of the menu because the direction does not use it: the After-Sales call desk, the call center desk and IVR simulation, the survey engine, the suggestions log, the demo walkthrough and the build specification. The code is kept; they are out of the menu.
 
 ## 2. Who uses it and what each one sees
 
-Each role sees one to five pages, inside its authority and its specialty. Only the CX manager has the full view.
+One sign-in; the role comes from the company directory. Six main roles, each seeing three to six entries inside its authority and specialty. Only the CX manager has the full view.
 
 | Role | Pages | Sees | Can |
 |---|---|---|---|
@@ -73,29 +85,62 @@ Each role sees one to five pages, inside its authority and its specialty. Only t
 
 > Standing rules: cases are assigned to the people concerned, never to top management; heads and C-level are informed only. Agent names show only to CX and to the agent's own management. Conversation text (WhatsApp, app chat, CRM notes) is readable by the CX team and the CX manager only. Other teams (L&D, HR, IT, Legal, Marketing, product owners) are receivers: they get a fix or a signal, handle it their own way, and the portal takes back only a status.
 
+[Screenshot: landing] Sign in: six main roles. The other roles used in the demo (team leads, HR, executives, product teams, mystery shoppers) are folded under a link.
+
 [Screenshot: audit-home] The Internal Audit and Marketing Lead's portal: the overview and the audit views, without cases, conversation text or names.
 
 [Screenshot: insacc] AI Insights access: the CX manager's matrix of which role sees which categories, environment, names and actions. Changes apply at once.
 
-## 3. Home: one search
+## 3. Home: for anyone, whatever they know
 
-The home page is one box. A name, a mobile number, an ID or a unit opens the person; a question in your own words goes to the assistant.
+A person who has never seen the portal should be able to use it from this page. It answers four questions in order: what is this, what changed today, how do customers feel, what is on me.
 
-[Screenshot: home] Home for the CX manager: the search box, example requests, and five live numbers (runaway, open actions, personas, journeys, to call), each a button.
+**The six steps** sit at the top with one line each; every step is a button to its page. **"New here? Three things to know"** opens the first time: what the portal does, what the three numbers mean, and that every record says its next step.
 
-**What each user does**
+### The daily brief
 
-- **CX team and manager:** Type a key to open a journey, or a question to get a list, a plan or a campaign from the assistant; the "To call" tile opens Close the loop
-- **Marketing:** Same box; results come without conversation text or agent names
-- **Environment manager:** Same box; results limited to its own environment
+Written at 07:00 by Agent 9 from the same numbers the pages show, one brief per role, every figure checked by the supervisor. Each line is a sentence with the number and the direction, and opens its page: NPS per live product with the change on last month; signals in the window and patterns waiting for a fix; fixes by status (waiting for a yes, in progress, past their date, verified effective, failed); shopper cases open and over the clock; unhappy customers still to call with the recovery rate so far; who is drifting away; public mentions and reply time. An environment manager sees only its environment; Marketing sees NPS, drift and public mentions; L&D sees its training-gap fixes; HR its conduct notes; the Internal Audit and Marketing Lead the weekly sample still to read.
+
+[Screenshot: home-brief] The daily brief for the CX manager. Each line opens the page behind it.
+
+### How customers feel, per product
+
+One card per live product with NPS, CSAT and CES as large numbers, a plain sentence under each ("would recommend us", "happy with the last step", "found it easy"), the number of answers in 90 days, and a "?" that opens the definition with an example. Nothing is averaged across products; there is no group NPS by design. The tiles, the trend chart and the brief use one source for each number.
+
+### Your work today
+
+The first four items from My inbox with their day counts, and a button to the inbox. Below it, the search: a name, a mobile, an ID, or a question in your own words.
+
+[Screenshot: home-work] Indicators per product and "Your work today".
 
 [Screenshot: home-ar] The same page in Arabic. Every page of the portal is bilingual with full right-to-left layout.
 
-## 4. Customers: the journey of one person
+## 4. My inbox
 
-One record per person, lead or customer, with every contact from every channel in date order, each marked with its source, and an AI reading of what happened and what to do next.
+Everything that is on you, ordered by urgency, each row with a day count against the rule that governs it. Nothing here is a notification that can be lost.
+
+| Item | Day count against | Who |
+|---|---|---|
+| A fix waiting for a yes | The approval window: 5 working days from the proposal (Decision 3) | The responsible manager, by title from the matrix |
+| A fix in progress | Its due date | The owner |
+| A 60-day check | The verification date | Agent 6 |
+| A customer to call | The next attempt date; critical first | The CX team member, or the AI campaign |
+| An investigation open | – | Agent 8 |
+| The weekly sample | Thursday | The Internal Audit and Marketing Lead |
+
+[Screenshot: inbox] My inbox for the CX manager: late items in red, days left on the rest, each row opens its record.
+
+Roles that do not land on Home (L&D, HR) get the same items in the daily brief at the top of their landing page.
+
+## 5. Customers: the journey of one person, everyone on record, who is leaving, personas
+
+One page with three tabs: find a person (and browse everyone on record), who is leaving, personas and campaigns. One record per person, every contact in date order with its source and its EV id, and an AI reading of what happened and what to do next.
 
 The search stitches the record by mobile number, email, Emirates ID and CRM contact id. The page shows the CRM profile (type, environment, units and deals, where they live, where they work, income source, preferred channel, language, persona, VIP tag for PSI Club members), four effort tiles (interactions, contacts in 90 days, problems found, days since last contact), the AI reading, and the timeline.
+
+[Screenshot: customers-list] Everyone on record under the search: filters by environment, type and source; last contact, problems found, drifting; export for a call round or a campaign.
+
+**Consent, from the CRM.** Under the profile: consent given or DNCR, and the promo consent per channel (WhatsApp, email, SMS). Agent 10 reads these before sending anything, and the Surveys page counts the skips by reason.
 
 [Screenshot: journey-top] Rashid, an investor since 2016 with three units: profile from the CRM, persona, and the effort tiles.
 
@@ -105,9 +150,9 @@ Four parts, every sentence pointing at a dated event on the timeline: who the pe
 
 [Screenshot: journey-ai] The AI reading for Rashid: passed between teams twice in 2021, a passive score in 2022, no contact for 14 months. Verdict: dormant owner. Next: an account manager call about rental management, which he asked for and never got.
 
-### The timeline and the source badge
+### The timeline, the source badge and the ids
 
-Every event carries a **source badge**: PSI Website, PSI Real Estate app, WhatsApp, call, IVR, branch, email, survey, mystery shopper, PSI Club, PSI Wallet, events, Tour Estate, and the public channels (Facebook, Instagram, LinkedIn, Google). The website and the app are two named sources on every record, never merged, so a web user and an app user can be told apart in every count; they are sources, not products. Each event shows the date, the source, who started it (customer or PSI), the reason, the outcome, any promise with its due time, and the message text where the viewer may see it. Problem events are highlighted: promise not kept, forced channel switch, repeat within 48 hours, slow reply, wrong language, hand-off, detractor. Interview and re-survey events from Close the loop sit on the same timeline.
+Every event carries a **source badge**: PSI Website, PSI Real Estate app, WhatsApp, call, IVR, branch, email, survey, mystery shopper, PSI Club, PSI Wallet, events, Tour Estate, and the public channels (Facebook, Instagram, LinkedIn, Google). The website and the app are two named sources on every record, never merged, so a web user and an app user can be told apart in every count; they are sources, not products. Each event shows the date, the source, who started it (customer or PSI), the reason, the outcome, any promise with its due time, and the message text where the viewer may see it. Problem events are highlighted: promise not kept, forced channel switch, repeat within 48 hours, slow reply, wrong language, hand-off, detractor. Interview and re-survey events from Close the loop sit on the same timeline. Every row carries its **EV id**, and a row that became a signal shows the **SG id** beside it; clicking it opens the signal with its full trace.
 
 [Screenshot: journey-timeline] The timeline, newest first, filtered by channel, each row with its source badge. Highlighted rows are the problems the rules found.
 
@@ -131,7 +176,7 @@ Every event carries a **source badge**: PSI Website, PSI Real Estate app, WhatsA
 
 [Screenshot: journey-ar] The journey in Arabic.
 
-## 5. Runaway customers
+## 6. Who is leaving (a tab of Customers)
 
 Everyone who left, went quiet, froze or did not renew, by type, with what the record says we did wrong. The point is not to chase each one; it is to learn and fix the cause for the next ones.
 
@@ -152,7 +197,7 @@ The thresholds (14 days, 30 days, 12 months) are settings. The order of learning
 
 [Screenshot: env-runaway] The same page for the Dubai environment manager: only Dubai people.
 
-## 6. Actions: corrective actions, signals, AI insights, shopper cases, investigations
+## 7. Signals and fixes: corrective actions, signals, AI insights, shopper cases, investigations
 
 One page for what we are fixing, why, and whether it worked. Corrective actions are the main tab; signals and patterns, AI insights, shopper cases and investigations are the other four.
 
@@ -165,6 +210,20 @@ One action per pattern, with one owner, a due date and a 60-day check. Flow: Pro
 Every action carries a panel "How the AI found this": the sources and dates, the rule that fired with its threshold, where, who (names only for roles allowed to see them), why this team, why this action (recovered in X of N similar closed cases), and what the AI did not do. The same panel appears on every pattern card, so an L&D manager or an environment manager can judge a suggestion without asking CX.
 
 [Screenshot: action-detail] CA-203 as the L&D manager sees it: the payment plans sheet and AI script, with "How the AI found this" open.
+
+### The trace: back to the message, forward to the report
+
+Every fix and every signal carries a **Trace** card with six columns, one per step, and every id in the chain as a button: the events (EV) that produced the signals, the signals (SG), the pattern (PT), the fix (CA), the check (VR) and the report (RP). From a fix you can walk back to the original WhatsApp message and forward to the month it was counted in. Under the card: "What happens next". Public mentions never link to a person, and the card says so.
+
+[Screenshot: action-trace] The Trace card on CA-203: three events, four signals, one pattern, the fix, the check and the report.
+
+[Screenshot: signal-trace] A signal opened from the list: its classification, and its own trace.
+
+### Audit trail
+
+Every change on a fix is kept: when, what, by which role. Approve, change, reject, send to investigation, mark done; nothing is deleted. The Internal Audit and Marketing Lead reads it; so does anyone asked "who decided this".
+
+[Screenshot: action-audit] The audit trail at the bottom of a fix.
 
 ### Classification: the kind of problem decides who gets it
 
@@ -181,7 +240,7 @@ Every action is classified into one of eight kinds, and the kind decides the pat
 | Legal and privacy | A customer's details shared on a group, a document sent to the wrong person: even once | Straight to Legal as a case, the CX manager informed |
 | Marketing | A group of customers to win back (investors abroad who went quiet after one call) | The Internal Audit and Marketing Lead first, then Marketing |
 
-[Screenshot: action-class] The classification block on an action: the kind, the path, who receives it and what comes back.
+[Screenshot: action-class] The classification block on an action: the kind, the path, who receives it and what comes back, and the line read from the escalation matrix (receiver, informed, backup, clocks).
 
 ### Signals and patterns
 
@@ -193,11 +252,11 @@ Every complaint, low score, breach, rating and public mention from every source 
 
 [Screenshot: signals-rules] Rules and thresholds, with the definitions that make the model work.
 
-### Hand-offs
+### Hand-offs (folded under the fixes)
 
-A correction for one customer that another system owns: a do-not-call flag in the CRM, a recovery call, a PSI Club member recovery item (to agree with Abu Omar). The portal records where it went and checks it was done; no clock runs here.
+A correction for one customer that another system owns: a do-not-call flag in the CRM, a recovery call, a PSI Club member recovery item (to agree with Abu Omar). The portal records where it went and checks it was done; no clock runs. It is no longer a tab of its own: it sits folded at the bottom of the Corrective actions tab, because it is the same question, where does the correction go.
 
-[Screenshot: signals-handoffs] Hand-offs with their status and the hand-off rules by signal type.
+[Screenshot: signals-handoffs] Hand-offs folded under the fixes.
 
 ### AI Insights
 
@@ -215,17 +274,17 @@ Only the mystery shopper and a legal or privacy signal open a case directly. A s
 
 ### Investigations
 
-When the evidence behind a pattern is thin, the portal does not guess a fix. The Investigate tab lists the weak signals (same issue, under the sample floor or with no clear cause) and offers two ways to learn more before an action: request five customer interviews (Close the loop picks the people) or request a mystery shopper check of that environment and scenario. The result comes back as evidence on the pattern, and only then is a fix proposed.
+When the evidence behind a pattern is thin, the portal does not guess a fix. The Investigate tab lists the weak signals (same issue, under the sample floor or with no clear cause) and offers two ways to learn more before an action: request five customer interviews (Close the loop picks the people) or request a mystery shopper check of that environment and scenario. The result is recorded with "Record the result": it becomes evidence on the pattern (shown on the pattern card) and Agent 5 proposes a fix from it, for approval. Only then does the pattern get a fix.
 
 [Screenshot: investigate] Investigate: the weak signals and, for each, interviews or a shopper check.
 
 [Screenshot: investigate-form] Requesting a mystery shopper check: environment, scenario and what to look for.
 
-## 7. Close the loop
+## 8. Close the loop
 
 Every detractor gets a human call from the CX team, a reason code and a re-survey. The page lists who to call this month, holds the interview, and runs the AI calling campaigns the team chooses to create.
 
-**Who** (Decision 3). Every customer scored as a detractor (NPS 0 to 6, CSAT 1 or 2, CES at the worst end) or who complained goes on the list, critical ones first. Agent 8 ranks them and checks the month's capacity: people × hours per day × 4 calls per hour × working days; in the sample, 420 calls against 16 detractors, so everyone is called. **How**: a person from the CX team calls, by default. The brief is prepared by the agent (what happened, in date order, from the timeline), and the interview is four questions: what happened, what did you expect, what would have made it right, may we come back to you. The caller picks a reason code (slow or no reply, promise not kept, wrong or missing information, attitude, paperwork or hand-off, app or website, price or payment plan, nothing suitable, had to switch channels, other) and an outcome (reached, resolved on the call, declined, asked for a call back). Declined means no retry.
+**Who** (Decision 3). Every customer scored as a detractor (NPS 0 to 6, CSAT 1 or 2, CES at the worst end) or who complained goes on the list, critical ones first. Agent 8 ranks them and checks the month's capacity: people × hours per day × 4 calls per hour × working days; in the sample, 420 calls against 16 detractors, so everyone is called. **How**: a person from the CX team calls, by default. The brief is prepared by the agent (what happened, in date order, from the timeline), and the interview is four questions: what happened, what did you expect, what would have made it right, may we come back to you. The caller picks a reason code (slow or no reply, promise not kept, wrong or missing information, attitude, paperwork or hand-off, app or website, price or payment plan, nothing suitable, had to switch channels, other) and an outcome (reached, resolved on the call, declined, asked for a call back). Declined means no retry. **Calling rules**: only between 09:00 and 18:00 UAE time, up to three attempts, the next one the following working day; after the last attempt a WhatsApp message goes out and the person is flagged "needs a human" for the CX manager. The list shows the attempt count and the next date.
 
 [Screenshot: loop-list] Close the loop, the list: who to call this month, with the score, the reason, the status and the capacity line.
 
@@ -249,7 +308,7 @@ Humans call by default. The CX team may create an **AI interview campaign** for 
 
 [Screenshot: loop-ar] Close the loop in Arabic.
 
-## 8. Personas and campaigns
+## 9. Personas and campaigns (a tab of Customers)
 
 Who our customers and leads are, built from what they did, said and scored, not from assumptions. Each persona carries a recommendation to Marketing.
 
@@ -270,7 +329,7 @@ How the personas are built: first by rules on CRM fields (residence, work sector
 
 [Screenshot: marketing-home] The Marketing manager's portal: home, customers, runaway and personas, without conversation text or agent names.
 
-## 9. Surveys and triggers: when we ask, and the lead funnel
+## 10. Surveys and triggers: when we ask, the questions, and the lead funnel
 
 Decision 5: ask only after something meaningful, never on a public channel, never more than the caps, and one line per product. Agent 10 watches for the moment and sends.
 
@@ -302,13 +361,19 @@ The funnel is the frame for every transactional survey. In the sample, 9,000 lea
 
 Each product has its own NPS, CSAT and CES line and its own moments; there is no group NPS by design, because Tour Estate, PSI Club and PSI Events are separate businesses with different customers. PSI Real Estate asks after the call, the viewing, the offer and the signed deal. After-Sales asks after handover, a closed ticket and renewal. PSI Club leads ride the Real Estate journey with a VIP tag; members get a member NPS at the end of a nomination cycle. Tour Estate asks the end-of-tour survey only after a completed tour (driver, guide, ride, car, cleanliness, then NPS); the stop survey goes to the commercial team, not to the portal. PSI Events has no NPS: an external QR rating at the booth and an internal staff evaluation. PSI Wallet (pilot) asks CES after a failed or completed upload and an investor survey, draft.
 
+### The questions themselves
+
+The Survey questions page (under Settings) holds the exact questions per product and moment in both languages, with a preview of what the customer receives: the NPS question and its reason, the CSAT and CES pair after a call, viewing or offer, "What stopped you?" with its six answers, the After-Sales NPS and CES after a closed ticket, the PSI Club member NPS, the five Tour Estate questions plus NPS, the Events booth rating and staff evaluation, and the re-survey, which repeats the first question word for word.
+
+[Screenshot: survey-questions] Survey questions for PSI Real Estate, with the customer-view preview.
+
 [Screenshot: surveys-products] By product: the same rule, different moments. Each product on its own line.
 
 [Screenshot: product-re-surveys] On the PSI Real Estate product page: "When this product asks", with the moments and the caps.
 
-> Agent 10 (Survey triggers and delivery) watches every person's events, sends the right instrument at the right moment in the person's language on the channel they used, applies the caps and the priority inside the window, and logs sent, answered and skipped, with the reason for every skip. Nothing is sent in the prototype.
+> Agent 10 (Survey triggers and delivery) watches every person's events, sends the right instrument at the right moment in the person's language on the channel they used, applies the caps and the priority inside the window, and logs sent, answered and skipped, with the reason for every skip: DNCR, cap reached, no consent, duplicate. Nothing is sent in the prototype.
 
-## 10. Sources and public channels
+## 11. Sources, data feeds and public channels
 
 Where feedback comes from, which of it belongs to a person, and how the public channels are read without ever surveying them.
 
@@ -324,11 +389,29 @@ Where feedback comes from, which of it belongs to a person, and how the public c
 
 **Why the public channels are never surveyed.** A comment on Instagram cannot be tied to a customer, a stage or an agent with any confidence, so an NPS question there would measure nothing and annoy everyone. Instead the mention is counted as a signal (Agent 3), answered in public within 48 hours by the channel owner, and summarised in the **public reputation index**: volume, share negative, average rating where the channel has one (Google), reply rate and time, by channel and month. If the person then writes to us on WhatsApp or the app, the two meet on the timeline as a forced channel switch.
 
-[Screenshot: overview-reputation] The public reputation index on the Overview: mentions, share negative, Google rating, reply time, per channel.
+[Screenshot: overview-reputation] The public reputation index on the CX indicators page: mentions, share negative, Google rating, reply time, per channel.
+
+**Working the mentions.** The Public mentions page lists every comment with its tone, reply status (replied in N hours, awaiting, over 48 hours), whether the person moved to WhatsApp, and the owner (Marketing, the channel owner). "Mark replied" updates the index.
+
+[Screenshot: public-mentions] Public mentions with reply status and owner.
+
+### Data feeds: three CRM environments, separate databases
+
+Abu Dhabi, Dubai and PSI Assets run the same business on three separate CRM environments, each with its own version and database (confirmed 17 November). The portal connects to each one on its own and tags every record with its environment; WhatsApp, the AI caller, the app and website, the surveys and the public channels are shared feeds. The Data feeds page shows each feed with its last received time, status and record count, and the **"Data as of"** bar on every page shows the latest time and flags a late feed. The **environment switch** beside it narrows every register to one environment; an environment manager is fixed to their own.
+
+[Screenshot: feeds] Data feeds: the three CRM environments and the shared sources, with status.
+
+### CRM mapping: the translation, as configuration
+
+The CRM has over a hundred media values, thirteen lead stages and 761 activity types; the portal has nine sources, six stages and eleven events. The CRM mapping page is the translation: Media → portal source (PSI Mobile App → app; Website and www.psinv.net → web; Facebook → public; Property Finder and Bayut → portals; event names → event), lead stage → funnel stage (New and Not Contacted → enquiry; Contacted, Qualified, Pending matching, Active → contacted; Meeting and Viewing → viewing; Opportunity and Negotiation → offer; Reservation, Contract Signed, Closed Won → deal), activity category → event (Calls → call, with the over-2-minutes trigger; Handover Workflow → handover done; Client Complaint → complaint; Lease Renewal → renewal; Maintenance → ticket; Survey Completed → survey). Filled once with the CRM owner; unmapped values default to "Ignore" and appear in the weekly sample.
+
+[Screenshot: mapping] CRM mapping: media values to portal sources.
+
+[Screenshot: mapping-stages] CRM mapping: lead stages to funnel stages.
 
 **Website against app.** The two are separate sources because the people differ: a website visitor is usually earlier in the journey and often not yet identified; an app user has signed in and can be asked CES after an abandoned step. The funnel, the signals and the product lines all show the two side by side, and no number mixes them.
 
-## 11. The intelligent CX team: ten agents and a supervisor
+## 12. The intelligent CX team: ten agents and a supervisor
 
 Ten single-task AI agents do the daily work of the pages above; a supervisor checks every output before it moves on; people approve, read, see names and call. This is the CX portal's part of the company direction of one AI team per function.
 
@@ -344,7 +427,7 @@ Ten single-task AI agents do the daily work of the pages above; a supervisor che
 | 6 Verification | Run the action clock, measure whether each done action worked at 60 days, mark each customer recovered or not | Daily 06:00 and on every status change | Actions, signals, events after the action | Effective, partial, failed; recovered flags; the recovery delta | None; a failed action reopens the signal for a person |
 | 7 Journey, runaway and personas | Read one person's record and write the reading; find who is drifting; build and refresh the personas | On search; nightly for changed people; weekly persona refresh | The timeline, CRM profile, scores | The AI reading, runaway type, persona | The CX manager approves personas |
 | 8 Close the loop | Decide who the CX team calls this month within capacity, prepare each brief, code each interview; run the AI campaigns the team creates | On each detractor; capacity run on the 1st; on each submitted interview | Detractors, capacity, interviews | The call list, briefs, suggested codes, campaign results | The CX team creates campaigns; critical never in a campaign |
-| 9 Reporting | Produce the monthly management report and the role summaries from the same computed figures the pages show, one line per product, no names | First working day of the month; on demand | Every register | The Monthly CX pack, role summaries | The CX manager releases it |
+| 9 Reporting | The daily brief per role at 07:00, the monthly management report and the role summaries, from the same computed figures the pages show, one line per product, no names | Daily 07:00; first working day of the month; on demand | Every register | The Monthly CX pack, role summaries | The CX manager releases it |
 | 10 Survey triggers and delivery | Watch every person's events, send the right instrument at the right moment, apply the caps and priorities, log sent, answered, skipped | On every event; daily 09:00 for time-based triggers | Events, the survey rules, the caps | Sent surveys, skips with reasons | None; the rules are configuration |
 
 [Screenshot: agents-roster] The roster: each agent with its stage (shadow, limited, live, phase 2), its last run and its pass rate at the supervisor.
@@ -357,7 +440,11 @@ Between every two agents there is one supervisor with six checks, the same for e
 
 [Screenshot: agents-supervisor] The supervisor card: the six checks, the pass rate per agent, and the weekly sample.
 
-> Every week the CX team and the Internal Audit and Marketing Lead read 50 passed outputs by eye; every miss becomes a new test for the supervisor. The full specification for developers is the separate document "CX Portal AI Agents: Specification".
+**The weekly sample** is a page: fifty outputs that passed the supervisor this week (proposed fixes, classifications, interview briefs, journey readings, signal counts), each with a Right or Wrong button. Wrong lowers that agent's pass rate and becomes a new test for the supervisor. The page shows read so far, wrong, accuracy this week and the Thursday due date; the daily brief reminds the Internal Audit and Marketing Lead how many are left.
+
+[Screenshot: weekly-sample] The weekly sample: 50 outputs, right or wrong.
+
+> The full specification for developers is the separate document "CX Portal AI Agents: Specification".
 
 ### How it is switched on
 
@@ -369,7 +456,7 @@ Between every two agents there is one supervisor with six checks, the same for e
 
 [Screenshot: agents-ar] The intelligent CX team in Arabic.
 
-## 12. The rules: five decisions as configuration
+## 13. The rules: five decisions as configuration
 
 The rules layer agreed on 12 to 16 November 2026. Every number below is a setting under Settings, "Rules as configuration", changed by the CX manager without a developer. The full text is the separate document "CX Portal: Rules and Definitions".
 
@@ -383,11 +470,17 @@ The rules layer agreed on 12 to 16 November 2026. Every number below is a settin
 
 [Screenshot: settings-config] Settings, "Rules as configuration": every threshold of the five decisions, editable in place.
 
-### The escalation matrix: template and principles
+**One place.** The Rules tab under Signals shows the same numbers and points here; there is no second copy. **What if**: under the thresholds, a table shows how many patterns there would be with each candidate value (same issue 3, 4, 5, 6, 8; same agent 2 to 5; window 14 to 60 days), the current setting in bold, so a change is seen before it is made.
 
-One table per product: rows are the eight kinds of action (section 6) and the two case types (shopper critical, legal); columns are first receiver, informed, backup, and the response and resolution clocks in working hours. Principles: the receiver is the person who can fix it, never top management; heads and C-level are informed only; an employee kind goes to the direct manager and nowhere else; legal goes to Legal first; anything touching a customer's contact goes through the CX team; every cell names a title, not a person, and the CRM supplies who holds the title. The product owners fill the cells with the Internal Audit and Marketing Lead.
+[Screenshot: signals-whatif] What if: the pattern count for each candidate threshold.
 
-## 13. The AI assistant
+### The escalation matrix as a page
+
+One table per product: rows are the eight kinds of fix plus the two case types (shopper critical, legal); columns are first receiver, informed, backup, respond and resolve in working hours. Titles only; the CRM supplies who holds the title. The defaults are proposals until the product owners fill the cells with the Internal Audit and Marketing Lead by 28 November. Every fix shows its line from the matrix in its classification block.
+
+[Screenshot: matrix] The escalation matrix for PSI Real Estate, editable by the CX manager and the Internal Audit and Marketing Lead.
+
+## 14. The AI assistant
 
 Ask in Arabic or English, by voice or text. The assistant filters people from the CRM and every channel, explains what happened, builds a corrective action plan, or a campaign brief.
 
@@ -405,7 +498,7 @@ Two engines. When the portal runs inside claude.ai and the viewer allows it, Cla
 
 Voice uses the browser's speech recognition (Chrome and Edge) in the portal's language; press the microphone, speak, and the request runs when you stop. On browsers without it the microphone is hidden and typing remains.
 
-## 14. What the terms mean
+## 15. What the terms mean
 
 A "?" beside every metric and heading, a "What the terms mean" button on every page, and the glossary.
 
@@ -417,6 +510,10 @@ Each definition says what the term is, how it is calculated and gives an example
 
 | Term | Short meaning |
 |---|---|
+| EV, SG, PT, CA, VR, RP | The ids of the six steps: event, signal, pattern, corrective action (fix), verification (check), report; every record carries its chain |
+| Daily brief | Five to eight sentences written by Agent 9 at 07:00 for one role, each opening its page |
+| My inbox | Everything on you with a day count against the rule that governs it |
+| Data as of | The latest feed time on the page; a late feed is flagged, never silent |
 | Mystery shopper score (MPS) | Share of checklist items met in approved visits, 0 to 100; only approved standards are scored |
 | App CSAT | Average in-app rating 1 to 5; a 1 or 2 counts as a detractor |
 | Signal | Any complaint, low score, breach, rating or public mention from any source, counted not worked |
@@ -434,15 +531,19 @@ Each definition says what the term is, how it is calculated and gives an example
 | Persona | A group of customers who behave alike, built from the CRM and the timeline |
 | Omnichannel | One record per person with every source on it; many channels that know each other |
 
-## 15. Settings and reference
+## 16. Settings and reference
 
 The earlier modules, now folded under one menu entry. Opened for planning and configuration, not every day.
 
-### Overview and Monthly CX pack
+### Data feeds, CRM mapping, escalation matrix, survey questions, weekly sample, public mentions
+
+Six pages added in v40, each described in its own section: Data feeds and CRM mapping (section 11), the escalation matrix (section 13), the survey questions (section 10), the weekly sample (section 12), the public mentions (section 11).
+
+### CX indicators (Overview) and Monthly CX pack
 
 The Overview opens with the customers-and-runaways strip and the signals-and-actions strip, then the indicators per product (NPS, CSAT, CES, responses, open actions, each product on its own line, no group number by design), the lead funnel, the public reputation index, NPS by month and by channel, the product-by-channel heatmap and why detractors are unhappy. The Monthly CX pack is the one page for the management meeting, with the same numbers, the shopper cases by environment and product, what AI Insights found and whether past fixes worked; Agent 9 writes it on the first working day. The pack downloads as CSV.
 
-[Screenshot: overview] Overview for the CX manager.
+[Screenshot: overview] CX indicators for the CX manager, with the "what happens next" box pointing to the monthly pack.
 
 [Screenshot: overview-products] Indicators per product: each product on its own line, and "Group NPS: none, by design".
 
@@ -476,7 +577,7 @@ The Intelligent CX team page (section 11) lives here. Teams and structure shows 
 
 [Screenshot: settings] Settings: the launch list and the rules as configuration.
 
-## 16. Products
+## 17. Products
 
 Six products, two live. Not-launched products stay out of the menu, the entry page and the filters until the CX manager switches them on. Each product has its own survey moments and its own line of numbers; nothing is combined.
 
@@ -495,7 +596,7 @@ PSI Wallet was added on 9 November, built like PSI Club. Its page shows the pilo
 
 [Screenshot: product-wallet] PSI Wallet product page, switched on for planning.
 
-## 17. Data and integration: phase one
+## 18. Data and integration: phase one, and what the CRM review found
 
 How the pages get live data. Summary of the Phase One Omnichannel Integration Plan (separate document, 9 November 2026), extended with the public feeds and the agents.
 
@@ -513,11 +614,13 @@ How the pages get live data. Summary of the Phase One Omnichannel Integration Pl
 | Facebook, Instagram, LinkedIn, Google | Public mentions and ratings, reply time; no personal matching | Marketing, with the Internal Audit and Marketing Lead |
 | PSI Club, PSI Wallet, Tour Estate, Events | Referral status and breach log; Wallet events; completed tours; booth ratings | Each product team |
 
+**The CRM review (17 November, Abu Dhabi, read-only).** The CRM is richer than assumed: source on every lead (Media, Media detail, method, campaign), a 13-step stage ladder, close reason, last activity, a History tab with time in each stage and every agent who held the lead; 761 activity types in categories; consent, DNCR and promo consent per channel on the contact; a WhatsApp communication log per lead. Missing or to build, as the request list to the CRM owner: call duration and outcome; an explicit "viewing completed" marker; a frozen-deal flag; the customer-side close reasons; direction and text on the WhatsApp log; survey results (only one activity type exists); payment milestone events and a handover date on the deal; a closure outcome on complaints; read access (API, webhook or database); and the two mapping tables, now kept as configuration in the portal. The full sheet is the separate document "CRM Field Mapping for the CX Portal".
+
 **Identity.** The mobile number is the working key and the CRM contact id the anchor; a match on two keys merges, on one key is reviewed; old numbers stay as aliases; public mentions are never matched unless the person identifies themselves. **Access.** Conversation text to the CX team and CX manager only; retention to confirm with Legal under the UAE data protection law.
 
 **Plan.** The base (omnichannel integration, the L&D standards and the rules layer) comes before the platform: Decide 11 to 28 November; Base 1 December to 29 January; Build and pilot 1 February to 26 March; Scale 29 March to 7 May; then Run. The agents go through shadow, limited and live inside Build and pilot. Everything on the pages is generated sample data until then; the rules are the design and run unchanged on live data.
 
-## 18. Standards: what L&D is writing
+## 19. Standards: what L&D is writing
 
 The platform runs on written standards read by five instruments: the shopper checklist, the signal rules, the survey questions, the journey analysis and the corrective-action owners. Summary of the Standards Documentation List for L&D (10 November 2026).
 
@@ -534,12 +637,13 @@ L&D leads the creation, with George as head of the unit, and a champion from eac
 
 Priority 1, before the second shopper wave (end of November): accurate information, approved promises and discounts, official channels, communication, reception and greeting, dress code. Priority 2, before live chat signals: reply time per channel, chat conduct and language, promise and callback. Priority 3, before the runaway and journey pages: lead follow-up, customer ownership and hand-off, renewal, handover.
 
-## 19. Open items and version history
+## 20. Open items and version history
 
 What is still to decide, and how the prototype got here.
 
 ### Open items
 
+- From the CRM review: call duration and outcome, the viewing-completed marker, the frozen-deal rule, the customer-side close reasons, direction and text on the WhatsApp log, survey write-back, payment milestones and handover date, complaint closure, and read access; to ask the CRM owner.
 - The escalation matrix cells per product, to be filled by the product owners with the Internal Audit and Marketing Lead by 28 November.
 - The customer journey stages per service (buying, renting, investing, listing) to be confirmed with Marketing from the Customer Journey Template; the funnel stages are marked proposed until then.
 - Mystery shopper scenario examples per severity, with the team.
@@ -561,4 +665,6 @@ What is still to decide, and how the prototype got here.
 | v33 to v35 | 7 to 9 Nov | Omnichannel rebuild: customer journey, runaway customers, personas and campaigns, AI assistant; simplified to one search and four pages |
 | v36 to v37 | 9 to 11 Nov | What the terms mean; PSI Wallet product; knowledge base for v37 |
 | v38 | 12 to 17 Nov | Source badges and public channels; per-product lines, no group NPS; lead funnel; Close the loop with interviews, re-survey and AI campaigns; the intelligent CX team (ten agents and a supervisor); action classification and routing; investigations; rules as configuration; Internal Audit and Marketing Lead role; Surveys and triggers; per-product survey moments; Agent 10 |
-| This document | 17 Nov 2026 | Knowledge base rewritten for v38 |
+| v39 | 18 Nov | Home rebuilt for anyone: six steps, CX indicators per product, daily brief per role, "where you are and what happens next" on every page and fix, menu in step order |
+| v40 | 18 Nov | Trace ids EV→SG→PT→CA→VR→RP with a Trace card; data feeds and the environment switch; CRM mapping; My inbox with day counts; audit trail; escalation matrix page; survey questions; consent and DNCR; investigations close with evidence; calling hours and retries; one sign-in with six roles; customers list; public mentions; weekly sample; what-if thresholds; Arabic and mobile |
+| This document | 18 Nov 2026 | Knowledge base rewritten for v40 |

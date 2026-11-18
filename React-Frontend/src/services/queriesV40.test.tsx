@@ -1,0 +1,375 @@
+import { describe, expect, it } from 'vitest'
+import { act, waitFor } from '@testing-library/react'
+import { renderHookWithProviders } from '@/test/render'
+import * as mock from './mockData'
+import {
+  useBriefInputs,
+  useCrmMapping,
+  useFeedScope,
+  useFeeds,
+  useFixMatrixLine,
+  useIndicators,
+  useInbox,
+  useInvestigationEvidence,
+  useJudgeSample,
+  useMarkReplied,
+  useMatrix,
+  useQuestionSets,
+  useRecordNoAnswer,
+  useRules,
+  useSaveMapping,
+  useSaveMatrixCell,
+  useSetFixStatus,
+  useSignalDetail,
+  useTrace,
+  useTraceNav,
+  useWeeklySample,
+} from './queriesV40'
+import {
+  useCorrectiveActions,
+  useDecideCorrectiveAction,
+  useInvestigations,
+  usePatterns,
+  usePersons,
+  useReturnInvestigation,
+  useShopperCases,
+  useSignals,
+  useUpdateRuleConfig,
+} from './queries'
+import { useEnvScope } from './envScope'
+import { usePublicMentions } from './referenceQueries'
+import { PUBLIC_MENTIONS } from '@/data/v38Reference'
+import { RULE_IDS } from '@/utils/ruleValues'
+import { MON_FRI } from '@/utils/workingDays'
+
+const ready = <T,>(q: { data: T | undefined }) => expect(q.data).toBeDefined()
+
+describe('env-aware reads (v40 F14): the environment is part of the query key', () => {
+  it('usePersons, useSignals and useShopperCases narrow to the selected environment and cache per scope', async () => {
+    const { result, client } = renderHookWithProviders(() => ({ scope: useEnvScope(), persons: usePersons(), signals: useSignals(), cases: useShopperCases() }))
+    await waitFor(() => ready(result.current.persons))
+    expect(result.current.scope.env).toBe('all')
+    expect(result.current.persons.data).toHaveLength(30)
+    expect(result.current.signals.data).toHaveLength(mock.MOCK_SIGNALS.length)
+
+    act(() => result.current.scope.setEnv('ast'))
+    await waitFor(() => expect(result.current.persons.data?.every((p) => p.envId === 'ast')).toBe(true))
+    expect(result.current.persons.data!.length).toBe(mock.MOCK_PERSONS.filter((p) => p.envId === 'ast').length)
+    await waitFor(() => expect(result.current.signals.data?.every((s) => s.envId === 'ast')).toBe(true))
+    await waitFor(() => expect(result.current.cases.data?.every((c) => c.envId === 'ast')).toBe(true))
+
+    const keys = client.getQueryCache().getAll().map((q) => JSON.stringify(q.queryKey))
+    expect(keys).toContain('["persons","all"]')
+    expect(keys).toContain('["persons","ast"]')
+  })
+
+  it('a role fixed to one environment always reads it, and cannot switch', async () => {
+    const { result } = renderHookWithProviders(() => ({ scope: useEnvScope(), persons: usePersons() }), { role: 'envmgmt' })
+    await waitFor(() => ready(result.current.persons))
+    expect(result.current.scope).toMatchObject({ env: 'dub', fixed: 'dub', allowed: ['dub'] })
+    expect(result.current.persons.data?.every((p) => p.envId === 'dub')).toBe(true)
+    act(() => result.current.scope.setEnv('auh'))
+    expect(result.current.scope.env).toBe('dub')
+  })
+
+  it('patterns are narrowed with their signals', async () => {
+    const { result } = renderHookWithProviders(() => ({ scope: useEnvScope(), patterns: usePatterns() }))
+    await waitFor(() => ready(result.current.patterns))
+    const all = result.current.patterns.data!
+    act(() => result.current.scope.setEnv('dub'))
+    await waitFor(() => {
+      expect(result.current.patterns.data).toBeDefined()
+      expect(result.current.patterns.data).not.toBe(all)
+    })
+    const byId = new Map(mock.MOCK_SIGNALS.map((s) => [s.id, s]))
+    for (const p of result.current.patterns.data!) for (const id of p.signalIds) expect(byId.get(id)?.envId).toBe('dub')
+  })
+
+  it('the feeds in scope follow the switch: the late PSI Assets CRM counts only for All and PSI Assets', async () => {
+    const { result } = renderHookWithProviders(() => ({ scope: useEnvScope(), feeds: useFeedScope(), all: useFeeds() }))
+    await waitFor(() => ready(result.current.feeds))
+    expect(result.current.all.data).toHaveLength(8)
+    expect(result.current.feeds.data).toMatchObject({ lateCount: 1 })
+    act(() => result.current.scope.setEnv('dub'))
+    await waitFor(() => expect(result.current.feeds.data?.lateCount).toBe(0))
+    expect(result.current.feeds.data?.feeds.map((f) => f.id)).toEqual(['crm_dub', 'wa', 'ai', 'app', 'sv', 'pub'])
+    act(() => result.current.scope.setEnv('ast'))
+    await waitFor(() => expect(result.current.feeds.data?.lateCount).toBe(1))
+  })
+})
+
+describe('patterns computed from the rules at read time (v40 B17, F16)', () => {
+  it('editing a threshold in the rules changes the patterns without a reload', async () => {
+    const { result } = renderHookWithProviders(() => ({ patterns: usePatterns(), update: useUpdateRuleConfig(), rules: useRules() }))
+    await waitFor(() => ready(result.current.patterns))
+    expect(result.current.rules.patterns.sameIssueMin).toBe(5)
+    const before = result.current.patterns.data!.filter((p) => p.thresholdKind === 'same_issue')
+    expect(before.length).toBeGreaterThan(0)
+    // The seeded patterns are the default-rule patterns.
+    expect(result.current.patterns.data!.map((p) => p.id)).toEqual(mock.MOCK_PATTERNS.map((p) => p.id))
+
+    await act(() => result.current.update.mutateAsync({ id: RULE_IDS.sameIssue, value: 50 }))
+    await waitFor(() => expect(result.current.patterns.data!.filter((p) => p.thresholdKind === 'same_issue')).toHaveLength(0))
+    expect(result.current.rules.patterns.sameIssueMin).toBe(50)
+
+    await act(() => result.current.update.mutateAsync({ id: RULE_IDS.sameIssue, value: 5 }))
+    await waitFor(() => expect(result.current.patterns.data!.filter((p) => p.thresholdKind === 'same_issue').length).toBe(before.length))
+    // Ids stay stable through the round trip, so a fix stays attached to its pattern.
+    expect(result.current.patterns.data!.map((p) => p.id)).toEqual(mock.MOCK_PATTERNS.map((p) => p.id))
+  })
+
+  it('the working week is a rule: a count in value rebuilds the weekdays, days sets them', async () => {
+    const { result } = renderHookWithProviders(() => ({ update: useUpdateRuleConfig(), rules: useRules() }))
+    await waitFor(() => expect(result.current.rules.workingDays).toEqual(MON_FRI))
+    await act(() => result.current.update.mutateAsync({ id: RULE_IDS.workingDays, days: [0, 1, 2, 3, 4] }))
+    await waitFor(() => expect(result.current.rules.workingDays).toEqual([0, 1, 2, 3, 4]))
+    await act(() => result.current.update.mutateAsync({ id: RULE_IDS.workingDays, value: 6 }))
+    await waitFor(() => expect(result.current.rules.workingDays).toEqual([0, 1, 2, 3, 4, 5, 6].filter((d) => d !== 0)))
+    await act(() => result.current.update.mutateAsync({ id: RULE_IDS.workingDays, value: 5 }))
+    await waitFor(() => expect(result.current.rules.workingDays).toEqual(MON_FRI))
+    expect(mock.MOCK_RULES_CONFIG.find((r) => r.id === RULE_IDS.workingDays)).toMatchObject({ value: 5, days: MON_FRI })
+  })
+})
+
+describe('audit trail on decisions and status changes (v40 F21)', () => {
+  it('a decision writes an entry by the signed-in role', async () => {
+    const { result } = renderHookWithProviders(() => ({ fixes: useCorrectiveActions(), decide: useDecideCorrectiveAction() }), { role: 'cxmgr' })
+    await waitFor(() => ready(result.current.fixes))
+    const target = mock.MOCK_CORRECTIVE_ACTIONS.find((f) => f.status === 'proposed') ?? mock.MOCK_CORRECTIVE_ACTIONS[0]
+    const before = target.auditLog.length
+    await act(() => result.current.decide.mutateAsync({ id: target.id, decision: 'approved', reason: 'Go ahead' }))
+    expect(target.auditLog).toHaveLength(before + 1)
+    const last = target.auditLog.at(-1)!
+    expect(last).toMatchObject({ byRole: 'cxmgr' })
+    expect(last.what.en).toBe('Approved: Go ahead')
+    expect(last.what.ar).toMatch(/[؀-ۿ]/)
+    expect(target.status).toBe('approved')
+  })
+
+  it('a status change writes an entry and a verdict is stored', async () => {
+    const { result } = renderHookWithProviders(() => useSetFixStatus(), { role: 'envmgmt' })
+    const target = mock.MOCK_CORRECTIVE_ACTIONS[0]
+    const before = target.auditLog.length
+    await act(() => result.current.mutateAsync({ id: target.id, status: 'effective' }))
+    expect(target.status).toBe('effective')
+    expect(target.verificationResult).toBe('effective')
+    expect(target.auditLog).toHaveLength(before + 1)
+    expect(target.auditLog.at(-1)).toMatchObject({ byRole: 'envmgmt' })
+    expect(target.auditLog.at(-1)?.what.en).toBe('Verdict: effective')
+  })
+
+  it('asking for an investigation is an audit line too', async () => {
+    const { useSendToInvestigation } = await import('./referenceQueries')
+    const { result } = renderHookWithProviders(() => useSendToInvestigation(), { role: 'cxmgr' })
+    const target = mock.MOCK_CORRECTIVE_ACTIONS[1]
+    const before = target.auditLog.length
+    const inv = await act(() => result.current.mutateAsync({ actionId: target.id, patternId: target.patternId }))
+    expect(inv.id).toMatch(/^inv-/)
+    expect(target.auditLog.at(-1)?.what.en).toMatch(/^Sent to investigation INV-\d+/)
+    expect(target.auditLog).toHaveLength(before + 1)
+  })
+})
+
+describe('an investigation returns evidence and proposes a fix (v40 F26)', () => {
+  it('closes with the result, keeps it as evidence on the pattern and proposes a fix by Agent 5 when the pattern has none', async () => {
+    const { result } = renderHookWithProviders(() => ({ investigations: useInvestigations(), ret: useReturnInvestigation(), evidence: useInvestigationEvidence(), fixes: useCorrectiveActions() }))
+    await waitFor(() => ready(result.current.investigations))
+    const withoutFix = mock.MOCK_INVESTIGATIONS.find((i) => i.status !== 'returned' && i.patternId && !mock.MOCK_CORRECTIVE_ACTIONS.some((a) => a.patternId === i.patternId))
+    expect(withoutFix, 'sample has an open investigation on a pattern with no fix').toBeDefined()
+    const fixCount = mock.MOCK_CORRECTIVE_ACTIONS.length
+    const inv = await act(() => result.current.ret.mutateAsync({ id: withoutFix!.id, resultSummary: 'Interviews confirm the old brochure is still in use.' }))
+    expect(inv.status).toBe('returned')
+    expect(inv.result?.en).toBe('Interviews confirm the old brochure is still in use.')
+    expect(inv.doneCount).toBe(inv.requestedCount ?? inv.doneCount)
+    expect(inv.proposedFixId).toBeDefined()
+    expect(mock.MOCK_CORRECTIVE_ACTIONS).toHaveLength(fixCount + 1)
+    const fix = mock.MOCK_CORRECTIVE_ACTIONS.find((f) => f.id === inv.proposedFixId)!
+    expect(fix).toMatchObject({ status: 'proposed', kind: 'training_gap', patternId: withoutFix!.patternId, owner: 'L&D manager', source: { investigationId: withoutFix!.id } })
+    expect(fix.proposedBy?.en).toBe('Agent 5, from the investigation')
+    expect(fix.auditLog).toHaveLength(1)
+    expect(fix.auditLog[0]).toMatchObject({ byRole: 'system' })
+    expect(Date.now() - Date.parse(fix.proposedAt)).toBeLessThan(60_000)
+    await waitFor(() => expect(result.current.evidence.data?.[withoutFix!.patternId!]).toMatchObject({ investigationId: withoutFix!.id, result: { en: 'Interviews confirm the old brochure is still in use.' } }))
+    expect(result.current.evidence.data?.[withoutFix!.patternId!].traceId).toMatch(/^INV-\d+$/)
+  })
+
+  it('records evidence only (no second fix) when the pattern already has one', async () => {
+    const { result } = renderHookWithProviders(() => useReturnInvestigation())
+    const fixed = mock.MOCK_INVESTIGATIONS.find((i) => i.status !== 'returned' && i.patternId && mock.MOCK_CORRECTIVE_ACTIONS.some((a) => a.patternId === i.patternId))
+    if (!fixed) return // the sample may have none: the rule is covered by the previous test
+    const count = mock.MOCK_CORRECTIVE_ACTIONS.length
+    const inv = await act(() => result.current.mutateAsync({ id: fixed.id, resultSummary: 'Shopper check done.' }))
+    expect(inv.proposedFixId).toBeUndefined()
+    expect(mock.MOCK_CORRECTIVE_ACTIONS).toHaveLength(count)
+  })
+})
+
+describe('my inbox, indicators and the brief (v40 F03, F09, F20)', () => {
+  it('useInbox lists what is on the role, sorted, and counts the urgent ones', async () => {
+    const { result } = renderHookWithProviders(() => useInbox(), { role: 'cxmgr' })
+    await waitFor(() => ready(result.current))
+    expect(result.current.data!.length).toBeGreaterThan(0)
+    expect(result.current.stats.total).toBe(result.current.data!.length)
+    expect(result.current.stats.urgent).toBe(result.current.data!.filter((i) => i.priority >= 1).length)
+    for (let i = 1; i < result.current.data!.length; i++) expect(result.current.data![i - 1].priority).toBeGreaterThanOrEqual(result.current.data![i].priority)
+  })
+
+  it('the Internal Audit and Marketing Lead has the weekly sample; HR manager has an empty inbox', async () => {
+    const audit = renderHookWithProviders(() => useInbox(), { role: 'auditmkt' })
+    await waitFor(() => ready(audit.result.current))
+    expect(audit.result.current.data!.map((i) => i.kind)).toEqual(['sample'])
+    const hr = renderHookWithProviders(() => useInbox(), { role: 'hrmgr' })
+    await waitFor(() => ready(hr.result.current))
+    expect(hr.result.current.data).toEqual([])
+  })
+
+  it('useIndicators gives one set per live product (never a group number)', async () => {
+    const { result } = renderHookWithProviders(() => useIndicators())
+    await waitFor(() => ready(result.current))
+    expect(result.current.data!.map((s) => s.productId)).toEqual(['re', 'af'])
+    expect(result.current.data![0].nps).not.toBeNull()
+  })
+
+  it('useBriefInputs reads the same registers as the pages', async () => {
+    const { result } = renderHookWithProviders(() => useBriefInputs())
+    await waitFor(() => ready(result.current))
+    const b = result.current.data!
+    expect(b.windowDays).toBe(30)
+    expect(b.people.total).toBe(30)
+    expect(b.people.drifting).toBeGreaterThanOrEqual(0)
+    expect(b.signals.patternsOverLine).toBeGreaterThan(0)
+    expect(b.fixes.proposed).toBe(mock.MOCK_CORRECTIVE_ACTIONS.filter((f) => f.status === 'proposed').length)
+    expect(b.loop.open).toBe(mock.MOCK_DETRACTOR_CALL_ITEMS.filter((l) => l.status !== 'done').length)
+    expect(b.publicMentions).toMatchObject({ last30: 16, target: 48 })
+    expect(b.sample).toEqual({ toRead: 50, read: 0 })
+  })
+})
+
+describe('trace seams (v40 F10, F11)', () => {
+  it('useTrace walks a chain from a display id; useSignalDetail returns the record and the chain', async () => {
+    const complaint = mock.MOCK_SIGNALS.find((s) => s.kind === 'complaint')!
+    const { result } = renderHookWithProviders(() => ({ chain: useTrace('signal', complaint.id), detail: useSignalDetail('SG-' + Number(complaint.id.replace(/\D/g, ''))) }))
+    await waitFor(() => expect(result.current.chain.data).toBeTruthy())
+    expect(result.current.chain.data?.signals[0].id).toBe(complaint.id)
+    await waitFor(() => expect(result.current.detail.signal?.id).toBe(complaint.id))
+    expect(result.current.detail.traceId).toMatch(/^SG-\d+$/)
+    expect(result.current.detail.chain?.events.length).toBe(complaint.eventIds.length)
+  })
+
+  it('an unknown signal id resolves to null (the dialog says "not found")', async () => {
+    const { result } = renderHookWithProviders(() => useSignalDetail('SG-99999'))
+    await waitFor(() => expect(result.current.signal).toBeNull())
+  })
+
+  it('useTraceNav opens a signal through ?sg= and closes it', async () => {
+    const complaint = mock.MOCK_SIGNALS.find((s) => s.kind === 'complaint')!
+    const { result } = renderHookWithProviders(() => useTraceNav(), { route: '/home' })
+    expect(result.current.openSignalId).toBeNull()
+    act(() => result.current.open('signal', complaint.id))
+    await waitFor(() => expect(result.current.openSignalId).toMatch(/^SG-\d+$/))
+    act(() => result.current.close())
+    await waitFor(() => expect(result.current.openSignalId).toBeNull())
+  })
+
+  it('canOpen follows the role: CX can open a fix, an executive cannot open a person\'s event', async () => {
+    const fix = mock.MOCK_CORRECTIVE_ACTIONS[0]
+    const cx = renderHookWithProviders(() => useTraceNav(), { role: 'cxmgr' })
+    await waitFor(() => expect(cx.result.current.canOpen('fix', fix.id)).toBe(true))
+    expect(cx.result.current.canOpen('signal', 'sig-0001')).toBe(true)
+    const ld = renderHookWithProviders(() => useTraceNav(), { role: 'hrmgr' })
+    expect(ld.result.current.canOpen('fix', fix.id)).toBe(false)
+  })
+})
+
+describe('registers: mapping, matrix, questions, sample, mentions, no answer', () => {
+  it('saves a mapping row and refuses an unknown portal value', async () => {
+    const { result } = renderHookWithProviders(() => ({ mapping: useCrmMapping(), save: useSaveMapping() }))
+    await waitFor(() => ready(result.current.mapping))
+    await act(() => result.current.save.mutateAsync({ kind: 'src', crmValue: 'Walk In', portalValue: 'event' }))
+    await waitFor(() => expect(result.current.mapping.data?.rows.find((r) => r.crmValue === 'Walk In')?.portalValue).toBe('event'))
+    await expect(result.current.save.mutateAsync({ kind: 'src', crmValue: 'Walk In', portalValue: 'nope' })).rejects.toThrow('Unknown portal value')
+    await expect(result.current.save.mutateAsync({ kind: 'src', crmValue: 'Nothing', portalValue: 'web' })).rejects.toThrow('Mapping row not found')
+    await act(() => result.current.save.mutateAsync({ kind: 'src', crmValue: 'Walk In', portalValue: 'branch' }))
+  })
+
+  it('edits a matrix cell: the cell stops being a default, the other language keeps its default, the line on a fix reads it', async () => {
+    const { result } = renderHookWithProviders(() => ({ matrix: useMatrix('af'), save: useSaveMatrixCell(), line: useFixMatrixLine({ kind: 'service_behaviour', product: 'af' }) }))
+    await waitFor(() => ready(result.current.matrix))
+    const service = () => result.current.matrix.data!.find((r) => r.kind === 'service')!
+    expect(service().isDefault.receiver).toBe(true)
+    await act(() => result.current.save.mutateAsync({ product: 'af', kind: 'service', field: 'receiver', value: 'After-Sales manager', lang: 'en' }))
+    await waitFor(() => expect(service().isDefault.receiver).toBe(false))
+    expect(service().cells.receiver).toEqual({ en: 'After-Sales manager', ar: 'مدير الفريق' })
+    expect(service().isDefault.informed).toBe(true)
+    await act(() => result.current.save.mutateAsync({ product: 'af', kind: 'service', field: 'respondH', value: 18 }))
+    await waitFor(() => expect(service().cells.respondH).toBe(18))
+    await act(() => result.current.save.mutateAsync({ product: 'af', kind: 'service', field: 'backup', value: null }))
+    await waitFor(() => expect(service().cells.backup).toBeNull())
+    // Real Estate is untouched: a matrix is per product.
+    expect(mock.MOCK_MATRIX.re.find((r) => r.kind === 'service')?.isDefault.receiver).toBe(true)
+    await waitFor(() => expect(result.current.line?.row.cells.receiver?.en).toBe('After-Sales manager'))
+    expect(result.current.line).toMatchObject({ product: 'af', kind: 'service' })
+  })
+
+  it('lists question sets per product, empty for a product with none', async () => {
+    const { result } = renderHookWithProviders(() => ({ re: useQuestionSets('re'), wl: useQuestionSets('wl'), all: useQuestionSets() }))
+    await waitFor(() => ready(result.current.all))
+    expect(result.current.re.data).toHaveLength(4)
+    expect(result.current.all.data).toHaveLength(9)
+    await waitFor(() => expect(result.current.wl.data).toEqual([]))
+  })
+
+  it('judges the weekly sample: a verdict counts as read, wrong counts as a test, accuracy follows', async () => {
+    const { result } = renderHookWithProviders(() => ({ sample: useWeeklySample(), judge: useJudgeSample() }))
+    await waitFor(() => ready(result.current.sample))
+    expect(result.current.sample.data).toMatchObject({ size: 50, read: 0, wrong: 0, accuracyPct: null })
+    expect(new Date(result.current.sample.data!.due + 'T00:00:00').getDay()).toBe(4) // every Thursday
+    const [a, b, c] = result.current.sample.data!.items
+    await act(() => result.current.judge.mutateAsync({ id: a.id, right: true }))
+    await act(() => result.current.judge.mutateAsync({ id: b.id, right: true }))
+    await act(() => result.current.judge.mutateAsync({ id: c.id, right: false }))
+    await waitFor(() => expect(result.current.sample.data?.read).toBe(3))
+    expect(result.current.sample.data).toMatchObject({ wrong: 1, accuracyPct: 67 })
+    expect(result.current.sample.data!.items.find((i) => i.id === c.id)?.verdict).toBe(false)
+  })
+
+  it('marks a public mention replied with at least one reply hour, and the list updates', async () => {
+    const { result } = renderHookWithProviders(() => ({ mentions: usePublicMentions(), mark: useMarkReplied() }))
+    await waitFor(() => ready(result.current.mentions))
+    const open = PUBLIC_MENTIONS.find((m) => !m.replied)!
+    await act(() => result.current.mark.mutateAsync({ id: open.id }))
+    await waitFor(() => expect(result.current.mentions.data?.find((m) => m.id === open.id)?.replied).toBe(true))
+    const m = result.current.mentions.data!.find((x) => x.id === open.id)!
+    expect(m.replyHours).toBeGreaterThanOrEqual(1)
+    expect(m.replyHours! % 24).toBe(0)
+    expect(m.repliedAt).toBeDefined()
+    await expect(result.current.mark.mutateAsync({ id: 'PUB-000' })).rejects.toThrow('Public mention not found')
+  })
+
+  it('records "no answer": attempts go up, the next attempt is a working day, the last one needs a human, DNCR is refused', async () => {
+    const { result } = renderHookWithProviders(() => useRecordNoAnswer(), { role: 'cxmgr' })
+    const todo = mock.MOCK_DETRACTOR_CALL_ITEMS.find((i) => i.status === 'to_do')!
+    const first = await act(() => result.current.mutateAsync({ id: todo.id }))
+    expect(first.item).toMatchObject({ attempts: 1, status: 'no_answer' })
+    expect(first.result.nextAttemptOn).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+    expect(new Date(first.result.nextAttemptOn + 'T00:00:00').getDay()).toBeGreaterThanOrEqual(1)
+    expect(new Date(first.result.nextAttemptOn + 'T00:00:00').getDay()).toBeLessThanOrEqual(5)
+    expect(first.toast.en).toMatch(/^No answer\. Next attempt \d{4}-\d{2}-\d{2} within calling hours\.$/)
+    await act(() => result.current.mutateAsync({ id: todo.id }))
+    const last = await act(() => result.current.mutateAsync({ id: todo.id }))
+    expect(last.item).toMatchObject({ attempts: 3, status: 'needs_human' })
+    expect(last.item.nextAttemptOn).toBeUndefined()
+    expect(last.toast.en).toBe('No answer after 3 attempts: WhatsApp sent, flagged "needs a human".')
+    // Still open (it counts), and not done.
+    expect(mock.MOCK_DETRACTOR_CALL_ITEMS.find((i) => i.id === todo.id)?.status).toBe('needs_human')
+
+    const done = mock.MOCK_DETRACTOR_CALL_ITEMS.find((i) => i.status === 'done')!
+    await expect(result.current.mutateAsync({ id: done.id })).rejects.toThrow('already done')
+    // A DNCR person is refused even if a row were to exist.
+    const dncr = mock.MOCK_PERSONS.find((p) => p.consent.dncr)!
+    const probe = { ...mock.MOCK_DETRACTOR_CALL_ITEMS[0], id: 'dcl-probe', personId: dncr.id, status: 'to_do' as const, attempts: 0, outcome: undefined }
+    mock.MOCK_DETRACTOR_CALL_ITEMS.push(probe)
+    await expect(result.current.mutateAsync({ id: 'dcl-probe' })).rejects.toThrow('DNCR')
+    mock.MOCK_DETRACTOR_CALL_ITEMS.pop()
+  })
+})

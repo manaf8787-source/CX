@@ -18,6 +18,8 @@ import { useRole } from '@/auth/RoleContext'
 import { canUseAssistant } from '@/auth/access'
 import { AssistantContext } from '../ai/AssistantContext'
 import { AccessGuard } from './AccessGuard'
+import { AsOfBar } from './AsOfBar'
+import { TraceHost } from '../trace/TraceHost'
 
 const AssistantPanel = lazy(() => import('../ai/AssistantPanel').then((m) => ({ default: m.AssistantPanel })))
 
@@ -110,6 +112,8 @@ export function Shell() {
             <UserMenu />
           </div>
         </header>
+        {/* "Data as of" bar and environment switch on every signed-in page (v40 F14). */}
+        <AsOfBar />
         <div id="main" tabIndex={-1} className="mx-auto flex w-full max-w-[1440px] flex-1 flex-col gap-4 overflow-x-clip p-4 outline-none md:p-6">
           <Suspense fallback={<LoadingState rows={6} />}>
             <RouteTransition>
@@ -120,6 +124,9 @@ export function Shell() {
           </Suspense>
         </div>
       </SidebarInset>
+
+      {/* Opens the signal detail dialog from any page, driven by the ?sg= search param (v40 F11). */}
+      <TraceHost />
 
       <Sheet open={assistantOpen && available} onOpenChange={setAssistantOpen}>
         <SheetContent side="right" showCloseButton={false} aria-describedby={undefined} className="w-full gap-0 p-0 sm:max-w-md">

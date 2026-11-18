@@ -3,12 +3,20 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { INTERVIEW_OUTCOME_LABEL, REASON_CODE_LABEL, recoveryStatus } from '../utils/closeTheLoop'
 import { scoreChecklist } from '../utils/mysteryShopper'
 import { PRODUCTS } from '../data/products'
+import { inEnvScope } from '../data/environments'
+import { useRole } from '../auth/RoleContext'
+import { decisionAudit, proposedStamp, productOfPattern } from '../utils/audit'
+import { detectPatternsCached } from '../utils/patterns'
+import { rulesFromConfig } from '../utils/ruleValues'
+import { invId } from '../utils/trace'
+import { useEnvScope } from './envScope'
 import type {
   Access,
   AiInterviewCampaign,
   Bi,
   CorrectiveAction,
   CorrectiveActionKind,
+  EnvScope,
   InterviewOutcome,
   Investigation,
   MsAssignment,
@@ -31,9 +39,10 @@ import type {
 
 const LATENCY_MS = 180
 
-async function fetchPersons() {
+/** Env-aware (v40 F14): the people register narrowed by the environment switch; "all" returns the register itself. */
+async function fetchPersons(env: EnvScope = 'all') {
   await latency(LATENCY_MS)
-  return mock.MOCK_PERSONS
+  return env === 'all' ? mock.MOCK_PERSONS : mock.MOCK_PERSONS.filter((p) => inEnvScope(env, p.envId))
 }
 
 async function fetchPerson(id: string) {
@@ -51,14 +60,17 @@ async function fetchEffortSummary(personId: string) {
   return mock.MOCK_EFFORT_SUMMARIES.find((e) => e.personId === personId) ?? null
 }
 
-async function fetchSignals() {
+async function fetchSignals(env: EnvScope = 'all') {
   await latency(LATENCY_MS)
-  return mock.MOCK_SIGNALS
+  return env === 'all' ? mock.MOCK_SIGNALS : mock.MOCK_SIGNALS.filter((s) => inEnvScope(env, s.envId))
 }
 
-async function fetchPatterns() {
+/** B17: patterns are computed from the rules configuration at read time (memoised), never stored. */
+async function fetchPatterns(env: EnvScope = 'all') {
   await latency(LATENCY_MS)
-  return mock.MOCK_PATTERNS
+  const rules = rulesFromConfig(mock.MOCK_RULES_CONFIG)
+  const signals = env === 'all' ? mock.MOCK_SIGNALS : mock.MOCK_SIGNALS.filter((s) => inEnvScope(env, s.envId))
+  return detectPatternsCached(env, signals, rules.patterns)
 }
 
 async function fetchCorrectiveActions() {
@@ -66,9 +78,9 @@ async function fetchCorrectiveActions() {
   return mock.MOCK_CORRECTIVE_ACTIONS
 }
 
-async function fetchShopperCases() {
+async function fetchShopperCases(env: EnvScope = 'all') {
   await latency(LATENCY_MS)
-  return mock.MOCK_SHOPPER_CASES
+  return env === 'all' ? mock.MOCK_SHOPPER_CASES : mock.MOCK_SHOPPER_CASES.filter((c) => inEnvScope(env, c.envId))
 }
 
 async function fetchInvestigations() {
@@ -223,17 +235,27 @@ async function fetchProducts() {
 // edits the mock array in place, by id, then the caller invalidates the
 // affected query keys so every view re-reads the same updated record.
 
-async function decideCorrectiveAction(input: { id: string; decision: 'approved' | 'modified' | 'rejected'; reason?: string }) {
+export interface DecideInput {
+  id: string
+  decision: 'approved' | 'modified' | 'rejected'
+  reason?: string
+  /** The role that decided. `useDecideCorrectiveAction` fills it from the signed-in role when absent. */
+  byRole?: RoleId
+}
+
+/** v40 (F21): every decision writes an audit entry (when, what, by which role). */
+async function decideCorrectiveAction(input: DecideInput) {
   await latency(LATENCY_MS)
   const action = mock.MOCK_CORRECTIVE_ACTIONS.find((a) => a.id === input.id)
   if (!action) throw new Error('Corrective action not found')
   action.decision = input.decision
   action.decisionReason = { en: input.reason || '—', ar: input.reason || '—' }
   action.status = input.decision === 'approved' ? 'approved' : action.status
+  action.auditLog.push(decisionAudit(input.decision, input.reason, input.byRole ?? 'system'))
   return action
 }
 
-async function createActionFromPattern(input: { pattern: Pattern; kind: CorrectiveActionKind; owner: string; dueDate: string }) {
+async function createActionFromPattern(input: { pattern: Pattern; kind: CorrectiveActionKind; owner: string; dueDate: string; byRole?: RoleId }) {
   await latency(LATENCY_MS)
   const action: CorrectiveAction = {
     id: `ca-${mock.MOCK_CORRECTIVE_ACTIONS.length + 1}`,
@@ -244,6 +266,7 @@ async function createActionFromPattern(input: { pattern: Pattern; kind: Correcti
     dueDate: input.dueDate,
     status: 'proposed',
     verificationDueAt: new Date(Date.now() + 60 * 86_400_000).toISOString(),
+    ...proposedStamp({ product: productOfPattern(input.pattern, mock.MOCK_SIGNALS), byRole: input.byRole ?? 'system' }),
   }
   mock.MOCK_CORRECTIVE_ACTIONS.push(action)
   return action
@@ -286,12 +309,46 @@ async function requestInvestigation(input: { patternId: string; kind: Investigat
   return inv
 }
 
+/**
+ * v40 (F26): recording the result closes the investigation (done = requested), keeps the result as evidence on
+ * the pattern, and, when the investigated pattern has no fix yet, proposes one: Agent 5, from the investigation,
+ * kind training gap, owner L&D manager, proposal date today, with an audit line. The returned investigation
+ * carries `proposedFixId` when a fix was proposed (the page shows its toast from that).
+ */
 async function returnInvestigation(input: { id: string; resultSummary: string }) {
   await latency(LATENCY_MS)
   const inv = mock.MOCK_INVESTIGATIONS.find((i) => i.id === input.id)
   if (!inv) throw new Error('Investigation not found')
+  const text: Bi = { en: input.resultSummary, ar: input.resultSummary }
   inv.status = 'returned'
-  inv.resultSummary = { en: input.resultSummary, ar: input.resultSummary }
+  inv.resultSummary = text
+  inv.result = text
+  inv.doneCount = inv.requestedCount ?? inv.doneCount
+  if (inv.patternId && !inv.proposedFixId && !mock.MOCK_CORRECTIVE_ACTIONS.some((a) => a.patternId === inv.patternId)) {
+    const rules = rulesFromConfig(mock.MOCK_RULES_CONFIG)
+    const pattern = detectPatternsCached('all', mock.MOCK_SIGNALS, rules.patterns).find((p) => p.id === inv.patternId) ?? mock.MOCK_PATTERNS.find((p) => p.id === inv.patternId)
+    const label = pattern ? pattern.category.replace(/_/g, ' ') : 'the investigated issue'
+    const team = pattern?.team ?? inv.environment ?? 'the team'
+    const fix: CorrectiveAction = {
+      id: `ca-${mock.MOCK_CORRECTIVE_ACTIONS.length + 1}`,
+      kind: 'training_gap',
+      patternId: inv.patternId,
+      title: { en: `Act on the evidence from ${invId(inv.id)}: ${label} in ${team}`, ar: `المعالجة بحسب دليل ${invId(inv.id)}: ${team}` },
+      owner: 'L&D manager',
+      dueDate: new Date(Date.now() + 14 * 86_400_000).toISOString(),
+      status: 'proposed',
+      verificationDueAt: new Date(Date.now() + 74 * 86_400_000).toISOString(),
+      source: { investigationId: inv.id },
+      proposedBy: { en: 'Agent 5, from the investigation', ar: 'الوكيل 5، من التحقيق' },
+      ...proposedStamp({
+        product: productOfPattern(pattern, mock.MOCK_SIGNALS),
+        byRole: 'system',
+        note: { en: `Proposed by Agent 5 from the investigation ${invId(inv.id)}`, ar: `اقترحه الوكيل 5 من التحقيق ${invId(inv.id)}` },
+      }),
+    }
+    mock.MOCK_CORRECTIVE_ACTIONS.push(fix)
+    inv.proposedFixId = fix.id
+  }
   return inv
 }
 
@@ -306,6 +363,10 @@ async function recordInterview(input: { id: string; reasonCode: ReasonCode; outc
   item.notes = input.notes
   item.resurveyOn = input.resurveyOn
   item.outcome = input.outcome
+  // v40 (F27): the interview is the call; the row is done.
+  item.attempts = Math.max(item.attempts, 1)
+  item.status = 'done'
+  item.nextAttemptOn = undefined
   // KB §7: the interview sits on the person's timeline.
   mock.MOCK_INTERACTIONS.push({
     id: `i-ctl-${item.id}-${mock.MOCK_INTERACTIONS.length + 1}`,
@@ -316,6 +377,7 @@ async function recordInterview(input: { id: string; reasonCode: ReasonCode; outc
     occurredAt: new Date().toISOString(),
     product: item.product,
     environment: item.environment,
+    envId: item.envId,
     language: mock.MOCK_PERSONS.find((p) => p.id === item.personId)?.language ?? 'en',
     reason: 'Close the loop interview',
     outcome: `${REASON_CODE_LABEL[input.reasonCode].en} · ${INTERVIEW_OUTCOME_LABEL[input.outcome].en}`,
@@ -345,6 +407,7 @@ async function recordResurvey(input: { id: string; secondScore: number }) {
     occurredAt: new Date().toISOString(),
     product: item.product,
     environment: item.environment,
+    envId: item.envId,
     language: mock.MOCK_PERSONS.find((p) => p.id === item.personId)?.language ?? 'en',
     reason: 'Re-survey after resolution',
     outcome: `${item.firstScore} → ${input.secondScore}`,
@@ -439,11 +502,18 @@ async function decideMsAssignment(input: { id: string; approve: boolean }) {
   return assignment
 }
 
-async function updateRuleConfig(input: { id: string; value: number }) {
+/** Changes one rule. For the working week pass `days` (JS weekdays) or a count in `value` (the first n weekdays from Monday). */
+async function updateRuleConfig(input: { id: string; value?: number; days?: number[] }) {
   await latency(LATENCY_MS)
   const rule = mock.MOCK_RULES_CONFIG.find((r) => r.id === input.id)
   if (!rule) throw new Error('Rule not found')
-  rule.value = input.value
+  if (rule.days) {
+    const days = input.days ?? (input.value !== undefined ? [1, 2, 3, 4, 5, 6, 0].slice(0, Math.max(1, Math.min(7, Math.trunc(input.value)))) : rule.days)
+    rule.days = [...new Set(days)].sort((a, b) => a - b)
+    rule.value = rule.days.length
+  } else if (input.value !== undefined) {
+    rule.value = input.value
+  }
   return rule
 }
 
@@ -482,16 +552,39 @@ async function fetchHomeSummary() {
 // --- Hooks -------------------------------------------------------------
 
 export const useHomeSummary = () => useQuery({ queryKey: ['home-summary'], queryFn: fetchHomeSummary })
-export const usePersons = () => useQuery({ queryKey: ['persons'], queryFn: fetchPersons })
+/** Env-aware: the environment switch is part of the key (docs/V40_FOUNDATION_API.md). */
+export const usePersons = () => {
+  const { env } = useEnvScope()
+  return useQuery({ queryKey: ['persons', env], queryFn: () => fetchPersons(env) })
+}
+/** The whole register regardless of the switch (for lookups by id, the inbox, the trace chain). */
+export const usePersonsAll = () => useQuery({ queryKey: ['persons', 'all'], queryFn: () => fetchPersons('all') })
 export const usePerson = (id: string) => useQuery({ queryKey: ['person', id], queryFn: () => fetchPerson(id), enabled: !!id })
 export const usePersonInteractions = (personId: string) =>
   useQuery({ queryKey: ['interactions', personId], queryFn: () => fetchInteractionsForPerson(personId), enabled: !!personId })
 export const usePersonEffort = (personId: string) =>
   useQuery({ queryKey: ['effort', personId], queryFn: () => fetchEffortSummary(personId), enabled: !!personId })
-export const useSignals = () => useQuery({ queryKey: ['signals'], queryFn: fetchSignals })
-export const usePatterns = () => useQuery({ queryKey: ['patterns'], queryFn: fetchPatterns })
+export const useSignals = () => {
+  const { env } = useEnvScope()
+  return useQuery({ queryKey: ['signals', env], queryFn: () => fetchSignals(env) })
+}
+export const useSignalsAll = () => useQuery({ queryKey: ['signals', 'all'], queryFn: () => fetchSignals('all') })
+
+/**
+ * Patterns computed from the rules at read time (B17). The key carries the environment only: the rules are read inside
+ * the fetch, and `useUpdateRuleConfig` invalidates `['patterns']`, so an edit recomputes. (A rules signature in the key
+ * made the page load twice and animate in twice.)
+ */
+export const usePatterns = () => {
+  const { env } = useEnvScope()
+  return useQuery({ queryKey: ['patterns', env], queryFn: () => fetchPatterns(env) })
+}
+export const usePatternsAll = () => useQuery({ queryKey: ['patterns', 'all'], queryFn: () => fetchPatterns('all') })
 export const useCorrectiveActions = () => useQuery({ queryKey: ['corrective-actions'], queryFn: fetchCorrectiveActions })
-export const useShopperCases = () => useQuery({ queryKey: ['shopper-cases'], queryFn: fetchShopperCases })
+export const useShopperCases = () => {
+  const { env } = useEnvScope()
+  return useQuery({ queryKey: ['shopper-cases', env], queryFn: () => fetchShopperCases(env) })
+}
 export const useInvestigations = () => useQuery({ queryKey: ['investigations'], queryFn: fetchInvestigations })
 export const useDetractorCallItems = () => useQuery({ queryKey: ['detractor-call-items'], queryFn: fetchDetractorCallItems })
 export const useAllInteractions = () => useQuery({ queryKey: ['interactions-all'], queryFn: fetchAllInteractions })
@@ -530,16 +623,18 @@ export const useProducts = () => useQuery({ queryKey: ['products'], queryFn: fet
 
 export function useDecideCorrectiveAction() {
   const qc = useQueryClient()
+  const { role } = useRole()
   return useMutation({
-    mutationFn: decideCorrectiveAction,
+    mutationFn: (input: DecideInput) => decideCorrectiveAction({ ...input, byRole: input.byRole ?? role.id }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['corrective-actions'] }),
   })
 }
 
 export function useCreateActionFromPattern() {
   const qc = useQueryClient()
+  const { role } = useRole()
   return useMutation({
-    mutationFn: createActionFromPattern,
+    mutationFn: (input: Parameters<typeof createActionFromPattern>[0]) => createActionFromPattern({ ...input, byRole: input.byRole ?? role.id }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['corrective-actions'] })
       qc.invalidateQueries({ queryKey: ['home-summary'] })
@@ -575,7 +670,12 @@ export function useReturnInvestigation() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: returnInvestigation,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['investigations'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['investigations'] })
+      // Recording the result can propose a fix (F26).
+      qc.invalidateQueries({ queryKey: ['corrective-actions'] })
+      qc.invalidateQueries({ queryKey: ['home-summary'] })
+    },
   })
 }
 
@@ -657,7 +757,11 @@ export function useUpdateRuleConfig() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: updateRuleConfig,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['rules-config'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['rules-config'] })
+      // "Change them there and every page recomputes" (F16): patterns follow the rules.
+      qc.invalidateQueries({ queryKey: ['patterns'] })
+    },
   })
 }
 

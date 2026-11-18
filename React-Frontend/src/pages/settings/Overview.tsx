@@ -3,7 +3,8 @@ import { useI18n } from '@/i18n'
 import { useRole } from '@/auth/RoleContext'
 import { useCorrectiveActions, useHomeSummary, usePatterns, useProducts, useShopperCases, useSignals, useToggleProductLaunch, useVocRows } from '@/services/queries'
 import { canAccessPath } from '@/auth/access'
-import type { ProductId, VocRow } from '@/types'
+import type { ProductId } from '@/types'
+import { csatOf, fmtSigned, npsOf } from '@/utils/indicators'
 import { Switch } from '@/components/ui/switch'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { KpiTile } from '@/components/common/KpiTile'
@@ -14,30 +15,13 @@ import { LoadingState } from '@/components/common/LoadingState'
 import { SubPageHeader } from './SubPageHeader'
 import { FunnelSummary, OverviewCharts, ReputationIndex } from './OverviewInsights'
 
-function nps(rows: VocRow[]): number | null {
-  const n = rows.reduce((s, r) => s + r.n, 0)
-  if (!n) return null
-  const p = rows.reduce((s, r) => s + r.promoters, 0)
-  const d = rows.reduce((s, r) => s + r.detractors, 0)
-  return Math.round(((p - d) / n) * 100)
-}
-function csat(rows: VocRow[]): number | null {
-  const n = rows.reduce((s, r) => s + r.n, 0)
-  if (!n) return null
-  return Math.round(rows.reduce((s, r) => s + r.csat * r.n, 0) / n)
-}
-function fmtSigned(v: number | null) {
-  if (v == null) return '–'
-  return (v > 0 ? '+' : '') + v
-}
-
 /** Ported and upgraded from `frontend/src/pages/Overview.tsx`
  * (APPLICATION_MODULES.md §C) — adds the per-product "no group NPS" framing
  * that v38 insists on (FR-7.4): this page never shows one blended number
  * across products, only each product's own line plus links out to the
  * lead funnel and public reputation index that actually live on
  * Surveys and triggers, rather than re-deriving them here. */
-export default function SettingsOverview() {
+export default function SettingsOverview({ hideHeader = false }: { hideHeader?: boolean }) {
   const { t, L, lang } = useI18n()
   const { role } = useRole()
   const canEdit = role.id === 'cxmgr'
@@ -62,10 +46,12 @@ export default function SettingsOverview() {
 
   return (
     <section className="flex flex-col gap-4">
-      <SubPageHeader
-        title={t('Overview', 'نظرة عامة')}
-        description={t('Headline experience scores, per product — never one blended number (FR-7.4).', 'مؤشرات التجربة الرئيسية لكل منتج — دون رقم إجمالي واحد أبداً.')}
-      />
+      {!hideHeader && (
+        <SubPageHeader
+          title={t('Overview', 'نظرة عامة')}
+          description={t('Headline experience scores, per product — never one blended number (FR-7.4).', 'مؤشرات التجربة الرئيسية لكل منتج — دون رقم إجمالي واحد أبداً.')}
+        />
+      )}
 
       <section aria-labelledby="ov-cust" className="flex flex-col gap-2">
         <h3 id="ov-cust" className="text-sm font-semibold text-muted-foreground">{t('Customers and runaways', 'العملاء والهاربون')}</h3>
@@ -120,7 +106,7 @@ export default function SettingsOverview() {
                 <TableBody>
                   {(products ?? []).filter((p) => p.live || role.id === 'cxmgr' || role.id === 'cxteam').map((p) => {
                     const rows = rowsFor(p.id)
-                    const c = csat(rows)
+                    const c = csatOf(rows)
                     return (
                       <TableRow key={p.id} className={p.live ? undefined : 'text-muted-foreground'}>
                         <TableCell className="px-3">
@@ -130,7 +116,7 @@ export default function SettingsOverview() {
                           </span>
                         </TableCell>
                         <TableCell className="px-3 text-end text-sm tabular-nums">
-                          <bdi dir="ltr">{fmtSigned(nps(rows))}</bdi>
+                          <bdi dir="ltr">{fmtSigned(npsOf(rows))}</bdi>
                         </TableCell>
                         <TableCell className="px-3 text-end text-sm tabular-nums">
                           <bdi dir="ltr">{c != null ? `${c}%` : '–'}</bdi>

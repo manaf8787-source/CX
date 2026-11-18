@@ -8,7 +8,11 @@ function person(over: Partial<Person> = {}): Person {
     identity: {},
     type: 'lead',
     name: 'Sample',
+    segment: 'lead',
+    sourceOfLead: 'website',
+    consent: { dncr: false, whatsapp: true, sms: true, email: true },
     environment: 'Dubai',
+    envId: 'dub',
     products: ['re'],
     unitsOrDeals: 0,
     preferredChannel: 'whatsapp',
@@ -20,7 +24,7 @@ function person(over: Partial<Person> = {}): Person {
 }
 const effort = (days: number): EffortSummary => ({ personId: 'p1', interactions: 3, contactsLast90Days: 1, problemsFound: 1, daysSinceLastContact: days })
 function withFlags(...flags: ProblemFlag[]): Interaction[] {
-  return [{ id: 'i1', personKey: 'p1', sourceRef: 'r', channel: 'whatsapp', direction: 'inbound', occurredAt: '2026-11-01T00:00:00Z', product: 're', environment: 'Dubai', language: 'en', problemFlags: flags }]
+  return [{ id: 'i1', personKey: 'p1', sourceRef: 'r', channel: 'whatsapp', direction: 'inbound', occurredAt: '2026-11-01T00:00:00Z', product: 're', environment: 'Dubai', envId: 'dub', language: 'en', problemFlags: flags }]
 }
 const type = (p: Person, days: number, flags: ProblemFlag[] = []) => classifyRunaway(p, effort(days), withFlags(...flags))?.type ?? null
 

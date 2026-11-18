@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom'
-import { BrainCircuit, Building2, ClipboardList, Home, ListChecks, PhoneCall, Settings2, Target, Users, UserX } from 'lucide-react'
+import { Building2, Gauge, Home, Inbox, ListChecks, PhoneCall, Settings2, Users } from 'lucide-react'
 import {
   Sidebar,
   SidebarContent,
@@ -25,12 +25,10 @@ import { prefetchPath } from '@/routes/pages'
 const ICONS: Record<string, typeof Home> = {
   '/home': Home,
   '/customers': Users,
-  '/runaway': UserX,
+  '/inbox': Inbox,
   '/actions': ListChecks,
   '/close-the-loop': PhoneCall,
-  '/personas': Target,
-  '/surveys': ClipboardList,
-  '/intelligent-cx-team': BrainCircuit,
+  '/overview': Gauge,
   '/settings': Settings2,
 }
 
@@ -51,7 +49,7 @@ export function AppSidebar() {
     label: { en: 'Products', ar: 'المنتجات' },
     items: (products ?? []).filter((p) => p.live).map((p) => ({ path: `/products/${p.id}`, label: p.name, dotVar: p.colorVar })),
   }
-  const groups = [...PRIMARY_NAV.slice(0, 2), productGroup, ...PRIMARY_NAV.slice(2)]
+  const groups = [PRIMARY_NAV[0], productGroup, ...PRIMARY_NAV.slice(1)]
     .map((g) => ({
       ...g,
       items: g.items.filter((i) =>
@@ -73,7 +71,7 @@ export function AppSidebar() {
                 </span>
                 <span className="flex min-w-0 flex-col leading-tight">
                   <span className="truncate text-base font-semibold text-sidebar-foreground">PSI CX Portal</span>
-                  <span className="truncate text-xs text-sidebar-muted-foreground">{t('v38 · prototype', 'الإصدار 38 · نموذج أولي')}</span>
+                  <span className="truncate text-xs text-sidebar-muted-foreground">{t('v40 · prototype', 'الإصدار 40 · نموذج أولي')}</span>
                 </span>
               </NavLink>
             </SidebarMenuButton>

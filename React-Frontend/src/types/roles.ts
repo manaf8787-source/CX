@@ -1,4 +1,4 @@
-import type { Bi, ProductId } from './common'
+import type { Bi, EnvId, ProductId } from './common'
 
 /** The 12-role v38 target list — docs/analysis/USER_ROLES_AND_PERMISSIONS.md.
  * `marketing` and `auditmkt` have no counterpart in the pre-omnichannel
@@ -30,4 +30,9 @@ export interface RoleDef {
   /** Set for roles scoped to a single environment (FR-3.4) — environment
    * management sees only their own environment's records. */
   environment?: string
+  /** Same environment as `environment`, as the canonical id (v40). */
+  envId?: EnvId
 }
+
+/** The six roles shown on the sign-in screen (v40 F28); the rest are folded under "Other roles". */
+export type MainRoleId = 'cxmgr' | 'cxteam' | 'envmgmt' | 'marketing' | 'ld' | 'auditmkt'

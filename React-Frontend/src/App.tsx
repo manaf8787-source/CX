@@ -5,6 +5,7 @@ import { ThemeProvider } from './theme/ThemeContext'
 import { RoleProvider } from './auth/RoleContext'
 import { AuthProvider, RequireAuth } from './auth/AuthContext'
 import { Shell } from './components/layout/Shell'
+import { EnvScopeProvider } from './components/layout/EnvScopeProvider'
 import { UiProviders } from './components/layout/UiProviders'
 import { pageLoaders } from './routes/pages'
 
@@ -26,7 +27,14 @@ const ShopperCases = lazy(pageLoaders.shopperCases)
 const Investigations = lazy(pageLoaders.investigations)
 
 const SettingsLayout = lazy(pageLoaders.settingsLayout)
-const SettingsOverview = lazy(pageLoaders.settingsOverview)
+const Inbox = lazy(pageLoaders.inbox)
+const OverviewPage = lazy(pageLoaders.overview)
+const Feeds = lazy(pageLoaders.feeds)
+const CrmMapping = lazy(pageLoaders.crmMapping)
+const EscalationMatrix = lazy(pageLoaders.escalationMatrix)
+const SurveyQuestions = lazy(pageLoaders.surveyQuestions)
+const WeeklySample = lazy(pageLoaders.weeklySample)
+const PublicMentions = lazy(pageLoaders.publicMentions)
 const MonthlyPack = lazy(pageLoaders.monthlyPack)
 const MysteryShopper = lazy(pageLoaders.mysteryShopper)
 const Standards = lazy(pageLoaders.standards)
@@ -50,6 +58,7 @@ export default function App() {
       <ThemeProvider>
         <UiProviders>
           <RoleProvider>
+            <EnvScopeProvider>
             <BrowserRouter>
               <AuthProvider>
               <Routes>
@@ -85,13 +94,23 @@ export default function App() {
 
                   <Route path="/close-the-loop" element={<CloseTheLoop />} />
                   <Route path="/personas" element={<Personas />} />
-                  <Route path="/surveys" element={<Surveys />} />
+                  <Route path="/inbox" element={<Inbox />} />
+                  <Route path="/overview" element={<OverviewPage />} />
+                  {/* Old URLs keep working (AccessGuard redirects them before the role check; these keep the routes matched). */}
+                  <Route path="/surveys" element={<Navigate to="/settings/surveys" replace />} />
                   <Route path="/intelligent-cx-team" element={<IntelligentCxTeam />} />
                   <Route path="/products/:productId" element={<ProductPage />} />
 
                   <Route path="/settings" element={<SettingsLayout />}>
-                    <Route index element={<Navigate to="overview" replace />} />
-                    <Route path="overview" element={<SettingsOverview />} />
+                    <Route index element={<Navigate to="weekly-sample" replace />} />
+                    <Route path="overview" element={<Navigate to="/overview" replace />} />
+                    <Route path="surveys" element={<Surveys />} />
+                    <Route path="feeds" element={<Feeds />} />
+                    <Route path="crm-mapping" element={<CrmMapping />} />
+                    <Route path="escalation-matrix" element={<EscalationMatrix />} />
+                    <Route path="survey-questions" element={<SurveyQuestions />} />
+                    <Route path="weekly-sample" element={<WeeklySample />} />
+                    <Route path="public-mentions" element={<PublicMentions />} />
                     <Route path="monthly-pack" element={<MonthlyPack />} />
                     <Route path="mystery-shopper" element={<MysteryShopper />} />
                     <Route path="standards" element={<Standards />} />
@@ -111,6 +130,7 @@ export default function App() {
               </Routes>
               </AuthProvider>
             </BrowserRouter>
+            </EnvScopeProvider>
           </RoleProvider>
         </UiProviders>
       </ThemeProvider>

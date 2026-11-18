@@ -2,6 +2,32 @@ import { expect, type Page } from '@playwright/test'
 
 export type RoleId = 'cxmgr' | 'cxteam' | 'envmgmt' | 'teamlead' | 'aslead' | 'ld' | 'hrspec' | 'hrmgr' | 'marketing' | 'auditmkt' | 'exec' | 'shopper'
 
+/** The six roles on the sign-in screen (v40 F28); the rest are folded under "Other roles used in the demo". */
+export const MAIN_ROLES = ['cxmgr', 'cxteam', 'envmgmt', 'marketing', 'ld', 'auditmkt'] as const satisfies readonly RoleId[]
+export const FOLDED_ROLES = ['teamlead', 'aslead', 'hrspec', 'hrmgr', 'exec', 'shopper'] as const satisfies readonly RoleId[]
+
+/** Where each role lands after sign-in (v40 F35: Marketing lands on Home, the Internal Audit and Marketing Lead on the Overview). */
+export const ROLE_HOME: Record<RoleId, string> = {
+  cxmgr: '/home',
+  cxteam: '/home',
+  envmgmt: '/home',
+  teamlead: '/home',
+  aslead: '/home',
+  ld: '/settings/ld',
+  hrspec: '/actions',
+  hrmgr: '/settings/hr-team',
+  marketing: '/home',
+  auditmkt: '/overview',
+  exec: '/home',
+  shopper: '/settings/mystery-shopper',
+}
+
+/** Old URLs that still work and where they go (v40 F08, F18). */
+export const LEGACY_ROUTES: Record<string, string> = {
+  '/surveys': '/settings/surveys',
+  '/settings/overview': '/overview',
+}
+
 /** Starts the page already signed in (sample session), skipping the login screen. */
 export async function signInAs(page: Page, role: RoleId, lang: 'en' | 'ar' = 'en') {
   await page.addInitScript(
@@ -42,10 +68,17 @@ export const ROUTES = [
   '/actions/investigations',
   '/close-the-loop',
   '/personas',
-  '/surveys',
+  '/inbox',
+  '/overview',
   '/intelligent-cx-team',
   '/products/re',
-  '/settings/overview',
+  '/settings/surveys',
+  '/settings/feeds',
+  '/settings/crm-mapping',
+  '/settings/escalation-matrix',
+  '/settings/survey-questions',
+  '/settings/weekly-sample',
+  '/settings/public-mentions',
   '/settings/monthly-pack',
   '/settings/mystery-shopper',
   '/settings/standards',

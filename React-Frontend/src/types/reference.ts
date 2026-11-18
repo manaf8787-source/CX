@@ -149,10 +149,15 @@ export interface RuleConfigItem {
   id: string
   area: Bi
   label: Bi
+  /** The numeric value. For `days` rules (the working week) it is the number of working days. */
   value: number
   unit: Bi
   /** Which functional requirement this threshold backs, for traceability. */
   source: string
+  /** v40: set for the working-week rule only: JS weekdays that count (0 = Sunday ... 6 = Saturday). `value` always equals `days.length`. */
+  days?: number[]
+  /** v40: a default or prototype choice the owner has not confirmed; show it with the [Proposed] badge. */
+  proposed?: boolean
 }
 
 // --- AI Insights access matrix (CX-manager-editable, NFR per §2) -----------

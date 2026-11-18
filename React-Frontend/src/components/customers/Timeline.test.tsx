@@ -13,6 +13,7 @@ const base: Omit<Interaction, 'id' | 'channel' | 'text'> = {
   occurredAt: '2026-11-10T09:00:00Z',
   product: 're',
   environment: 'Dubai',
+  envId: 'dub',
   language: 'en',
   problemFlags: [],
 }

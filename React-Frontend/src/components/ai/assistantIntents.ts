@@ -91,8 +91,7 @@ const FAULT_WORDS: [ProblemFlag, RegExp][] = [
 const ENVIRONMENTS: [string, RegExp][] = [
   ['Dubai', /dubai|دبي/],
   ['Abu Dhabi', /abu dhabi|أبوظبي|ابوظبي/],
-  ['Amman', /amman|عمّان|عمان/],
-  ['Sharjah', /sharjah|الشارقة/],
+  ['PSI Assets', /psi assets|assets|rental|rentals|الأصول|للأصول|التأجير/],
 ]
 
 const TENANT_WORDS = /tenant|مستأجر/
