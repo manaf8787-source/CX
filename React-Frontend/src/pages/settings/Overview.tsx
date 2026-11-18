@@ -13,7 +13,7 @@ import { StatusBadge } from '@/components/common/StatusBadge'
 import { ProductTag } from '@/components/common/Chip'
 import { LoadingState } from '@/components/common/LoadingState'
 import { IN_CARD, SubPageHeader } from './SubPageHeader'
-import { StatWell } from './StatWell'
+import { KpiTile } from '@/components/common/KpiTile'
 import { FunnelSummary, OverviewCharts, ReputationIndex } from './OverviewInsights'
 
 /** Ported and upgraded from `frontend/src/pages/Overview.tsx`
@@ -66,10 +66,10 @@ export default function SettingsOverview({ hideHeader = false }: { hideHeader?: 
               </CardTitle>
             </CardHeader>
             <CardContent className="grid grid-cols-2 gap-3">
-              <StatWell label={t('People on record', 'الأشخاص المسجلون')} value={summary?.journeysViewed} to={linkIf('/customers')} loading={summaryLoading} />
-              <StatWell term="Runaway" label={t('Runaway customers', 'العملاء الهاربون')} value={summary?.runawayCount} to={linkIf('/runaway')} loading={summaryLoading} />
-              <StatWell label={t('Detractors to call', 'منتقدون للاتصال')} value={summary?.toCall} to={linkIf('/close-the-loop')} loading={summaryLoading} />
-              <StatWell label={t('Personas', 'الشخصيات')} value={summary?.personaCount} to={linkIf('/personas')} loading={summaryLoading} />
+              <KpiTile variant="well" label={t('People on record', 'الأشخاص المسجلون')} value={summary?.journeysViewed} to={linkIf('/customers')} loading={summaryLoading} />
+              <KpiTile variant="well" term="Runaway" label={t('Runaway customers', 'العملاء الهاربون')} value={summary?.runawayCount} to={linkIf('/runaway')} loading={summaryLoading} />
+              <KpiTile variant="well" label={t('Detractors to call', 'منتقدون للاتصال')} value={summary?.toCall} to={linkIf('/close-the-loop')} loading={summaryLoading} />
+              <KpiTile variant="well" label={t('Personas', 'الشخصيات')} value={summary?.personaCount} to={linkIf('/personas')} loading={summaryLoading} />
             </CardContent>
           </Card>
         </section>
@@ -82,10 +82,10 @@ export default function SettingsOverview({ hideHeader = false }: { hideHeader?: 
               </CardTitle>
             </CardHeader>
             <CardContent className="grid grid-cols-2 gap-3">
-              <StatWell term="Signal" label={t('Signals, counted not worked', 'الإشارات، تُحتسب ولا تُعالج فردياً')} value={signals?.length} to={linkIf('/actions/signals')} loading={signalsLoading} />
-              <StatWell term="Pattern" label={t('Patterns past threshold', 'أنماط تجاوزت الحد')} value={(patterns ?? []).filter((p) => p.currentValue >= p.thresholdTarget).length} to={linkIf('/actions/signals')} loading={patternsLoading} />
-              <StatWell label={t('Open corrective actions', 'الإجراءات التصحيحية المفتوحة')} value={openActions} to={linkIf('/actions/corrective')} loading={actionsLoading} />
-              <StatWell label={t('Critical shopper cases open', 'حالات متسوق حرجة مفتوحة')} value={criticalCases} to={linkIf('/actions/shopper-cases')} loading={casesLoading} />
+              <KpiTile variant="well" term="Signal" label={t('Signals, counted not worked', 'الإشارات، تُحتسب ولا تُعالج فردياً')} value={signals?.length} to={linkIf('/actions/signals')} loading={signalsLoading} />
+              <KpiTile variant="well" term="Pattern" label={t('Patterns past threshold', 'أنماط تجاوزت الحد')} value={(patterns ?? []).filter((p) => p.currentValue >= p.thresholdTarget).length} to={linkIf('/actions/signals')} loading={patternsLoading} />
+              <KpiTile variant="well" label={t('Open corrective actions', 'الإجراءات التصحيحية المفتوحة')} value={openActions} to={linkIf('/actions/corrective')} loading={actionsLoading} />
+              <KpiTile variant="well" label={t('Critical shopper cases open', 'حالات متسوق حرجة مفتوحة')} value={criticalCases} to={linkIf('/actions/shopper-cases')} loading={casesLoading} />
             </CardContent>
           </Card>
         </section>

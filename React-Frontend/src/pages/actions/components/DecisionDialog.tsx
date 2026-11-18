@@ -78,8 +78,8 @@ export function DecisionDialog({
                       <label
                         key={o.value}
                         className={cn(
-                          'flex min-h-10 cursor-pointer flex-col gap-0.5 rounded-well px-4 py-3 text-start transition-colors duration-200 has-focus-visible:[--tw-ring-shadow:var(--ring-focus)]',
-                          checked ? 'material-dark' : 'bg-well shadow-none hover:bg-well-hover',
+                          'flex min-h-10 cursor-pointer flex-col gap-0.5 rounded-well px-4 py-3 text-start transition-colors duration-200 ring-within',
+                          checked ? 'material-dark' : 'bg-well hover:bg-well-hover',
                         )}
                       >
                         <input

@@ -14,6 +14,8 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/common/EmptyState'
+import { InlineNote } from '@/components/common/InlineNote'
+import { SampleBanner } from '@/components/common/SampleBanner'
 import { TermsButton } from '@/components/common/TermHelp'
 import { DailyBrief } from '@/components/home/DailyBrief'
 import { IndicatorCard } from '@/components/home/IndicatorCard'
@@ -58,11 +60,7 @@ export default function Home() {
                 <h1 className="t-page-title text-[20px] tablet:text-[22px] desktop:text-[24px]">{L(HOME_COPY.h1)}</h1>
                 <p className="t-body-m max-w-[72ch]">{L(HOME_COPY.lede)}</p>
               </div>
-              {/* the inline notification (a well and a 6px warning dot), the same state SampleBanner shows in the other pages' headers */}
-              <span className="inline-flex h-9 shrink-0 items-center gap-2 rounded-xl bg-well px-3 pt-px text-sm font-medium whitespace-nowrap text-foreground">
-                <span aria-hidden className="dot dot-warning" />
-                {L(HOME_COPY.tag)}
-              </span>
+              <SampleBanner>{L(HOME_COPY.tag)}</SampleBanner>
             </div>
             <StepLine />
           </CardContent>
@@ -81,10 +79,7 @@ export default function Home() {
           <TermsButton />
         </div>
         {env !== 'all' && (
-          <p className="well flex items-start gap-2.5 px-4 py-3.5 text-sm text-muted-foreground">
-            <span aria-hidden className="dot dot-info mt-[5px]" />
-            {L(INDICATOR_COPY.envHint)}
-          </p>
+          <InlineNote>{L(INDICATOR_COPY.envHint)}</InlineNote>
         )}
         {isLoading || !sets ? (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -143,11 +138,11 @@ export default function Home() {
                   type="button"
                   variant="outline"
                   size="sm"
+                  roll={false}
                   className="h-auto min-h-9 max-w-full py-1.5 text-start whitespace-normal"
                   onClick={() => assistant.open(L(q))}
                 >
-                  {/* a span, so the label does not take the hover roll (its mask is one line and would clip a long request) */}
-                  <span>{L(q)}</span>
+                  {L(q)}
                 </Button>
               ))}
             </div>

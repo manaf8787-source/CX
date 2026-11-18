@@ -278,7 +278,8 @@ test.describe('My inbox (v40 F20)', () => {
     await open(page, 'cxmgr', '/inbox', 'ar')
     await expect(page.getByRole('heading', { level: 1, name: 'صندوقي' })).toBeVisible()
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl')
-    await expect(page.getByRole('table')).toBeVisible({ timeout: 15_000 })
+    // a phone shows the inbox as stacked rows (Meo restyle, docs/MEO_DESIGN_SYSTEM.md section 14), not as a table that scrolls sideways
+    await expect(page.locator('[data-slot=stacked-rows]')).toBeVisible({ timeout: 15_000 })
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
     expect(overflow).toBeLessThanOrEqual(1)
   })

@@ -41,12 +41,12 @@ export function AsOfBar() {
   const chip =
     late > 0 ? (
       <StatusBadge tone="warning" icon={<TriangleAlert aria-hidden />}>
-        <span className="sr-only @min-[900px]/bar:not-sr-only @min-[900px]/bar:whitespace-nowrap!">{feedLabel}</span>
+        <span className="sr-only @min-[1120px]/bar:not-sr-only @min-[1120px]/bar:whitespace-nowrap!">{feedLabel}</span>
       </StatusBadge>
     ) : (
       <span className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground">
         <span aria-hidden className="dot dot-success" />
-        <span className="sr-only @min-[900px]/bar:not-sr-only @min-[900px]/bar:whitespace-nowrap!">{feedLabel}</span>
+        <span className="sr-only @min-[1120px]/bar:not-sr-only @min-[1120px]/bar:whitespace-nowrap!">{feedLabel}</span>
       </span>
     )
 
@@ -83,7 +83,7 @@ export function AsOfBar() {
               aria-labelledby="asof-env-label"
               aria-describedby="asof-env-hint"
               title={switchHint}
-              className="h-auto max-w-[11rem] min-w-0 gap-2 rounded-xl bg-transparent px-1 py-1 shadow-none! hover:bg-(--hover-tint) focus-visible:bg-transparent data-[state=open]:bg-(--hover-tint) @min-[640px]/bar:max-w-[15rem]"
+              className="h-auto max-w-[13rem] min-w-0 gap-2 rounded-xl bg-transparent px-1 py-1 shadow-none! hover:bg-(--hover-tint) focus-visible:bg-transparent data-[state=open]:bg-(--hover-tint) @min-[640px]/bar:max-w-[15rem]"
             >
               <span className="flex min-w-0 items-center gap-2.5">
                 {tile(<Globe2 />)}
@@ -113,7 +113,7 @@ export function AsOfBar() {
         </>
       )}
 
-      <span className="sr-only items-center gap-1.5 text-sm whitespace-nowrap text-muted-foreground @min-[1000px]/bar:not-sr-only @min-[1000px]/bar:inline-flex">
+      <span className="sr-only items-center gap-1.5 text-sm whitespace-nowrap text-muted-foreground @min-[1180px]/bar:not-sr-only @min-[1180px]/bar:inline-flex">
         <RefreshCw aria-hidden className="size-3.5" />
         <span>
           {L(FEEDS_COPY.barDataAsOf)}{' '}
@@ -124,7 +124,7 @@ export function AsOfBar() {
       </span>
 
       {link ? (
-        <Link to="/settings/feeds" title={`${L(FEEDS_COPY.barDataAsOf)} ${asOf}`} className="rounded-full outline-none transition-opacity duration-200 hover:opacity-80">
+        <Link to="/settings/feeds" title={`${L(FEEDS_COPY.barDataAsOf)} ${asOf}`} className="rounded-full outline-hidden transition-opacity duration-200 hover:opacity-80">
           {chip}
         </Link>
       ) : (

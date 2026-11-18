@@ -99,7 +99,7 @@ export function Shell() {
       <SidebarProvider open={!rail} onOpenChange={(open) => mode === 'desktop' && setDesktopExpanded(open)}>
         <a
           href="#main"
-          className="sr-only z-50 rounded-full bg-primary px-4 pt-1.5 pb-2 text-sm font-medium text-primary-foreground focus:not-sr-only focus:fixed focus:start-3 focus:top-3"
+          className="material-dark sr-only z-50 rounded-full px-4 pt-1.5 pb-2 text-sm font-medium focus:not-sr-only focus:fixed focus:start-3 focus:top-3"
         >
           {t('Skip to content', 'انتقل إلى المحتوى')}
         </a>
@@ -138,7 +138,7 @@ export function Shell() {
                   <main
                     id="main"
                     tabIndex={-1}
-                    className="mx-auto flex w-full max-w-[1320px] flex-1 flex-col gap-4 overflow-x-clip px-5 pt-2 pb-10 outline-none focus-visible:[--tw-ring-shadow:0_0_#0000] tablet:px-6 desktop:px-8 has-[[data-fluid-page]]:max-w-none"
+                    className="mx-auto flex w-full max-w-[1320px] flex-1 flex-col gap-4 overflow-x-clip px-5 pt-2 pb-10 outline-hidden focus-visible:[--tw-ring-shadow:0_0_#0000] tablet:px-6 desktop:px-8 has-[[data-fluid-page]]:max-w-none"
                   >
                     <Suspense fallback={<LoadingState rows={6} />}>
                       <RouteTransition>
@@ -158,7 +158,7 @@ export function Shell() {
         <TraceHost />
 
         <Sheet open={assistantOpen && available} onOpenChange={setAssistantOpen}>
-          <SheetContent side="right" showCloseButton={false} aria-describedby={undefined} className="w-full gap-0 overflow-hidden p-0 sm:max-w-md">
+          <SheetContent side="right" showCloseButton={false} aria-describedby={undefined} className="gap-0 overflow-hidden p-0 sm:max-w-md">
             <Suspense fallback={<LoadingState rows={3} className="p-4" />}>
               <AssistantPanel key={question?.key ?? 'empty'} initialQuestion={question?.text} onClose={() => setAssistantOpen(false)} />
             </Suspense>

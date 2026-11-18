@@ -15,11 +15,15 @@ interface TraceIdProps {
   plain?: boolean
   /** Replaces the default open behaviour (`useTraceNav().open`). */
   onOpen?: () => void
+  /** `well`: for an id that sits on a well (the trace card), where the grey tag would vanish: a white tag with a hairline ring. */
+  surface?: 'default' | 'well'
   className?: string
 }
 
 /** A flat grey tag (well fill, 12px tabular figures: ids are numbers, not code, so no mono face). Ink on hover when it is a button. */
-const TAG = 'inline-flex h-6 shrink-0 items-center gap-1 rounded-full bg-well px-2.5 pt-px text-xs font-medium tabular text-muted-foreground whitespace-nowrap'
+const TAG = 'inline-flex h-6 shrink-0 items-center gap-1 rounded-full px-2.5 pt-px text-xs font-medium tabular text-muted-foreground whitespace-nowrap'
+const SURFACE = { default: 'bg-well', well: 'bg-card shadow-hairline' } as const
+const HOVER = { default: 'hover:bg-well-hover hover:text-foreground', well: 'hover:opacity-80' } as const
 
 /**
  * A trace id as a grey tag (v40 F10 to F12): `EV-12`, `SG-7`, `PT-123`, `CA-201`, `VR-201`, `RP-2026-11`. A button that
@@ -29,7 +33,7 @@ const TAG = 'inline-flex h-6 shrink-0 items-center gap-1 rounded-full bg-well px
  *
  * @example <TraceId kind="signal" id={signal.id} />   <TraceId kind="pattern" id={pattern.traceId} />
  */
-export function TraceId({ kind, id, children, plain, onOpen, className }: TraceIdProps) {
+export function TraceId({ kind, id, children, plain, onOpen, surface = 'default', className }: TraceIdProps) {
   const { t } = useI18n()
   const nav = useTraceNav()
   const text = isDisplayId(id) ? id : displayId(kind, id)
@@ -41,7 +45,7 @@ export function TraceId({ kind, id, children, plain, onOpen, className }: TraceI
   )
   if (plain || (!onOpen && !nav.canOpen(kind, id))) {
     return (
-      <span data-slot="trace-id" className={cn(TAG, className)}>
+      <span data-slot="trace-id" className={cn(TAG, SURFACE[surface], className)}>
         {content}
       </span>
     )
@@ -52,7 +56,7 @@ export function TraceId({ kind, id, children, plain, onOpen, className }: TraceI
       data-slot="trace-id"
       onClick={onOpen ?? (() => nav.open(kind, id))}
       aria-label={children ? undefined : t(`Open ${text}`, `افتح ${text}`)}
-      className={cn(TAG, 'cursor-pointer outline-none transition-colors duration-200 hover:bg-well-hover hover:text-foreground', className)}
+      className={cn(TAG, SURFACE[surface], 'cursor-pointer outline-hidden transition-colors duration-200', HOVER[surface], className)}
     >
       {content}
     </button>

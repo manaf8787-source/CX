@@ -62,14 +62,20 @@ Density: **D** dense (card 20, row 44, KPI 32), **C** comfortable (card 28, row 
 | `components/customers/SourceBadge.tsx` | Still draws `border border-info/20 bg-info/10 text-info-text` and `border-border bg-card` (seen in Public mentions). Should become the light tag with a dot |
 | `components/home/LandingBrief.tsx` | Rendered at the top of L&D and HR team performance; it keeps its own card styling (not restyled here) |
 | `SettingsLayout` and the other settings pages | `SettingsSection`, `InlineNote`, `ViewOnlyNotice`, `IN_CARD` could be promoted to `components/common` by whoever owns it; PAGES-B pages in the same folder can use them from `SubPageHeader.tsx` today |
+| `components/ui/use-sliding-indicator.ts` | The MutationObserver's `attributeFilter` lists `data-state`, `aria-selected`, `aria-checked`, `aria-current`, `data-active` but not `aria-pressed`: a control built from `aria-pressed` buttons does not move its pill when the state changes (found by the axe e2e on Survey questions: white text on the track). `PressFilter` works around it with `data-active`; adding `aria-pressed` to the filter removes the need |
 | `Table` | `density` defaults to dense on the container and ignores `data-density` of the page, so a comfortable page has to pass `density="comfortable"` to every table. Inheriting the ancestor's `data-density` would remove that |
 
-## 5. Known gaps
+## 5. Verification
+
+`npx tsc -b --noEmit` clean; `npm run lint` no new warnings; `vitest run src/pages/settings src/components/common` 116 passed; e2e (`E2E_PORT=4413`, 3 workers) `v40-people`, `passI`, `a11y` (all 29 routes x EN/AR x light/dark), `routes`, `keyboard`: 226 passed after one fix (the sliding pill did not follow `aria-pressed`). Extra axe pass over 24 non-default states (other tabs, other roles, the shopper form, pressed filters) in EN/AR and light/dark: only the N/A label gap below. Screenshots of every page at 1440, 1024 and 390 (EN light), 1440 (AR light, EN dark) were reviewed; no page-level horizontal scroll at any width.
+
+## 6. Known gaps
 
 | Gap | Note |
 |---|---|
 | The AI Insights access matrix (12 role columns) and the earlier matrix still scroll sideways at every width | By design (sticky first column, `role="region"`); they cannot be narrowed without cutting role names |
 | Wide tables (Public mentions, Feeds, Standards, Surveys instruments) scroll inside their card under about 1200px and on a phone | They do not overflow the page; at 1440 all fit |
+| `MysteryShopper` shopper view: the N/A answer has `aria-label="Not applicable"` but the visible text "N/A" | axe `label-content-name-mismatch` (WCAG 2.5.3). Pre-existing, kept because aria attributes were not to change; the fix is a label that contains "N/A". The route is not in the e2e axe list (it is only reachable as the shopper role); checked with `scratchpad/pagesC/axe-c.mjs` |
 | Radix tab triggers show the global focus ring after a mouse click | Known system behaviour (`MEO_DESIGN_SYSTEM.md` section 9) |
 | On a phone the card padding stays 28 (comfortable) or 20 (dense) | Cards are shared; a table in a card then has little room |
 | `LandingBrief` and `SourceBadge` still carry legacy styling | Not owned here, see shared requests |

@@ -14,6 +14,7 @@ import { PageHeader } from '@/components/common/PageHeader'
 import { CustomersTabs } from '@/components/customers/CustomersTabs'
 import { SectionCard } from '@/components/common/SectionCard'
 import { StatusBadge } from '@/components/common/StatusBadge'
+import { InlineNote } from '@/components/common/InlineNote'
 import { DataTable } from '@/components/common/DataTable'
 import { EmptyState } from '@/components/common/EmptyState'
 import { LoadingState } from '@/components/common/LoadingState'
@@ -114,6 +115,8 @@ export default function Personas() {
           isLoading={recsLoading}
           getRowId={(r) => r.id}
           pageSize={0}
+          // a phone: the campaign and its persona on two lines, the rank and "Who" behind "Details"
+          phone={{ title: 'campaign', meta: ['persona'], detail: ['rank', 'who'] }}
           emptyTitle={t('No ranked campaigns yet.', 'لا توجد حملات مرتبة بعد.')}
           onRowClick={(r) => {
             const el = document.getElementById(`persona-${r.personaId}`)
@@ -175,7 +178,7 @@ function PersonaCard({ persona, canApprove, canAudit, onDecide }: { persona: Per
   const { t, L } = useI18n()
   const r = persona.recommendation
   return (
-    <article id={`persona-${persona.id}`} tabIndex={-1} className="min-w-0 scroll-mt-24 rounded-card outline-none">
+    <article id={`persona-${persona.id}`} tabIndex={-1} className="min-w-0 scroll-mt-24 rounded-card outline-hidden">
       <Card density="comfortable" className="h-full">
         <div data-slot="card-header" className="flex flex-col gap-2 px-(--card-pad)">
           <div className="flex items-start justify-between gap-3">
@@ -231,12 +234,9 @@ function PersonaCard({ persona, canApprove, canAudit, onDecide }: { persona: Per
         </CardWell>
 
         {canAudit && persona.auditNote && (
-          <div className="well mx-(--card-pad) flex items-start gap-2.5 px-4 py-3.5">
-            <span aria-hidden className="dot dot-warning mt-1.5" />
-            <p className="text-sm text-muted-foreground">
-              <span className="font-medium text-foreground">{t('Audit note', 'ملاحظة تدقيق')}</span> · {L(persona.auditNote)}
-            </p>
-          </div>
+          <InlineNote tone="warning" className="mx-(--card-pad)">
+            <span className="font-medium">{t('Audit note', 'ملاحظة تدقيق')}</span> · <span className="text-muted-foreground">{L(persona.auditNote)}</span>
+          </InlineNote>
         )}
 
         {canApprove && (

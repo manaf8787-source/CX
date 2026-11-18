@@ -14,13 +14,13 @@ export function LoadingState({ rows = 4, className }: { rows?: number; className
       <span className="sr-only">{t('Loading…', 'جارٍ التحميل…')}</span>
       {Array.from({ length: rows }, (_, i) =>
         i === 0 ? (
-          <Skeleton key={i} className="h-5 w-1/3 rounded-[6px]" />
+          <Skeleton key={i} className="h-5 w-1/3 rounded-sm" />
         ) : (
           <div key={i} className="flex h-11 items-center gap-3">
             <Skeleton className="size-7 shrink-0 rounded-full" />
             <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-              <Skeleton className="h-3 w-3/5 rounded-[6px]" />
-              <Skeleton className="h-3 w-2/5 rounded-[6px]" />
+              <Skeleton className="h-3 w-3/5 rounded-sm" />
+              <Skeleton className="h-3 w-2/5 rounded-sm" />
             </div>
             <Skeleton className="hidden h-5 w-16 shrink-0 rounded-full sm:block" />
           </div>

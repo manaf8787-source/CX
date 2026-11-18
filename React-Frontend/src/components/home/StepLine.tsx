@@ -39,7 +39,7 @@ export function StepLine({ className }: { className?: string }) {
               )}
             </>
           )
-          const cls = 'flex h-full min-w-0 flex-col gap-0.5 rounded-xl bg-well px-3.5 py-3 text-start outline-none transition-colors duration-200'
+          const cls = 'flex h-full min-w-0 flex-col gap-0.5 rounded-xl bg-well px-3.5 py-3 text-start outline-hidden transition-colors duration-200'
           return (
             <li key={step.id} className="min-w-0">
               {open ? (

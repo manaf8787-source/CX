@@ -76,7 +76,7 @@ export default function SettingsLayout() {
                     to={item.path}
                     className={({ isActive }) =>
                       cn(
-                        'relative z-10 flex min-h-9 items-center rounded-xl px-3.5 py-1.5 text-base outline-none transition-colors duration-200 ease-out',
+                        'relative z-10 flex min-h-9 items-center rounded-xl px-3.5 py-1.5 text-base outline-hidden transition-colors duration-200 ease-out',
                         isActive
                           ? 'font-medium text-primary-foreground group-data-[indicator=off]/settings-nav:material-dark'
                           : 'text-muted-foreground hover:text-foreground',

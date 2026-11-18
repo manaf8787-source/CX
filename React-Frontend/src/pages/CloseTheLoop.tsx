@@ -188,7 +188,7 @@ export default function CloseTheLoop() {
       id: 'firstScore',
       accessorKey: 'firstScore',
       header: ({ column }) => <SortableHeader column={column}>{t('First score', 'النتيجة الأولى')}</SortableHeader>,
-      meta: { align: 'end' },
+      meta: { align: 'end', label: t('First score', 'النتيجة الأولى') },
       cell: ({ row }) => (
         <span className="inline-flex flex-col items-end leading-tight">
           <span className="tabular-nums">{row.original.firstScore}</span>
@@ -248,13 +248,6 @@ export default function CloseTheLoop() {
           )
         return <span className="text-muted-foreground">{t('Not called yet', 'لم يُتصل به بعد')}</span>
       },
-    },
-    {
-      id: 'call',
-      header: () => <span className="sr-only">{t('Actions', 'الإجراءات')}</span>,
-      enableSorting: false,
-      meta: { align: 'end', cellClassName: 'min-w-44' },
-      cell: ({ row }) => rowActions(row.original),
     },
     {
       id: 'resurvey',
@@ -323,6 +316,14 @@ export default function CloseTheLoop() {
           </span>
         )
       },
+    },
+    {
+      id: 'call',
+      header: () => <span className="sr-only">{t('Actions', 'الإجراءات')}</span>,
+      enableSorting: false,
+      // pinned to the end edge: the Call button stays in reach while the 10 columns scroll
+      meta: { align: 'end', cellClassName: 'min-w-44', sticky: 'end' },
+      cell: ({ row }) => rowActions(row.original),
     },
   ]
 
@@ -483,6 +484,8 @@ export default function CloseTheLoop() {
           getRowId={(i) => i.id}
           pageSize={10}
           emptyTitle={t("Nobody on this month's list.", 'لا أحد في قائمة هذا الشهر.')}
+          // a phone: the person and the call on two lines, severity, due date and status as tags, the rest behind "Details"
+          phone={{ title: 'person', meta: ['severity', 'due', 'outcome'], end: ['call'], detail: ['channel', 'firstScore', 'reason', 'resurvey', 'recovered'] }}
         />
       </SectionCard>
 

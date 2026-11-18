@@ -181,13 +181,13 @@ export function AssistantPanel({ onClose, initialQuestion }: { onClose: () => vo
   return (
     <div className="flex h-full min-h-0 flex-col bg-card">
       {/* Floating drawer header: 60px, the dark assistant mark, title and meta, a 30px light close button. */}
-      <header className="flex min-h-[60px] items-center gap-3 ps-5 pe-4">
+      <header className="flex min-h-[60px] items-center gap-3 py-2 ps-5 pe-4">
         <span aria-hidden className="material-dark grid size-[30px] shrink-0 place-items-center rounded-full">
           <Sparkles className="size-3.5" />
         </span>
         <div className="flex min-w-0 flex-1 flex-col">
           <SheetTitle className="leading-tight">{t('AI assistant', 'المساعد الذكي')}</SheetTitle>
-          <span className="truncate text-xs text-muted-foreground">
+          <span className="text-xs leading-snug text-muted-foreground">
             {t('Built-in parser (no connection) · sample data, within your role', 'المحلّل المدمج (دون اتصال) · بيانات نموذجية ضمن صلاحيات دورك')}
           </span>
         </div>
@@ -203,7 +203,7 @@ export function AssistantPanel({ onClose, initialQuestion }: { onClose: () => vo
         aria-live="polite"
         aria-label={t('Conversation', 'المحادثة')}
         tabIndex={0}
-        className="well mx-2.5 flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto outline-none"
+        className="well mx-2.5 flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto outline-hidden"
       >
         {messages.map((msg) => {
           const mine = msg.from === 'user'
@@ -216,8 +216,8 @@ export function AssistantPanel({ onClose, initialQuestion }: { onClose: () => vo
             >
               <div
                 className={cn(
-                  'rounded-[20px] px-4 pt-2.5 pb-3 text-base leading-relaxed whitespace-pre-line',
-                  mine ? 'material-dark rounded-ee-[6px]' : 'material-light rounded-es-[6px]',
+                  'rounded-panel px-4 pt-2.5 pb-3 text-base leading-relaxed whitespace-pre-line',
+                  mine ? 'material-dark rounded-ee-sm' : 'material-light rounded-es-sm',
                 )}
               >
                 {L(msg.text)}
@@ -251,7 +251,7 @@ export function AssistantPanel({ onClose, initialQuestion }: { onClose: () => vo
           <m.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="material-light flex items-center gap-1 self-start rounded-[20px] rounded-es-[6px] px-4 py-3.5"
+            className="material-light flex items-center gap-1 self-start rounded-panel rounded-es-sm px-4 py-3.5"
           >
             <span className="sr-only">{t('The assistant is answering…', 'المساعد يجيب…')}</span>
             {[0, 1, 2].map((i) => (
@@ -262,7 +262,7 @@ export function AssistantPanel({ onClose, initialQuestion }: { onClose: () => vo
       </div>
 
       <div className="flex flex-col gap-2 pb-4">
-        <div className="flex gap-2 overflow-x-auto px-5 pt-3 pb-1 outline-none" aria-label={t('Suggested questions', 'أسئلة مقترحة')} role="group" tabIndex={0}>
+        <div className="flex gap-2 overflow-x-auto px-5 pt-3 pb-1 outline-hidden" aria-label={t('Suggested questions', 'أسئلة مقترحة')} role="group" tabIndex={0}>
           {SUGGESTED_QUERIES.map((q) => (
             <Button key={q.en} type="button" variant="outline" size="sm" className="shrink-0" disabled={!ready || thinking} onClick={() => send(t(q.en, q.ar))}>
               {t(q.en, q.ar)}

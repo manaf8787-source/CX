@@ -131,7 +131,7 @@ function Brand({ onNavigate }: { onNavigate?: () => void }) {
     <NavLink
       to="/home"
       onClick={onNavigate}
-      className="flex min-w-0 items-center gap-2 rounded-md px-2 py-1 outline-none group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
+      className="flex min-w-0 items-center gap-2 rounded-md px-2 py-1 outline-hidden group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
     >
       <span aria-hidden className="material-dark grid size-[22px] shrink-0 place-items-center rounded-sm text-[9px] leading-none font-medium">
         CX

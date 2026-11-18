@@ -8,7 +8,7 @@ import { Slot } from "radix-ui"
  * variants are the skill's derived text/tint pairs (use them only for states, never decoratively). `dot` adds the 6px status dot.
  */
 const badgeVariants = cva(
-  "inline-flex h-6 w-fit shrink-0 items-center justify-center gap-[5px] overflow-hidden rounded-full px-2.5 pt-1 pb-1.5 text-2xs font-medium whitespace-nowrap outline-none transition-[background-color,box-shadow] [&>svg]:pointer-events-none [&>svg]:size-3",
+  "inline-flex h-6 w-fit shrink-0 items-center justify-center gap-[5px] overflow-hidden rounded-full px-2.5 pt-1 pb-1.5 text-2xs font-medium whitespace-nowrap outline-hidden transition-[background-color,box-shadow] [&>svg]:pointer-events-none [&>svg]:size-3",
   {
     variants: {
       variant: {

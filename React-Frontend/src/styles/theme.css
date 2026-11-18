@@ -34,6 +34,7 @@
   --ink-secondary: #6e6e6e; /* prose, idle icons; 5.1:1 on white, 4.55:1 on #f2f2f2 */
   --ink-tertiary: #767676; /* meta, table header; 4.54:1 on white ONLY: never on a well or the sidebar (use --ink-secondary) */
   --line: #ececec; /* the only literal line: row dividers, tracks */
+  --line-well: #dcdcdc; /* the same line on a well (#f2f2f2), derived: #ececec is invisible there */
   --on-dark: #ffffff; /* text on the emphasis ("dark") material */
   --on-dark-muted: rgba(255, 255, 255, 0.62);
   --on-dark-tint: rgba(255, 255, 255, 0.07);
@@ -241,6 +242,10 @@
   --kpi-tracking: -0.05em;
   --grid-gap: 16px;
 }
+/* A table (ui/table) with no density of its own follows the page's; outside every density scope (a dialog, a drawer) it is dense. */
+[data-slot='table-container']:not([data-density]):not(:where([data-density] *)) {
+  --row-h: 44px;
+}
 
 /* ==== 2. Dark theme (derived): the same two materials inverted ================================================================
  * Page #0a0a0a, raised surfaces #1a1a1a -> #111, and the emphasis material is the LIGHT gradient (selected pill, primary button), with
@@ -262,6 +267,7 @@
   --ink-secondary: #a8a8a8; /* 8.3:1 on the page, 7.2:1 on a well */
   --ink-tertiary: #8f8f8f; /* 6.1:1 on the page, 5.3:1 on a well, 4.8:1 on #242424 */
   --line: #262626;
+  --line-well: #353535;
   --on-dark: #0a0a0a;
   --on-dark-muted: rgba(10, 10, 10, 0.62);
   --on-dark-tint: rgba(10, 10, 10, 0.07);
@@ -387,8 +393,8 @@
   --shadow-inset-well: inset 0 1px 2px var(--sh-well), inset 0 2px 5px -2px var(--sh-well), 0 1px 0 var(--sh-lip);
   --shadow-inset-track: inset 0 1px 2px var(--sh-track), inset 0 2px 5px -2px var(--sh-well), 0 1px 0 var(--sh-lip);
   /* form fields: the recess plus the documented 1px accessibility ring (still a shadow, not a CSS border) */
-  --shadow-field: inset 0 1px 2px var(--sh-well), inset 0 2px 5px -2px var(--sh-well), 0 1px 0 var(--sh-lip), 0 0 0 1px var(--ring-field-color);
-  --shadow-field-invalid: inset 0 1px 2px var(--sh-well), inset 0 2px 5px -2px var(--sh-well), 0 1px 0 var(--sh-lip), 0 0 0 1.5px var(--status-error-solid);
+  --shadow-field: inset 0 1px 2px var(--sh-well), inset 0 2px 5px -2px var(--sh-well), 0 0 0 1px var(--ring-field-color), 0 1px 0 var(--sh-lip); /* ring BEFORE the lip: the lip is 1px lower and would paint over the ring's bottom edge */
+  --shadow-field-invalid: inset 0 1px 2px var(--sh-well), inset 0 2px 5px -2px var(--sh-well), 0 0 0 1.5px var(--status-error-solid), 0 1px 0 var(--sh-lip);
   --shadow-dot-off: inset 0 1px 1px var(--sh-hi), inset 0 -2px 3px var(--sh-inner), 0 1px 1px var(--sh-drop);
   --shadow-glass: inset 0 1px 2px var(--sh-hi), inset 0 0 2px var(--sh-d-glass), inset 0 4px 8px -4px var(--sh-d-glass), 0 6px 14px var(--sh-drop);
   --shadow-surface-dark: inset 0 1px 1px var(--sh-d-hi), inset 0 10px 20px -12px var(--sh-d-hi), 0 4px 6px var(--sh-drop), 0 14px 24px var(--sh-d-drop), 0 30px 50px var(--sh-d-drop);
@@ -581,9 +587,68 @@
   @apply shadow-raised-dark;
 }
 
+/* The icon of a light tag on the dark feature card: ink on the tint, whatever colour class the icon carries (utilities layer, so it
+   outranks a `text-info-text` on the svg). */
+@layer utilities {
+  .surface-dark :is(.pill-light, .pill-chip) svg {
+    color: var(--on-dark);
+  }
+}
+
+/* A strip that scrolls sideways fades the edge that still has content (see ui/use-scroll-fade). Logical: the end edge is the left one in RTL. */
+@utility scroll-fade {
+  &[data-fade-end] {
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+  }
+  &[data-fade-start] {
+    -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 28px), transparent);
+    mask-image: linear-gradient(to left, #000 calc(100% - 28px), transparent);
+  }
+  &[data-fade-start][data-fade-end] {
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent);
+    mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent);
+  }
+  [dir='rtl'] &[data-fade-end] {
+    -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 28px), transparent);
+    mask-image: linear-gradient(to left, #000 calc(100% - 28px), transparent);
+  }
+  [dir='rtl'] &[data-fade-start] {
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+  }
+  [dir='rtl'] &[data-fade-start][data-fade-end] {
+    -webkit-mask-image: linear-gradient(to left, transparent, #000 28px, #000 calc(100% - 28px), transparent);
+    mask-image: linear-gradient(to left, transparent, #000 28px, #000 calc(100% - 28px), transparent);
+  }
+}
+
 @utility tabular {
   font-variant-numeric: tabular-nums;
   font-feature-settings: 'tnum';
+}
+
+/* The selected record: a 1.5px ink ring (skill `ring.selected`) in the ring slot, so the card's own shadow stays underneath. A selected
+   element that is also keyboard-focused shows the focus ring instead (focus must always be visible). */
+@utility ring-selected {
+  --tw-ring-shadow: var(--ring-selected);
+  box-shadow:
+    var(--tw-inset-shadow, 0 0 #0000), var(--tw-inset-ring-shadow, 0 0 #0000), var(--tw-ring-offset-shadow, 0 0 #0000),
+    var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
+  &:focus-visible {
+    --tw-ring-shadow: var(--ring-focus);
+  }
+}
+
+/* A label (or any wrapper) around a visually hidden control draws the focus ring while the control inside has keyboard focus (a radio
+   row, a check chip). Replaces per-page `has-[:focus-visible]` strings. */
+@utility ring-within {
+  &:has(:focus-visible) {
+    --tw-ring-shadow: var(--ring-focus);
+    box-shadow:
+      var(--tw-inset-shadow, 0 0 #0000), var(--tw-inset-ring-shadow, 0 0 #0000), var(--tw-ring-offset-shadow, 0 0 #0000),
+      var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
+  }
 }
 
 /* Eyebrow, group heading: 12px, 500, +0.04em, UPPERCASE. Latin only: Arabic has no case and no tracking, so it keeps size and weight. */
@@ -684,10 +749,20 @@
       var(--tw-inset-shadow, 0 0 #0000), var(--tw-inset-ring-shadow, 0 0 #0000), var(--tw-ring-offset-shadow, 0 0 #0000),
       var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
   }
-  /* LEGACY SHIM (delete when the page steps remove ink-tint selected states): the old selected look was bg-primary/10 or bg-gold/10, which was a navy tint.
-     Ink at 10% is #e7e7e7, where #6e6e6e is only 4.12:1. Inside such a tint the muted text is #5c5c5c (5.4:1). Selected = dark material replaces these. */
-  :root:not(.dark) :is([class*='bg-primary/'], [class*='bg-gold/'], [class*='bg-brand-accent/']) {
-    --muted-foreground: #5c5c5c;
+  /* The native clear button of a search field is the browser's blue cross: colour is categorical here, so it is a grey 14px cross. */
+  input[type='search']::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    margin-inline: 2px 0;
+    cursor: pointer;
+    background-color: var(--ink-secondary);
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M18 6 6 18M6 6l12 12'/%3E%3C/svg%3E") center / contain no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M18 6 6 18M6 6l12 12'/%3E%3C/svg%3E") center / contain no-repeat;
+  }
+  input[type='search']::-webkit-search-cancel-button:hover {
+    background-color: var(--ink);
   }
   /* Containers that take programmatic focus (an opened menu, popover, dialog or drawer) show no ring; the items inside them keep theirs. */
   :is([data-slot=dropdown-menu-content], [data-slot=dropdown-menu-sub-content], [data-slot=popover-content], [data-slot=select-content], [data-slot=dialog-content], [data-slot=sheet-content], [role=menu], [role=dialog], [role=alertdialog], [role=listbox]):focus-visible {
@@ -736,6 +811,14 @@
     --border: var(--on-dark-tint);
     @apply shadow-surface-dark;
   }
+  /* Light and chip tags on the dark feature card are the skill's `--fx-tint` (white 7%), not the raised light material. Tinted status tags
+     (warning, error) keep their tint: they are states that need action. */
+  .surface-dark :is(.pill-light, .pill-chip) {
+    background-image: none;
+    background-color: var(--on-dark-tint);
+    color: var(--on-dark);
+    box-shadow: none;
+  }
   /* A well: where data lives. Chart, stat, dot grid. No shadow. */
   .well {
     background-color: var(--surface-well);
@@ -777,6 +860,10 @@
   .row-divider:last-child::after,
   .row-divider-none::after {
     display: none;
+  }
+  /* The same line on a well (#f2f2f2), where #ececec would vanish: a shade darker (derived). Use it together with `row-divider`. */
+  .row-divider.row-divider-well::after {
+    border-bottom-color: var(--line-well);
   }
 
   /* Pills: tags, badges, chips. Height 24, pill radius, optical asymmetric padding (top 1px less than bottom). */

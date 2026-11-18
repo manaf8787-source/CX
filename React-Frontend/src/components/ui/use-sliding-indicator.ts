@@ -49,7 +49,7 @@ export function useSlidingIndicator<T extends HTMLElement = HTMLElement>(selecto
         subtree: true,
         childList: true,
         attributes: true,
-        attributeFilter: ["data-state", "aria-selected", "aria-checked", "aria-current", "data-active"],
+        attributeFilter: ["data-state", "aria-selected", "aria-checked", "aria-pressed", "aria-current", "data-active"],
       })
     }
     raf = requestAnimationFrame(() => setAnimate(true))

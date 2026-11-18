@@ -75,7 +75,7 @@ export function ChartTooltip({ active, payload, label, valueFormatter, labelForm
   if (!active || !payload?.length) return null
   const rows = payload.filter((p) => !p.hide)
   return (
-    <div data-slot="chart-tooltip" className="material-dark flex min-w-28 flex-col gap-1.5 rounded-[10px] px-2.5 py-2 text-xs font-medium">
+    <div data-slot="chart-tooltip" className="material-dark flex min-w-28 flex-col gap-1.5 rounded-lg px-2.5 py-2 text-xs font-medium">
       {label !== undefined && label !== '' && <span className="text-(--on-dark-muted)">{labelFormatter ? labelFormatter(label) : label}</span>}
       <ul className="flex flex-col gap-1">
         {rows.map((row, i) => (
@@ -135,30 +135,56 @@ interface RankedBarsProps {
   max?: number
   /** Names the list. */
   label: string
+  /**
+   * `inline` (default): the label sits beside the track in a column of at most 9rem. `stacked`: the label sits above the track with the
+   * value at the end of its row, so a sentence-long label ("Slow or missing follow-up") gets the full width and wraps.
+   */
+  layout?: 'inline' | 'stacked'
+  /** `inline` only: the label column, as a CSS grid track (default `minmax(4.5rem,9rem)`). Wider for names such as "Supervisor check 4". */
+  labelWidth?: string
+  /** `inline` only: wrap a long label onto more lines instead of cutting it with an ellipsis. */
+  wrap?: boolean
   className?: string
 }
 
 /**
  * The skill's bar comparison, and the answer to "more than four categories": label, a 12px pill track (#ececec, inset), the fill, the
  * value at the end. The hero row has the dark material and an ink 500 label; the rest are the grey gradient at 62% with grey labels.
- * Rows are a real list; the tracks are decoration (`aria-hidden`), the printed value is the data.
+ * Rows are a real list; the tracks are decoration (`aria-hidden`), the printed value is the data. `layout="stacked"` or `wrap` +
+ * `labelWidth` for labels longer than a word or two.
  */
-export function RankedBars({ items, max, label, className }: RankedBarsProps) {
+export function RankedBars({ items, max, label, layout = 'inline', labelWidth = 'minmax(4.5rem,9rem)', wrap, className }: RankedBarsProps) {
   const top = max ?? Math.max(1, ...items.map((i) => i.value))
+  const stacked = layout === 'stacked'
   return (
     <ul aria-label={label} data-slot="ranked-bars" className={cn('flex flex-col gap-4', className)}>
       {items.map((item, i) => {
         const hero = item.hero ?? i === 0
+        const text = hero ? 't-small-strong' : 't-body-s'
+        const track = (
+          <span aria-hidden className="block h-3 min-w-0 overflow-hidden rounded-full bg-line shadow-inset-track">
+            <span
+              className={cn('block h-full rounded-full', hero ? 'material-dark' : 'bg-grad-muted-fill opacity-[0.62]')}
+              style={{ width: `${Math.max(0, Math.min(100, (item.value / top) * 100))}%` }}
+            />
+          </span>
+        )
+        const value = item.display ?? item.value.toLocaleString('en-US')
+        if (stacked)
+          return (
+            <li key={item.key ?? i} className="flex flex-col gap-1.5">
+              <div className="flex items-baseline justify-between gap-3">
+                <span className={cn('min-w-0 break-words', text)}>{item.label}</span>
+                <span className={cn('tabular shrink-0', text)}>{value}</span>
+              </div>
+              {track}
+            </li>
+          )
         return (
-          <li key={item.key ?? i} className="grid grid-cols-[minmax(4.5rem,9rem)_minmax(0,1fr)_auto] items-center gap-3.5">
-            <span className={cn('truncate', hero ? 't-small-strong' : 't-body-s')}>{item.label}</span>
-            <span aria-hidden className="h-3 overflow-hidden rounded-full bg-line shadow-inset-track">
-              <span
-                className={cn('block h-full rounded-full', hero ? 'material-dark' : 'bg-grad-muted-fill opacity-[0.62]')}
-                style={{ width: `${Math.max(0, Math.min(100, (item.value / top) * 100))}%` }}
-              />
-            </span>
-            <span className={cn('tabular text-end', hero ? 't-small-strong' : 't-body-s')}>{item.display ?? item.value.toLocaleString('en-US')}</span>
+          <li key={item.key ?? i} style={{ gridTemplateColumns: `${labelWidth} minmax(0,1fr) auto` }} className="grid items-center gap-3.5">
+            <span className={cn(wrap ? 'min-w-0 break-words' : 'truncate', text)}>{item.label}</span>
+            {track}
+            <span className={cn('tabular text-end', text)}>{value}</span>
           </li>
         )
       })}

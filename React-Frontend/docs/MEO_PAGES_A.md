@@ -87,6 +87,12 @@ Scope: Home, Login, My inbox, Overview wrapper, Customers (list and person), Who
 - Home indicator tones are a dot only (the number and the sentence carry the meaning, as the old coloured number did); a text state could be added with the copy owner.
 - The dark theme's feature cards are the light material (derived in step 1); small grey text inside them is `rgba(10,10,10,.62)` on a white-to-grey gradient: axe passes, but it is the thinnest contrast on these pages.
 
-## Verification
+## Verification (18 Nov 2026)
 
-Filled in at the end of the step: see the report (unit, e2e, audit).
+| Check | Result |
+|---|---|
+| `npx tsc -b --noEmit`, `npm run lint` | Clean (3 older fast-refresh warnings in files outside this slice) |
+| `vitest run src/pages src/components/home src/components/customers src/components/closeTheLoop` | 21 files, 199 tests pass |
+| Playwright on port 4411, 3 workers: `v40-orientation`, `auth`, `v40-people`, `a11y` (33 routes x EN/AR x light/dark, login x4, overlays), `routes` | 242 pass on the first run. 10 failed, all load-related (the machine was running three e2e suites): 8 passed on rerun. The 2 `routes` "all 33 routes" tests need about 66 s without tracing and pass with `--trace off`; with the default trace on a busy machine they run past their own 120 s `setTimeout` (every route renders, no console errors, no sideways scroll, correct `dir`) |
+| Screenshots (EN/AR, light/dark, 1440/1024/390) | Home, Login, Customers list, a person; the other pages by F1 and F2 at the same matrix. Fixed after looking: Daily brief header grid on a phone, Login sign-in label clipped at 390 in Arabic, Login card taller than 900px, "Other roles" summary wrapping inside a pill |
+| Grep audit (`border`, `font-bold/semibold/mono`, `rounded-md/lg/sm`, status/primary tints, `shadow-sm/md/lg`, `uppercase`, `tracking-`, own focus rings, hover lifts, `text-gold`, `divide-`) | Clean except four deliberate lines: `font-mono` on the envelope field names (real code), `first-letter:uppercase` on a raw flag fallback in Who is leaving, `rounded-lg` on the campaign member row's hover pill, and the arrow nudge `group-hover:translate-x-[3px]` (the spring, not a lift) |

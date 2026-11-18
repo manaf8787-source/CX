@@ -1,5 +1,5 @@
 import { useI18n } from '@/i18n'
-import { InlineNote } from './InlineNote'
+import { InlineNote } from '@/components/common/InlineNote'
 
 /** FR-4.11 — a first-class, always-available element (not a one-off
  * tooltip): how to read a recovery percentage, and why a small sample

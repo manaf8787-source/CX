@@ -18,6 +18,8 @@ import { NextBox } from '@/components/common/NextBox'
 import { StatusBadge } from '@/components/common/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { StackedRows } from '@/components/common/StackedRows'
+import { useViewportMode } from '@/components/layout/useViewportMode'
 import type { InboxItem, InboxKind } from '@/types'
 
 const KIND_ICON: Record<InboxKind, LucideIcon> = {
@@ -64,6 +66,7 @@ export default function Inbox() {
   const fmt = dayFormat(lang)
   const first = items?.[0]
   const next = first ? nextForInboxItem(first, rules) : null
+  const phone = useViewportMode() === 'phone'
 
   return (
     <div data-density="dense" className="flex flex-col gap-6">
@@ -81,6 +84,54 @@ export default function Inbox() {
           <LoadingState rows={5} />
         ) : items.length === 0 ? (
           <EmptyState title={L(INBOX_COPY.empty)} icon={<CircleCheck />} />
+        ) : phone ? (
+          // a phone: the sentence and its urgency on two lines, the Open button, "Who it is with" behind "Details"
+          <StackedRows
+            label={L(INBOX_COPY.title)}
+            rows={items.map((item) => {
+              const Icon = KIND_ICON[item.kind]
+              const date = dueDate(item, today, rules)
+              const path = item.target.split('?')[0]
+              return {
+                id: item.id,
+                attrs: { 'data-kind': item.kind, 'data-priority': item.priority },
+                title: (
+                  <span className="flex items-start gap-3">
+                    <span aria-hidden className="material-light inline-grid size-[30px] shrink-0 place-items-center rounded-full [&_svg]:size-4">
+                      <Icon />
+                    </span>
+                    <span className="min-w-0 pt-1">{L(item.text)}</span>
+                  </span>
+                ),
+                meta: (
+                  <>
+                    {date ? (
+                      <span className="inline-flex flex-wrap items-center gap-2">
+                        <DayChip daysLeft={item.daysLeft} unit={item.unit} />
+                        <span className="t-caption">
+                          <span className="sr-only">{t('Due', 'المهلة')} </span>
+                          <bdi>{fmt.format(date)}</bdi>
+                        </span>
+                      </span>
+                    ) : (
+                      <span aria-label={t('No date', 'بلا موعد')}>–</span>
+                    )}
+                    {item.priority === 2 && <StatusBadge tone="danger">{t('Most urgent', 'الأكثر إلحاحاً')}</StatusBadge>}
+                    {item.priority === 1 && <StatusBadge tone="warning">{t('Urgent', 'عاجل')}</StatusBadge>}
+                  </>
+                ),
+                end: canAccessPath(role.id, path) && (
+                  <Button asChild variant="outline" size="sm">
+                    <Link to={item.target}>
+                      {L(INBOX_COPY.open)}
+                      <span className="sr-only"> · {L(item.text)}</span>
+                    </Link>
+                  </Button>
+                ),
+                detail: item.who ? [{ key: 'with', label: L(INBOX_COPY.columns.with), value: L(item.who) }] : undefined,
+              }
+            })}
+          />
         ) : (
           <div className="px-1">
             <Table>

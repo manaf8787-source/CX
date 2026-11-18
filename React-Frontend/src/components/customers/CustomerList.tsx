@@ -21,6 +21,7 @@ import { DataTable, SortableHeader } from '@/components/common/DataTable'
 import { ProductTag } from '@/components/common/Chip'
 import { SectionCard } from '@/components/common/SectionCard'
 import { StatusBadge } from '@/components/common/StatusBadge'
+import { InlineNote } from '@/components/common/InlineNote'
 import { LeadSourceBadge } from './LeadSourceBadge'
 import { usePeopleFacts } from './usePeopleFacts'
 
@@ -77,7 +78,7 @@ export function CustomerList() {
       header: ({ column }) => <SortableHeader column={column}>{L(COPY.columns.person)}</SortableHeader>,
       cell: ({ row }) => (
         <span className="inline-flex items-center gap-2">
-          <Link to={`/customers/${row.original.id}`} className="rounded-xs font-medium text-foreground underline-offset-4 outline-none hover:underline">
+          <Link to={`/customers/${row.original.id}`} className="rounded-xs font-medium text-foreground underline-offset-4 outline-hidden hover:underline">
             {personLabel(row.original, role.id)}
           </Link>
           {row.original.vip && (
@@ -219,10 +220,9 @@ export function CustomerList() {
         }
       />
       {!names && (
-        <p className="well mt-4 flex items-start gap-2.5 px-4 py-3 text-sm text-muted-foreground">
-          <span aria-hidden className="dot dot-info mt-[5px]" />
+        <InlineNote className="mt-4">
           {t('Names and mobiles are not shown to this role: people appear by reference (for example P-005), in the list and in the file.', 'الأسماء وأرقام الجوال لا تظهر لهذا الدور: يظهر الأشخاص بمرجع (مثل P-005)، في القائمة وفي الملف.')}
-        </p>
+        </InlineNote>
       )}
     </SectionCard>
   )

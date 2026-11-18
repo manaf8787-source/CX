@@ -20,7 +20,7 @@ const COLUMN_OF_KIND: Record<TraceKind, number> = { event: 0, signal: 1, pattern
  * The id on its own line, the detail under it (six narrow columns): the button stacks its two lines. The tag is white with a hairline
  * because the card is a well (the grey tag would vanish on it); long details wrap inside a rounded box instead of a pill.
  */
-const CELL_BUTTON = 'h-auto min-h-6 w-full flex-col items-start gap-0 rounded-[12px] bg-card py-1.5 whitespace-normal text-start shadow-hairline hover:bg-card hover:opacity-80'
+const CELL_BUTTON = 'h-auto min-h-6 w-full flex-col items-start gap-0 rounded-xl py-1.5 whitespace-normal text-start'
 
 /**
  * The Trace card (v40 F11): six columns, 1 Event, 2 Signal, 3 Pattern, 4 Fix, 5 Check, 6 Report, every id a button
@@ -41,7 +41,7 @@ export function TraceCardView({ chain, chip, className }: { chain: TraceChain; c
   const more = (n: number) => <span className="t-body-s">+{n}</span>
   const events = [
     ...chain.events.slice(0, MAX_IN_CELL).map((e) => (
-      <TraceId key={e.id} kind="event" id={e.id} className={CELL_BUTTON}>
+      <TraceId key={e.id} kind="event" id={e.id} surface="well" className={CELL_BUTTON}>
         <span className="font-sans">
           {L(CHANNEL_LABEL[e.channel])} <span aria-hidden>·</span> <bdi dir="ltr">{e.occurredAt.slice(5, 10)}</bdi>
         </span>
@@ -51,7 +51,7 @@ export function TraceCardView({ chain, chip, className }: { chain: TraceChain; c
   ]
   const signals = [
     ...chain.signals.slice(0, MAX_IN_CELL).map((s) => (
-      <TraceId key={s.id} kind="signal" id={s.id} className={CELL_BUTTON}>
+      <TraceId key={s.id} kind="signal" id={s.id} surface="well" className={CELL_BUTTON}>
         <span className="font-sans">
           <bdi dir="ltr">{s.occurredAt.slice(5, 10)}</bdi>
         </span>
@@ -61,7 +61,7 @@ export function TraceCardView({ chain, chip, className }: { chain: TraceChain; c
   ]
   const pattern = chain.pattern
     ? [
-        <TraceId key="pt" kind="pattern" id={chain.pattern.traceId} className={CELL_BUTTON}>
+        <TraceId key="pt" kind="pattern" id={chain.pattern.traceId} surface="well" className={CELL_BUTTON}>
           <span className="font-sans">
             {chain.pattern.signalCount} {t('signals', 'إشارات')}
           </span>
@@ -70,14 +70,14 @@ export function TraceCardView({ chain, chip, className }: { chain: TraceChain; c
     : []
   const fix = chain.fix
     ? [
-        <TraceId key="ca" kind="fix" id={chain.fix.id} className={CELL_BUTTON}>
+        <TraceId key="ca" kind="fix" id={chain.fix.id} surface="well" className={CELL_BUTTON}>
           <span className="font-sans">{L(CORRECTIVE_STATUS_LABEL[chain.fix.status])}</span>
         </TraceId>,
       ]
     : []
   const check = chain.check
     ? [
-        <TraceId key="vr" kind="check" id={chain.check.fixId} className={CELL_BUTTON}>
+        <TraceId key="vr" kind="check" id={chain.check.fixId} surface="well" className={CELL_BUTTON}>
           <span className="font-sans">
             <bdi dir="ltr">{chain.check.dueAt.slice(0, 10)}</bdi> <span aria-hidden>·</span> {L(CORRECTIVE_STATUS_LABEL[chain.check.status])}
           </span>
@@ -86,7 +86,7 @@ export function TraceCardView({ chain, chip, className }: { chain: TraceChain; c
     : []
   const report = chain.report
     ? [
-        <TraceId key="rp" kind="report" id={chain.report.traceId} className={CELL_BUTTON}>
+        <TraceId key="rp" kind="report" id={chain.report.traceId} surface="well" className={CELL_BUTTON}>
           <span className="font-sans">{L(chain.report.label)}</span>
         </TraceId>,
       ]

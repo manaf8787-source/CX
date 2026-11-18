@@ -26,7 +26,7 @@ import { EmptyState } from '@/components/common/EmptyState'
 import { LoadingState } from '@/components/common/LoadingState'
 import { TraceId } from '@/components/common/TraceId'
 import { useScrollToTarget } from '@/components/trace/useScrollToTarget'
-import { InlineNote } from './components/InlineNote'
+import { InlineNote } from '@/components/common/InlineNote'
 import { signalCategoryLabel } from './components/labels'
 
 const STATUS_LABEL: Record<'requested' | 'in_progress' | 'returned', { en: string; ar: string }> = {
@@ -136,7 +136,7 @@ function InvestigationRow({ inv, pattern, selected, onRecord }: { inv: Investiga
       id={`inv-${invId(inv.id)}`}
       data-inv={invId(inv.id)}
       data-selected={selected ? 'true' : undefined}
-      className={cn('row-divider -mx-3 flex min-w-0 scroll-mt-24 flex-col gap-3 rounded-well px-3 py-5 first:pt-3 last:pb-3', selected && 'row-divider-none shadow-(--ring-selected)')}
+      className={cn('row-divider -mx-3 flex min-w-0 scroll-mt-24 flex-col gap-3 rounded-well px-3 py-5 first:pt-3 last:pb-3', selected && 'row-divider-none ring-selected')}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-start gap-3">

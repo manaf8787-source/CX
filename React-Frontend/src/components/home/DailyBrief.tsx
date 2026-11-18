@@ -12,9 +12,6 @@ import { ProposedBadge } from '@/components/common/ProposedBadge'
 import { LoadingState } from '@/components/common/LoadingState'
 import { cn } from '@/lib/utils'
 
-/** Chips on the dark feature card are the skill's `--fx-tint` (white 7%), not the light material. */
-const TINT_CHIP = 'bg-none bg-(--on-dark-tint) text-foreground shadow-none [&_svg]:text-foreground'
-
 /**
  * The Daily brief (v40 F09, S3): Agent 9's lines for the signed-in role, written from the same numbers the pages show.
  * Every line opens its page when the role may open it and is plain text when not (the prototype's dead links are not copied).
@@ -50,12 +47,12 @@ export function DailyBrief({ className, surface = 'dark' }: { className?: string
         <CardTitle className="col-span-full flex flex-wrap items-center gap-2 sm:col-span-1">
           <span className="flex flex-wrap items-center gap-2">
             {L(BRIEF_COPY.title)}
-            <ProposedBadge title={L(BRIEF_COPY.proposedTitle)} className={dark ? TINT_CHIP : undefined} />
+            <ProposedBadge title={L(BRIEF_COPY.proposedTitle)} />
           </span>
         </CardTitle>
         <CardDescription className="col-span-full sm:col-span-1">{L(BRIEF_COPY.hint)}</CardDescription>
         <CardAction className="col-start-1 row-span-1 row-start-3 mt-1 flex items-center gap-2 justify-self-start sm:col-start-2 sm:row-span-2 sm:row-start-1 sm:mt-0 sm:justify-self-end">
-          <AgentChip agent={9} className={dark ? TINT_CHIP : undefined} />
+          <AgentChip agent={9} />
         </CardAction>
       </CardHeader>
       <CardContent>
@@ -70,7 +67,7 @@ export function DailyBrief({ className, surface = 'dark' }: { className?: string
                     to={line.to}
                     data-brief-line={line.kind}
                     className={cn(
-                      'group flex w-full items-start gap-3 rounded-xl px-3 py-3 text-start text-base outline-none transition-colors duration-200',
+                      'group flex w-full items-start gap-3 rounded-xl px-3 py-3 text-start text-base outline-hidden transition-colors duration-200',
                       dark ? 'text-foreground hover:bg-(--on-dark-tint)' : 'hover:bg-row-hover',
                     )}
                   >

@@ -75,6 +75,8 @@ export function SignalsTable({ signals, patterns, isLoading }: { signals: Signal
       searchPlaceholder={t('Search the signals', 'ابحث في الإشارات')}
       emptyTitle={t('No signals yet.', 'لا توجد إشارات بعد.')}
       getRowId={(s) => s.id}
+      // a phone: the signal and its id on the first line, type and date as tags, where it happened and its patterns behind "Details"
+      phone={{ title: 'signal', meta: ['date', 'type'], detail: ['where', 'pattern'] }}
     />
   )
 }

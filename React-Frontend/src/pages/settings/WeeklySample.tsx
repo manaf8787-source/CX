@@ -19,12 +19,13 @@ import { StatusBadge } from '@/components/common/StatusBadge'
 import { TraceId } from '@/components/common/TraceId'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { IN_CARD, PressFilter, SubPageHeader, ViewOnlyNotice } from './SubPageHeader'
+import { Segmented } from '@/components/ui/segmented'
+import { IN_CARD, SubPageHeader, ViewOnlyNotice } from './SubPageHeader'
 
 type Filter = 'all' | 'unread' | 'wrong'
 
 /** One half of the Right / Wrong pair: a 29px pill key (the light one is Right, the dark one Wrong). */
-const VERDICT_KEY = 'inline-flex min-h-[29px] cursor-pointer items-center justify-center rounded-full px-3.5 pt-[3px] pb-[5px] text-sm font-medium whitespace-nowrap outline-none transition-opacity duration-200 hover:opacity-85'
+const VERDICT_KEY = 'inline-flex min-h-[29px] cursor-pointer items-center justify-center rounded-full px-3.5 pt-[3px] pb-[5px] text-sm font-medium whitespace-nowrap outline-hidden transition-opacity duration-200 hover:opacity-85'
 
 /**
  * Weekly sample (v40 F31): fifty outputs that passed the supervisor this week, read by eye. Each one is Right or Wrong; a
@@ -157,11 +158,12 @@ export default function WeeklySample() {
             )}
           </SectionCard>
 
-          <PressFilter
+          <Segmented
+            variant="pressed"
             label={t('Filter the sample', 'تصفية العينة')}
-            options={FILTERS.map((f) => ({ id: f.id, label: f.label, count: f.count }))}
+            options={FILTERS.map((f) => ({ value: f.id, label: f.label, count: f.count }))}
             value={filter}
-            onChange={setFilter}
+            onValueChange={setFilter}
           />
 
           {shown.length === 0 ? (

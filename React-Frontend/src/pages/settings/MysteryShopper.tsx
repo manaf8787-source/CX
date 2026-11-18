@@ -28,7 +28,8 @@ import { SectionCard } from '@/components/common/SectionCard'
 import { StatusBadge } from '@/components/common/StatusBadge'
 import { EmptyState } from '@/components/common/EmptyState'
 import { LoadingState } from '@/components/common/LoadingState'
-import { IN_CARD, InlineNote, SubPageHeader } from './SubPageHeader'
+import { InlineNote } from '@/components/common/InlineNote'
+import { IN_CARD, SubPageHeader } from './SubPageHeader'
 
 const TABS = ['results', 'checklists', 'shoppers', 'distribution', 'review'] as const
 type Tab = (typeof TABS)[number]
@@ -144,7 +145,7 @@ function MysteryShopperConsole() {
                         <TableCell className="text-end font-medium tabular text-foreground">
                           <span className="inline-flex items-center justify-end gap-2">
                             {severity === 'critical' && (
-                              <Link to="/actions/shopper-cases" className="inline-flex rounded-full outline-none">
+                              <Link to="/actions/shopper-cases" className="inline-flex rounded-full outline-hidden">
                                 <StatusBadge tone="danger" icon={<AlertTriangle aria-hidden />}>
                                   {t('case opened', 'تم فتح حالة')}
                                 </StatusBadge>
@@ -303,7 +304,7 @@ function MysteryShopperConsole() {
                               onClick={() =>
                                 setDist((d) => ({ ...d, shopperIds: on ? d.shopperIds.filter((x) => x !== s.id) : [...d.shopperIds, s.id] }))
                               }
-                              className="inline-flex h-[34px] cursor-pointer items-center gap-2 rounded-full bg-well ps-[5px] pe-3.5 pt-px text-sm font-medium text-foreground outline-none transition-colors duration-200 ease-out hover:bg-well-hover"
+                              className="inline-flex h-[34px] cursor-pointer items-center gap-2 rounded-full bg-well ps-[5px] pe-3.5 pt-px text-sm font-medium text-foreground outline-hidden transition-colors duration-200 ease-out hover:bg-well-hover"
                             >
                               <span aria-hidden className={cn('grid size-6 place-items-center rounded-full', on ? 'material-dark' : 'bg-line shadow-dot-off')}>
                                 {on && <Check className="size-3" />}
@@ -390,7 +391,7 @@ function ChoiceButton({ on, onClick, children, label }: { on: boolean; onClick: 
       aria-pressed={on}
       aria-label={label}
       onClick={onClick}
-      className="inline-flex h-9 min-w-9 cursor-pointer items-center justify-center rounded-full bg-well px-3.5 pt-px text-sm font-medium text-foreground outline-none transition-colors duration-200 ease-out hover:bg-well-hover aria-pressed:material-dark"
+      className="inline-flex h-9 min-w-9 cursor-pointer items-center justify-center rounded-full bg-well px-3.5 pt-px text-sm font-medium text-foreground outline-hidden transition-colors duration-200 ease-out hover:bg-well-hover aria-pressed:material-dark"
     >
       {children}
     </button>

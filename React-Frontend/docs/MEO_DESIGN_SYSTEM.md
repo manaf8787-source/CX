@@ -1,6 +1,6 @@
 # Design system: Meo-inspired (binding for every page)
 
-Status: steps 1 to 4 of `MEO_DESIGN_PLAN.md` (18 Nov 2026): tokens and primitives (sections 1 to 10), shell (11), shared components (12), charts (13); section 14 is the page migration checklist for step 5. Source: `meo-admin-design-skill/` (SKILL.md, `references/`, `tokens/`). A design language only: no Meo name, logo, photos or copy.
+Status: **final** (18 Nov 2026), after steps 1 to 5 of `MEO_DESIGN_PLAN.md` and the QA and consolidation pass: tokens and primitives (sections 1 to 10), shell (11), shared components (12), charts (13), the phone composition (14), known exceptions (15), deviations from the skill (16), the audit gate (17). Page-by-page notes are in `MEO_PAGES_A.md`, `MEO_PAGES_B.md`, `MEO_PAGES_C.md`. Source: `meo-admin-design-skill/` (SKILL.md, `references/`, `tokens/`). A design language only: no Meo name, logo, photos or copy.
 Marks: **measured** = from the skill's reference site, **derived** = added by us (dark theme, density, status text shades, field ring, destructive dialog, collapsed rail). It supersedes `DESIGN_SYSTEM.md` sections 2 (tokens), 3 (type, radius) and the colour parts of 5 and 6; the rest of that file (RTL, motion code, sign-in, adding components) still holds.
 
 ## 1. Files
@@ -9,7 +9,8 @@ Marks: **measured** = from the skill's reference site, **derived** = added by us
 |---|---|
 | `src/styles/theme.css` | Every token (light `:root`, derived `.dark`), the Tailwind `@theme`, `@utility` classes, base type and focus rules, component classes, motion, reduced motion |
 | `src/styles/fonts.css`, `public/fonts/` | Plus Jakarta Sans 400/500 (latin, latin-ext) and IBM Plex Sans Arabic 400/500, self-hosted |
-| `src/components/ui/*` | Primitives, restyled in place (same exports and props). New: `checkbox`, `radio-group`, `segmented`, `motion.ts`, `use-sliding-indicator.ts` |
+| `src/components/ui/*` | Primitives, restyled in place (same exports and props). New: `checkbox`, `radio-group`, `segmented`, `motion.ts`, `use-sliding-indicator.ts`, `use-scroll-fade.ts` |
+| `src/components/common/{InlineNote,StepPills,StackedRows}.tsx` | The one inline note, the pill stepper and the phone row list (promoted from the page folders in the consolidation pass) |
 | `src/components/ui/ui.test.tsx` | Unit tests of the new behaviour: label roll, loading, density, selection controls, RTL arrow keys |
 
 Font: `@fontsource/plus-jakarta-sans` **5.3.0** (published 19 Jul 2026), pinned in `devDependencies`; the four woff2 files are copied unchanged into `public/fonts/` (see the header of `fonts.css` to update). Removed: IBM Plex Sans (Latin, 4 weights), IBM Plex Sans Arabic 600 and 700, IBM Plex Mono: about 150 KB less than before. `font-synthesis: none`, so a stray `font-bold` cannot fake a weight.
@@ -36,7 +37,7 @@ CSS variables live in `theme.css`; the Tailwind names are in the right column. N
 | Group | Tokens (light, measured unless marked) | Tailwind |
 |---|---|---|
 | Surfaces | `--surface` #fff page, `--surface-soft` #f6f6f6 sidebar, `--surface-well` #f2f2f2 wells, inputs, tracks | `bg-background` `bg-card` `bg-sidebar` `bg-well` `bg-soft` |
-| Ink | `--ink` #0a0a0a, `--ink-charcoal` #3a3a3a (label), `--ink-secondary` #6e6e6e, `--ink-tertiary` #767676, `--line` #ececec | `text-foreground` `text-muted-foreground` `text-ink-tertiary` `bg-line` |
+| Ink | `--ink` #0a0a0a, `--ink-charcoal` #3a3a3a (label), `--ink-secondary` #6e6e6e, `--ink-tertiary` #767676, `--line` #ececec, `--line-well` #dcdcdc (the divider on a well, derived) | `text-foreground` `text-muted-foreground` `text-ink-tertiary` `bg-line` |
 | shadcn names | `--primary` = ink, `--primary-foreground` = text on the dark material, `--secondary` `--muted` `--accent` = well, `--border` = line, `--ring` = ink, `--input` = field ring colour | unchanged |
 | Brand | `--brand-accent*` is ink today: **the one place to put the real PSI colour** [Proposed]. `--brand-gold*` are the old names, aliased | `bg-brand-accent` `bg-gold` (alias) |
 | Status (derived) | solid for dots and chart marks, text shade for words, tint for the tag: success #1f9d55 / #14713c / #eaf6ef, info #1f6fe0 / #195dbe / #eaf1fc, warning #f08a1c / #9b5306 / #fdf1e3, error #d93a32 / #b42a23 / #fcedec, accent #7c3aed / #6a2fd0 / #f1ebfd | `text-success-text` `bg-success-bg` `text-danger-text` `bg-danger-bg` ... |
@@ -59,7 +60,10 @@ CSS variables live in `theme.css`; the Tailwind names are in the right column. N
 | `surface-card`, `surface-frame` + `surface-frame-inner`, `surface-dark` | Card (shadow-card, radius and padding from the density tokens), 26/18 frame, the one dark feature card. Prefer `<Card>`; inside `surface-dark` the normal text classes still work (tokens are remapped) |
 | `well` | Where data lives: chart, stat, dot grid. Radius 14 (12 dense), padding 22 (16 dense), no shadow. `<CardWell>` adds the card side margins. `well-field` is a recessed field (search, track) |
 | `hairline` | A 1px 4% shadow ring on something that sits on its own colour |
-| `row-divider` | The only line: put it on a row or list item; the last child has none. `row-divider-none` removes it |
+| `row-divider` | The only line: put it on a row or list item; the last child has none. `row-divider-none` removes it. On a well (`#f2f2f2`, where `#ececec` vanishes) add `row-divider-well` (`--line-well`) |
+| `ring-selected` | The selected record: the 1.5px ink ring in the ring slot, the card's own shadow stays; a focused selected element shows the focus ring instead |
+| `ring-within` | A label or wrapper around a visually hidden control (radio, checkbox) draws the focus ring while the control inside has keyboard focus |
+| `scroll-fade` | A sideways-scrolling strip (page tabs, the pressed filter) fades the edge that still has content; set by `useScrollFade` through `data-fade-start` / `data-fade-end`, logical in RTL |
 | `pill` + `pill-light` `pill-dark` `pill-chip` `pill-success` `pill-info` `pill-warning` `pill-error` `pill-accent` | Tags, chips: 24px, optical padding. `<Badge>` is the 11px version |
 | `dot`, `dot-live`, `dot-success` `dot-info` `dot-warning` `dot-error` | 6px status dot. `dot-live` pulses 1 to .3 (off under reduced motion): always write the state in words next to it |
 | `icon-tile` | The 56px app-icon tile, the one place brand hues are solid (`bg-product-re`, `bg-(--brand-blue)`) |
@@ -73,15 +77,15 @@ CSS variables live in `theme.css`; the Tailwind names are in the right column. N
 
 | Component | What changed (old props still work) |
 |---|---|
-| Button | Pill. `default` = dark gradient with the exact primary stack, `padding: 4px 22px 6px`, 15/500; `outline` and `secondary` = light pill; `ghost` = tint on hover; `link`; `destructive` and `gold` render the dark pill (a destructive action keeps the dark button and says its verb). Sizes `sm` 36, `default` 40, `lg` 46, `xs` 28 and four `icon-*` circles (36, 40, 30, 26). `loading` prop: 14px spinner, `aria-busy`, disabled. **Label roll**: only plain-text children (one text run, icons around it), not `link`, `xs` or icon sizes; the copy comes from CSS (`attr(data-label) / ""`), so the DOM and the accessible name hold the label once; off under reduced motion |
+| Button | Pill. **`roll={false}`** turns the hover roll off (a long label that wraps). `default` = dark gradient with the exact primary stack, `padding: 4px 22px 6px`, 15/500; `outline` and `secondary` = light pill; `ghost` = tint on hover; `link`; `destructive` and `gold` render the dark pill (a destructive action keeps the dark button and says its verb). Sizes `sm` 36, `default` 40, `lg` 46, `xs` 28 and four `icon-*` circles (36, 40, 30, 26). `loading` prop: 14px spinner, `aria-busy`, disabled. **Label roll**: only plain-text children (one text run, icons around it), not `link`, `xs` or icon sizes; the copy comes from CSS (`attr(data-label) / ""`), so the DOM and the accessible name hold the label once; off under reduced motion |
 | Badge | 24px, 11/500. `default` dark, `secondary` light, `outline`, `ghost`, `link`; new status tints `success` `warning` `info` `accent`, `destructive` is the error tint. `dot="live\|idle\|success\|warning\|error\|info"` |
 | Card | `variant="default\|dark\|frame"`, `density="comfortable\|dense"`; `CardWell` new; `CardTitle` is `t-card-title` (22 or 17) |
-| Input, Textarea, Select | Well + inset shadow, radius 8, 40px (`h-9` in toolbars), hover `#efefef`, focus white + focus ring, invalid = 1.5px `#d93a32` ring (`aria-invalid`) + `FieldError` with a 12px alert icon. Placeholder is `#6e6e6e` (the skill's #767676 is 4.06:1 on the well) |
+| Input, Textarea, Select | Well + inset shadow, radius 8, 40px (`h-9` in toolbars), hover `#efefef`, focus white + focus ring, invalid = 1.5px `#d93a32` ring (`aria-invalid`) + `FieldError` with a 12px alert icon. Placeholder is `#6e6e6e` (the skill's #767676 is 4.06:1 on the well). In `shadow-field` the ring comes **before** the 1px lip (the lip is one pixel lower and painted over the ring's bottom edge: found in the browser pass). The native clear button of `type=search` is a grey cross, not the browser's blue one |
 | Checkbox, RadioGroup | New. 16px, light material; checked = dark material + check / dot. Native inputs may use `accent-primary` |
 | Switch | 36x20, track `#ececec` + inset track, thumb on the spring, on = dark material; `size="sm"` 28x16 |
 | Tabs | Segmented pill track (well + inset shadow); ONE `material-dark` pill slides to the selected trigger on the spring, measured in physical coordinates so it is right in RTL; before the first measurement the selected trigger paints the material itself. `variant="page"` (or old `line`) = white track, 40px segments |
-| Segmented | New, for filters and views of the same data: `role="radiogroup"`, counts, arrows mirrored in RTL |
-| Table | `density="dense\|comfortable"` (default dense: header 41, rows 44 or 60). No outer border, no header fill, header 13px grey sentence case, divider `row-divider`, hover and `data-state="selected"` become soft pills, `aria-sort` turns the header ink. Cells default to `text-muted-foreground`: mark the primary cell `text-foreground font-medium` and numbers `tabular text-end` |
+| Segmented | New, for filters and views of the same data, counts. `variant="radio"` (default): `role="radiogroup"`, roving tabindex, arrows mirrored in RTL. **`variant="pressed"`**: `role="group"` of `aria-pressed` toggle buttons (pages and tests address them as buttons), each a tab stop, scrolls sideways with an edge fade. The sliding pill watches `aria-pressed`, `aria-checked`, `aria-selected`, `aria-current`, `data-state` |
+| Table | `density="dense\|comfortable"` is **optional and inherited**: leave it out and the table follows `data-density` of the page (header 41, rows 44 dense or 60 comfortable); outside every density scope (dialog, drawer) it is dense (theme.css). Pass it only to override the page. No outer border, no header fill, header 13px grey sentence case, divider `row-divider`, hover and `data-state="selected"` become soft pills, `aria-sort` turns the header ink. Cells default to `text-muted-foreground`: mark the primary cell `text-foreground font-medium` and numbers `tabular text-end` |
 | Dialog | Radius 24, padding 28, `shadow-toast`, scrim, opacity + scale .98 to 1 over 400 ms; `DialogAlertIcon` for destructive confirmations; title is heading 4 |
 | Sheet | Floating drawer: 10px from the edges, radius 24, slides 600 ms |
 | DropdownMenu, Select, Popover, Command | Radius 16, padding 6, `shadow-popover`, rows 36px radius 10, hover `#f2f2f2`, chevrons mirror in RTL; Command is a 560px palette (no close button) |
@@ -126,7 +130,7 @@ The same two materials inverted, switched by the existing `.dark` class and the 
 
 Status tints are dark mixes (`#0f2a1d` success, `#0f1d33` info, `#2b1d0c` warning, `#2e1412` error, `#1f1736` accent) with light text shades. All shadow stacks are built from `--sh-*` colour variables, so every `shadow-*` utility re-colours.
 
-## 9. Where this follows the plan and where it could not follow the skill
+## 9. Where this follows the plan and where it could not follow the skill (step 2; the complete list is section 16)
 
 | Item | Decision |
 |---|---|
@@ -135,12 +139,12 @@ Status tints are dark mixes (`#0f2a1d` success, `#0f1d33` info, `#2b1d0c` warnin
 | Input and placeholder colours | Skill: placeholder #767676. Used #6e6e6e (4.55:1 on the well) |
 | Table header, help text, breadcrumb, sidebar count | Skill: #767676 (tertiary). Used #6e6e6e where the text can sit on a well or a tint; #767676 stays a token for pure white |
 | Tooltip | "Dark pill": radius 14, so one line is a pill and a long one is a rounded box |
-| Toast position | Bottom-left as in the skill. Over the 220px sidebar the toast covers the role switch for 4 seconds; the shell step may add an offset |
+| Toast position | Bottom-left as in the skill (bottom-right in Arabic), offset by `--toast-inline` so it does not cover the sidebar's role card (section 11) |
 | Brand | Navy and gold are gone; ink replaces them; `--brand-accent*` is the swap point |
-| `font-mono` | No mono webfont. Existing `font-mono` uses fall back to the system mono stack until the page steps move ids to `tabular` |
+| `font-mono` | No mono webfont. Ids and numbers use `tabular`; the one remaining `font-mono` (envelope field names, real code) is in section 15 |
 | Tab focus ring after a mouse click | Radix Tabs triggers match `:focus-visible` after a click in Chromium; the ring is the system ring, so it shows. Native buttons, switches, checkboxes and `Segmented` do not |
 
-## 10. Hand-off to steps 3 to 5 (done for 3 and 4: see sections 11 to 13)
+## 10. Hand-off to steps 3 to 5 (done: kept for history, see sections 11 to 17)
 
 Shell: use `Sidebar*` primitives as they are (active pill, rail, group label), `useSlidingIndicator` for the sliding pill, `Segmented` for filters; pass `aria-label` to every `Progress`. Common components: `StatusBadge` should become `Badge` variants or `pill-*`; `RouteTabs` should use the `TabsList` look (and `useSlidingIndicator`); `TraceId`, emails and codes: `tabular` instead of `font-mono`. Pages: drop `border` classes and repeated cards (use `CardWell`, `row-divider`), set `density`, keep strings and logic untouched.
 
@@ -158,7 +162,7 @@ Files: `src/components/layout/{Shell,Sidebar,TopBar,AsOfBar,UserMenu,UiProviders
 | Sidebar | Brand row (our own text mark: a 22px dark tile with "CX", "PSI CX Portal", the prototype caption). Group headings are `label-style`. Items 36px radius 8, 16px icons stroke 1.7, grey idle, hover `rgba(0,0,0,.04)`, **active = ONE dark pill that slides on the spring** (`useSlidingIndicator`, physical coordinates, so right in RTL) with white text and `aria-current="page"` (NavLink). Until the pill is measured the active item paints the material itself. Products show their 6px hue dot instead of an icon (dots only). The component supports nested items (indent 26, 32px, a dot on the active child) and counts (`SidebarNavNode.children`, `.count`), but `data/nav.ts` has neither, and `e2e/v40-foundation` asserts that the last sidebar link is "Settings and reference", so nothing nested renders today |
 | Bottom card | The skill's usage card (light material, radius 10, padding 10): "Viewing as (demo)", the role select, "Sample data only" |
 | Top bar | 60px, padding `0 18px`, white, sticky (static on a phone). Left: **AsOfBar** is now the workspace selector: a 30px round tile, the environment as the 14/500 name, "Environment" as the 13px meta line, a chevron (it is still the Radix Select, the accessible name stays "Environment"), then "Data as of ..." (14px sync icon + text) and the feeds state (tinted tag "N feeds late or missing" that links to Data feeds when the role may open it, otherwise a green dot and "All feeds received"). A role fixed to one environment sees its name and a lock. Right: the search field (a real input: the inset well field with a light "Ctrl K" key-hint tag), language (light pill), theme (36px round icon button), the assistant (the one dark pill) and the profile menu (30px avatar, 2px ring) |
-| Responsive top bar | The bar is a CSS container named `bar`, so parts collapse by its width, not the window's (the sidebar changes the space): under 1000px the date becomes screen-reader text; under 900 the feeds text, the key hint and the assistant's label too (the dot or icon stays); under 640 (a phone) row 1 is menu, workspace, profile and row 2 is search and tools |
+| Responsive top bar | The bar is a CSS container named `bar`, so parts collapse by its width, not the window's (the sidebar changes the space): under **1180px** the date becomes screen-reader text; under **1120** the feeds text, the key hint and the assistant's label too (the dot or icon stays); under 640 (a phone) row 1 is menu, workspace, profile and row 2 is search and tools. (Thresholds raised from 1000 and 900 in the browser pass: at a 1024px window the bar is 968px wide and the workspace name, the search placeholder and the feeds text all truncated.) The workspace name may be 13rem wide on a phone, so "All environments" is not cut |
 | Hairline | The bar's bottom edge is a 1px `#ececec` shadow, drawn only while content scrolls beneath it (a 1px sentinel above the bar and an IntersectionObserver, no scroll listener) |
 | Toasts | `UiProviders` offsets the toaster by `--toast-inline` (the shell sets it to the sidebar's edge plus 16px, mirrored in Arabic), so a toast no longer covers the role card |
 
@@ -169,25 +173,25 @@ Same exports and props as before; additive props are marked. `components/common/
 | Component | Now |
 |---|---|
 | `PageHeader` | Heading 3 title (24, 22 tablet, 20 phone), 13px grey description; on the right the sample-data state and "What the terms mean" (light), then `actions` **last: pass the one primary pill as the last child and the others as `variant="outline"`**. `eyebrow` is `label-style` |
-| `KpiTile` | Card; label (small strong, grey) with an optional 30px light icon tile or **`delta`** (light tag, additive); the value (44 comfortable / 32 dense, `tabular`, counted up) with an optional **`unit`** (additive); `sub`; `children` go in a well. `accent` is now the **6px status dot** before the label, never a tint: pass it only when the colour means something. Hover nudges the label 3px (spring) and shows the arrow. Value and delta sit in `bdi`, so "+29" keeps its sign in Arabic |
+| `KpiTile` | **`variant`: `card` (default), `well`, `dark`**. Card: label (small strong, grey) with an optional 30px light icon tile or **`delta`** (light tag), the value (44 comfortable / 32 dense, `tabular`, counted up) with an optional **`unit`**, `sub`, `children` in a well. `well`: the same tile without the card, for a group of numbers on one card (card -> well -> text; a link well tints on hover; replaces `StatWell`). `dark`: the view's one dark feature card. `accent` is the **6px status dot** before the label, never a tint: pass it only when the colour means something. Hover nudges the label 3px (spring) and shows the arrow. Value and delta sit in `bdi`, so "+29" keeps its sign in Arabic |
 | `SectionCard` | Card -> well -> text. **`density`** (additive; otherwise it inherits `data-density`) and **`well`** (additive: the content sits in a well). Title is `t-card-title` (22 / 17) |
-| `DataTable` | The skill's table (section 5): no border, 13px grey header, row dividers, pill hover, numeric columns (`meta.align: 'end'`) right-aligned `tabular text-foreground font-medium`. Sort button with a 12px chevron (on hover, focus, or when sorted) and `aria-sort` on the `th`. Pager: "1-10 of 23" and 32px round buttons, the current page dark (`aria-current="page"`), numbered buttons from `sm` up. **`stickyHeader`** (additive): the table scrolls in a box of at most 70vh, the header is white and gains a 1px line once rows scroll under it. Additive change in `ui/table.tsx`: `containerClassName`, and the keyboard tab stop also appears for vertical overflow |
-| `StatusBadge`, `Chip`, `AgentChip`, `DayChip`, `ProductTag`, `ProposedBadge`, `TraceId` | One 24px pill. Quiet tones (success, info, neutral) are a **light tag**, success and info with a 6px dot. Only **warning and danger are tinted** (states that need action). `ProposedBadge` is a plain light tag (it marks status, it does not alarm). `TraceId` is a flat grey tag with tabular figures (no mono face). `StatusBadge` carries `data-slot="status-badge"` and `data-tone` |
-| `StepStrip` | The stepper: the current step is the dark material, a completed step has a 20px dark check circle, the rest are wells (white pills inside the next-step well). Still links where the role may open the page; `aria-current="step"` |
+| `DataTable` | The skill's table (section 5): no border, 13px grey header, row dividers, pill hover, numeric columns (`meta.align: 'end'`) right-aligned `tabular text-foreground font-medium`. Sort button with a 12px chevron (on hover, focus, or when sorted) and `aria-sort` on the `th`. Pager: "1-10 of 23" and 32px round buttons, the current page dark (`aria-current="page"`). **`stickyHeader`**: scrolls in a box of at most 70vh, white header with a 1px line once rows pass under it. **`meta.sticky: 'end' or 'start'`**: pins a column (Close the loop's Call column) with an opaque fill that follows the hover and selected tones. **`density`**: optional, otherwise the page's. **`phone={{ title, meta, end, detail }}`** (column ids): at <= 809px the table becomes `StackedRows` (section 14). `meta.label` names a column for the Details list when its header is a sort button |
+| `StatusBadge`, `Chip`, `AgentChip`, `DayChip`, `ProductTag`, `ProposedBadge`, `TraceId`, `SourceBadge`, `LeadSourceBadge` | One 24px pill. Quiet tones (success, info, neutral) are a **light tag**, success and info with a 6px dot. Only **warning and danger are tinted** (states that need action). `StatusBadge` takes an explicit **`dot` together with an `icon`** (dot, icon, label: a public channel); without `dot` an icon replaces the automatic dot. `SourceBadge` and `LeadSourceBadge` are `StatusBadge`. `ProposedBadge` is a plain light tag. `TraceId` is a flat grey tag with tabular figures; **`surface="well"`** gives the white hairline tag for an id that sits on a well. `StatusBadge` carries `data-slot="status-badge"` and `data-tone`. On the dark feature card a light or chip tag becomes the 7% white tint (`.surface-dark` in theme.css; the icon colour is set in the utilities layer so a `text-info-text` on the svg cannot win) |
+| `StepStrip`, `StepPills` | `StepStrip`: the stepper of the six steps, the current step the dark material, a completed step a 20px dark check circle, the rest wells; links where the role may open the page; `aria-current="step"`. `StepPills` (`common/StepPills.tsx`, shared by the fix lifecycle and the shopper case flow): a number chip and a label per step, the outcome pill dark when effective and tinted only for partial or failed |
 | `NextBox` | A well (not a coloured banner) with the small strip and a 6px ink dot before "Next step:" |
-| `RouteTabs` | Page-level tabs: white pill track, ONE sliding dark pill (`useSlidingIndicator`), `aria-current="page"` |
+| `RouteTabs` | Page-level tabs: white pill track, ONE sliding dark pill (`useSlidingIndicator`), `aria-current="page"`. **`end`** (default true) = exact path; `end={false}` keeps a tab current on its sub-paths (`CustomersTabs` is `RouteTabs end={false}`). The strip fades the edge that still has content (`scroll-fade`) |
 | `EmptyState` | Dot-grid motif in a well (14 columns of 10px dots, a few lit), Heading 4, Body M (max 420), one action. `icon` (optional) sits in a 30px light circle on the motif |
 | `ErrorState` | A well with a 30px light circle and a 14px alert icon, Heading 4, the message, one primary "Try again" (`role="alert"`) |
 | `LoadingState` | Skeleton rows with matching radii (circle, 6px text lines at 60 and 40%, pill); `role="status"` kept |
-| `SampleBanner` | The inline notification: a well with a 6px warning dot, sized to sit beside 36px pills |
+| `InlineNote`, `SampleBanner` | `InlineNote` (`common/InlineNote.tsx`, the one shared note): a well with a 6px status dot (`tone` info, warning, success, error, neutral), an optional `h2` title in ink 500, the text in grey (ink when there is no title), an `action`, `role`, `data-testid`, `as="aside"`. `SampleBanner`: the same idea sized to sit beside 36px pills in a header (takes `children` to override the sentence) |
 | `TermHelp`, `TermsButton` | "?" in an 18px light circle (30px hit area) and a popover; the glossary dialog's entries are wells |
 | `LangSwitch`, `ThemeSwitch`, `RoleSwitch` | Light pill with the language name (a 36px round icon below 1024px); 36px round icon button + menu; 36px select. All keep their accessible names |
 | `AnimatedValue` | Unchanged (the unit cannot be split from the number without changing the text nodes the tests read) |
-| `AssistantPanel` | Floating drawer (10px from the edge, radius 24): 60px header with the dark mark, the conversation in a **well**, bubbles in the two materials (yours dark, the assistant's light, radius 20 with a 6px tail), suggestions as light pills, the voice button turns dark while listening. `AssistantResult` cards are white cards in the well, rows use `row-divider` |
+| `AssistantPanel` | Floating drawer (10px from the edge, radius 24, **never wider than the screen minus 20px**: a `w-full` class had made it overflow by 10px on a phone), 60px header with the dark mark (the subtitle wraps instead of being cut), the conversation in a **well**, bubbles in the two materials (yours dark, the assistant's light, radius 20 with a 5px tail), suggestions as light pills, the voice button turns dark while listening. `AssistantResult` cards are white cards in the well, rows use `row-divider` |
 
 ## 13. Charts
 
-`components/common/chartTheme.ts` (presets) and `components/common/charts.tsx` (components). No page uses them yet: step 5 swaps each Recharts chart (Signals, AI Insights, Overview insights).
+`components/common/chartTheme.ts` (presets) and `components/common/charts.tsx` (components). Signals, the Overview (NPS by month) and the Voice of Customer pages use them; AI Insights uses `RankedBars`.
 
 | Export | Use |
 |---|---|
@@ -199,24 +203,68 @@ Same exports and props as before; additive props are marked. `components/common/
 | `ChartTooltip` | Dark pill (light in the dark theme): label, a row per series with a 6px dot and a tabular value; `valueFormatter`, `labelFormatter` |
 | `ChartLegend` | 6px dots, 13px grey text; `items`, or Recharts' `payload` |
 | `chartColor(i)`, `CHART_SERIES`, `CHART_MAX_CATEGORIES` | Categorical colours: ink, grey, blue, amber only. From the fifth on it returns the light grey: use `RankedBars` or small multiples |
-| `RankedBars` | The skill's bar comparison, the answer to "more than four categories": label, 12px pill track, fill, **printed** value. The first row (or `hero`) is dark, the others grey at 62% |
+| `RankedBars` | The skill's bar comparison, the answer to "more than four categories": label, 12px pill track, fill, **printed** value. The first row (or `hero`) is dark, the others grey at 62%. **`layout="stacked"`**: the label above the track with the value at the end of its row (sentence labels: detractor reasons, approval rates per agent). **`wrap`** and **`labelWidth`**: inline layout with a wider label column that wraps instead of an ellipsis (Surveys). Replaces `StackedBars` and two local copies |
 
 Contrast note (derived finding): grey at 62% on a well is about 2.2:1, below the 3:1 non-text guide. It is the skill's spec, so a series drawn that way must also print its values (a label or the tooltip); a series that carries the data alone should be the ink hero.
 
-## 14. Page migration checklist (step 5)
+## 14. Phone composition (<= 809px)
 
-Found while screenshotting Home, Signals, Customers, Close the loop, Overview and Login at 1440, 1024 and 390 in both languages and themes. Counts are files, from a grep of `pages/` and the page-owned component folders.
+A table never makes the page scroll sideways; it may scroll inside its card. For three pages that is not good enough (Close the loop has 10 columns, Inbox and Personas scroll a long way), so on a phone their rows are **stacked** instead (`StackedRows`, `DataTable phone`, the Inbox's own rows): one list item per row, line 1 the name or the sentence, line 2 the key fields as tags, then the row's own action, and the remaining columns behind a "Details" toggle (`Collapsible`, `aria-expanded`). Same cells, same controls, same strings (the only new text is "Details" / "التفاصيل"); the table itself is what renders above 809px, so unit tests and the desktop DOM do not change. The Signals table uses it too. Overrides v40 F34 ("the inbox scrolls sideways on a phone") on request.
 
-| Heading | What to change |
+| Page | Line 1 | Line 2 | Actions | Behind "Details" |
+|---|---|---|---|---|
+| Close the loop | person and environment | severity, due and attempt, status | No answer, Call | channel, first score, reason, re-survey, recovered |
+| Inbox | kind icon and the sentence | day chip, date, urgency | Open | who it is with |
+| Personas, ranked campaigns | campaign | persona | (the row jumps to its persona) | rank, who |
+| Signals table | signal | date, type | | where, patterns |
+
+## 15. Known exceptions (deliberate, kept after the audit)
+
+| Where | What | Why |
+|---|---|---|
+| `pages/IntelligentCxTeam.tsx` | `font-mono` on the envelope field names | Real code identifiers; the only place a mono face is right |
+| `pages/Runaway.tsx`, `pages/settings/MonthlyPack.tsx` | `first-letter:uppercase`, `capitalize` | Raw flag and category keys (`silent_lead`) shown when no label exists |
+| `pages/settings/MysteryShopper.tsx` | `bg-warning-bg text-warning-text` count chip on the Review tab | A state that needs action: the one place a tint sits inside a tab |
+| `components/layout/Sidebar.tsx` | `text-[9px]` in the brand tile | The 22px mark's two letters; decorative, `aria-hidden` |
+| `ui/sidebar.tsx` | The shadcn sidebar primitive's own `bg-sidebar-border` handle | Not rendered: the shell uses `components/layout/Sidebar.tsx` |
+| `ui/command.tsx`, `ui/scroll-area.tsx` | `rounded-[inherit]` | Follows the parent's radius, not a value of its own |
+| `Shell.tsx`, `FixCard.tsx`, `command.tsx` | `focus-visible:[--tw-ring-shadow:0_0_#0000]` | The ring is switched off on a container or heading that only takes programmatic focus; its interactive children keep theirs |
+| `DailyBrief.tsx`, `Runaway.tsx` | `group-hover:translate-x-[3px]` on an arrow | The skill's 3px nudge on the spring, not a lift |
+| Status tints | `pill-warning`, `pill-error` on tags (Late, Not covered, 48 h breached, Problems) | The skill allows tint for states that need action |
+| 20x20 and 18x18 targets | The "?" help circle (30px hit area through `::after`), checkboxes and radios inside a clickable label, the switch (36x20, spaced) | WCAG 2.5.8: undersized targets are allowed where a 24px circle around them hits no other target |
+| Underlined text links 16 to 19px high | Person names in the Customers table, action links in Signals | Links in a table cell or a sentence |
+| `Table` cells and tables that scroll inside their card | Escalation matrix, access matrices, Standards register, Feeds, Public mentions below about 1200px | A wide register cannot be narrowed without cutting names; the card scrolls, the page does not, and the strip fades the edge |
+
+## 16. Deviations from the skill (each with its reason)
+
+| # | Skill | Here | Reason |
+|---|---|---|---|
+| 1 | Plus Jakarta Sans only | Plus Jakarta Sans 400/500 for Latin and digits, **IBM Plex Sans Arabic 400/500 for Arabic**, **tracking 0 in Arabic and in every RTL page** | Jakarta has no Arabic glyphs; negative tracking breaks Arabic letter joining. Bilingual is a hard requirement |
+| 2 | Monochrome, brand colour only where a brand needs it | Ink replaces navy and gold; `--brand-accent*` is the one place for the real PSI colour **[Proposed]** | PSI brand files are still open (Programme KB 43.8); navy and gold were placeholders |
+| 3 | No dark theme | A **derived** dark theme: the same two materials inverted (page #0a0a0a, raised #1a1a1a to #111, emphasis = the light material) | The portal has a light/dark switch since v38 |
+| 4 | No input edge | **Form fields only** get a 1px 45% ink ring (3.1:1) on top of the well | WCAG 1.4.11 needs 3:1 for a form field's boundary; still a shadow, not a CSS border |
+| 5 | Hover roll by an `aria-hidden` duplicate | The roll copy is generated by CSS (`content: attr(data-label) / ""`) | One label in the DOM: accessible names, `getByText` and tests do not change. Off under reduced motion and with `roll={false}` |
+| 6 | #767676 for small grey text | **#6E6E6E** for small grey text; #767676 stays a token for pure white | #767676 is 4.06:1 on a well and the sidebar; #6E6E6E is 4.55:1 |
+| 7 | Frame 1440px | Frame capped at **1600px** | A data tool needs the width; at or under 1440 the frame adds nothing |
+| 8 | Charts: hero dark, others grey at 62% | Same, **plus the values are always printed** | Grey at 62% on a well is about 2.2:1: the number carries the data |
+| 9 | One density | Comfortable (28 / 60 / 44) and dense (20 / 44 / 32) chosen per page [derived]; tables follow the page | Tables and operations pages need the room |
+| 10 | Four brand hues for icon tiles and status | The six product hues as 6px dots and icon tiles; green and red stay status colours; NPS segments are ink, grey and amber | The portal has six products; colour stays categorical |
+| 11 | Sidebar items can nest | The component nests; `data/nav.ts` has no nested items | `e2e/v40-foundation` asserts the last sidebar link |
+| 12 | Tables are 60px rows | Phones get stacked rows (section 14) | A 10-column table is not usable at 390px |
+
+Where the skill and the product conflict and the product won: items 1, 4, 7 and 12. Where the skill won over a v40 line: the What-if hint now says "the dark one is the current setting" (it said "the bold one"), and the matrix's long titles wrap in the field instead of being cut.
+
+## 17. The audit gate (greps over `src/**`, tests excluded; run before a merge)
+
+| Pattern | Expected |
 |---|---|
-| Borders (55 files) | Remove every `border`, `border-*`, `divide-*`, `border-dashed`. Use `row-divider` on rows, `well` for a group, `shadow-hairline` for a ring on something that has its own colour. Cards inside cards: keep the outer card, make the inner groups wells or dividers |
-| Coloured tints and banners (46 files) | `bg-info/8 border border-info/20` asides (`ScoresVsSignalsNotice`, Investigations, Shopper cases), `bg-warning/12`, `bg-success/..`, `bg-gold/..`: replace with an inline notification well (a 6px status dot + text) or a `StatusBadge`. No coloured backgrounds on groups, no coloured icons |
-| Tab and nav strips built by hand | `CustomersTabs` (white active tab on a well track) and the `SettingsLayout` side nav (`bg-accent` active with a gold left bar, `rounded-xl border`) must use the `RouteTabs` look or the dark sliding pill; no left bars |
-| Page chrome | Put `data-density="dense"` on the root of table and operations pages (Signals, Fixes, Close the loop lists, Customers list, registers) and `comfortable` on Home, Overview and settings; delete ad-hoc paddings. Put `data-fluid-page` on pages whose table needs the full width. Pass the one primary action last in `PageHeader` `actions`, the rest as `variant="outline"` |
-| KPI tiles | Drop `accent` unless the colour means something: about 60 call sites pass `var(--chart-1)`, `--chart-4`, `--warning`, `--info`, `--success` decoratively (each now shows a dot). Use `unit`, `delta` and the well for a mono chart |
-| Charts (3 files) | Replace the Recharts props in `Signals`, `AiInsights`, `OverviewInsights` with `chartTheme` and `ChartWell`; the per-product coloured lines (six hues) and the red/green bars in AI Insights must become ink + grey, or `RankedBars` / small multiples beyond four |
-| Own focus rings (26 files) | Delete `focus-visible:ring-[3px] focus-visible:ring-ring/50` and `outline-none` ring hacks: the system ring is global and these override it |
-| Weights and type (53 files) | `font-semibold` and `font-bold` resolve to 500 but should read `font-medium`; `uppercase` and `tracking-*` become `label-style`; `font-mono` ids become `tabular` (12 files); `text-gold-text` becomes ink |
-| Hand-made pills and tags | `inline-flex h-6 rounded-full border bg-info/10 ...` (FixCard's investigation link, LifecycleStepper's `partial` state) become `StatusBadge` or `pill-*` |
-| Hover lift | `hover:-translate-y-*` and `hover:shadow-md` on cards (3 files): cards do not lift |
-| Login | Outside the shell (no sidebar or top bar): it needs its own pass with the same materials |
+| `\bborder` (classes) | none; the only line is the `row-divider` `::after` |
+| `font-bold`, `font-semibold`, `font-light`, `font-mono` | only the `font-mono` of section 15 |
+| `rounded-\[` | only `[inherit]`; every radius is on the ladder (4, 5, 8, 10, 12, 14, 15, 16, 18, 20, 22, 24, 26, 999) |
+| `shadow-(sm|md|lg|xl)`, `hover:-translate`, `hover:scale`, `hover:shadow` | none |
+| `outline-none` | none: `outline-hidden` (it keeps a visible outline in forced-colours mode) |
+| `focus-visible:ring`, `focus:ring` | none |
+| `bg-(red|green|blue|amber|emerald|yellow|rose|sky|violet|orange)-` and `bg-(primary|gold|brand-accent)/` | none (the light-theme legacy shim in theme.css is deleted) |
+| `uppercase`, `tracking-` | only section 15 |
+| `accent=` on `KpiTile` | only where the colour means something (a count above zero, a product's own NPS) |
+| Runtime (Playwright, every route x EN/AR x light/dark x 1440/1024/390) | no element with a border width, weights only 400 and 500, Arabic `letter-spacing` 0, no page-level sideways overflow, no element past the viewport edge outside a scroller, no console error |

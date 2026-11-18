@@ -130,6 +130,13 @@ export default function Rules() {
     <SettingsSection
       key="escalation"
       layout="stacked"
+      actions={
+        canOpenMatrix && (
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/settings/escalation-matrix">{t('Open the escalation matrix', 'افتح مصفوفة التصعيد')}</Link>
+          </Button>
+        )
+      }
       title={t('Decision 4 · The escalation matrix', 'القرار 4 · مصفوفة التصعيد')}
       description={t(
         'One table per product, a row per kind of fix or case. The product owners fill the cells with the Internal Audit and Marketing Lead by 28 November; the matrix decides who, by title, receives each kind of action, and a fix’s due date comes from its “Resolve (h)”. It is edited on its own page.',
@@ -145,11 +152,6 @@ export default function Rules() {
         ))}
       </ul>
       <p className="t-body-s">{L(MATRIX_COPY.defaultCellsNote)}</p>
-      {canOpenMatrix && (
-        <Button variant="outline" size="sm" asChild className="self-start">
-          <Link to="/settings/escalation-matrix">{t('Open the escalation matrix', 'افتح مصفوفة التصعيد')}</Link>
-        </Button>
-      )}
     </SettingsSection>
   )
 

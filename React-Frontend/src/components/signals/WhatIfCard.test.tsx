@@ -25,12 +25,13 @@ describe('What if card (v40 F32)', () => {
   it('counts the patterns with today’s thresholds, the same number the Patterns list holds', async () => {
     renderWithProviders(<Both />)
     await screen.findByRole('table')
+    // the card and the Patterns query load separately: wait until the list has its count
+    await waitFor(() => expect(Number(screen.getByTestId('count').textContent)).toBeGreaterThan(0))
     const count = Number(screen.getByTestId('count').textContent)
-    expect(count).toBeGreaterThan(0)
-    expect(screen.getByText(`With today's thresholds there are ${count} patterns. Each cell shows how many there would be with that one value changed; the bold one is the current setting. Change it under Settings.`)).toBeInTheDocument()
+    expect(screen.getByText(`With today's thresholds there are ${count} patterns. Each cell shows how many there would be with that one value changed; the dark one is the current setting. Change it under Settings.`)).toBeInTheDocument()
   })
 
-  it('has the three rows with their candidate values from the data file, current value in bold', async () => {
+  it('has the three rows with their candidate values from the data file, current value dark', async () => {
     renderWithProviders(<WhatIfCard />)
     await screen.findByRole('table')
     expect(screen.getByRole('columnheader', { name: 'Threshold' })).toBeInTheDocument()
@@ -77,7 +78,7 @@ describe('What if card (v40 F32)', () => {
     try {
       await client.invalidateQueries({ queryKey: ['rules-config'] })
       await client.invalidateQueries({ queryKey: ['patterns'] })
-      // the bold cell moves to 8, and the count of the card follows the list
+      // the dark cell moves to 8, and the count of the card follows the list
       await waitFor(() => expect(within(rowOf('Same issue, times')).getByText(/^8 → \d+ patterns/).closest('li')).toHaveAttribute('data-current', 'true'))
       const after = Number(screen.getByTestId('count').textContent)
       expect(after).toBeLessThanOrEqual(before)

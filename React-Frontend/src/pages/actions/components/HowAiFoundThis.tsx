@@ -39,7 +39,7 @@ export function HowAiFoundThis({ actionId, pattern, aiMade = true }: { actionId:
 
   return (
     <Collapsible open={open} onOpenChange={setOpen} className="well p-1.5">
-      <CollapsibleTrigger className="flex min-h-10 w-full cursor-pointer items-center justify-between gap-2 rounded-md px-3 py-2 text-start outline-none transition-colors duration-200 hover:bg-(--hover-tint)">
+      <CollapsibleTrigger className="flex min-h-10 w-full cursor-pointer items-center justify-between gap-2 rounded-md px-3 py-2 text-start outline-hidden transition-colors duration-200 hover:bg-(--hover-tint)">
         <span className="t-ui-strong inline-flex items-center gap-2">
           <BrainCircuit aria-hidden className="size-4 text-muted-foreground" />
           {t('How the AI found this', 'كيف توصّل الذكاء الاصطناعي لهذا')}

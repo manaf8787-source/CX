@@ -1,6 +1,7 @@
 import type { LucideIcon } from 'lucide-react'
 import { Database } from 'lucide-react'
 import { useI18n } from '@/i18n'
+import { StatusBadge } from '@/components/common/StatusBadge'
 import { SOURCE_LABEL } from '@/data/customersList'
 import type { LeadSource } from '@/types'
 import { CHANNEL_ICON } from './channels'
@@ -18,9 +19,6 @@ export function LeadSourceBadge({ source }: { source: LeadSource }) {
   const { L } = useI18n()
   const Icon = ICON[source]
   return (
-    <span data-slot="lead-source-badge" className="pill pill-light [&_svg]:size-3.5">
-      <Icon aria-hidden />
-      {L(SOURCE_LABEL[source])}
-    </span>
+    <StatusBadge icon={<Icon aria-hidden />}>{L(SOURCE_LABEL[source])}</StatusBadge>
   )
 }

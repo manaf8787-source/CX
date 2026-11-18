@@ -10,7 +10,7 @@ import { Slot } from "radix-ui"
  * Sizes: sm 36 (toolbar), default 40, lg 46 (forms, cards). The asymmetric padding (top 4, bottom 6) centres Plus Jakarta Sans optically.
  */
 const buttonVariants = cva(
-  "inline-flex shrink-0 items-center justify-center rounded-full font-medium whitespace-nowrap select-none outline-none transition-[background-color,opacity,translate,box-shadow] duration-200 ease-out active:translate-y-px active:shadow-raised-dark disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none data-[loading=true]:disabled:cursor-progress data-[loading=true]:disabled:opacity-100 aria-disabled:pointer-events-none aria-disabled:opacity-40 aria-disabled:shadow-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "inline-flex shrink-0 items-center justify-center rounded-full font-medium whitespace-nowrap select-none outline-hidden transition-[background-color,opacity,translate,box-shadow] duration-200 ease-out active:translate-y-px active:shadow-raised-dark disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none data-[loading=true]:disabled:cursor-progress data-[loading=true]:disabled:opacity-100 aria-disabled:pointer-events-none aria-disabled:opacity-40 aria-disabled:shadow-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
@@ -83,6 +83,7 @@ function Button({
   size = "default",
   asChild = false,
   loading = false,
+  roll = true,
   children,
   disabled,
   ...props
@@ -91,9 +92,11 @@ function Button({
     asChild?: boolean
     /** Shows a 14px spinner before the label, disables the button and sets aria-busy. */
     loading?: boolean
+    /** `false` turns the hover label roll off. Use it for a long label that wraps (the roll is a single line and would clip it). */
+    roll?: boolean
   }) {
   const Comp = asChild ? Slot.Root : "button"
-  const rollable = !asChild && variant !== "link" && size !== "xs" && !ICON_SIZES.has(size ?? "")
+  const rollable = roll && !asChild && variant !== "link" && size !== "xs" && !ICON_SIZES.has(size ?? "")
   const rolled = rollable ? rollChildren(children) : null
 
   return (

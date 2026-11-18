@@ -29,7 +29,7 @@ export function AssistantResult({
   return (
     <div className="flex w-full min-w-0 flex-col gap-2">
       {answer.people && answer.people.length > 0 && (
-        <ul className="flex max-h-64 flex-col overflow-y-auto rounded-[14px] bg-card px-1.5 text-sm shadow-card-sm">
+        <ul className="flex max-h-64 flex-col overflow-y-auto rounded-well bg-card px-1.5 text-sm shadow-card-sm">
           {answer.people.slice(0, 12).map((p) => (
             <li key={p.id} className="row-divider flex items-start gap-2 px-2 py-2.5">
               <div className="flex min-w-0 flex-1 flex-col">
@@ -53,7 +53,7 @@ export function AssistantResult({
       )}
 
       {answer.plan && (
-        <div className="flex flex-col gap-2 rounded-[14px] bg-card p-3.5 text-sm shadow-card-sm">
+        <div className="flex flex-col gap-2 rounded-well bg-card p-3.5 text-sm shadow-card-sm">
           <span className="font-medium">{t('Corrective action plan', 'خطة الإجراءات التصحيحية')}</span>
           {answer.plan.length === 0 ? (
             <span className="text-muted-foreground">{t('No fault repeats in this group yet — nothing to propose.', 'لا يتكرر أي خطأ في هذه المجموعة بعد — لا شيء لاقتراحه.')}</span>
@@ -92,7 +92,7 @@ export function AssistantResult({
       )}
 
       {answer.brief && (
-        <div className="flex flex-col gap-2 rounded-[14px] bg-card p-3.5 text-sm shadow-card-sm">
+        <div className="flex flex-col gap-2 rounded-well bg-card p-3.5 text-sm shadow-card-sm">
           <span className="inline-flex items-center gap-1.5 font-medium">
             <Megaphone aria-hidden className="size-4 text-muted-foreground" />
             {L(answer.brief.title)}

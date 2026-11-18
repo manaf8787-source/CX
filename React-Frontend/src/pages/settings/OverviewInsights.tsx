@@ -23,10 +23,9 @@ import { LoadingState } from '@/components/common/LoadingState'
 import { ProductTag } from '@/components/common/Chip'
 import { ChartLegend, ChartTooltip, ChartWell, RankedBars } from '@/components/common/charts'
 import { CHART_MAX_CATEGORIES, chartActiveDot, chartAxis, chartColor, chartCursorLine, chartGrid, chartLine, chartLineMuted } from '@/components/common/chartTheme'
-import { PressFilter } from './SubPageHeader'
-import { StatWell } from './StatWell'
+import { Segmented } from '@/components/ui/segmented'
+import { KpiTile } from '@/components/common/KpiTile'
 import { NpsBar, NpsLegend } from './NpsBar'
-import { StackedBars } from './StackedBars'
 
 const VOC_CHANNEL_LABEL: Record<string, Bi> = {
   digital: { en: 'Digital', ar: 'رقمي' },
@@ -117,14 +116,15 @@ export function ReputationIndex() {
       ) : (
         <>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <StatWell
+            <KpiTile
+              variant="well"
               label={t('Positive / negative', 'إيجابي / سلبي')}
               value={<bdi dir="ltr">{`${idx.posShare}% / ${idx.negShare}%`}</bdi>}
               sub={t(`${idx.n} public mentions, 30 days`, `${num(idx.n)} إشارة عامة، 30 يوماً`)}
             />
-            <StatWell label={t('Google rating', 'تقييم غوغل')} value={GOOGLE_RATING_90D.toFixed(1)} sub={t('Average of the last 90 days', 'متوسط آخر 90 يوماً')} />
-            <StatWell label={t('Public reply time', 'زمن الرد العام')} value={<bdi dir="ltr">{`${idx.avgReplyH} h`}</bdi>} sub={t('Target: under 48 h', 'الهدف: أقل من 48 ساعة')} />
-            <StatWell label={t('Moved to a private channel', 'انتقلوا إلى قناة خاصة')} value={`${idx.movedShare}%`} sub={t('of negative mentions became identified', 'من الإشارات السلبية أصبحت معرَّفة')} />
+            <KpiTile variant="well" label={t('Google rating', 'تقييم غوغل')} value={GOOGLE_RATING_90D.toFixed(1)} sub={t('Average of the last 90 days', 'متوسط آخر 90 يوماً')} />
+            <KpiTile variant="well" label={t('Public reply time', 'زمن الرد العام')} value={<bdi dir="ltr">{`${idx.avgReplyH} h`}</bdi>} sub={t('Target: under 48 h', 'الهدف: أقل من 48 ساعة')} />
+            <KpiTile variant="well" label={t('Moved to a private channel', 'انتقلوا إلى قناة خاصة')} value={`${idx.movedShare}%`} sub={t('of negative mentions became identified', 'من الإشارات السلبية أصبحت معرَّفة')} />
           </div>
           <div className="-mx-2.5">
             <Table density="comfortable">
@@ -267,7 +267,7 @@ export function OverviewCharts({ products, vocRows }: { products: Product[]; voc
           description={t('Promoters, passives and detractors, for one product at a time.', 'المروّجون والمحايدون والمنتقدون، لمنتج واحد في كل مرة.')}
           contentClassName="flex flex-col gap-4"
         >
-          <PressFilter label={t('Product', 'المنتج')} value={selected ?? ''} onChange={setChannelProduct} options={products.map((p) => ({ id: p.id, label: L(p.name) }))} />
+          <Segmented variant="pressed" label={t('Product', 'المنتج')} value={selected ?? ''} onValueChange={setChannelProduct} options={products.map((p) => ({ value: p.id, label: L(p.name) }))} />
           <div className="well flex flex-col gap-4">
             <ul className="flex flex-col gap-3.5">
               {vocRows
@@ -315,7 +315,7 @@ export function OverviewCharts({ products, vocRows }: { products: Product[]; voc
                       const dot = heatDot(v)
                       return (
                         <td key={c} className="p-1" title={row ? `n ${row.n}` : undefined}>
-                          <div className="flex h-12 min-w-16 flex-col items-center justify-center gap-0.5 rounded-[10px] bg-well tabular">
+                          <div className="flex h-12 min-w-16 flex-col items-center justify-center gap-0.5 rounded-lg bg-well tabular">
                             <span className="inline-flex items-center gap-1.5">
                               {dot && <span aria-hidden className={cn('dot', dot)} />}
                               <bdi dir="ltr" className="t-small-strong">{v ?? '–'}</bdi>
@@ -330,10 +330,19 @@ export function OverviewCharts({ products, vocRows }: { products: Product[]; voc
               </tbody>
             </table>
           </div>
+          <ChartLegend
+            className="mt-4"
+            items={[
+              { label: t('NPS 30 or more', 'NPS 30 فأكثر'), color: 'var(--status-success-solid)' },
+              { label: t('0 to 29', '0 إلى 29'), color: 'var(--status-warning-solid)' },
+              { label: t('Below 0', 'أقل من 0'), color: 'var(--status-error-solid)' },
+            ]}
+          />
         </SectionCard>
 
         <SectionCard title={t('Why detractors are unhappy', 'أسباب عدم رضا المنتقدين')} description={t('Share of detractor reasons, %.', 'نسبة أسباب المنتقدين، %.')} well>
-          <StackedBars
+          <RankedBars
+            layout="stacked"
             label={t('Why detractors are unhappy', 'أسباب عدم رضا المنتقدين')}
             items={(reasons ?? []).map((r) => ({ key: r.reason.en, label: L(r.reason), value: r.pct, display: `${r.pct}%` }))}
           />

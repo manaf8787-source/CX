@@ -86,7 +86,7 @@ function TabsTrigger({
     <TabsPrimitive.Trigger
       data-slot="tabs-trigger"
       className={cn(
-        "relative z-10 inline-flex h-full min-h-[29px] flex-1 items-center justify-center gap-1.5 rounded-full px-[13px] pt-[5px] pb-[7px] text-sm leading-[17px] font-medium whitespace-nowrap text-muted-foreground transition-colors duration-200 ease-out outline-none group-data-[orientation=vertical]/tabs:w-full group-data-[orientation=vertical]/tabs:justify-start hover:text-foreground disabled:pointer-events-none disabled:opacity-50 data-[state=active]:text-primary-foreground data-[state=active]:hover:text-primary-foreground group-data-[variant=page]/tabs-list:min-h-10 group-data-[variant=page]/tabs-list:px-4 group-data-[variant=page]/tabs-list:pt-1.5 group-data-[variant=page]/tabs-list:pb-2 group-data-[variant=page]/tabs-list:text-base [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "relative z-10 inline-flex h-full min-h-[29px] flex-1 items-center justify-center gap-1.5 rounded-full px-[13px] pt-[5px] pb-[7px] text-sm leading-[17px] font-medium whitespace-nowrap text-muted-foreground transition-colors duration-200 ease-out outline-hidden group-data-[orientation=vertical]/tabs:w-full group-data-[orientation=vertical]/tabs:justify-start hover:text-foreground disabled:pointer-events-none disabled:opacity-50 data-[state=active]:text-primary-foreground data-[state=active]:hover:text-primary-foreground group-data-[variant=page]/tabs-list:min-h-10 group-data-[variant=page]/tabs-list:px-4 group-data-[variant=page]/tabs-list:pt-1.5 group-data-[variant=page]/tabs-list:pb-2 group-data-[variant=page]/tabs-list:text-base [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         // until the sliding pill is measured (first paint, no layout engine) the selected trigger paints the dark material itself
         "group-data-[indicator=off]/tabs-list:data-[state=active]:material-dark",
         className
@@ -103,7 +103,7 @@ function TabsContent({
   return (
     <TabsPrimitive.Content
       data-slot="tabs-content"
-      className={cn("flex-1 outline-none data-[state=active]:animate-in data-[state=active]:fade-in-0 data-[state=active]:duration-300 data-[state=active]:ease-out", className)}
+      className={cn("flex-1 outline-hidden data-[state=active]:animate-in data-[state=active]:fade-in-0 data-[state=active]:duration-300 data-[state=active]:ease-out", className)}
       {...props}
     />
   )

@@ -25,6 +25,8 @@ import { PageHeader } from '@/components/common/PageHeader'
 import { SectionCard } from '@/components/common/SectionCard'
 import { StatusBadge } from '@/components/common/StatusBadge'
 import { AgentChip } from '@/components/common/AgentChip'
+import { RankedBars } from '@/components/common/charts'
+import { InlineNote } from '@/components/common/InlineNote'
 import { DataTable, SortableHeader } from '@/components/common/DataTable'
 
 const KIND_LABEL: Record<CorrectiveActionKind, { en: string; ar: string }> = {
@@ -293,36 +295,33 @@ export default function IntelligentCxTeam() {
           </div>
           <div className="flex flex-col gap-4">
             <h3 className="t-ui-strong">{t('Approved first time, per agent (sample)', 'المعتمد من أول مرة لكل وكيل (عينة)')}</h3>
-            <ul className="flex flex-col gap-4">
-              {AGENT_REGISTRY.filter((a) => a.key !== 'supervisor').map((a) => {
+            <RankedBars
+              layout="stacked"
+              max={100}
+              label={t('Approved first time, per agent (sample)', 'المعتمد من أول مرة لكل وكيل (عينة)')}
+              items={AGENT_REGISTRY.filter((a) => a.key !== 'supervisor').map((a) => {
                 const r = approvalRate.get(a.key)
                 const jdPct = AGENT_JDS.find((j) => j.id === a.id)?.approvalPct
                 const pct = jdPct !== undefined ? jdPct : r && r.total > 0 ? Math.round((r.approved / r.total) * 100) : null
                 const tone = pct === null ? null : rateTone(pct)
-                // Under 90% is the row to look at: the dark material; the rest are the grey comparison fill. The value is always printed.
-                const hero = tone !== null && tone !== 'success'
-                return (
-                  <li key={a.key} className="flex flex-col gap-1.5">
-                    <div className="flex items-baseline justify-between gap-3">
-                      <span className={cn('min-w-0', hero ? 't-small-strong' : 't-body-s')}>{L(a.name)}</span>
-                      {pct === null ? (
-                        <span className="shrink-0 text-xs text-muted-foreground">{t('no run sampled', 'لا يوجد تشغيل في العينة')}</span>
-                      ) : (
-                        <span className={cn('tabular inline-flex shrink-0 items-center gap-1.5', hero ? 't-small-strong' : 't-body-s')}>
-                          {tone && <span aria-hidden className={cn('dot', RATE_DOT[tone])} />}
-                          <bdi dir="ltr">{pct}%</bdi>
-                        </span>
-                      )}
-                    </div>
-                    <span aria-hidden className="h-3 overflow-hidden rounded-full bg-line shadow-inset-track">
-                      {pct !== null && (
-                        <span className={cn('block h-full rounded-full', hero ? 'material-dark' : 'bg-grad-muted-fill opacity-[0.62]')} style={{ width: `${pct}%` }} />
-                      )}
-                    </span>
-                  </li>
-                )
+                return {
+                  key: a.key,
+                  label: L(a.name),
+                  value: pct ?? 0,
+                  // Under 90% is the row to look at: the dark material; the rest are the grey comparison fill. The value is always printed.
+                  hero: tone !== null && tone !== 'success',
+                  display:
+                    pct === null ? (
+                      <span className="text-xs text-muted-foreground">{t('no run sampled', 'لا يوجد تشغيل في العينة')}</span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5">
+                        {tone && <span aria-hidden className={cn('dot', RATE_DOT[tone])} />}
+                        <bdi dir="ltr">{pct}%</bdi>
+                      </span>
+                    ),
+                }
               })}
-            </ul>
+            />
             <p className="t-body-s">
               {t(
                 'Share of each agent’s outputs approved first time (sample figures). Every week 50 passed outputs are read by eye.',
@@ -419,13 +418,12 @@ export default function IntelligentCxTeam() {
       </SectionCard>
 
       {!canViewAgentNames(role.id) && (
-        <p className="well flex items-start gap-2.5 px-4 py-3.5 text-sm text-muted-foreground">
-          <span aria-hidden className="dot mt-1.5" />
+        <InlineNote tone="neutral">
           {t(
             'This page never names a human agent — only the AI agents themselves and the roles they escalate to.',
             'هذه الصفحة لا تذكر اسم أي موظف بشري أبداً — فقط وكلاء الذكاء الاصطناعي والأدوار التي يصعّدون إليها.',
           )}
-        </p>
+        </InlineNote>
       )}
     </div>
   )
@@ -490,7 +488,7 @@ function AgentCard({
         </p>
       )}
 
-      <CollapsibleTrigger className="material-light t-small-strong mt-auto inline-flex h-8 w-fit cursor-pointer items-center gap-2 rounded-full ps-3.5 pe-3 pt-px outline-none transition-opacity hover:opacity-80">
+      <CollapsibleTrigger className="material-light t-small-strong mt-auto inline-flex h-8 w-fit cursor-pointer items-center gap-2 rounded-full ps-3.5 pe-3 pt-px outline-hidden transition-opacity hover:opacity-80">
         {t('Job description', 'الوصف الوظيفي')}
         <ChevronDown aria-hidden className={cn('size-3.5 transition-transform duration-400 ease-spring motion-reduce:transition-none', expanded && 'rotate-180')} />
       </CollapsibleTrigger>

@@ -13,10 +13,12 @@ import { ProposedBadge } from '@/components/common/ProposedBadge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
 import type { MatrixCells, MatrixField, MatrixKind, MatrixRow, ProductId } from '@/types'
-import { IN_CARD, PressFilter, SubPageHeader, ViewOnlyNotice } from './SubPageHeader'
+import { Segmented } from '@/components/ui/segmented'
+import { IN_CARD, SubPageHeader, ViewOnlyNotice } from './SubPageHeader'
 
 const PRODUCT_IDS = PRODUCTS.map((p) => p.id)
 
@@ -43,15 +45,16 @@ export default function EscalationMatrix() {
       <SubPageHeader title={L(MATRIX_COPY.title)} description={L(MATRIX_COPY.intro)} />
       {!canEdit && <ViewOnlyNotice>{t('View only — the CX manager and the Internal Audit and Marketing Lead fill these cells.', 'للعرض فقط — يملأ هذه الخلايا مدير تجربة العملاء ومسؤول التدقيق الداخلي والتسويق.')}</ViewOnlyNotice>}
 
-      <PressFilter
+      <Segmented
+        variant="pressed"
         label={t('Product', 'المنتج')}
         value={product}
-        onChange={(id) => {
+        onValueChange={(id) => {
           const next = new URLSearchParams(params)
           next.set('product', id)
           setParams(next, { replace: true })
         }}
-        options={PRODUCTS.map((p) => ({ id: p.id, label: L(p.name) }))}
+        options={PRODUCTS.map((p) => ({ value: p.id, label: L(p.name) }))}
       />
 
       <Card>
@@ -135,13 +138,13 @@ function MatrixCell({ product, row, field, canEdit }: { product: ProductId; row:
   }
 
   return (
-    <div className="flex min-w-36 flex-col items-start gap-1">
-      {canEdit ? (
+    <div className={cn('flex flex-col items-start gap-1', hours ? 'min-w-28' : 'min-w-44')}>
+      {canEdit && hours ? (
         <Input
           aria-label={label}
-          type={hours ? 'number' : 'text'}
-          min={hours ? 0 : undefined}
-          inputMode={hours ? 'numeric' : undefined}
+          type="number"
+          min={0}
+          inputMode="numeric"
           placeholder="–"
           value={shown}
           onChange={(e) => setEdit({ text: e.target.value, base: stored })}
@@ -150,7 +153,25 @@ function MatrixCell({ product, row, field, canEdit }: { product: ProductId; row:
             if (e.key === 'Enter') e.currentTarget.blur()
             if (e.key === 'Escape') setEdit(null)
           }}
-          className={cn('h-9', hours && 'w-24 tabular')}
+          className="h-9 w-24 tabular"
+        />
+      ) : canEdit ? (
+        // A title such as "Head of Marketing Operations" is longer than the column: the field grows with its text (field-sizing) instead of cutting it.
+        <Textarea
+          aria-label={label}
+          rows={1}
+          placeholder="–"
+          value={shown}
+          onChange={(e) => setEdit({ text: e.target.value, base: stored })}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              e.currentTarget.blur()
+            }
+            if (e.key === 'Escape') setEdit(null)
+          }}
+          className="min-h-9 resize-none rounded-md py-2 text-sm"
         />
       ) : (
         <bdi className="text-sm text-foreground">{stored || '–'}</bdi>

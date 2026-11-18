@@ -94,7 +94,7 @@ describe('Badge, Card, Table', () => {
     expect(screen.getByTestId('well')).toHaveAttribute('data-slot', 'card-well')
   })
 
-  it('Table is dense by default, takes a comfortable density, and keeps aria-sort on the header', () => {
+  it('Table follows the page density (dense outside any scope), takes its own density, and keeps aria-sort on the header', () => {
     const { container } = render(
       <>
         <Table>
@@ -119,7 +119,8 @@ describe('Badge, Card, Table', () => {
       </>,
     )
     const containers = container.querySelectorAll('[data-slot="table-container"]')
-    expect(containers[0]).toHaveAttribute('data-density', 'dense')
+    // no density of its own: the table follows the page (data-density on an ancestor; theme.css makes it dense outside every scope)
+    expect(containers[0]).not.toHaveAttribute('data-density')
     expect(containers[1]).toHaveAttribute('data-density', 'comfortable')
     expect(screen.getByRole('columnheader', { name: 'Total' })).toHaveAttribute('aria-sort', 'ascending')
   })

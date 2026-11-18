@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Field, FieldDescription, FieldError, FieldLabel } from '@/components/ui/field'
+import { InlineNote } from '@/components/common/InlineNote'
 import { LangSwitch } from '@/components/common/LangSwitch'
 import { ThemeSwitch } from '@/components/common/ThemeSwitch'
 import { dirSign, DURATION, EASE_OUT, EXIT } from '@/lib/motion'
@@ -157,7 +158,7 @@ export default function Login() {
   const sign = dirSign(dir)
 
   /** A role is a row of the sign-in card: a quiet well, and the dark material once it is chosen (selected = dark). The radio itself is
-   * visually hidden inside the label, so the label draws the focus ring (the global ring, applied through :has). */
+   * visually hidden inside the label, so the label draws the focus ring (`ring-within`). */
   const roleCard = (r: RoleDef) => {
     const isSelected = selected === r.id
     return (
@@ -165,8 +166,8 @@ export default function Login() {
         key={r.id}
         className={cn(
           'group relative flex min-h-14 cursor-pointer flex-col justify-center gap-0.5 rounded-xl px-3.5 py-3 pe-11 text-start transition-[background-color,color] duration-200 ease-out lg:min-h-12 lg:py-2.5',
-          'has-[:focus-visible]:shadow-none has-[:focus-visible]:[--tw-ring-shadow:var(--ring-focus)]',
-          isSelected ? 'material-dark has-[:focus-visible]:[--tw-ring-shadow:var(--ring-focus)]' : 'bg-well hover:bg-well-hover',
+          'ring-within',
+          isSelected ? 'material-dark' : 'bg-well hover:bg-well-hover',
         )}
       >
         <input type="radio" value={r.id} className="sr-only" {...register('role')} disabled={phase !== 'idle'} />
@@ -226,22 +227,21 @@ export default function Login() {
                     </div>
 
                     {/* the inline notification: a well and a 6px status dot, not a coloured banner */}
-                    <div role="note" className="well flex items-start gap-2.5 px-4 py-3.5 text-sm text-muted-foreground">
-                      <span aria-hidden className="dot dot-info mt-[5px]" />
-                      <p>
-                        <strong className="font-medium text-foreground">{t('Sample sign-in — no real authentication.', 'تسجيل دخول نموذجي — بلا مصادقة حقيقية.')}</strong>{' '}
+                    <InlineNote role="note">
+                      <strong className="font-medium">{t('Sample sign-in — no real authentication.', 'تسجيل دخول نموذجي — بلا مصادقة حقيقية.')}</strong>{' '}
+                      <span className="text-muted-foreground">
                         {t(
                           'No password is asked for or stored, and every name and number in the portal is sample data.',
                           'لا تُطلب أي كلمة مرور ولا تُحفظ، وكل الأسماء والأرقام في البوابة بيانات نموذجية.',
                         )}
-                      </p>
-                    </div>
+                      </span>
+                    </InlineNote>
 
                     <fieldset className="flex min-w-0 flex-col gap-3" aria-invalid={!!errors.role} aria-describedby={errors.role ? 'role-error' : undefined}>
                       <legend className="t-small-strong mb-3 lg:mb-2">{t('Sign in as', 'تسجيل الدخول بصفة')}</legend>
                       <div data-group="main-roles" className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">{MAIN_ROLES.map(roleCard)}</div>
                       <details className="group/other" open={FOLDED_ROLE_IDS.includes(selected as RoleId) || undefined}>
-                        <summary className="t-small-strong flex min-h-9 w-full cursor-pointer list-none items-center justify-between gap-3 rounded-xl px-1 text-start outline-none [&::-webkit-details-marker]:hidden">
+                        <summary className="t-small-strong flex min-h-9 w-full cursor-pointer list-none items-center justify-between gap-3 rounded-xl px-1 text-start outline-hidden [&::-webkit-details-marker]:hidden">
                           {L(SIGN_IN_COPY.otherRoles)}
                           <span aria-hidden className="material-light inline-grid size-[26px] shrink-0 place-items-center rounded-full">
                             <ChevronDown className="size-3.5 transition-transform duration-400 ease-spring group-open/other:rotate-180 motion-reduce:transition-none" />
@@ -282,8 +282,8 @@ export default function Login() {
                       {errors.displayName && <FieldError>{errors.displayName.message}</FieldError>}
                     </Field>
 
-                    {/* the label is in a span, so it wraps (a long role title such as "Internal Audit and Marketing Lead" would be clipped by the one-line hover roll) */}
-                    <Button type="submit" size="lg" className="h-auto min-h-[46px] w-full whitespace-normal py-2" disabled={phase !== 'idle'}>
+                    {/* roll={false}: a long role title such as "Internal Audit and Marketing Lead" wraps instead of being clipped by the one-line hover roll */}
+                    <Button type="submit" size="lg" roll={false} className="h-auto min-h-[46px] w-full whitespace-normal py-2 text-center" disabled={phase !== 'idle'}>
                       {phase === 'idle' ? (
                         <>
                           <span className="text-center">

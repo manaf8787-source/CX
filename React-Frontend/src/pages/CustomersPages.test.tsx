@@ -27,7 +27,8 @@ describe('Customers: a person (v40 F07, F17, F24)', () => {
     const consent = screen.getByRole('region', { name: 'Consent' })
     expect(within(consent).getByText('DNCR · no calls, no surveys by call')).toBeInTheDocument()
     expect(within(consent).getByText('DNCR', { selector: 'span' })).toBeInTheDocument()
-    expect(screen.getByRole('region', { name: 'Next step' })).toBeInTheDocument()
+    // the box appears once the person's effort summary has loaded, a beat after the heading
+    expect(await screen.findByRole('region', { name: 'Next step' }, T)).toBeInTheDocument()
   })
 
   it('says "Consent given" for a person without a DNCR flag', async () => {

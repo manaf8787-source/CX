@@ -17,8 +17,8 @@ import { LoadingState } from '@/components/common/LoadingState'
 import { ErrorState } from '@/components/common/ErrorState'
 import { ClockBadge } from './components/ClockBadge'
 import { DecisionDialog } from './components/DecisionDialog'
-import { InlineNote } from './components/InlineNote'
-import { StepPills } from './components/StepPills'
+import { InlineNote } from '@/components/common/InlineNote'
+import { StepPills } from '@/components/common/StepPills'
 import { TermHelp } from '@/components/common/TermHelp'
 
 /** Mystery shopper checklist categories, in both languages. */

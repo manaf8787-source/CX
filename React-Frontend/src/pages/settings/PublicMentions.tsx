@@ -18,7 +18,8 @@ import { KpiTile } from '@/components/common/KpiTile'
 import { LoadingState } from '@/components/common/LoadingState'
 import { SectionCard } from '@/components/common/SectionCard'
 import { StatusBadge } from '@/components/common/StatusBadge'
-import { IN_CARD, PressFilter, SubPageHeader } from './SubPageHeader'
+import { Segmented } from '@/components/ui/segmented'
+import { IN_CARD, SubPageHeader } from './SubPageHeader'
 
 type Filter = 'all' | ReplyState
 
@@ -78,11 +79,12 @@ export default function PublicMentions() {
             <KpiTile label={t('Replied', 'رُدّ عليها')} value={counts.replied} />
           </div>
 
-          <PressFilter
+          <Segmented
+            variant="pressed"
             label={t('Filter by reply status', 'تصفية حسب حالة الرد')}
-            options={FILTERS.map((f) => ({ id: f.id, label: f.label, count: counts[f.id] }))}
+            options={FILTERS.map((f) => ({ value: f.id, label: f.label, count: counts[f.id] }))}
             value={filter}
-            onChange={setFilter}
+            onValueChange={setFilter}
           />
 
           {shown.length === 0 ? (

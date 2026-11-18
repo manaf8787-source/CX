@@ -75,8 +75,8 @@ export function AccessMatrix({ roles, rows, onCycle, caption }: AccessMatrixProp
       <p className="text-sm text-muted-foreground lg:hidden">
         {t(`Scroll sideways to see all ${roles.length} roles.`, `مرّر أفقياً لرؤية الأدوار الـ${roles.length} كلها.`)}
       </p>
-      <div className="relative -mx-2.5 max-w-full overflow-x-auto rounded-well outline-none" tabIndex={0} role="region" aria-label={caption}>
-        <table className="w-full min-w-max border-collapse text-sm">
+      <div className="relative -mx-2.5 max-w-full overflow-x-auto rounded-well outline-hidden" tabIndex={0} role="region" aria-label={caption}>
+        <table className="w-full min-w-max text-sm">
           <caption className="sr-only">{caption}</caption>
           <thead>
             <tr>
@@ -121,7 +121,7 @@ export function AccessMatrix({ roles, rows, onCycle, caption }: AccessMatrixProp
                                 onClick={() => onCycle(row, r.id, value)}
                                 aria-label={a11y}
                                 title={L(ACCESS_LABEL[value])}
-                                className="mx-auto grid size-10 cursor-pointer place-items-center rounded-full outline-none transition-colors duration-200 hover:bg-well"
+                                className="mx-auto grid size-10 cursor-pointer place-items-center rounded-full outline-hidden transition-colors duration-200 hover:bg-well"
                               >
                                 {cell}
                               </button>

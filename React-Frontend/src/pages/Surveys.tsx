@@ -6,11 +6,12 @@ import { useLeadFunnel, useProductSurveyMoments, useSurveyTriggers } from '@/ser
 import { useSurveyDelivery, useSurveyInstruments } from '@/services/referenceQueries'
 import { PRODUCTS } from '@/data/products'
 import type { LeadFunnelStage } from '@/types'
-import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { TermHelp } from '@/components/common/TermHelp'
-import { IN_CARD, InlineNote, SubPageHeader } from '@/pages/settings/SubPageHeader'
+import { InlineNote } from '@/components/common/InlineNote'
+import { RankedBars } from '@/components/common/charts'
+import { IN_CARD, SubPageHeader } from '@/pages/settings/SubPageHeader'
 import { SectionCard } from '@/components/common/SectionCard'
 import { StatusBadge } from '@/components/common/StatusBadge'
 import { ProductTag } from '@/components/common/Chip'
@@ -44,25 +45,16 @@ function GoLink({ to, children }: { to: string; children: ReactNode }) {
   )
 }
 
-/**
- * A bar list: the skill's bar comparison (a pill track, the first row dark, the rest grey, the count printed at the end). The same look as
- * `RankedBars`, but the label wraps instead of being cut: the reasons here are sentences.
- */
+/** The skill's bar comparison for counts with sentence labels: `RankedBars` with the label wrapped (the reasons here are sentences). */
 function BarList({ items, label }: { items: { label: string; count: number }[]; label: string }) {
   const { lang } = useI18n()
-  const top = Math.max(1, ...items.map((i) => i.count))
   return (
-    <ul aria-label={label} className="flex flex-col gap-4">
-      {items.map((it, i) => (
-        <li key={i} className="grid grid-cols-[minmax(5rem,10rem)_minmax(0,1fr)_auto] items-center gap-3.5">
-          <span className={cn('min-w-0 break-words', i === 0 ? 't-small-strong' : 't-body-s')}>{it.label}</span>
-          <span aria-hidden className="h-3 overflow-hidden rounded-full bg-line shadow-inset-track">
-            <span className={cn('block h-full rounded-full', i === 0 ? 'material-dark' : 'bg-grad-muted-fill opacity-[0.62]')} style={{ width: `${(it.count / top) * 100}%` }} />
-          </span>
-          <span className={cn('tabular text-end', i === 0 ? 't-small-strong' : 't-body-s')}>{it.count.toLocaleString(lang === 'ar' ? 'ar' : 'en')}</span>
-        </li>
-      ))}
-    </ul>
+    <RankedBars
+      wrap
+      labelWidth="minmax(5rem,10rem)"
+      label={label}
+      items={items.map((it, i) => ({ key: String(i), label: it.label, value: it.count, display: it.count.toLocaleString(lang === 'ar' ? 'ar' : 'en') }))}
+    />
   )
 }
 
@@ -136,7 +128,7 @@ export default function Surveys() {
                       role="radio"
                       aria-checked={active}
                       onClick={() => setSelectedStage(f.stage)}
-                      className="group/stage flex min-w-0 flex-1 cursor-pointer flex-col items-start gap-2 rounded-well bg-well p-3.5 text-start outline-none transition-colors duration-200 ease-out hover:bg-well-hover aria-checked:material-dark"
+                      className="group/stage flex min-w-0 flex-1 cursor-pointer flex-col items-start gap-2 rounded-well bg-well p-3.5 text-start outline-hidden transition-colors duration-200 ease-out hover:bg-well-hover aria-checked:material-dark"
                     >
                       <span className="t-small-strong group-aria-checked/stage:text-inherit">{L(STAGE_LABEL[f.stage])}</span>
                       <span className="text-3xl font-medium tabular">{fmt(f.count)}</span>

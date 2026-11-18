@@ -29,7 +29,7 @@ export function TermHelp({ term, className }: { term: string; className?: string
           type="button"
           aria-label={t(`What ${entry.term.en} means`, `معنى ${entry.term.ar}`)}
           className={cn(
-            'material-light relative inline-grid size-[18px] shrink-0 cursor-pointer place-items-center rounded-full text-2xs leading-none font-medium text-muted-foreground outline-none transition-colors duration-200 before:content-["?"] after:absolute after:-inset-1.5 after:content-[""] hover:text-foreground',
+            'material-light relative inline-grid size-[18px] shrink-0 cursor-pointer place-items-center rounded-full text-2xs leading-none font-medium text-muted-foreground outline-hidden transition-colors duration-200 before:content-["?"] after:absolute after:-inset-1.5 after:content-[""] hover:text-foreground',
             className,
           )}
         />

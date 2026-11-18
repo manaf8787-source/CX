@@ -43,13 +43,15 @@ export function HandoffsBlock() {
     <Collapsible open={open} onOpenChange={setOpen} className="surface-card text-card-foreground" data-testid="handoffs-block">
       <div className="flex items-center gap-1 ps-(--card-pad) pe-3">
         <h2 className="t-h4 min-w-0 flex-1">
-          <CollapsibleTrigger className="flex min-h-14 w-full cursor-pointer flex-wrap items-center gap-x-2 gap-y-0.5 rounded-md py-3 text-start outline-none">
+          <CollapsibleTrigger className="flex min-h-14 w-full cursor-pointer items-center gap-2 rounded-md py-3 text-start outline-hidden">
             <ChevronDown
               aria-hidden
               className={cn('size-4 shrink-0 text-muted-foreground transition-transform duration-400 ease-spring motion-reduce:transition-none', open ? 'rotate-0' : 'ltr:-rotate-90 rtl:rotate-90')}
             />
-            <span>{t('One-customer corrections handed to other systems', 'تصحيحات لزبون واحد سُلّمت لأنظمة أخرى')}</span>
-            <span className="text-sm font-normal text-muted-foreground">{t('(hand-offs: recorded and checked, no clock)', '(تسليمات: تُسجَّل وتُتابع، بلا مؤقت)')}</span>
+            <span className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+              <span>{t('One-customer corrections handed to other systems', 'تصحيحات لزبون واحد سُلّمت لأنظمة أخرى')}</span>
+              <span className="text-sm font-normal text-muted-foreground">{t('(hand-offs: recorded and checked, no clock)', '(تسليمات: تُسجَّل وتُتابع، بلا مؤقت)')}</span>
+            </span>
           </CollapsibleTrigger>
         </h2>
         <TermHelp term="Hand-off" />

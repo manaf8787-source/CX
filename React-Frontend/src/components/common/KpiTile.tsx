@@ -31,18 +31,28 @@ interface KpiTileProps {
   children?: ReactNode
   /** Glossary term for a "?" beside the metric (KB §14). */
   term?: string
+  /**
+   * `card` (default): the white card. `well`: the same tile without a card, for a group of numbers that share one card (card -> well -> text;
+   * a link well tints on hover). `dark`: the view's ONE dark feature card (never next to another dark card).
+   */
+  variant?: 'card' | 'well' | 'dark'
 }
 
-const BASE = 'surface-card group relative flex min-w-0 flex-col gap-3 p-(--card-pad) text-start text-card-foreground'
-const INTERACTIVE = 'cursor-pointer outline-none'
+const BASE: Record<NonNullable<KpiTileProps['variant']>, string> = {
+  card: 'surface-card p-(--card-pad) text-card-foreground',
+  well: 'well h-full',
+  dark: 'surface-dark p-(--card-pad)',
+}
+const INTERACTIVE = 'cursor-pointer outline-hidden'
 
 /**
  * The skill's KPI card: label (small strong, grey) with an optional icon tile or delta tag, the value (44 comfortable / 32 dense,
  * tabular, counted up), an optional unit, a grey sub line and an optional well. Density follows `data-density` on any ancestor.
  * Bento-capable: pass `className="md:col-span-2"` to size it in a grid.
  */
-export function KpiTile({ label, value, sub, accent, icon, unit, delta, to, onClick, loading, className, children, term }: KpiTileProps) {
+export function KpiTile({ label, value, sub, accent, icon, unit, delta, to, onClick, loading, className, children, term, variant = 'card' }: KpiTileProps) {
   const interactive = Boolean(to || onClick)
+  const base = cn('group relative flex min-w-0 flex-col gap-3 text-start', BASE[variant], interactive && variant === 'well' && 'transition-colors duration-200 hover:bg-well-hover')
   const style = accent ? ({ '--c': accent } as CSSProperties) : undefined
   const end = delta ? (
     <bdi className="pill pill-light shrink-0">{delta}</bdi>
@@ -79,20 +89,20 @@ export function KpiTile({ label, value, sub, accent, icon, unit, delta, to, onCl
         </span>
       )}
       {sub && <span className="text-sm text-muted-foreground">{sub}</span>}
-      {children && <div className="well flex flex-col gap-2">{children}</div>}
+      {children && <div className={cn('flex flex-col gap-2', variant === 'card' ? 'well' : 'rounded-inner bg-card p-3.5 text-card-foreground shadow-hairline')}>{children}</div>}
     </>
   )
 
   const tile = to ? (
-    <Link to={to} style={style} className={cn(BASE, INTERACTIVE, term ? 'h-full' : className)}>
+    <Link to={to} style={style} className={cn(base, INTERACTIVE, term ? 'h-full' : className)}>
       {body}
     </Link>
   ) : onClick ? (
-    <button type="button" onClick={onClick} style={style} className={cn(BASE, INTERACTIVE, term ? 'h-full w-full' : className)}>
+    <button type="button" onClick={onClick} style={style} className={cn(base, INTERACTIVE, term ? 'h-full w-full' : className)}>
       {body}
     </button>
   ) : (
-    <div style={style} className={cn(BASE, term ? 'h-full' : className)}>
+    <div style={style} className={cn(base, term ? 'h-full' : className)}>
       {body}
     </div>
   )

@@ -21,8 +21,8 @@ export const RULES_POINTER_COPY = {
   whatIfTitle: b('What if', 'ماذا لو'),
   whatIfHint: (n: number): Bi =>
     b(
-      `With today's thresholds there are ${n} patterns. Each cell shows how many there would be with that one value changed; the bold one is the current setting. Change it under Settings.`,
-      `بعتبات اليوم يوجد ${n} أنماط. كل خلية تُظهر كم سيكون العدد لو تغيرت هذه القيمة وحدها؛ الغامق هو الإعداد الحالي. غيّرها في الإعدادات.`,
+      `With today's thresholds there are ${n} patterns. Each cell shows how many there would be with that one value changed; the dark one is the current setting. Change it under Settings.`,
+      `بعتبات اليوم يوجد ${n} أنماط. كل خلية تُظهر كم سيكون العدد لو تغيرت هذه القيمة وحدها؛ الداكن هو الإعداد الحالي. غيّرها في الإعدادات.`,
     ),
   tableHeading: b('Threshold', 'العتبة'),
   rows: {

@@ -28,7 +28,10 @@ const AUTO_DOT: Record<Tone, boolean> = { success: true, info: true, neutral: fa
 
 interface StatusBadgeProps {
   tone?: Tone
-  /** Force the 6px status dot (quiet tones show it by default, tinted tones only when asked). Ignored when an `icon` is given. */
+  /**
+   * The 6px status dot. Quiet tones (success, info) show it by default, tinted tones and neutral only when asked. With an `icon` the dot is
+   * off unless you pass `dot` explicitly: `dot` + `icon` draws dot, icon, label (a public channel: "dot + icon + label").
+   */
   dot?: boolean
   icon?: ReactNode
   className?: string
@@ -37,7 +40,7 @@ interface StatusBadgeProps {
 
 /** The one status tag for the whole app: map domain statuses through `@/lib/status`. 24px pill, 13/500. */
 export function StatusBadge({ tone = 'neutral', dot, icon, className, children }: StatusBadgeProps) {
-  const showDot = !icon && (dot ?? AUTO_DOT[tone])
+  const showDot = dot ?? (!icon && AUTO_DOT[tone])
   return (
     <span data-slot="status-badge" data-tone={tone} className={cn('pill [&_svg]:size-3.5', TONE_CLASSES[tone], className)}>
       {showDot && <span aria-hidden className={cn('dot', DOT_CLASSES[tone])} />}

@@ -12,12 +12,12 @@ import { cn } from '@/lib/utils'
 
 /**
  * "What if" (v40 F32, S16): with today's thresholds there are {n} patterns; for each of the three thresholds (same issue, same
- * agent, window) the table shows how many patterns there would be with that one value changed, the current setting in bold.
+ * agent, window) the table shows how many patterns there would be with that one value changed, the current setting as the dark pill.
  * Patterns are computed from the rules at read time (`whatIf` over the signals in the environment scope), so a threshold edited
  * under Settings changes this card too. The candidate values are samples, kept in `data/whatIf.ts`. [Proposed]
  *
  * Composition: a dense card with the skill's table; every candidate value is a small pill and the current setting is the dark pill
- * (selected = dark, so "bold" is no longer the only signal; the screen-reader text stays).
+ * (selected = dark: the hint says "the dark one"; the screen-reader text stays).
  */
 export function WhatIfCard() {
   const { L } = useI18n()

@@ -13,7 +13,8 @@ import { ProposedBadge } from '@/components/common/ProposedBadge'
 import { SectionCard } from '@/components/common/SectionCard'
 import { StatusBadge } from '@/components/common/StatusBadge'
 import { EmptyState } from '@/components/common/EmptyState'
-import { IN_CARD, PressFilter, SubPageHeader } from './SubPageHeader'
+import { Segmented } from '@/components/ui/segmented'
+import { IN_CARD, SubPageHeader } from './SubPageHeader'
 
 /**
  * Survey questions (v40 F23): the exact questions per product and moment, in both languages, with a preview of what the
@@ -85,7 +86,7 @@ function ProductSets({ product, sets, previewLang, onPreviewLang }: { product: P
                     type="button"
                     aria-pressed={active}
                     onClick={() => setPickedId(s.id)}
-                    className="group/set flex w-full min-w-0 cursor-pointer flex-col gap-1 rounded-well px-4 py-3 text-start outline-none transition-colors duration-200 ease-out hover:bg-row-hover aria-pressed:material-dark aria-pressed:hover:bg-transparent"
+                    className="group/set flex w-full min-w-0 cursor-pointer flex-col gap-1 rounded-well px-4 py-3 text-start outline-hidden transition-colors duration-200 ease-out hover:bg-row-hover aria-pressed:material-dark aria-pressed:hover:bg-transparent"
                   >
                     <span className="t-ui-strong flex flex-wrap items-center gap-2 group-aria-pressed/set:text-inherit">
                       {L(s.name)}
@@ -105,14 +106,15 @@ function ProductSets({ product, sets, previewLang, onPreviewLang }: { product: P
         <SectionCard
           title={L(COPY.previewCaption)}
           actions={
-            <PressFilter
+            <Segmented
+              variant="pressed"
               label={t('Preview language', 'لغة المعاينة')}
               options={[
-                { id: 'en' as const, label: 'English' },
-                { id: 'ar' as const, label: 'العربية' },
+                { value: 'en' as const, label: 'English' },
+                { value: 'ar' as const, label: 'العربية' },
               ]}
               value={previewLang}
-              onChange={onPreviewLang}
+              onValueChange={onPreviewLang}
             />
           }
         >
@@ -164,7 +166,7 @@ function Preview({ set, previewLang }: { set: SurveyQuestionSet; previewLang: La
         aria-label={t('Preview of the survey on a phone', 'معاينة الاستبيان على هاتف')}
         dir={dir}
         lang={previewLang}
-        className="well mx-auto flex w-full max-w-sm flex-col gap-2 rounded-[28px] p-4"
+        className="well mx-auto flex w-full max-w-sm flex-col gap-2 rounded-card-lg p-4"
       >
         <div className="t-ui-strong flex items-center gap-2.5 pb-1">
           <span aria-hidden className="material-light inline-grid size-[30px] place-items-center rounded-full [&_svg]:size-4">
@@ -172,10 +174,10 @@ function Preview({ set, previewLang }: { set: SurveyQuestionSet; previewLang: La
           </span>
           PSI
         </div>
-        <p className="material-light max-w-[88%] rounded-[20px] rounded-ss-[6px] px-3.5 py-2.5 text-base text-foreground">{COPY.greeting[previewLang]}</p>
+        <p className="material-light max-w-[88%] rounded-panel rounded-ss-sm px-3.5 py-2.5 text-base text-foreground">{COPY.greeting[previewLang]}</p>
         <ol className="flex flex-col gap-2">
           {set.questions.map((q, i) => (
-            <li key={i} className="material-light max-w-[88%] rounded-[20px] rounded-ss-[6px] px-3.5 py-2.5 text-base text-foreground">
+            <li key={i} className="material-light max-w-[88%] rounded-panel rounded-ss-sm px-3.5 py-2.5 text-base text-foreground">
               <span className="me-1.5 font-medium tabular">{i + 1}.</span>
               {q[previewLang]}
             </li>

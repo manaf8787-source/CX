@@ -1,6 +1,6 @@
 import { useI18n } from '@/i18n'
 import type { CorrectiveActionStatus } from '@/types'
-import { StepPills, type OutcomeTone } from './StepPills'
+import { StepPills, type OutcomeTone } from '@/components/common/StepPills'
 
 const STEPS: { status: CorrectiveActionStatus; label: { en: string; ar: string } }[] = [
   { status: 'proposed', label: { en: 'Proposed', ar: 'مقترح' } },

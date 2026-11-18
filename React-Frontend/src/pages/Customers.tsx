@@ -162,7 +162,7 @@ function Folded({ title, count, icon, children }: { title: string; count: number
   return (
     <Card className="gap-0 py-0">
       <Collapsible>
-        <CollapsibleTrigger className="group flex min-h-16 w-full cursor-pointer items-center justify-between gap-3 rounded-card px-(--card-pad) py-4 text-start outline-none">
+        <CollapsibleTrigger className="group flex min-h-16 w-full cursor-pointer items-center justify-between gap-3 rounded-card px-(--card-pad) py-4 text-start outline-hidden">
           <span className="t-h4 inline-flex items-center gap-2.5">
             <span aria-hidden className="material-light inline-grid size-[30px] shrink-0 place-items-center rounded-full [&_svg]:size-4">
               {icon}

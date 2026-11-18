@@ -15,7 +15,8 @@ import { StatusBadge } from '@/components/common/StatusBadge'
 import { ProductTag } from '@/components/common/Chip'
 import { LoadingState } from '@/components/common/LoadingState'
 import { AccessLegend, AccessMatrix, type MatrixRow } from './AccessMatrix'
-import { IN_CARD, InlineNote, SubPageHeader, ViewOnlyNotice } from './SubPageHeader'
+import { InlineNote } from '@/components/common/InlineNote'
+import { IN_CARD, SubPageHeader, ViewOnlyNotice } from './SubPageHeader'
 
 /** Modules KB §15 / Programme KB §28: Teams and structure shows who is
  * involved in each function and product (titles, not names), the authority

@@ -46,9 +46,9 @@ function HeaderSearch() {
         onChange={(e) => setQuery(e.target.value)}
         placeholder={t('Find a person — name, mobile, ID', 'ابحث عن شخص — الاسم، الجوال، الهوية')}
         aria-label={t('Find a person', 'ابحث عن شخص')}
-        className="h-9 ps-9 @min-[900px]/bar:pe-16"
+        className="h-9 ps-9 @min-[1120px]/bar:pe-16"
       />
-      <kbd className="material-light pointer-events-none absolute end-2 top-1/2 hidden h-5 -translate-y-1/2 items-center rounded-full px-2 pt-px font-sans text-2xs font-medium text-muted-foreground @min-[900px]/bar:inline-flex">
+      <kbd className="material-light pointer-events-none absolute end-2 top-1/2 hidden h-5 -translate-y-1/2 items-center rounded-full px-2 pt-px font-sans text-2xs font-medium text-muted-foreground @min-[1120px]/bar:inline-flex">
         Ctrl K
       </kbd>
     </form>
@@ -93,13 +93,13 @@ export function TopBar({ showMenuButton, onOpenMenu, assistantAvailable, onAskAs
           <ThemeSwitch />
           {assistantAvailable && (
             <Button
-              className="@max-[899px]/bar:size-9 @max-[899px]/bar:p-0"
+              className="@max-[1119px]/bar:size-9 @max-[1119px]/bar:p-0"
               size="sm"
               onClick={onAskAssistant}
               aria-label={t('Ask the assistant', 'اسأل المساعد')}
             >
               <Sparkles aria-hidden />
-              <span className="hidden @min-[900px]/bar:inline">{t('Ask the assistant', 'اسأل المساعد')}</span>
+              <span className="hidden @min-[1120px]/bar:inline">{t('Ask the assistant', 'اسأل المساعد')}</span>
             </Button>
           )}
         </div>

@@ -35,7 +35,7 @@ import { LoadingState } from '@/components/common/LoadingState'
 import { ErrorState } from '@/components/common/ErrorState'
 import { TermHelp } from '@/components/common/TermHelp'
 import { PercentagesExplainer } from './components/PercentagesExplainer'
-import { InlineNote } from './components/InlineNote'
+import { InlineNote } from '@/components/common/InlineNote'
 import { ScoresVsSignalsNotice } from './components/ScoresVsSignalsNotice'
 import { useNow } from '@/hooks/useNow'
 

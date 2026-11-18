@@ -67,7 +67,7 @@ function DialogContent({
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          "fixed top-[50%] start-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] rtl:-translate-x-[-50%] translate-y-[-50%] gap-4 rounded-card-lg bg-card p-7 text-card-foreground shadow-toast outline-none data-[state=open]:animate-[cx-pop-in_var(--dur-overlay)_var(--ease-out)] data-[state=closed]:animate-[cx-pop-out_200ms_var(--ease-in)_forwards] sm:max-w-lg",
+          "fixed top-[50%] start-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] rtl:-translate-x-[-50%] translate-y-[-50%] gap-4 rounded-card-lg bg-card p-7 text-card-foreground shadow-toast outline-hidden data-[state=open]:animate-[cx-pop-in_var(--dur-overlay)_var(--ease-out)] data-[state=closed]:animate-[cx-pop-out_200ms_var(--ease-in)_forwards] sm:max-w-lg",
           className
         )}
         {...props}
@@ -77,7 +77,7 @@ function DialogContent({
         {showCloseButton && (
           <DialogPrimitive.Close
             data-slot="dialog-close"
-            className="material-light absolute top-4 end-4 inline-grid size-[30px] place-items-center rounded-full outline-none transition-opacity hover:opacity-80 disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-3.5"
+            className="material-light absolute top-4 end-4 inline-grid size-[30px] place-items-center rounded-full outline-hidden transition-opacity hover:opacity-80 disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-3.5"
           >
             <XIcon />
             <span className="sr-only">{t("Close", "إغلاق")}</span>

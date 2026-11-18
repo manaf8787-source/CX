@@ -7,6 +7,9 @@ import { cn } from "cn"
  * the row into a soft pill (first and last cell are rounded); a selected row (`data-state="selected"`) is a #f2f2f2 pill. Sorted headers
  * carry `aria-sort` and turn ink. Numeric cells: add `text-end tabular text-foreground font-medium`.
  *
+ * `density`: leave it out and the table follows the page (`data-density` on any ancestor: comfortable rows 60, dense rows 44); a table
+ * outside every density scope is dense (theme.css). Pass it only to override the page.
+ *
  * `containerClassName` styles the scroll container (for example a max height, so a sticky header has something to stick to).
  *
  * The container scrolls sideways on a narrow screen. A scrollable region must be reachable from the keyboard (axe:
@@ -14,7 +17,7 @@ import { cn } from "cn"
  */
 function Table({
   className,
-  density = "dense",
+  density,
   containerClassName,
   ...props
 }: React.ComponentProps<"table"> & { density?: "dense" | "comfortable"; containerClassName?: string }) {
@@ -36,7 +39,7 @@ function Table({
       data-slot="table-container"
       data-density={density}
       tabIndex={scrollable ? 0 : undefined}
-      className={cn("relative w-full overflow-x-auto rounded-lg outline-none", containerClassName)}
+      className={cn("relative w-full overflow-x-auto rounded-lg outline-hidden", containerClassName)}
     >
       <table
         data-slot="table"

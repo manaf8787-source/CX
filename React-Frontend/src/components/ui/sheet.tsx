@@ -67,7 +67,7 @@ function SheetContent({
       <SheetPrimitive.Content
         data-slot="sheet-content"
         className={cn(
-          "fixed z-50 flex flex-col gap-4 rounded-card-lg bg-card text-card-foreground shadow-toast outline-none ease-out data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:animate-in data-[state=open]:duration-[var(--dur-drawer)]",
+          "fixed z-50 flex flex-col gap-4 rounded-card-lg bg-card text-card-foreground shadow-toast outline-hidden ease-out data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:animate-in data-[state=open]:duration-[var(--dur-drawer)]",
           side === "right" &&
             "inset-y-2.5 end-2.5 h-auto w-[calc(100%-1.25rem)] data-[state=closed]:slide-out-to-end data-[state=open]:slide-in-from-end sm:max-w-[26rem]",
           side === "left" &&
@@ -83,7 +83,7 @@ function SheetContent({
       >
         {children}
         {showCloseButton && (
-          <SheetPrimitive.Close className="material-light absolute top-4 end-4 inline-grid size-[30px] place-items-center rounded-full outline-none transition-opacity hover:opacity-80 disabled:pointer-events-none">
+          <SheetPrimitive.Close className="material-light absolute top-4 end-4 inline-grid size-[30px] place-items-center rounded-full outline-hidden transition-opacity hover:opacity-80 disabled:pointer-events-none">
             <XIcon className="size-3.5" />
             <span className="sr-only">{t("Close", "إغلاق")}</span>
           </SheetPrimitive.Close>

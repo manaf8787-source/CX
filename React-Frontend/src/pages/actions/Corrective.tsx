@@ -19,7 +19,7 @@ import { ErrorState } from '@/components/common/ErrorState'
 import { DecisionDialog } from './components/DecisionDialog'
 import { FixCard } from './components/FixCard'
 import { HandoffsBlock } from './components/HandoffsBlock'
-import { InlineNote } from './components/InlineNote'
+import { InlineNote } from '@/components/common/InlineNote'
 
 const STATUS_FILTERS = ['all', 'proposed', 'approved', 'in_progress', 'verification', 'effective', 'partial', 'failed'] as const
 

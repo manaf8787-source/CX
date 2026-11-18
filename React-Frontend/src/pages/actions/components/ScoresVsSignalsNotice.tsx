@@ -1,5 +1,5 @@
 import { useI18n } from '@/i18n'
-import { InlineNote } from './InlineNote'
+import { InlineNote } from '@/components/common/InlineNote'
 
 /** FR-4.13 — a stated anti-confusion requirement, not incidental copy: AI
  * Insights reads scores/ratings; Signals counts complaints/breaches/public

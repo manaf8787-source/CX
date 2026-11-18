@@ -24,7 +24,7 @@ import { TraceCard } from '@/components/trace/TraceCard'
 import { useScrollToTarget } from '@/components/trace/useScrollToTarget'
 import { cn } from '@/lib/utils'
 import type { Bi, CorrectiveAction, Pattern } from '@/types'
-import { InlineNote } from './InlineNote'
+import { InlineNote } from '@/components/common/InlineNote'
 import { LifecycleStepper } from './LifecycleStepper'
 import { HowAiFoundThis } from './HowAiFoundThis'
 import { MatrixLine } from './MatrixLine'
@@ -128,7 +128,7 @@ export function FixCard({ fix: a, pattern, selected, now, onDecide, open, onOpen
       ref={itemRef}
       id={`fix-${caId(a.id)}`}
       data-density="comfortable"
-      className={cn('surface-card flex scroll-mt-24 flex-col gap-5 p-(--card-pad)', selected && 'ring-[1.5px] ring-primary')}
+      className={cn('surface-card flex scroll-mt-24 flex-col gap-5 p-(--card-pad)', selected && 'ring-selected')}
       data-fix={caId(a.id)}
       data-selected={selected ? 'true' : undefined}
     >
@@ -141,7 +141,7 @@ export function FixCard({ fix: a, pattern, selected, now, onDecide, open, onOpen
           <StatusBadge tone={a.status === 'effective' ? 'success' : a.status === 'failed' ? 'danger' : 'neutral'}>{L(CORRECTIVE_STATUS_LABEL[a.status])}</StatusBadge>
           {a.fromInsight && <StatusBadge tone="neutral">{t('From AI Insights', 'من رؤى الذكاء الاصطناعي')}</StatusBadge>}
         </div>
-        <h2 ref={headingRef} tabIndex={-1} className="t-card-title outline-none focus-visible:[--tw-ring-shadow:0_0_#0000]">
+        <h2 ref={headingRef} tabIndex={-1} className="t-card-title outline-hidden focus-visible:[--tw-ring-shadow:0_0_#0000]">
           {L(a.title)}
         </h2>
         {a.fromInsight && <p className="text-sm text-muted-foreground">{L(a.fromInsight.recovery)}</p>}

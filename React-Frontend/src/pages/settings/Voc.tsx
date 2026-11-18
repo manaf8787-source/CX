@@ -9,7 +9,8 @@ import { StatusBadge } from '@/components/common/StatusBadge'
 import { EmptyState } from '@/components/common/EmptyState'
 import { LoadingState } from '@/components/common/LoadingState'
 import { NpsBar, NpsLegend } from './NpsBar'
-import { PressFilter, SubPageHeader } from './SubPageHeader'
+import { Segmented } from '@/components/ui/segmented'
+import { SubPageHeader } from './SubPageHeader'
 
 const VOC_CHANNEL_LABEL: Record<string, { en: string; ar: string }> = {
   digital: { en: 'Digital', ar: 'رقمي' },
@@ -49,7 +50,7 @@ export default function Voc() {
   const visibleComments = (comments ?? []).filter(
     (c) => launched.some((p) => p.id === c.product) && (filterProduct === 'all' || c.product === filterProduct),
   )
-  const filters: { id: ProductId | 'all'; label: string }[] = [{ id: 'all', label: t('All', 'الكل') }, ...launched.map((p) => ({ id: p.id, label: L(p.name) }))]
+  const filters: { value: ProductId | 'all'; label: string }[] = [{ value: 'all', label: t('All', 'الكل') }, ...launched.map((p) => ({ value: p.id, label: L(p.name) }))]
 
   return (
     <section data-density="comfortable" className="flex flex-col gap-8">
@@ -105,7 +106,7 @@ export default function Voc() {
       )}
 
       <SectionCard title={t('Comments and free text', 'التعليقات والنصوص الحرة')} contentClassName="flex flex-col gap-5">
-        <PressFilter label={t('Filter by product', 'تصفية حسب المنتج')} value={filterProduct} onChange={setFilterProduct} options={filters} />
+        <Segmented variant="pressed" label={t('Filter by product', 'تصفية حسب المنتج')} value={filterProduct} onValueChange={setFilterProduct} options={filters} />
         {commentsLoading ? (
           <LoadingState rows={3} />
         ) : visibleComments.length ? (
