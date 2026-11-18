@@ -24,6 +24,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { PageHeader } from '@/components/common/PageHeader'
 import { SectionCard } from '@/components/common/SectionCard'
 import { StatusBadge } from '@/components/common/StatusBadge'
+import { AgentChip } from '@/components/common/AgentChip'
 import { DataTable, SortableHeader } from '@/components/common/DataTable'
 
 const KIND_LABEL: Record<CorrectiveActionKind, { en: string; ar: string }> = {
@@ -91,7 +92,11 @@ export default function IntelligentCxTeam() {
           return agent ? L(agent.name) : e.agentKey
         },
         header: ({ column }) => <SortableHeader column={column}>{t('Agent', 'الوكيل')}</SortableHeader>,
-        cell: ({ getValue }) => <span className="font-medium">{getValue<string>()}</span>,
+        // v40 F33: the agent's chip names it in the active language ("Agent 9 · Reporting" / "الوكيل 9 · التقارير").
+        cell: ({ row, getValue }) => {
+          const agent = AGENT_REGISTRY.find((a) => a.key === row.original.agentKey)
+          return typeof agent?.id === 'number' ? <AgentChip agent={agent.id} /> : <span className="font-medium">{getValue<string>()}</span>
+        },
       },
       {
         id: 'subject',
@@ -480,6 +485,15 @@ function AgentCard({
               <KeyValue label={t('Supervisor checks', 'فحوصات المشرف')} value={L(jd.supervisorChecks)} />
               {jd.approvalPct !== null && (
                 <KeyValue label={t('Approved first time (sample)', 'يُعتمد من أول مرة (عينة)')} value={`${jd.approvalPct}%`} />
+              )}
+              {!!jd.wrongThisWeek && (
+                <KeyValue
+                  label={t('Lowered by the weekly sample', 'خُفّضت بسبب العينة الأسبوعية')}
+                  value={t(
+                    `${jd.wrongThisWeek} wrong this week, each now a supervisor test (${jd.supervisorTests ?? jd.wrongThisWeek}); the rate was ${jd.baseApprovalPct}% before`,
+                    `${jd.wrongThisWeek} خطأ هذا الأسبوع، كل واحد صار اختباراً للسوبرفايزر (${jd.supervisorTests ?? jd.wrongThisWeek})؛ كانت النسبة ${jd.baseApprovalPct}% قبل ذلك`,
+                  )}
+                />
               )}
             </>
           )}

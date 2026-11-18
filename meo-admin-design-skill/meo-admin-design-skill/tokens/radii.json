@@ -1,0 +1,64 @@
+{
+  "$description": "Measured border radii. Nested surfaces are concentric: inner radius = outer radius - padding (26-8=18, 26-10=16).",
+  "xs": {
+    "value": "4px",
+    "use": "Checkbox, thin meters"
+  },
+  "sm": {
+    "value": "5px",
+    "use": "Small cells (battery cell 26px)"
+  },
+  "md": {
+    "value": "8px",
+    "use": "Sidebar nav item, search/input field"
+  },
+  "lg": {
+    "value": "10px",
+    "use": "Menu rows, small inner cards, compare chips, glass inner rows"
+  },
+  "xl": {
+    "value": "12px",
+    "use": "Small glass note, square avatar (40px)"
+  },
+  "2xl": {
+    "value": "14px",
+    "use": "Wells inside cards"
+  },
+  "icon": {
+    "value": "15px",
+    "use": "56px app-icon tile (about 27% of size)"
+  },
+  "3xl": {
+    "value": "16px",
+    "use": "Popover / dropdown, inner app window"
+  },
+  "4xl": {
+    "value": "18px",
+    "use": "Inner card inside a frame, accordion item, large glass panel"
+  },
+  "5xl": {
+    "value": "20px",
+    "use": "Side nav card, toast, chat bubble"
+  },
+  "card": {
+    "value": "22px",
+    "use": "Standard card (bento, pricing, feature)"
+  },
+  "cardLg": {
+    "value": "24px",
+    "use": "Large page cards (document, footer cards)"
+  },
+  "frame": {
+    "value": "26px",
+    "use": "Outer frame card that wraps an inner surface"
+  },
+  "pill": {
+    "value": "999px",
+    "use": "Buttons, pills, tags, segmented controls, dots, round avatars"
+  },
+  "bubble": {
+    "left": "20px 20px 20px 6px",
+    "right": "20px 20px 6px 20px",
+    "use": "Quote bubble with one tight corner pointing at the author"
+  }
+}

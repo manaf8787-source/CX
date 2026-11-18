@@ -1,0 +1,124 @@
+{
+  "$description": "Spacing is optical, not a strict 4/8 grid: small steps move in 2px increments. Values are measured gaps and paddings; use only these.",
+  "scale": {
+    "0.5": "2px",
+    "1": "4px",
+    "1.5": "6px",
+    "2": "8px",
+    "2.5": "10px",
+    "3": "12px",
+    "3.5": "14px",
+    "4": "16px",
+    "4.5": "18px",
+    "5": "20px",
+    "5.5": "22px",
+    "6": "24px",
+    "6.5": "26px",
+    "7": "28px",
+    "8": "32px",
+    "10": "40px",
+    "12": "48px",
+    "14": "56px",
+    "16": "64px",
+    "18": "72px",
+    "24": "96px"
+  },
+  "breakpoints": {
+    "phone": "0-809px",
+    "tablet": "810-1199px",
+    "desktop": ">=1200px",
+    "source": "measured from media queries: (max-width: 809.98px), (min-width: 810px) and (max-width: 1199.98px), (min-width: 1200px)"
+  },
+  "container": {
+    "maxWidth": "1180px",
+    "paddingX": {
+      "desktop": "72px",
+      "tablet": "40px",
+      "phone": "20px"
+    },
+    "contentWidthDesktop": "1036px",
+    "navBarMaxWidth": "1440px",
+    "pageMargin": {
+      "desktop": "22px",
+      "phone": "10px"
+    },
+    "readingWidths": {
+      "heroCopy": "860px",
+      "intro": "540px",
+      "faq": "760px",
+      "document": "796px card / 692px text"
+    }
+  },
+  "section": {
+    "paddingTop": {
+      "desktop": "40px",
+      "phone": "24px"
+    },
+    "paddingBottom": {
+      "desktop": "96px",
+      "phone": "72px"
+    },
+    "firstSectionTop": "72px",
+    "headerToContent": {
+      "desktop": "48px",
+      "phone": "36px"
+    },
+    "eyebrowToTitle": "18px"
+  },
+  "grid": {
+    "cardGap": "16px",
+    "cardGapLarge": "20px",
+    "bento": "6 columns, 16px gap; cards span 4+2 then 2+2+2",
+    "pricing": "4 columns -> 2 (tablet) -> 1 (phone), 16px gap",
+    "useCases": "3 columns -> 1 column max 520px (tablet) -> 1 (phone), 20px gap"
+  },
+  "component": {
+    "buttonPadding": "4px 22px 6px",
+    "buttonGap": "9px",
+    "buttonHeight": {
+      "sm": "36px",
+      "md": "40px",
+      "lg": "46px",
+      "xl": "50px"
+    },
+    "pillPadding": "4px 14px 6px 12px",
+    "pillHeight": "30px",
+    "pillGap": "7px",
+    "tagPadding": "3px 10px 5px",
+    "tagHeight": "24px",
+    "chipPadding": "4px 12px 4px 5px",
+    "chipHeight": "30px",
+    "chipGap": "8px",
+    "segmentedTrackPadding": "3px (app) / 4px (page) / 5px (large tabs)",
+    "segmentPadding": "5px 13px 7px (29px high) / 6px 16px 8px (40px high)",
+    "cardPadding": {
+      "frame": "8px or 10px",
+      "standard": "28px (20px phone)",
+      "pricing": "24px",
+      "text": "30px (24px phone)",
+      "document": "52px",
+      "well": "22px",
+      "popover": "6px",
+      "menuRow": "10px"
+    },
+    "cardInnerGap": "26px",
+    "titleToBody": "8-10px",
+    "tableCellPadding": "11px 10px",
+    "tableRowHeight": "60px (two-line cell)",
+    "tableHeaderHeight": "41px",
+    "sidebar": {
+      "width": "220px",
+      "padding": "14px 10px",
+      "itemHeight": "36px",
+      "itemPadding": "0 10px",
+      "itemGap": "4px",
+      "iconGap": "8px"
+    },
+    "topBarHeight": "60px",
+    "toolbarPadding": "12px 16px",
+    "toolbarGap": "8px",
+    "inputHeight": "36px",
+    "inputPadding": "0 12px",
+    "inputGap": "7px"
+  }
+}

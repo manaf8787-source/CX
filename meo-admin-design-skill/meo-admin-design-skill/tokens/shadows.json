@@ -1,0 +1,143 @@
+{
+  "$description": "Every shadow is a stack. Light surfaces: a 1px white inner top highlight + a 1px 4%-black ring + several 4%-black drops. Dark surfaces: a 28%-white inner top highlight + a 50%-black inner bottom shade + 12%-black drops. There are NO CSS borders anywhere on the reference.",
+  "hairline": {
+    "value": "0 0 0 1px rgba(0,0,0,0.04)",
+    "use": "The only 'border' in the system. Inner app frame, static outlines",
+    "source": "measured"
+  },
+  "raised.light.sm": {
+    "value": "inset 0 1px 1px #FFFFFF, inset 0 -1px 1px rgba(0,0,0,0.04), inset 0 0 1px 1px rgba(0,0,0,0.04), 0 1px 1px rgba(0,0,0,0.04), 0 3px 4px rgba(0,0,0,0.04)",
+    "use": "Tags, checkbox, small pills, toolbar secondary button, sidebar plan card",
+    "source": "measured"
+  },
+  "raised.light.md": {
+    "value": "inset 0 1px 1px #FFFFFF, inset 0 -1px 1px rgba(0,0,0,0.04), inset 0 0 1px 1px rgba(0,0,0,0.04), 0 1px 1px rgba(0,0,0,0.04), 0 3px 4px rgba(0,0,0,0.04), 0 7px 10px rgba(0,0,0,0.04), 0 12px 18px rgba(0,0,0,0.04)",
+    "use": "Eyebrow pill, floating nav link group",
+    "source": "measured"
+  },
+  "button.secondary": {
+    "value": "inset 0 1px 1px #FFFFFF, inset 0 -2px 3px rgba(0,0,0,0.04), 0 0 0 1px rgba(0,0,0,0.04), 0 2px 3px rgba(0,0,0,0.04), 0 6px 10px rgba(0,0,0,0.04), 0 14px 22px rgba(0,0,0,0.04)",
+    "use": "Secondary button",
+    "source": "measured"
+  },
+  "raised.dark.sm": {
+    "value": "inset 0 1px 1px rgba(255,255,255,0.28), inset 0 -2px 3px rgba(0,0,0,0.5), 0 1px 1px rgba(0,0,0,0.12), 0 3px 5px rgba(0,0,0,0.12)",
+    "use": "Active nav item, selected segment, dark tag, check bullet, progress fill, toolbar primary button",
+    "source": "measured"
+  },
+  "raised.dark.md": {
+    "value": "inset 0 1px 1px rgba(255,255,255,0.28), inset 0 -2px 3px rgba(0,0,0,0.5), 0 2px 4px rgba(0,0,0,0.12)",
+    "use": "30px round icon button (accordion toggle)",
+    "source": "measured"
+  },
+  "button.primary": {
+    "value": "inset 0 1px 1px rgba(255,255,255,0.28), inset 0 6px 8px -5px rgba(255,255,255,0.28), inset 0 -2px 3px rgba(0,0,0,0.5), 0 2px 3px rgba(0,0,0,0.12), 0 6px 10px rgba(0,0,0,0.12), 0 14px 22px rgba(0,0,0,0.12)",
+    "use": "Primary button",
+    "source": "measured"
+  },
+  "card": {
+    "value": "inset 0 1px 1px #FFFFFF, 0 0 0 1px rgba(0,0,0,0.04), 0 3px 4px rgba(0,0,0,0.04), 0 7px 9px rgba(0,0,0,0.04), 0 12px 16px rgba(0,0,0,0.04), 0 30px 48px rgba(0,0,0,0.04)",
+    "use": "Standard card: bento, pricing, accordion item, quote bubble, large tab bar",
+    "source": "measured"
+  },
+  "card.frame": {
+    "value": "inset 0 1px 1px #FFFFFF, 0 0 0 1px rgba(0,0,0,0.04), 0 4px 6px rgba(0,0,0,0.04), 0 14px 26px rgba(0,0,0,0.04)",
+    "use": "Outer frame card that contains an inner hairline surface",
+    "source": "measured"
+  },
+  "card.sm": {
+    "value": "inset 0 1px 1px #FFFFFF, 0 0 0 1px rgba(0,0,0,0.04), 0 4px 10px rgba(0,0,0,0.04)",
+    "use": "Page-level segmented control",
+    "source": "measured"
+  },
+  "window": {
+    "value": "inset 0 1px 1px #FFFFFF, 0 0 0 1px rgba(0,0,0,0.04), 0 4px 6px rgba(0,0,0,0.04), 0 14px 24px rgba(0,0,0,0.04), 0 34px 60px rgba(0,0,0,0.04)",
+    "use": "Hero app window frame",
+    "source": "measured"
+  },
+  "popover": {
+    "value": "0 0 0 1px rgba(0,0,0,0.04), 0 3px 4px rgba(0,0,0,0.04), 0 7px 9px rgba(0,0,0,0.04), 0 12px 16px rgba(0,0,0,0.04), 0 18px 24px rgba(0,0,0,0.04), 0 30px 48px rgba(0,0,0,0.04)",
+    "use": "Dropdown menu",
+    "source": "measured"
+  },
+  "floating": {
+    "value": "inset 0 1px 1px #FFFFFF, inset 0 -1px 1px rgba(0,0,0,0.04), 0 0 0 1px rgba(0,0,0,0.04), 0 2px 4px rgba(0,0,0,0.04), 0 8px 16px rgba(0,0,0,0.04), 0 18px 32px rgba(0,0,0,0.12)",
+    "use": "Floating pill pinned to the viewport",
+    "source": "measured"
+  },
+  "toast": {
+    "value": "inset 0 1px 1px #FFFFFF, 0 0 0 1px rgba(0,0,0,0.04), 0 3px 4px rgba(0,0,0,0.04), 0 12px 16px rgba(0,0,0,0.04), 0 30px 48px rgba(0,0,0,0.08)",
+    "use": "Cookie banner / toast card",
+    "source": "measured"
+  },
+  "inset.well": {
+    "value": "inset 0 1px 2px rgba(0,0,0,0.04), inset 0 2px 5px -2px rgba(0,0,0,0.04), 0 1px 0 #FFFFFF",
+    "use": "Search field, segmented track (recessed)",
+    "source": "measured"
+  },
+  "inset.track": {
+    "value": "inset 0 1px 2px rgba(0,0,0,0.12), inset 0 2px 5px -2px rgba(0,0,0,0.04), 0 1px 0 #FFFFFF",
+    "use": "Progress / bar-chart track",
+    "source": "measured"
+  },
+  "dot.off": {
+    "value": "inset 0 1px 1px #FFFFFF, inset 0 -2px 3px rgba(0,0,0,0.04), 0 1px 1px rgba(0,0,0,0.04)",
+    "use": "Unlit dot / cell on a well",
+    "source": "measured"
+  },
+  "glass": {
+    "value": "inset 0 1px 2px #FFFFFF, inset 0 0 2px rgba(255,255,255,0.28), inset 0 4px 8px -4px rgba(255,255,255,0.28), 0 6px 14px rgba(0,0,0,0.04)",
+    "use": "Small glass note over a photo (with backdrop-filter: blur(16px))",
+    "source": "measured"
+  },
+  "glass.lg": {
+    "value": "inset 0 1px 2px #FFFFFF, inset 0 4px 8px -4px rgba(255,255,255,0.28), 0 4px 8px rgba(0,0,0,0.04), 0 18px 36px rgba(0,0,0,0.12)",
+    "use": "Large glass panel over a photo (blur 18px)",
+    "source": "measured"
+  },
+  "surface.dark": {
+    "value": "inset 0 1px 1px rgba(255,255,255,0.28), inset 0 10px 20px -12px rgba(255,255,255,0.28), 0 4px 6px rgba(0,0,0,0.04), 0 14px 24px rgba(0,0,0,0.12), 0 30px 50px rgba(0,0,0,0.12)",
+    "use": "Large dark featured card",
+    "source": "measured"
+  },
+  "appIcon": {
+    "value": "inset 0 1px 1px rgba(255,255,255,0.28), inset 0 6px 8px -4px rgba(255,255,255,0.28), inset 0 -4px 8px -2px rgba(0,0,0,0.12), 0 2px 3px rgba(0,0,0,0.04), 0 6px 10px rgba(0,0,0,0.04), 0 12px 18px rgba(0,0,0,0.04)",
+    "use": "Coloured app-icon tile",
+    "source": "measured"
+  },
+  "badge.light": {
+    "value": "inset 0 1px 1px #FFFFFF, 0 0 0 1px rgba(0,0,0,0.04), 0 2px 4px rgba(0,0,0,0.04)",
+    "use": "Light badge",
+    "source": "measured"
+  },
+  "badge.dark": {
+    "value": "inset 0 1px 1px rgba(255,255,255,0.28), 0 0 0 1px rgba(0,0,0,0.12), 0 2px 4px rgba(0,0,0,0.12)",
+    "use": "Dark badge",
+    "source": "measured"
+  },
+  "chip.onDark": {
+    "value": "inset 0 1px 1px rgba(255,255,255,0.07)",
+    "use": "Tint chip on a dark surface",
+    "source": "measured"
+  },
+  "ring.avatar": {
+    "value": "0 0 0 2px #FFFFFF",
+    "use": "Stacked round avatars",
+    "source": "measured"
+  },
+  "ring.photo": {
+    "value": "0 0 0 3px #FFFFFF, 0 4px 10px rgba(0,0,0,0.04)",
+    "use": "Square author photo",
+    "source": "measured"
+  },
+  "ring.selected": {
+    "value": "0 0 0 1.5px #0A0A0A",
+    "use": "Selected item outline",
+    "source": "measured"
+  },
+  "ring.focus": {
+    "value": "0 0 0 2px #FFFFFF, 0 0 0 4px #0A0A0A",
+    "use": "Keyboard focus",
+    "source": "derived"
+  }
+}

@@ -1,0 +1,252 @@
+{
+  "$description": "Measured from Framer text-style presets (desktop / tablet 810-1199 / phone <=809). Letter-spacing is in em, line-height is unitless.",
+  "fontFamily": {
+    "sans": "\"Plus Jakarta Sans\", ui-sans-serif, system-ui, -apple-system, \"Segoe UI\", sans-serif",
+    "source": "Plus Jakarta Sans via Google Fonts (served by Framer from framerusercontent third-party-assets). Weights loaded: 400, 500, 600. 700 is declared for bold only and is never used in the UI."
+  },
+  "fontWeight": {
+    "regular": 400,
+    "medium": 500,
+    "semibold": 600
+  },
+  "fontFeatureSettings": "\"blwf\" on, \"cv03\" on, \"cv04\" on, \"cv09\" on, \"cv11\" on",
+  "rendering": {
+    "-webkit-font-smoothing": "antialiased",
+    "text-wrap (headings)": "balance"
+  },
+  "styles": {
+    "display": {
+      "fontSize": "72px",
+      "fontWeight": 500,
+      "letterSpacing": "-0.045em",
+      "lineHeight": 1.08,
+      "color": "{ink.primary}",
+      "styleGuideName": "Display",
+      "usedFor": "Marketing H1 only",
+      "source": "measured",
+      "tablet": "56px",
+      "phone": "40px"
+    },
+    "h2": {
+      "fontSize": "52px",
+      "fontWeight": 500,
+      "letterSpacing": "-0.035em",
+      "lineHeight": 1.08,
+      "color": "{ink.primary}",
+      "styleGuideName": "Heading 2",
+      "usedFor": "Marketing section titles",
+      "source": "measured",
+      "tablet": "42px",
+      "phone": "32px"
+    },
+    "stat": {
+      "fontSize": "56px",
+      "fontWeight": 500,
+      "letterSpacing": "-0.05em",
+      "lineHeight": 1.0,
+      "color": "{ink.primary}",
+      "styleGuideName": "(stat number)",
+      "usedFor": "Hero statistic number (11.5, 0.8)",
+      "source": "measured"
+    },
+    "price": {
+      "fontSize": "44px",
+      "fontWeight": 500,
+      "letterSpacing": "-0.05em",
+      "lineHeight": 1.0,
+      "color": "{ink.primary}",
+      "styleGuideName": "Price",
+      "usedFor": "Price / large KPI value",
+      "source": "measured"
+    },
+    "h3": {
+      "fontSize": "24px",
+      "fontWeight": 500,
+      "letterSpacing": "-0.03em",
+      "lineHeight": 1.2,
+      "color": "{ink.primary}",
+      "styleGuideName": "Heading 3",
+      "usedFor": "Card titles, stat unit suffix, document H2",
+      "source": "measured",
+      "tablet": "22px",
+      "phone": "20px"
+    },
+    "cardTitle": {
+      "fontSize": "22px",
+      "fontWeight": 500,
+      "letterSpacing": "-0.035em",
+      "lineHeight": 1.1,
+      "color": "{ink.primary}",
+      "styleGuideName": "Card Title",
+      "usedFor": "Bento card titles",
+      "source": "measured"
+    },
+    "wordmark": {
+      "fontSize": "21px",
+      "fontWeight": 500,
+      "letterSpacing": "-0.04em",
+      "lineHeight": 1.2,
+      "color": "{ink.primary}",
+      "styleGuideName": "(logo text)",
+      "usedFor": "Logo wordmark next to mark",
+      "source": "measured"
+    },
+    "h4": {
+      "fontSize": "17px",
+      "fontWeight": 500,
+      "letterSpacing": "-0.02em",
+      "lineHeight": 1.3,
+      "color": "{ink.primary}",
+      "styleGuideName": "Heading 4",
+      "usedFor": "FAQ question, tier name, sidebar brand, mobile menu item",
+      "source": "measured"
+    },
+    "bodyL": {
+      "fontSize": "18px",
+      "fontWeight": 400,
+      "letterSpacing": "-0.01em",
+      "lineHeight": 1.5,
+      "color": "{ink.secondary}",
+      "styleGuideName": "Body L",
+      "usedFor": "Section intro paragraph",
+      "source": "measured",
+      "tablet": "17px",
+      "phone": "16px"
+    },
+    "bodyLong": {
+      "fontSize": "16px",
+      "fontWeight": 400,
+      "letterSpacing": "-0.01em",
+      "lineHeight": 1.7,
+      "color": "{ink.secondary}",
+      "styleGuideName": "Body Long",
+      "usedFor": "Long-form document text",
+      "source": "measured"
+    },
+    "bodyM": {
+      "fontSize": "15px",
+      "fontWeight": 400,
+      "letterSpacing": "-0.01em",
+      "lineHeight": 1.5,
+      "color": "{ink.secondary}",
+      "styleGuideName": "Body M",
+      "usedFor": "Card descriptions, FAQ answers",
+      "source": "measured"
+    },
+    "button": {
+      "fontSize": "15px",
+      "fontWeight": 500,
+      "letterSpacing": "-0.01em",
+      "lineHeight": 1.2,
+      "color": "inherit",
+      "styleGuideName": "(button label)",
+      "usedFor": "Button labels (18px line box)",
+      "source": "measured"
+    },
+    "bodyStrong": {
+      "fontSize": "14px",
+      "fontWeight": 500,
+      "letterSpacing": "-0.01em",
+      "lineHeight": 1.5,
+      "color": "{ink.primary}",
+      "styleGuideName": "(name)",
+      "usedFor": "Person name, menu item title",
+      "source": "measured"
+    },
+    "ui": {
+      "fontSize": "14px",
+      "fontWeight": 500,
+      "letterSpacing": "-0.01em",
+      "lineHeight": 1.3,
+      "color": "{ink.primary}",
+      "styleGuideName": "(app text strong)",
+      "usedFor": "Table primary cell, workspace name, plan name",
+      "source": "measured"
+    },
+    "body": {
+      "fontSize": "14px",
+      "fontWeight": 400,
+      "letterSpacing": "-0.01em",
+      "lineHeight": 1.5,
+      "color": "{ink.primary}",
+      "styleGuideName": "(quote)",
+      "usedFor": "Quote text",
+      "source": "measured"
+    },
+    "nav": {
+      "fontSize": "14px",
+      "fontWeight": 400,
+      "letterSpacing": "-0.01em",
+      "lineHeight": 1.2,
+      "color": "{ink.secondary}",
+      "styleGuideName": "(nav link)",
+      "usedFor": "Nav links (shown at 60% opacity ink), footer links, price suffix",
+      "source": "measured"
+    },
+    "bodyS": {
+      "fontSize": "13px",
+      "fontWeight": 400,
+      "letterSpacing": "-0.005em",
+      "lineHeight": 1.45,
+      "color": "{ink.secondary}",
+      "styleGuideName": "Body S",
+      "usedFor": "App UI secondary text: table cells, counts, status lines, table header (tertiary)",
+      "source": "measured"
+    },
+    "smallStrong": {
+      "fontSize": "13px",
+      "fontWeight": 500,
+      "letterSpacing": "-0.01em",
+      "lineHeight": 1.3,
+      "color": "{ink.primary}",
+      "styleGuideName": "Small Strong",
+      "usedFor": "Chips, tags, segmented labels, glass note title",
+      "source": "measured"
+    },
+    "label": {
+      "fontSize": "12px",
+      "fontWeight": 500,
+      "letterSpacing": "0.04em",
+      "lineHeight": 1.2,
+      "color": "{ink.charcoal}",
+      "styleGuideName": "Label",
+      "usedFor": "Eyebrow pill, section overline, sidebar group label",
+      "source": "measured",
+      "textTransform": "uppercase"
+    },
+    "meta": {
+      "fontSize": "12px",
+      "fontWeight": 400,
+      "letterSpacing": "0em",
+      "lineHeight": 1.5,
+      "color": "{ink.tertiary}",
+      "styleGuideName": "(meta)",
+      "usedFor": "Job title / meta under a name",
+      "source": "measured"
+    },
+    "badge": {
+      "fontSize": "11px",
+      "fontWeight": 500,
+      "letterSpacing": "0.02em",
+      "lineHeight": 1.2,
+      "color": "{ink.primary}",
+      "styleGuideName": "(badge)",
+      "usedFor": "Badge text",
+      "source": "measured",
+      "tablet": "11px",
+      "phone": "12px"
+    },
+    "caption": {
+      "fontSize": "11px",
+      "fontWeight": 400,
+      "letterSpacing": "0em",
+      "lineHeight": 1.35,
+      "color": "{ink.secondary}",
+      "styleGuideName": "Caption",
+      "usedFor": "Chart footnote, glass note sub-line",
+      "source": "measured",
+      "tablet": "11px",
+      "phone": "12px"
+    }
+  }
+}

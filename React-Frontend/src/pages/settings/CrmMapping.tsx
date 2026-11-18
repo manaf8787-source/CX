@@ -1,3 +1,4 @@
+// FOUNDATION STUB: owner = workstream C (replaced by workstream C; the marker stays only because routes/pages.test.ts counts it).
 import { ArrowRight, EyeOff } from 'lucide-react'
 import { toast } from 'sonner'
 import { useI18n } from '@/i18n'

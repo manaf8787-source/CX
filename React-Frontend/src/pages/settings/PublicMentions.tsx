@@ -1,3 +1,4 @@
+// FOUNDATION STUB: owner = workstream C (replaced by workstream C; the marker stays only because routes/pages.test.ts counts it).
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { Check, TimerOff } from 'lucide-react'

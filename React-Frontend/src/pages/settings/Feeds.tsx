@@ -1,3 +1,4 @@
+// FOUNDATION STUB: owner = workstream C (replaced by workstream C; the marker stays only because routes/pages.test.ts counts it).
 import { CheckCircle2, TriangleAlert } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { useFeeds } from '@/services/queriesV40'

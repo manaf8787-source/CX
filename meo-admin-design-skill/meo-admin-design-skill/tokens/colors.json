@@ -1,0 +1,334 @@
+{
+  "$description": "Meo colour tokens. 'measured' = read from the live site's CSS variables / style guide. 'derived' = added for the admin adaptation and NOT present on the reference site.",
+  "surface": {
+    "background": {
+      "value": "#FFFFFF",
+      "rgb": "rgb(255, 255, 255)",
+      "hsl": "hsl(0, 0%, 100%)",
+      "styleGuideName": "Surface / Background",
+      "purpose": "Page background, card fill",
+      "appearsIn": "body, cards, nav, footer",
+      "contrastOnWhite": 1.0,
+      "contrastOnInk": 19.8,
+      "source": "measured"
+    },
+    "soft": {
+      "value": "#F6F6F6",
+      "rgb": "rgb(246, 246, 246)",
+      "hsl": "hsl(0, 0%, 96%)",
+      "styleGuideName": "Surface / Soft",
+      "purpose": "Bottom stop of light gradient, sidebar fill",
+      "appearsIn": "app sidebar, light pill gradient",
+      "contrastOnWhite": 1.08,
+      "contrastOnInk": 18.32,
+      "source": "measured"
+    },
+    "well": {
+      "value": "#F2F2F2",
+      "rgb": "rgb(242, 242, 242)",
+      "hsl": "hsl(0, 0%, 95%)",
+      "styleGuideName": "Surface / Well",
+      "purpose": "Recessed areas inside cards",
+      "appearsIn": "wells, search field, segmented track, feature chips, number chips",
+      "contrastOnWhite": 1.12,
+      "contrastOnInk": 17.68,
+      "source": "measured"
+    }
+  },
+  "ink": {
+    "primary": {
+      "value": "#0A0A0A",
+      "rgb": "rgb(10, 10, 10)",
+      "hsl": "hsl(0, 0%, 4%)",
+      "styleGuideName": "Ink / Primary",
+      "purpose": "Headings, primary text, dark gradient bottom stop",
+      "appearsIn": "all headings, labels, dark fills",
+      "contrastOnWhite": 19.8,
+      "contrastOnInk": 1.0,
+      "source": "measured"
+    },
+    "graphite": {
+      "value": "#161616",
+      "rgb": "rgb(22, 22, 22)",
+      "hsl": "hsl(0, 0%, 9%)",
+      "styleGuideName": "Ink / Graphite",
+      "purpose": "Mid stop of dark gradients, meter fill",
+      "appearsIn": "primary button, featured card, plan meter",
+      "contrastOnWhite": 18.1,
+      "contrastOnInk": 1.09,
+      "source": "measured"
+    },
+    "charcoal": {
+      "value": "#3A3A3A",
+      "rgb": "rgb(58, 58, 58)",
+      "hsl": "hsl(0, 0%, 23%)",
+      "styleGuideName": "Ink / Charcoal",
+      "purpose": "Top stop of dark gradients, eyebrow label text, long-form lead text",
+      "appearsIn": "dark pills, eyebrow pills, tag text",
+      "contrastOnWhite": 11.37,
+      "contrastOnInk": 1.74,
+      "source": "measured"
+    },
+    "secondary": {
+      "value": "#6E6E6E",
+      "rgb": "rgb(110, 110, 110)",
+      "hsl": "hsl(0, 0%, 43%)",
+      "styleGuideName": "Ink / Secondary",
+      "purpose": "Body copy, descriptions, default icon stroke",
+      "appearsIn": "paragraphs, card descriptions, captions",
+      "contrastOnWhite": 5.1,
+      "contrastOnInk": 3.88,
+      "source": "measured"
+    },
+    "tertiary": {
+      "value": "#767676",
+      "rgb": "rgb(118, 118, 118)",
+      "hsl": "hsl(0, 0%, 46%)",
+      "styleGuideName": "Ink / Tertiary",
+      "purpose": "Meta text, table header, counts, idle status dot",
+      "appearsIn": "table header, sidebar counts, price suffix, job titles",
+      "contrastOnWhite": 4.54,
+      "contrastOnInk": 4.36,
+      "source": "measured"
+    }
+  },
+  "line": {
+    "default": {
+      "value": "#ECECEC",
+      "rgb": "rgb(236, 236, 236)",
+      "hsl": "hsl(0, 0%, 93%)",
+      "styleGuideName": "Line / Default",
+      "purpose": "Hairline dividers, empty tracks, off dots",
+      "appearsIn": "table row divider (::after 1px), meter track, battery cell off",
+      "contrastOnWhite": 1.18,
+      "contrastOnInk": 16.76,
+      "source": "measured"
+    }
+  },
+  "brand": {
+    "green": {
+      "value": "#1F9D55",
+      "rgb": "rgb(31, 157, 85)",
+      "hsl": "hsl(146, 67%, 37%)",
+      "styleGuideName": "Brand / App Green",
+      "purpose": "Categorical accent for app-icon tiles",
+      "appearsIn": "app icon tile only",
+      "contrastOnWhite": 3.49,
+      "contrastOnInk": 5.67,
+      "source": "measured"
+    },
+    "blue": {
+      "value": "#1F6FE0",
+      "rgb": "rgb(31, 111, 224)",
+      "hsl": "hsl(215, 76%, 50%)",
+      "styleGuideName": "Brand / App Blue",
+      "purpose": "Categorical accent for app-icon tiles",
+      "appearsIn": "use-case card icon",
+      "contrastOnWhite": 4.76,
+      "contrastOnInk": 4.16,
+      "source": "measured"
+    },
+    "violet": {
+      "value": "#7C3AED",
+      "rgb": "rgb(124, 58, 237)",
+      "hsl": "hsl(262, 83%, 58%)",
+      "styleGuideName": "Brand / App Violet",
+      "purpose": "Categorical accent for app-icon tiles",
+      "appearsIn": "use-case card icon",
+      "contrastOnWhite": 5.7,
+      "contrastOnInk": 3.47,
+      "source": "measured"
+    },
+    "amber": {
+      "value": "#F08A1C",
+      "rgb": "rgb(240, 138, 28)",
+      "hsl": "hsl(31, 88%, 53%)",
+      "styleGuideName": "Brand / App Amber",
+      "purpose": "Categorical accent for app-icon tiles",
+      "appearsIn": "use-case card icon, feature text card icon",
+      "contrastOnWhite": 2.51,
+      "contrastOnInk": 7.88,
+      "source": "measured"
+    }
+  },
+  "effect": {
+    "highlight": {
+      "value": "rgba(255, 255, 255, 0.28)",
+      "styleGuideName": "Effects / Highlight (White 28%)",
+      "purpose": "Top inner highlight on dark surfaces; shine overlay on app icons",
+      "source": "measured"
+    },
+    "glass": {
+      "value": "rgba(255, 255, 255, 0.62)",
+      "styleGuideName": "Effects / Glass (White 62%)",
+      "purpose": "Glass note fill over photos, paired with backdrop blur 16-18px",
+      "source": "measured"
+    },
+    "tint": {
+      "value": "rgba(255, 255, 255, 0.07)",
+      "styleGuideName": "Effects / Tint (White 7%)",
+      "purpose": "Chip fill on dark featured surfaces",
+      "source": "measured"
+    },
+    "innerShade": {
+      "value": "rgba(0, 0, 0, 0.5)",
+      "styleGuideName": "Effects / Inner Shade (Black 50%)",
+      "purpose": "Bottom inner shade on dark raised surfaces",
+      "source": "measured"
+    },
+    "shadowDark": {
+      "value": "rgba(0, 0, 0, 0.12)",
+      "styleGuideName": "Effects / Shadow Dark (Black 12%)",
+      "purpose": "Drop shadow layers under dark surfaces",
+      "source": "measured"
+    },
+    "softShade": {
+      "value": "rgba(0, 0, 0, 0.04)",
+      "styleGuideName": "Effects / Soft Shade (Black 4%)",
+      "purpose": "Every light-surface shadow layer and the 1px hairline ring",
+      "source": "measured"
+    },
+    "overlay": {
+      "value": "rgba(0, 0, 0, 0.5)",
+      "purpose": "Present as an unnamed CSS variable (#00000080); usage as a modal scrim was not observed on the site. Recommended scrim for admin dialogs at 0.32-0.5.",
+      "source": "measured value, inferred usage"
+    }
+  },
+  "unnamedStylesheetValues": {
+    "$description": "Colour variables present in the stylesheet but not shown in the style guide and not observed in rendered UI. Do not rely on them.",
+    "values": [
+      "#474747",
+      "#1F1F1F",
+      "#0F0F0F",
+      "#2E2E2E",
+      "#121212",
+      "#080808",
+      "#EFEFEF",
+      "#F7F7F7",
+      "rgba(255,255,255,0.18)",
+      "rgba(255,255,255,0.62)",
+      "rgba(0,0,0,0.05)",
+      "rgba(0,0,0,0.06)"
+    ]
+  },
+  "gradient": {
+    "light": {
+      "value": "linear-gradient(180deg, #FFFFFF 0%, #F6F6F6 100%)",
+      "purpose": "Every raised light control: pills, tags, secondary buttons, checkbox, chips",
+      "source": "measured"
+    },
+    "dark": {
+      "value": "linear-gradient(180deg, #3A3A3A 0%, #0A0A0A 100%)",
+      "purpose": "Every raised dark control: active nav item, selected segment, dark tag, check bullets, progress fill",
+      "source": "measured"
+    },
+    "darkButton": {
+      "value": "linear-gradient(180deg, #3A3A3A 0%, #161616 55%, #0A0A0A 100%)",
+      "purpose": "Primary button",
+      "source": "measured"
+    },
+    "darkSurface": {
+      "value": "radial-gradient(120% 80% at 50% 0%, #3A3A3A 0%, #161616 55%, #0A0A0A 100%)",
+      "purpose": "Large dark featured surface (featured pricing card; footer brand card uses 120% 90% at 30% 0% with a 60% mid stop)",
+      "source": "measured"
+    },
+    "badgeLight": {
+      "value": "linear-gradient(180deg, #FFFFFF 0%, #ECECEC 100%)",
+      "purpose": "Light badge sitting on a dark surface",
+      "source": "measured"
+    },
+    "mutedFill": {
+      "value": "linear-gradient(180deg, #ECECEC 0%, #767676 100%)",
+      "purpose": "Comparison (non-hero) bar fill at 0.62 opacity",
+      "source": "measured"
+    },
+    "photoFade": {
+      "value": "linear-gradient(180deg, rgba(255,255,255,0) 45%, #FFFFFF 100%)",
+      "purpose": "Fades the bottom of a card photo into the card body",
+      "source": "measured"
+    },
+    "shine": {
+      "value": "linear-gradient(180deg, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0) 100%)",
+      "purpose": "Gloss overlay on the top half of app-icon tiles",
+      "source": "measured"
+    }
+  },
+  "semantic": {
+    "$description": "Semantic aliases for product UI. The reference site is monochrome and has NO success/warning/error colours: live state is an ink dot that pulses, idle state is a tertiary-grey dot. The status hues below are derived for admin use.",
+    "bg.page": "{surface.background}",
+    "bg.sidebar": "{surface.soft}",
+    "bg.well": "{surface.well}",
+    "bg.card": "{surface.background}",
+    "text.primary": "{ink.primary}",
+    "text.strong-muted": "{ink.charcoal}",
+    "text.secondary": "{ink.secondary}",
+    "text.muted": "{ink.tertiary}",
+    "text.on-dark": "#FFFFFF",
+    "text.on-dark-muted": "rgba(255,255,255,0.62)",
+    "border.hairline": "{effect.softShade}",
+    "border.divider": "{line.default}",
+    "border.selected": "{ink.primary}",
+    "interactive.primary": "{gradient.darkButton}",
+    "interactive.secondary": "{gradient.light}",
+    "interactive.selected": "{gradient.dark}",
+    "focus.ring": {
+      "value": "0 0 0 2px #FFFFFF, 0 0 0 4px #0A0A0A",
+      "source": "derived (no focus style is defined on the reference; this follows its 1.5px ink selection ring)"
+    },
+    "status": {
+      "neutral.live": {
+        "dot": "#0A0A0A",
+        "note": "measured: pulsing ink dot = live/running"
+      },
+      "neutral.idle": {
+        "dot": "#767676",
+        "note": "measured: static grey dot = idle/paused"
+      },
+      "success": {
+        "solid": "#1F9D55",
+        "text": "#157A40",
+        "bg": "#EAF6EF",
+        "source": "solid measured (Brand/App Green); text and bg derived",
+        "contrastTextOnWhite": 5.4,
+        "contrastTextOnBg": 4.87,
+        "contrastSolidOnWhite": 3.49
+      },
+      "info": {
+        "solid": "#1F6FE0",
+        "text": "#1A5FC2",
+        "bg": "#EAF1FC",
+        "source": "solid measured (Brand/App Blue); text and bg derived",
+        "contrastTextOnWhite": 6.07,
+        "contrastTextOnBg": 5.34,
+        "contrastSolidOnWhite": 4.76
+      },
+      "warning": {
+        "solid": "#F08A1C",
+        "text": "#A85A06",
+        "bg": "#FDF1E3",
+        "source": "solid measured (Brand/App Amber); text and bg derived",
+        "contrastTextOnWhite": 5.08,
+        "contrastTextOnBg": 4.57,
+        "contrastSolidOnWhite": 2.51
+      },
+      "error": {
+        "solid": "#D93A32",
+        "text": "#B42A23",
+        "bg": "#FCEDEC",
+        "source": "derived - no red exists on the reference",
+        "contrastTextOnWhite": 6.37,
+        "contrastTextOnBg": 5.6,
+        "contrastSolidOnWhite": 4.56
+      },
+      "accent": {
+        "solid": "#7C3AED",
+        "text": "#6A2FD0",
+        "bg": "#F1EBFD",
+        "source": "solid measured (Brand/App Violet); text and bg derived",
+        "contrastTextOnWhite": 7.17,
+        "contrastTextOnBg": 6.16,
+        "contrastSolidOnWhite": 5.7
+      }
+    }
+  }
+}

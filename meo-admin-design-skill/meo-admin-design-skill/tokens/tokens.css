@@ -1,0 +1,102 @@
+/* Generated from the JSON token files in this folder. Measured from https://meo.framer.ai/ unless marked derived. */
+:root {
+  /* surfaces and ink */
+  --surface: #FFFFFF;
+  --surface-soft: #F6F6F6;
+  --surface-well: #F2F2F2;
+  --ink: #0A0A0A;
+  --ink-graphite: #161616;
+  --ink-charcoal: #3A3A3A;
+  --ink-secondary: #6E6E6E;
+  --ink-tertiary: #767676;
+  --line: #ECECEC;
+  --brand-green: #1F9D55;
+  --brand-blue: #1F6FE0;
+  --brand-violet: #7C3AED;
+  --brand-amber: #F08A1C;
+  /* effects */
+  --fx-highlight: rgba(255, 255, 255, 0.28);
+  --fx-glass: rgba(255, 255, 255, 0.62);
+  --fx-tint: rgba(255, 255, 255, 0.07);
+  --fx-inner-shade: rgba(0, 0, 0, 0.5);
+  --fx-shadow-dark: rgba(0, 0, 0, 0.12);
+  --fx-soft-shade: rgba(0, 0, 0, 0.04);
+  /* gradients */
+  --grad-light: linear-gradient(180deg, #FFFFFF 0%, #F6F6F6 100%);
+  --grad-dark: linear-gradient(180deg, #3A3A3A 0%, #0A0A0A 100%);
+  --grad-dark-button: linear-gradient(180deg, #3A3A3A 0%, #161616 55%, #0A0A0A 100%);
+  --grad-dark-surface: radial-gradient(120% 80% at 50% 0%, #3A3A3A 0%, #161616 55%, #0A0A0A 100%);
+  /* status - derived text and background shades */
+  --status-success-solid: #1F9D55;
+  --status-success-text: #157A40;
+  --status-success-bg: #EAF6EF;
+  --status-info-solid: #1F6FE0;
+  --status-info-text: #1A5FC2;
+  --status-info-bg: #EAF1FC;
+  --status-warning-solid: #F08A1C;
+  --status-warning-text: #A85A06;
+  --status-warning-bg: #FDF1E3;
+  --status-error-solid: #D93A32;
+  --status-error-text: #B42A23;
+  --status-error-bg: #FCEDEC;
+  --status-accent-solid: #7C3AED;
+  --status-accent-text: #6A2FD0;
+  --status-accent-bg: #F1EBFD;
+  /* type */
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* radius */
+  --r-xs: 4px;
+  --r-sm: 5px;
+  --r-md: 8px;
+  --r-lg: 10px;
+  --r-xl: 12px;
+  --r-well: 14px;
+  --r-icon: 15px;
+  --r-pop: 16px;
+  --r-inner: 18px;
+  --r-panel: 20px;
+  --r-card: 22px;
+  --r-card-lg: 24px;
+  --r-frame: 26px;
+  --r-pill: 999px;
+  /* shadows */
+  --shadow-hairline: 0 0 0 1px rgba(0,0,0,0.04);
+  --shadow-raised-light: inset 0 1px 1px #FFFFFF, inset 0 -1px 1px rgba(0,0,0,0.04), inset 0 0 1px 1px rgba(0,0,0,0.04), 0 1px 1px rgba(0,0,0,0.04), 0 3px 4px rgba(0,0,0,0.04);
+  --shadow-raised-light-md: inset 0 1px 1px #FFFFFF, inset 0 -1px 1px rgba(0,0,0,0.04), inset 0 0 1px 1px rgba(0,0,0,0.04), 0 1px 1px rgba(0,0,0,0.04), 0 3px 4px rgba(0,0,0,0.04), 0 7px 10px rgba(0,0,0,0.04), 0 12px 18px rgba(0,0,0,0.04);
+  --shadow-raised-dark: inset 0 1px 1px rgba(255,255,255,0.28), inset 0 -2px 3px rgba(0,0,0,0.5), 0 1px 1px rgba(0,0,0,0.12), 0 3px 5px rgba(0,0,0,0.12);
+  --shadow-raised-dark-md: inset 0 1px 1px rgba(255,255,255,0.28), inset 0 -2px 3px rgba(0,0,0,0.5), 0 2px 4px rgba(0,0,0,0.12);
+  --shadow-button-primary: inset 0 1px 1px rgba(255,255,255,0.28), inset 0 6px 8px -5px rgba(255,255,255,0.28), inset 0 -2px 3px rgba(0,0,0,0.5), 0 2px 3px rgba(0,0,0,0.12), 0 6px 10px rgba(0,0,0,0.12), 0 14px 22px rgba(0,0,0,0.12);
+  --shadow-button-secondary: inset 0 1px 1px #FFFFFF, inset 0 -2px 3px rgba(0,0,0,0.04), 0 0 0 1px rgba(0,0,0,0.04), 0 2px 3px rgba(0,0,0,0.04), 0 6px 10px rgba(0,0,0,0.04), 0 14px 22px rgba(0,0,0,0.04);
+  --shadow-card: inset 0 1px 1px #FFFFFF, 0 0 0 1px rgba(0,0,0,0.04), 0 3px 4px rgba(0,0,0,0.04), 0 7px 9px rgba(0,0,0,0.04), 0 12px 16px rgba(0,0,0,0.04), 0 30px 48px rgba(0,0,0,0.04);
+  --shadow-card-frame: inset 0 1px 1px #FFFFFF, 0 0 0 1px rgba(0,0,0,0.04), 0 4px 6px rgba(0,0,0,0.04), 0 14px 26px rgba(0,0,0,0.04);
+  --shadow-card-sm: inset 0 1px 1px #FFFFFF, 0 0 0 1px rgba(0,0,0,0.04), 0 4px 10px rgba(0,0,0,0.04);
+  --shadow-window: inset 0 1px 1px #FFFFFF, 0 0 0 1px rgba(0,0,0,0.04), 0 4px 6px rgba(0,0,0,0.04), 0 14px 24px rgba(0,0,0,0.04), 0 34px 60px rgba(0,0,0,0.04);
+  --shadow-popover: 0 0 0 1px rgba(0,0,0,0.04), 0 3px 4px rgba(0,0,0,0.04), 0 7px 9px rgba(0,0,0,0.04), 0 12px 16px rgba(0,0,0,0.04), 0 18px 24px rgba(0,0,0,0.04), 0 30px 48px rgba(0,0,0,0.04);
+  --shadow-floating: inset 0 1px 1px #FFFFFF, inset 0 -1px 1px rgba(0,0,0,0.04), 0 0 0 1px rgba(0,0,0,0.04), 0 2px 4px rgba(0,0,0,0.04), 0 8px 16px rgba(0,0,0,0.04), 0 18px 32px rgba(0,0,0,0.12);
+  --shadow-toast: inset 0 1px 1px #FFFFFF, 0 0 0 1px rgba(0,0,0,0.04), 0 3px 4px rgba(0,0,0,0.04), 0 12px 16px rgba(0,0,0,0.04), 0 30px 48px rgba(0,0,0,0.08);
+  --shadow-inset-well: inset 0 1px 2px rgba(0,0,0,0.04), inset 0 2px 5px -2px rgba(0,0,0,0.04), 0 1px 0 #FFFFFF;
+  --shadow-inset-track: inset 0 1px 2px rgba(0,0,0,0.12), inset 0 2px 5px -2px rgba(0,0,0,0.04), 0 1px 0 #FFFFFF;
+  --shadow-dot-off: inset 0 1px 1px #FFFFFF, inset 0 -2px 3px rgba(0,0,0,0.04), 0 1px 1px rgba(0,0,0,0.04);
+  --shadow-glass: inset 0 1px 2px #FFFFFF, inset 0 0 2px rgba(255,255,255,0.28), inset 0 4px 8px -4px rgba(255,255,255,0.28), 0 6px 14px rgba(0,0,0,0.04);
+  --shadow-glass-lg: inset 0 1px 2px #FFFFFF, inset 0 4px 8px -4px rgba(255,255,255,0.28), 0 4px 8px rgba(0,0,0,0.04), 0 18px 36px rgba(0,0,0,0.12);
+  --shadow-surface-dark: inset 0 1px 1px rgba(255,255,255,0.28), inset 0 10px 20px -12px rgba(255,255,255,0.28), 0 4px 6px rgba(0,0,0,0.04), 0 14px 24px rgba(0,0,0,0.12), 0 30px 50px rgba(0,0,0,0.12);
+  --shadow-app-icon: inset 0 1px 1px rgba(255,255,255,0.28), inset 0 6px 8px -4px rgba(255,255,255,0.28), inset 0 -4px 8px -2px rgba(0,0,0,0.12), 0 2px 3px rgba(0,0,0,0.04), 0 6px 10px rgba(0,0,0,0.04), 0 12px 18px rgba(0,0,0,0.04);
+  --shadow-badge-light: inset 0 1px 1px #FFFFFF, 0 0 0 1px rgba(0,0,0,0.04), 0 2px 4px rgba(0,0,0,0.04);
+  --shadow-badge-dark: inset 0 1px 1px rgba(255,255,255,0.28), 0 0 0 1px rgba(0,0,0,0.12), 0 2px 4px rgba(0,0,0,0.12);
+  --ring-avatar: 0 0 0 2px #FFFFFF;
+  --ring-photo: 0 0 0 3px #FFFFFF, 0 4px 10px rgba(0,0,0,0.04);
+  --ring-selected: 0 0 0 1.5px #0A0A0A;
+  --ring-focus: 0 0 0 2px #FFFFFF, 0 0 0 4px #0A0A0A;  /* derived */
+  /* motion */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.45, 0, 0.55, 1);
+  --spring-css: 400ms cubic-bezier(0.34, 1.3, 0.64, 1);  /* CSS stand-in for spring(duration .4, bounce .2); estimated */
+  /* layout */
+  --sidebar-w: 220px;
+  --topbar-h: 60px;
+  --control-h: 36px;
+  --row-h: 60px;
+  --page-x: 72px;
+}
+@media (max-width: 1199.98px) { :root { --page-x: 40px; } }
+@media (max-width: 809.98px) { :root { --page-x: 20px; } }

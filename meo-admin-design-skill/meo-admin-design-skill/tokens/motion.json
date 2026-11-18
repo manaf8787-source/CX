@@ -1,0 +1,217 @@
+{
+  "$description": "Read from the site's compiled Framer Motion configuration unless marked estimated.",
+  "easing": {
+    "out": {
+      "value": "cubic-bezier(0.22, 1, 0.36, 1)",
+      "array": [
+        0.22,
+        1,
+        0.36,
+        1
+      ],
+      "use": "Signature easing. Entrances, reveals, staggered loops",
+      "source": "measured"
+    },
+    "inOut": {
+      "value": "cubic-bezier(0.45, 0, 0.55, 1)",
+      "array": [
+        0.45,
+        0,
+        0.55,
+        1
+      ],
+      "use": "Ambient loops: pulses, floats, slow image zoom",
+      "source": "measured"
+    },
+    "linear": {
+      "value": "linear",
+      "use": "Continuous spinner rotation only",
+      "source": "measured"
+    }
+  },
+  "spring": {
+    "ui": {
+      "type": "spring",
+      "duration": 0.4,
+      "bounce": 0.2,
+      "use": "Every state change between component variants: button label roll, tab indicator slide, accordion open, segmented toggle, hover nudges",
+      "cssApprox": "400ms cubic-bezier(0.34, 1.3, 0.64, 1)",
+      "source": "measured (cssApprox estimated)"
+    }
+  },
+  "duration": {
+    "micro": "400ms (spring.ui)",
+    "fast": "500ms",
+    "base": "600ms",
+    "reveal": "1000ms",
+    "revealSlow": "1100-1500ms",
+    "pulse": "900-1000ms",
+    "float": "3500-4250ms",
+    "ambientZoom": "8000ms",
+    "spin": "4000ms"
+  },
+  "reveal": {
+    "initial": {
+      "opacity": 0,
+      "y": 24
+    },
+    "animate": {
+      "opacity": 1,
+      "y": 0
+    },
+    "duration": 1.0,
+    "ease": "out",
+    "trigger": "in view, threshold 0.5, once",
+    "stagger": "delays observed: 0, 0.09, 0.15, 0.18, 0.3, 0.35, 0.5, 0.6 s (roughly 0.09-0.15s per sibling)",
+    "source": "measured"
+  },
+  "textReveal": {
+    "per": "word",
+    "initial": {
+      "opacity": 0.001,
+      "y": 40,
+      "rotate": 4,
+      "filter": "blur(4px)"
+    },
+    "use": "Display heading only",
+    "source": "measured (per-word stagger interval not captured)"
+  },
+  "hover": {
+    "buttonLabelRoll": {
+      "mechanism": "Label sits in an 18px-high clipped mask containing two stacked copies; hover switches justify-content flex-start -> flex-end so copy A slides up and copy B slides in from below",
+      "transition": "spring.ui",
+      "source": "measured"
+    },
+    "navLink": {
+      "from": {
+        "opacity": 0.6
+      },
+      "to": {
+        "opacity": 1
+      },
+      "transition": "spring.ui",
+      "source": "measured"
+    },
+    "menuRow": {
+      "to": "fill becomes a soft grey (about #F2F2F2), radius 10px",
+      "source": "observed, fill estimated"
+    },
+    "linkNudge": {
+      "to": {
+        "paddingLeft": "3px"
+      },
+      "use": "Footer links, accordion question text",
+      "transition": "spring.ui",
+      "source": "measured"
+    },
+    "cardGlassShift": {
+      "to": "glass note moves to top: 22px",
+      "source": "measured"
+    },
+    "scale": {
+      "to": {
+        "scale": 1.06
+      },
+      "use": "A small element scale on hover (exact element not isolated)",
+      "source": "measured value"
+    }
+  },
+  "loops": {
+    "livePulse": {
+      "animate": {
+        "opacity": 0.3
+      },
+      "duration": 0.9,
+      "ease": "inOut",
+      "repeatType": "mirror",
+      "use": "6px live status dot"
+    },
+    "float": {
+      "animate": {
+        "y": -8
+      },
+      "duration": "3.5 or 4.25",
+      "ease": "inOut",
+      "repeatType": "mirror",
+      "use": "Floating quote bubbles; alternate durations so neighbours drift out of phase"
+    },
+    "imageZoom": {
+      "animate": {
+        "scale": 1.08
+      },
+      "duration": 8,
+      "ease": "inOut",
+      "repeatType": "mirror",
+      "use": "Photos inside cards"
+    },
+    "spin": {
+      "animate": {
+        "rotate": 360
+      },
+      "duration": 4,
+      "ease": "linear",
+      "repeatType": "loop",
+      "use": "Sync icon"
+    },
+    "staggeredNudge": {
+      "animate": {
+        "x": "6 / 12 / 18"
+      },
+      "duration": 1,
+      "delay": "0 / 0.15 / 0.3",
+      "repeatDelay": 1,
+      "ease": "out",
+      "repeatType": "mirror",
+      "use": "Stacked check pills"
+    },
+    "cellWave": {
+      "animate": {
+        "opacity": 0.55
+      },
+      "duration": 1.5,
+      "delayStep": 0.15,
+      "ease": "out",
+      "repeatType": "mirror",
+      "use": "Battery cells"
+    },
+    "dotTwinkle": {
+      "animate": {
+        "opacity": "0 or 1"
+      },
+      "duration": "0.9 / 1.25 / 1.6 / 1.95",
+      "delayStep": 0.17,
+      "repeatDelay": "0.4-2.4",
+      "ease": "out",
+      "repeatType": "mirror",
+      "use": "Fingerprint dot grid"
+    },
+    "barBreath": {
+      "animate": {
+        "x": -10
+      },
+      "duration": 3,
+      "ease": "inOut",
+      "repeatType": "mirror",
+      "use": "Hero bar fill"
+    },
+    "selectedPulse": {
+      "animate": {
+        "scale": 1.05
+      },
+      "duration": 0.6,
+      "repeatDelay": 1.4,
+      "ease": "out",
+      "repeatType": "mirror",
+      "use": "Highlighted compare chip"
+    },
+    "policy": "All loops pause when off-screen. Source: measured."
+  },
+  "autoAdvance": {
+    "featureTabs": "about 6s per tab",
+    "source": "estimated from one observed interval"
+  },
+  "reducedMotion": {
+    "rule": "No reduced-motion handling was found on the reference. In implementations: disable all loops, replace reveals with opacity-only 150ms fades, and make state changes instant.",
+    "source": "derived"
+  }
+}

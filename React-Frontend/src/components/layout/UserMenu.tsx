@@ -4,6 +4,7 @@ import { LogOut } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { useAuth } from '@/auth/session'
 import { useRole } from '@/auth/RoleContext'
+import { envName } from '@/data/environments'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import {
@@ -44,6 +45,12 @@ export function UserMenu() {
           <span className="truncate text-xs text-muted-foreground">
             {t('Signed in as', 'مسجّل بصفة')} {L(role.name)}
           </span>
+          {/* A role fixed to one environment (environment management) works inside it: say which (the bar shows the same chip). */}
+          {role.envId && (
+            <span className="truncate text-xs text-muted-foreground">
+              {t('Environment', 'البيئة')}: {L(envName(role.envId))}
+            </span>
+          )}
           <span className="text-xs text-muted-foreground">{t('Sample sign-in — no real authentication', 'تسجيل دخول نموذجي — بلا مصادقة حقيقية')}</span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
