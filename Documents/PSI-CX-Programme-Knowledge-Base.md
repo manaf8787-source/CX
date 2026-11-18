@@ -2,7 +2,7 @@
 
 Owner: Manaf Obeidat, Delivery and CX Manager, PSI Real Estate (Amman)
 Audience: the chairman's review, the CX team, and the developers who will build the real platform
-Status: prototype v38 with sample data, last updated 17 November 2026 (sections 28 to 43: the omnichannel rebuild, the rules layer and the intelligent CX team; section 44: the React build; the module-by-module Knowledge Base with screenshots is `PSI-CX-Portal-Knowledge-Base-Modules.md` and the illustrated Word and PDF document)
+Status: prototype v40 with sample data, last updated 18 November 2026 (sections 28 to 44: the omnichannel rebuild, the rules layer and the intelligent CX team; the module-by-module Knowledge Base with screenshots is `PSI-CX-Portal-Knowledge-Base-Modules.md` and the illustrated Word and PDF document)
 
 Everything in this document is either something Manaf decided or said, or something Claude proposed and built into the prototype. Anything proposed but not yet confirmed is marked **[Proposed]** or listed in the open questions at the end.
 
@@ -513,6 +513,20 @@ Written up for developers in "CX Portal AI Agents: Specification" and for the AI
 
 Source badges on every event (PSI Website, PSI Real Estate app, WhatsApp, Facebook, Instagram, LinkedIn, Google, and the rest); public mentions as signals with a 48-hour reply clock; the public reputation index; indicators per product with "Group NPS: none, by design"; the lead funnel with source split and reasons; Close the loop (list, interview with brief and four questions, reason codes, re-survey, AI campaigns); the Intelligent CX team page (path, roster, job descriptions, supervisor); action classification and routing; Investigate tab; rules as configuration; the Internal Audit and Marketing Lead role; Surveys and triggers page; "When this product asks" on each product page; VIP tag on Club customers; Agent 10. Fix in v38: the Voice of Customer page tolerated the new sources.
 
+## 44. Prototype v39 and v40: one line, six steps; everything traceable (18 Nov 2026)
+
+Manaf's feedback on 17 Nov: the portal had grown page by page and he could not follow it himself; any user, whatever their background, must be able to use it; the CX indicators (NPS, CSAT, CES) must be on the home screen; every record must show where it is and what the logical next step is. Diagnosis done the same day (weak points, improvements, additions, P0 to P2), then built in full as v39 and v40.
+
+**v39.** Home rebuilt: the six-step line (1 Listen, 2 Signal, 3 Pattern, 4 Fix, 5 Check, 6 Report), the CX indicators per live product with a plain sentence under each and the "?" definitions (CES added), "New here? Three things to know", "Your work today", the search below. Every page and every fix shows a "where you are, what happens next" box with who and by when. Menu in step order. Daily brief written by Agent 9 at 07:00, one per role, each line opening its page; the brief and the tiles use one NPS source.
+
+**v40 (P0).** Trace ids on one chain: EV (event) → SG (signal) → PT (pattern) → CA (fix) → VR (check) → RP (report); a Trace card on every fix and signal, ids on timeline rows and signal rows, a signal detail modal; public mentions never link to a person. Data feeds page: three CRM environments as separate feeds plus the shared sources, each with last received and status; a "Data as of" bar on every page with the environment switch that narrows every register. CRM mapping page (Media → source, lead stage → funnel stage, activity category → event) as configuration. The signals Rules tab points to the single place thresholds are edited.
+
+**v40 (P1).** Menu merged: Customers holds search, who is leaving and personas; Surveys under settings only; hand-offs folded under the fixes tab. My inbox: everything on the user with day counters against the approval window (5 working days) and due dates; the home card summarises it. Audit trail on every fix (when, what, by which role). Escalation matrix page per product (receiver, informed, backup, respond and resolve hours; defaults marked as proposals) and the classification on each fix reads it. Survey questions page per product in both languages with a customer-view preview. Consent and DNCR on each person from the CRM; skipped surveys state the reason. An investigation closes with a result that becomes evidence on the pattern and proposes a fix. Close the loop: calling hours, up to three attempts, next attempt the following working day, WhatsApp after the last.
+
+**v40 (P2).** One sign-in with six main roles (the demo roles folded away). A browsable customers list with filters and export. Public mentions list with reply status and owner. Weekly sample page: 50 outputs, right or wrong, wrong becomes a test. "What if" on the thresholds showing how many patterns each value would produce. Arabic completed on agent chips; tables scroll on mobile.
+
+Still sample data; nothing is sent. The knowledge base documents (Modules, Word, PDF) describe v38 and will be regenerated once Manaf has reviewed v40.
+
 ## 42. Files and links (17 Nov 2026)
 
 | Item | Where |
@@ -541,9 +555,9 @@ Source badges on every event (PSI Website, PSI Real Estate app, WhatsApp, Facebo
 8. PSI brand colours, fonts and logo files; real HR pool members and environment names; real SLA targets; call recording as a policy decision; retention periods with Legal.
 9. Earlier open questions in section 14 that are still open: After-Sales real call script, calling hours and consent rules, data residency, the real mailboxes.
 
-## 44. React build of the portal (17 Nov 2026)
+## 45. React build of the portal (17 Nov 2026, updated 18 Nov)
 
-A working React version of the v38 portal now lives in `React-Frontend/`, built from this knowledge base and the Modules KB. It is a front end on sample data only; there is no backend yet, and nothing in it is real data.
+A working React version of the portal lives in `React-Frontend/`, built from this knowledge base and the Modules KB. It is a front end on sample data only; there is no backend yet, and nothing in it is real data. It was built against v38; v39 and v40 (section 44) are being reflected in it next.
 
 | Decision (Manaf, 17 Nov) | Detail |
 |---|---|
@@ -553,8 +567,8 @@ A working React version of the v38 portal now lives in `React-Frontend/`, built 
 | Login screen and animation | Added. The login is a sample sign-in: choose a role, no passwords. |
 | Git | All work is committed and pushed to GitHub every hour (scheduled task CX-AutoPush). |
 
-What it covers: the seven v38 pages, the five Actions tabs, the assistant, the intelligent CX team page and the twelve Settings and reference pages; English and Arabic with full RTL; light and dark; role-based access. A page-by-page check against the Modules KB (`React-Frontend/docs/FIDELITY_REVIEW.md`) found 93 of 104 requirements done, 9 partly done, none missing. It has 104 unit tests, 125 browser tests, and a clean accessibility audit (WCAG 2.1 AA).
+What it covers (v38): the seven pages, the five Actions tabs, the assistant, the intelligent CX team page and the Settings and reference pages (including an Admin page); English and Arabic with full RTL; light and dark; role-based access. A page-by-page check against the Modules KB (`React-Frontend/docs/FIDELITY_REVIEW.md`) found all 104 requirements done. It has 141 unit tests, 135 browser tests, and a clean accessibility audit (WCAG 2.1 AA).
 
-**[Proposed]** by Claude, not yet confirmed: the navy #12385B and gold #C8963E colours and the IBM Plex fonts (placeholders until the PSI brand files arrive, see 43.8); the role-picker sign-in; the motion rules; the sample data reshaped so the 30-day pattern window produces four corrective actions.
+**[Proposed]** by Claude, not yet confirmed: the navy #12385B and gold #C8963E colours and the IBM Plex fonts (placeholders until the PSI brand files arrive, see 43.8); the role-picker sign-in; the motion rules; the sample data reshaped so the 30-day pattern window produces four corrective actions; when a 60-day window holds two kinds of event the latest wins; the mapping from shopper checklist categories to AI insight categories; Wallet notices shown as awaiting decision.
 
 Open items from the build, added to the questions above: who owns the standards register (L&D in this KB, other owners in the prototype); 28 or 33 L&D standards documents; whether Marketing sees Surveys and triggers; finer scoping inside Actions for team leads and HR.
