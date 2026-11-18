@@ -5,13 +5,19 @@ import { AUDIT_COPY, newestFirst } from '@/utils/audit'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import type { AuditEntry } from '@/types'
 
+/** `2026-11-14 13:31` in local time: digits and separators only, so it reads the same in both directions. */
+function stamp(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`
+}
+
 /**
  * The audit trail of a fix (v40 F21): every change, when, what, by which role, newest first. "By" is the role title of whoever
  * acted (never a person), "System" when the agents acted. Nothing is deleted. Every status change and every decision writes an
  * entry (`useDecideCorrectiveAction`, `useSetFixStatus`, `useSendToInvestigation`, `useReturnInvestigation`).
  */
 export function AuditTrail({ log }: { log: readonly AuditEntry[] }) {
-  const { L, lang } = useI18n()
+  const { L } = useI18n()
   const headingId = useId()
   const rows = newestFirst(log)
   return (
@@ -40,10 +46,7 @@ export function AuditTrail({ log }: { log: readonly AuditEntry[] }) {
                 <TableRow key={`${e.at}-${i}`}>
                   <TableCell className="px-3 text-sm tabular-nums">
                     <time dateTime={e.at}>
-                      <bdi dir="ltr">
-                        {when.toLocaleDateString(lang, { year: 'numeric', month: '2-digit', day: '2-digit' })}{' '}
-                        {when.toLocaleTimeString(lang, { hour: '2-digit', minute: '2-digit', hour12: false })}
-                      </bdi>
+                      <bdi dir="ltr">{stamp(when)}</bdi>
                     </time>
                   </TableCell>
                   <TableCell className="px-3 text-sm whitespace-normal">{L(e.what)}</TableCell>

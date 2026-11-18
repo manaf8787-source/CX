@@ -31,8 +31,8 @@ export default function SettingsLayout() {
         eyebrow={t('Reference', 'مرجع')}
         title={navLabel}
         description={t(
-          'Everything older: Overview, Mystery shopper, Standards, Voice of Customer, L&D, Teams, Settings.',
-          'كل ما هو أقدم: نظرة عامة، التسوق السري، المعايير، صوت العميل، التعلم والتطوير، الفرق، الإعدادات.',
+          'How the portal works, the registers (weekly sample, public mentions), the data and configuration pages (data feeds, CRM mapping, escalation matrix, survey questions, rules) and the older modules.',
+          'كيف تعمل البوابة، والسجلات (العينة الأسبوعية، الإشارات العامة)، وصفحات البيانات والإعدادات (تغذيات البيانات، ربط CRM، مصفوفة التصعيد، أسئلة الاستبيانات، القواعد) والوحدات الأقدم.',
         )}
       />
 

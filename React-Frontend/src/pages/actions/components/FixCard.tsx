@@ -20,23 +20,19 @@ import { NextBox } from '@/components/common/NextBox'
 import { TraceId } from '@/components/common/TraceId'
 import { DayChip } from '@/components/common/DayChip'
 import { TraceCard } from '@/components/trace/TraceCard'
+import { useScrollToTarget } from '@/components/trace/useScrollToTarget'
 import { cn } from '@/lib/utils'
 import type { Bi, CorrectiveAction, Pattern } from '@/types'
 import { LifecycleStepper } from './LifecycleStepper'
 import { HowAiFoundThis } from './HowAiFoundThis'
 import { MatrixLine } from './MatrixLine'
 import { AuditTrail } from './AuditTrail'
-import { fixNextStep } from './fixNextStep'
+import { fixNextStep, isAiMadeFix } from './fixNextStep'
 
 const DECISION_LABEL = {
   modified: { en: 'Modified', ar: 'معدّل' },
   rejected: { en: 'Rejected', ar: 'مرفوض' },
 } as const
-
-/** True when the AI made the fix: proposed by Agent 5, from an AI Insights suggestion, or the first audit line is the system's. */
-export function isAiMadeFix(fix: Pick<CorrectiveAction, 'proposedBy' | 'fromInsight' | 'auditLog'>): boolean {
-  return !!fix.proposedBy || !!fix.fromInsight || fix.auditLog[0]?.byRole === 'system'
-}
 
 interface FixCardProps {
   fix: CorrectiveAction
@@ -58,15 +54,13 @@ export function FixCard({ fix: a, pattern, selected, now, onDecide }: FixCardPro
   const rules = useRules()
   const due = useFixDue(a)
   const setStatus = useSetFixStatus()
+  const itemRef = useRef<HTMLLIElement>(null)
   const headingRef = useRef<HTMLHeadingElement>(null)
   const canAct = canActOnCorrectiveAction(role.id, a.kind)
 
+  useScrollToTarget(itemRef, selected)
   useEffect(() => {
-    if (!selected) return
-    const el = headingRef.current
-    if (!el) return
-    el.scrollIntoView?.({ block: 'start' })
-    el.focus({ preventScroll: true })
+    if (selected) headingRef.current?.focus({ preventScroll: true })
   }, [selected])
 
   const eff = a.monthlySignalSeries && a.startedMonthIndex !== undefined ? evaluateEffectiveness(a.monthlySignalSeries, a.startedMonthIndex) : null
@@ -118,7 +112,7 @@ export function FixCard({ fix: a, pattern, selected, now, onDecide }: FixCardPro
           : null
 
   return (
-    <li id={`fix-${caId(a.id)}`} className="flex scroll-mt-24 flex-col gap-3" data-fix={caId(a.id)} data-selected={selected ? 'true' : undefined}>
+    <li ref={itemRef} id={`fix-${caId(a.id)}`} className="flex scroll-mt-24 flex-col gap-3" data-fix={caId(a.id)} data-selected={selected ? 'true' : undefined}>
       <NextBox next={next} who={a.owner} action={action} />
       <Card className={cn('gap-0 py-0', selected && 'ring-2 ring-primary')}>
         <CardContent className="flex flex-col gap-4 p-5">

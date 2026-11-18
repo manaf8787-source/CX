@@ -10,7 +10,8 @@ import type { LeadFunnelStage } from '@/types'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { PageHeader } from '@/components/common/PageHeader'
+import { TermHelp } from '@/components/common/TermHelp'
+import { SubPageHeader } from '@/pages/settings/SubPageHeader'
 import { SectionCard } from '@/components/common/SectionCard'
 import { StatusBadge } from '@/components/common/StatusBadge'
 import { ProductTag } from '@/components/common/Chip'
@@ -85,8 +86,14 @@ export default function Surveys() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader
-        term="Survey trigger" title={t('Surveys and triggers', 'الاستبيانات والمحفزات')}
+      {/* v40 (F18): a page under Settings and reference, so its heading is the sub-page heading (the layout carries the one h1). */}
+      <SubPageHeader
+        title={
+          <span className="inline-flex items-center gap-1">
+            {t('Surveys and triggers', 'الاستبيانات والمحفزات')}
+            <TermHelp term="Survey trigger" />
+          </span>
+        }
         description={t(
           'Ask only after something meaningful, never on a public channel, never more than the caps — one line per product.',
           'نسأل فقط بعد أمر ذي معنى، وأبداً على قناة عامة، وأبداً أكثر من الحدود المسموحة — خط واحد لكل منتج.',
@@ -195,9 +202,21 @@ export default function Surveys() {
             <KpiTile
               label={t('Skipped', 'تُخطّي')}
               value={delivery.skipped.toLocaleString(lang === 'ar' ? 'ar-AE' : 'en-US')}
-              sub={delivery.skippedBy.map((x) => `${L(x.reason)} ${x.count.toLocaleString(lang === 'ar' ? 'ar-AE' : 'en-US')}`).join(' · ')}
+              sub={t(`${delivery.skippedBy.length} reasons, listed below`, `${delivery.skippedBy.length} أسباب، مفصّلة أدناه`)}
               accent="var(--warning)"
             />
+          </div>
+        )}
+        {delivery && (
+          <div className="flex flex-col gap-3 rounded-lg border bg-muted/30 p-4">
+            <h3 className="text-sm font-semibold">{t('Skipped, by reason', 'المتخطّى، حسب السبب')}</h3>
+            <BarList tone="warning" items={delivery.skippedBy.map((x) => ({ label: L(x.reason), count: x.count }))} />
+            <p className="text-xs text-muted-foreground">
+              {t(
+                'The reasons add up to the total skipped. DNCR is counted from the people flagged in the CRM; a person flagged DNCR is never surveyed by call.',
+                'الأسباب مجموعها يساوي إجمالي المتخطّى. يُحسب DNCR من الأشخاص الموسومين في CRM؛ ولا يُستبان بالهاتف شخص موسوم DNCR.',
+              )}
+            </p>
           </div>
         )}
         {instrumentsLoading ? (

@@ -1,4 +1,3 @@
-// FOUNDATION STUB: owner = workstream C (replaced by workstream C; the marker stays only because routes/pages.test.ts counts it).
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { Check, TimerOff } from 'lucide-react'
@@ -106,9 +105,6 @@ export default function PublicMentions() {
                         {L(h)}
                       </TableHead>
                     ))}
-                    <TableHead className="px-3">
-                      <span className="sr-only">{L(COPY.action)}</span>
-                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -125,7 +121,7 @@ export default function PublicMentions() {
                             <span className="text-xs text-muted-foreground">{L(envNameFromShort(m.environment))}</span>
                           </span>
                         </TableCell>
-                        <TableCell className="min-w-64 px-3 py-2.5 whitespace-normal">{m.text}</TableCell>
+                        <TableCell className="min-w-48 px-3 py-2.5 whitespace-normal">{m.text}</TableCell>
                         <TableCell className="px-3 py-2.5">
                           <StatusBadge tone={m.sentiment < 0 ? 'danger' : m.sentiment > 0 ? 'success' : 'neutral'}>{L(tone(m.sentiment))}</StatusBadge>
                         </TableCell>
@@ -135,24 +131,22 @@ export default function PublicMentions() {
                               {L(replyLabel(m, now, hours))}
                             </StatusBadge>
                             {state === 'awaiting' && <span className="text-xs text-muted-foreground tabular-nums">{t(`${leftH} h left on the clock`, `${leftH} ساعة متبقية على المهلة`)}</span>}
+                            {canReply && !m.replied && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8"
+                                aria-label={`${L(COPY.action)}: ${m.text.slice(0, 40)}`}
+                                onClick={() => markReplied.mutate({ id: m.id }, { onSuccess: () => toast(L(COPY.toast)) })}
+                              >
+                                <Check aria-hidden />
+                                {L(COPY.action)}
+                              </Button>
+                            )}
                           </span>
                         </TableCell>
-                        <TableCell className="px-3 py-2.5">{m.becameIdentified ? L(COPY.identified[m.channelMovedTo ?? 'private']) : '–'}</TableCell>
-                        <TableCell className="px-3 py-2.5">{L(m.owner)}</TableCell>
-                        <TableCell className="px-3 py-2.5 text-end">
-                          {canReply && !m.replied && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-9"
-                              aria-label={`${L(COPY.action)}: ${m.text.slice(0, 40)}`}
-                              onClick={() => markReplied.mutate({ id: m.id }, { onSuccess: () => toast(L(COPY.toast)) })}
-                            >
-                              <Check aria-hidden />
-                              {L(COPY.action)}
-                            </Button>
-                          )}
-                        </TableCell>
+                        <TableCell className="min-w-28 px-3 py-2.5 whitespace-normal">{m.becameIdentified ? L(COPY.identified[m.channelMovedTo ?? 'private']) : '–'}</TableCell>
+                        <TableCell className="min-w-28 px-3 py-2.5 whitespace-normal">{L(m.owner)}</TableCell>
                       </TableRow>
                     )
                   })}

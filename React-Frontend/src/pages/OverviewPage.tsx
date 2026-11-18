@@ -1,4 +1,3 @@
-// FOUNDATION STUB: owner = workstream C (replaced by workstream C; the marker stays only because routes/pages.test.ts counts it).
 import { Link } from 'react-router-dom'
 import { useI18n } from '@/i18n'
 import { useRole } from '@/auth/RoleContext'

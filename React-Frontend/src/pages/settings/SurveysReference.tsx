@@ -28,7 +28,7 @@ export default function SurveysReference() {
   return (
     <section className="flex flex-col gap-4">
       <SubPageHeader
-        title={t('Surveys (reference)', 'الاستبيانات (مرجع)')}
+        title={t('Surveys (legacy reference)', 'الاستبيانات (مرجع قديم)')}
         description={t(
           'The old survey builder is discontinued. Only its question-type vocabulary is still valid data — the live trigger/cap model is on Surveys and triggers.',
           'منشئ الاستبيانات القديم متوقف. فقط مفردات أنواع الأسئلة لا تزال بيانات صالحة — النموذج الحي للمحفزات والحدود موجود في صفحة الاستبيانات والمحفزات.',

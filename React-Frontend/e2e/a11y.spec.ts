@@ -62,9 +62,14 @@ test.describe('axe — login and overlays', () => {
 
   test('signal detail dialog (?sg=)', async ({ page }) => {
     await signInAs(page, 'cxmgr')
-    await page.goto('/actions/signals?sg=SG-1')
+    // the sample's first problem event is a public mention, so SG-1 does not exist: take the first real signal row
+    await page.goto('/actions/signals')
     await expectPageReady(page)
-    await expect(page.getByRole('dialog')).toBeVisible()
+    const sg = page.getByRole('columnheader', { name: 'Date' }).locator('xpath=ancestor::table').getByRole('button', { name: /^Open SG-\d+$/ }).first()
+    const id = ((await sg.textContent({ timeout: 15_000 })) ?? '').trim()
+    await page.goto(`/actions/signals?sg=${id}`)
+    await expectPageReady(page)
+    await expect(page.getByRole('dialog').getByTestId('trace-card')).toBeVisible({ timeout: 15_000 })
     await waitForAnimations(page)
     const violations = blocking(await scan(page))
     expect(violations, JSON.stringify(violations, null, 2)).toEqual([])

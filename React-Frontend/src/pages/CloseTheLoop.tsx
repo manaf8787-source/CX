@@ -160,9 +160,13 @@ export default function CloseTheLoop() {
       id: 'person',
       accessorFn: (i) => personName(i.personId),
       header: ({ column }) => <SortableHeader column={column}>{t('Person', 'الشخص')}</SortableHeader>,
-      cell: ({ getValue }) => <span className="font-medium">{getValue<string>()}</span>,
+      cell: ({ row, getValue }) => (
+        <span className="inline-flex flex-col leading-tight">
+          <span className="font-medium">{getValue<string>()}</span>
+          <span className="text-xs text-muted-foreground">{L(envNameFromShort(row.original.environment))}</span>
+        </span>
+      ),
     },
-    { id: 'environment', accessorFn: (i) => L(envNameFromShort(i.environment)), header: t('Environment', 'البيئة') },
     {
       id: 'channel',
       accessorFn: (i) => i.channel,
@@ -227,9 +231,12 @@ export default function CloseTheLoop() {
         if (i.status === 'done' || i.outcome) return i.outcome ? L(INTERVIEW_OUTCOME_LABEL[i.outcome]) : <span className="text-muted-foreground">—</span>
         if (i.status === 'needs_human')
           return (
-            <StatusBadge tone="danger" dot>
-              {L(CALL_COPY.needsHuman)}
-            </StatusBadge>
+            <span className="inline-flex flex-col gap-0.5">
+              <StatusBadge tone="danger" dot>
+                {L(CALL_COPY.needsHuman)}
+              </StatusBadge>
+              <span className="text-xs text-muted-foreground">{t('WhatsApp sent after the last attempt', 'أُرسل واتساب بعد آخر محاولة')}</span>
+            </span>
           )
         if (i.status === 'no_answer')
           return (
@@ -239,6 +246,13 @@ export default function CloseTheLoop() {
           )
         return <span className="text-muted-foreground">{t('Not called yet', 'لم يُتصل به بعد')}</span>
       },
+    },
+    {
+      id: 'call',
+      header: () => <span className="sr-only">{t('Actions', 'الإجراءات')}</span>,
+      enableSorting: false,
+      meta: { align: 'end', cellClassName: 'min-w-44' },
+      cell: ({ row }) => rowActions(row.original),
     },
     {
       id: 'resurvey',
@@ -270,7 +284,7 @@ export default function CloseTheLoop() {
               placeholder={`${min}–${max}`}
               dir="ltr"
               aria-label={t(`Second score (${min} to ${max})`, `النتيجة الثانية (${min} إلى ${max})`)}
-              className="h-9 w-20"
+              className="h-9 w-16"
               value={resurveyDraft[i.id] ?? ''}
               onChange={(e) => setResurveyDraft((d) => ({ ...d, [i.id]: e.target.value }))}
             />
@@ -308,20 +322,13 @@ export default function CloseTheLoop() {
         )
       },
     },
-    {
-      id: 'call',
-      header: () => <span className="sr-only">{t('Actions', 'الإجراءات')}</span>,
-      enableSorting: false,
-      meta: { align: 'end' },
-      cell: ({ row }) => rowActions(row.original),
-    },
   ]
 
-  /** Call (the four-question interview) and, for the CX team's own list, "No answer". An AI campaign row hands over by its own rule. */
+  /** Call (the four-question interview) and "No answer" (attempt + 1; after the last attempt the row needs a human). */
   // A plain function (not a component): the table rebuilds its columns every render, and a component defined here would remount its buttons and lose focus.
   function rowActions(item: DetractorCallItem) {
     if (item.outcome || item.status === 'done') return null
-    const canNoAnswer = canRecordAttempt && item.channel === 'human' && item.status !== 'needs_human'
+    const canNoAnswer = canRecordAttempt && item.status !== 'needs_human'
     return (
       <span className="inline-flex items-center justify-end gap-1.5">
         {canNoAnswer && (

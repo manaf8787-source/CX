@@ -38,8 +38,35 @@ test.describe('sample sign-in', () => {
     await expect(page).toHaveURL(/\/login$/)
   })
 
+  test('shows the sign-in note, the six main roles, and the other six folded away', async ({ page }) => {
+    await page.goto('/login')
+    await expect(page.getByRole('heading', { level: 1, name: 'Sign in' })).toBeVisible()
+    await expect(page.getByText(/In the real platform this is one company sign-in and the role comes from the directory/)).toBeVisible()
+    await expect(page.locator('[data-group="main-roles"]').getByRole('radio')).toHaveCount(6)
+    const details = page.locator('details', { hasText: 'Other roles used in the demo' })
+    await expect(details).not.toHaveAttribute('open', '')
+    // The six folded roles are in the page but hidden while the card is folded.
+    await expect(page.getByRole('radio', { name: /^Executive/i })).toBeHidden()
+    await details.locator('summary').click()
+    await expect(page.getByRole('radio', { name: /^Executive/i })).toBeAttached()
+    await expect(details).toHaveAttribute('open', '')
+  })
+
+  test('in Arabic the card is right to left with the Arabic roles and folded summary', async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('psicx.lang', 'ar'))
+    await page.goto('/login')
+    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl')
+    await expect(page.getByRole('heading', { level: 1, name: 'تسجيل الدخول' })).toBeVisible()
+    await expect(page.getByText(/في المنصة الحقيقية هذا تسجيل دخول واحد للشركة/)).toBeVisible()
+    await expect(page.locator('[data-group="main-roles"]').getByRole('radio')).toHaveCount(6)
+    await expect(page.getByText(/أدوار أخرى تُستخدم في العرض/)).toBeVisible()
+  })
+
   for (const [title, home] of [
     ['Executive', '/home'],
+    ['Marketing manager', '/home'],
+    ['Internal Audit and Marketing Lead', '/overview'],
+    ['Environment management', '/home'],
     ['Mystery shopper', '/settings/mystery-shopper'],
   ] as const) {
     test(`signing in as ${title} lands on ${home}`, async ({ page }) => {

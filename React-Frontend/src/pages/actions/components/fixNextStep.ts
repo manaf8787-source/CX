@@ -25,3 +25,8 @@ export function fixNextStep(
   if (fix.status === 'verification') return { ...base, due: withDate(base.due, fix.verificationDueAt) }
   return base
 }
+
+/** True when the AI made the fix: proposed by Agent 5, from an AI Insights suggestion, or the first audit line is the system's. */
+export function isAiMadeFix(fix: Pick<CorrectiveAction, 'proposedBy' | 'fromInsight' | 'auditLog'>): boolean {
+  return !!fix.proposedBy || !!fix.fromInsight || fix.auditLog[0]?.byRole === 'system'
+}

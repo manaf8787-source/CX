@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -25,6 +25,7 @@ import { StatusBadge } from '@/components/common/StatusBadge'
 import { EmptyState } from '@/components/common/EmptyState'
 import { LoadingState } from '@/components/common/LoadingState'
 import { TraceId } from '@/components/common/TraceId'
+import { useScrollToTarget } from '@/components/trace/useScrollToTarget'
 import { signalCategoryLabel } from './components/labels'
 
 const STATUS_LABEL: Record<'requested' | 'in_progress' | 'returned', { en: string; ar: string }> = {
@@ -118,13 +119,11 @@ function InvestigationCard({ inv, pattern, selected, onRecord }: { inv: Investig
   const ref = useRef<HTMLLIElement>(null)
   const Icon = inv.kind === 'customer_interviews' ? MessagesSquare : UserSearch
 
-  useEffect(() => {
-    if (selected) ref.current?.scrollIntoView?.({ block: 'center' })
-  }, [selected])
+  useScrollToTarget(ref, selected, 'center')
 
   const canOpenFix = canAccessPath(role.id, '/actions/corrective')
   return (
-    <li ref={ref} id={`inv-${invId(inv.id)}`} data-inv={invId(inv.id)} className="min-w-0 scroll-mt-24">
+    <li ref={ref} id={`inv-${invId(inv.id)}`} data-inv={invId(inv.id)} data-selected={selected ? 'true' : undefined} className="min-w-0 scroll-mt-24">
       <Card className={cn('h-full gap-0 py-0', selected && 'ring-2 ring-primary')}>
         <CardContent className="flex h-full flex-col gap-3 p-5">
           <div className="flex items-start justify-between gap-2">

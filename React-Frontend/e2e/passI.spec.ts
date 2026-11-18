@@ -33,7 +33,7 @@ test('only CX can propose from AI Insights', async ({ page }) => {
   await expect(page.getByText('CX creates the action.').first()).toBeVisible({ timeout: 15_000 })
 })
 
-test('Signals shows the closest patterns first and the rest on request', async ({ page }) => {
+test('Signals shows the closest patterns first and the rest on request; the hand-offs now sit under the fixes tab', async ({ page }) => {
   await signInAs(page, 'cxmgr')
   await page.goto('/actions/signals')
   await expectPageReady(page)
@@ -41,6 +41,13 @@ test('Signals shows the closest patterns first and the rest on request', async (
   await expect(cards).toHaveCount(4, { timeout: 15_000 })
   await page.getByRole('button', { name: /Show all patterns \(\d+\)/ }).click()
   await expect.poll(async () => cards.count()).toBeGreaterThan(4)
+  // v40 (F19): the hand-off rules left the Signals page; they are a collapsed block at the bottom of the fixes tab.
+  await expect(page.getByRole('heading', { name: 'Hand-off rules by signal type' })).toHaveCount(0)
+  await page.getByRole('link', { name: 'Corrective actions' }).click()
+  await expectPageReady(page)
+  const block = page.getByTestId('handoffs-block')
+  await expect(block.getByRole('button', { name: /One-customer corrections handed to other systems/ })).toHaveAttribute('aria-expanded', 'false', { timeout: 15_000 })
+  await block.getByRole('button', { name: /One-customer corrections handed to other systems/ }).click()
   await expect(page.getByRole('heading', { name: 'Hand-off rules by signal type' })).toBeVisible()
   await expect(page.getByRole('cell', { name: 'Lead asked not to be called' })).toBeVisible()
 })
@@ -52,6 +59,10 @@ test('Close the loop shows the 60-day recovered rule', async ({ page }) => {
   await expect(page.getByText('Recovered within 60 days', { exact: true })).toBeVisible()
   await expect(page.getByRole('columnheader', { name: 'Recovered (60 days)' })).toBeVisible({ timeout: 15_000 })
   await expect(page.getByText('Too early').first()).toBeVisible({ timeout: 15_000 })
+  // v40 (F27): the calling rules, the attempts on a row and the "No answer" action.
+  await expect(page.getByTestId('calling-rules')).toContainText('09:00 and 18:00 UAE time, up to 3 attempts')
+  await expect(page.getByRole('button', { name: 'No answer' }).first()).toBeVisible()
+  await expect(page.getByText(/attempt \d of 3 · next/).first()).toBeVisible()
 })
 
 test('Settings: the CX manager edits notices, the CX team only reads them', async ({ browser }) => {
@@ -76,6 +87,8 @@ test('a "?" beside a heading explains the term', async ({ page }) => {
   await signInAs(page, 'cxmgr')
   await page.goto('/runaway')
   await expectPageReady(page)
+  // v40 (F17): Who is leaving is a tab of Customers; the "?" beside its heading still explains the term.
+  await expect(page.getByRole('navigation', { name: 'Customers sections' })).toBeVisible()
   await page.getByRole('button', { name: 'What Runaway customer means' }).first().click()
   await expect(page.getByRole('dialog').getByText('Runaway customer')).toBeVisible()
 })

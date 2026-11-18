@@ -12,6 +12,9 @@ export default defineConfig({
     setupFiles: ['./src/test/setup.ts'],
     include: ['src/**/*.test.{ts,tsx}'],
     css: false,
+    // A full run is busy (53 files in parallel jsdom workers) and the mock seam answers after 150 to 180 ms: room for a slow worker.
+    testTimeout: 20_000,
+    hookTimeout: 20_000,
     coverage: {
       provider: 'v8',
       include: ['src/utils/**', 'src/lib/**', 'src/auth/**'],

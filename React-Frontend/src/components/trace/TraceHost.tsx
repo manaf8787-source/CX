@@ -1,4 +1,3 @@
-// FOUNDATION STUB: owner = workstream B (replaced by workstream B: the dialog is SignalDetailDialog; the marker stays only because routes/pages.test.ts counts it).
 import { useLocation } from 'react-router-dom'
 import { SignalDetailDialog } from './SignalDetailDialog'
 

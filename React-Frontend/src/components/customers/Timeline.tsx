@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { ArrowDownLeft, ArrowUpRight, PhoneOff } from 'lucide-react'
 import { useI18n } from '@/i18n'
@@ -7,6 +7,7 @@ import { canViewAgentNames, canViewConversationText, resolveAgentDisplay } from 
 import { useAgentDirectory, useSignalsAll } from '@/services/queries'
 import { evId } from '@/utils/trace'
 import { TraceId } from '@/components/common/TraceId'
+import { useScrollToTarget } from '@/components/trace/useScrollToTarget'
 import { JOURNEY_RULES } from '@/utils/journeyRules'
 import type { ChannelId, Interaction, Signal } from '@/types'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -56,9 +57,7 @@ export function Timeline({ interactions }: { interactions: Interaction[] }) {
   const canSeeAgents = canViewAgentNames(role.id)
   const isTarget = (i: Interaction) => !!targetEvent && (targetEvent === evId(i.id) || targetEvent === i.id)
   const hasTarget = interactions.some(isTarget)
-  useEffect(() => {
-    if (hasTarget) targetRef.current?.scrollIntoView?.({ block: 'center' })
-  }, [hasTarget])
+  useScrollToTarget(targetRef, hasTarget, 'center')
 
   return (
     <SectionCard

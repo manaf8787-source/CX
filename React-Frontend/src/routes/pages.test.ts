@@ -3,12 +3,12 @@ import { pageLoaders } from './pages'
 import { PRIMARY_NAV, SETTINGS_NAV } from '@/data/nav'
 
 describe('route loaders', () => {
-  it('every lazy loader resolves to a module with a default component (stub pages included)', async () => {
+  it('every lazy loader resolves to a module with a default component', async () => {
     const entries = Object.entries(pageLoaders)
     expect(entries.length).toBeGreaterThanOrEqual(36)
     const modules = await Promise.all(entries.map(async ([key, load]) => [key, await load()] as const))
     for (const [key, mod] of modules) expect(typeof (mod as { default: unknown }).default, key).toBe('function')
-  })
+  }, 60_000)
 
   it('has a loader for each v40 page', () => {
     for (const key of ['inbox', 'overview', 'feeds', 'crmMapping', 'escalationMatrix', 'surveyQuestions', 'weeklySample', 'publicMentions', 'surveys']) {
@@ -27,9 +27,9 @@ describe('route loaders', () => {
     expect(menu).toContain('/overview')
   })
 
-  it('the stub pages are marked so their owners can find them', async () => {
-    const sources = import.meta.glob(['../pages/inbox/Inbox.tsx', '../pages/OverviewPage.tsx', '../pages/settings/{Feeds,CrmMapping,EscalationMatrix,SurveyQuestions,WeeklySample,PublicMentions}.tsx', '../components/layout/AsOfBar.tsx', '../components/trace/TraceHost.tsx'], { query: '?raw', import: 'default', eager: true }) as Record<string, string>
-    expect(Object.keys(sources)).toHaveLength(10)
-    for (const [file, src] of Object.entries(sources)) expect(src, file).toMatch(/\/\/ FOUNDATION STUB: owner = workstream [ABC]/)
+  it('no foundation stub marker is left behind (every stub page was replaced by its workstream)', () => {
+    const sources = import.meta.glob(['../pages/**/*.tsx', '../components/layout/*.tsx', '../components/trace/*.tsx'], { query: '?raw', import: 'default', eager: true }) as Record<string, string>
+    expect(Object.keys(sources).length).toBeGreaterThan(30)
+    for (const [file, src] of Object.entries(sources)) expect(src, file).not.toMatch(/FOUNDATION STUB/)
   })
 })

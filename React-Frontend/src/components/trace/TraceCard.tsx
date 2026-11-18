@@ -1,7 +1,8 @@
 import { useId, type ReactNode } from 'react'
 import { useI18n } from '@/i18n'
 import { useTrace } from '@/services/queriesV40'
-import { TRACE_COPY, TRACE_NEXT } from '@/data/steps'
+import { TRACE_COPY } from '@/data/steps'
+import { traceNextLine } from './traceNext'
 import { TraceId } from '@/components/common/TraceId'
 import { CHANNEL_LABEL } from '@/components/customers/channels'
 import { LoadingState } from '@/components/common/LoadingState'
@@ -15,17 +16,8 @@ const MAX_IN_CELL = 4
 /** The column of the record you are on is highlighted (v40 F11). */
 const COLUMN_OF_KIND: Record<TraceKind, number> = { event: 0, signal: 1, pattern: 2, fix: 3, check: 4, report: 5 }
 
-/** The "what happens next" line by how far the chain goes (S4); none once the report exists. */
-export function traceNextLine(chain: TraceChain): Bi | null {
-  if (chain.report) return TRACE_NEXT.report
-  if (chain.check) return TRACE_NEXT.check
-  if (chain.fix) return TRACE_NEXT.fix
-  if (chain.pattern) return TRACE_NEXT.pattern
-  if (chain.signals.length > 0) return TRACE_NEXT.signals
-  return TRACE_NEXT.event
-}
-
-const CELL_BUTTON = 'whitespace-normal text-start'
+/** The id on its own line, the detail under it (six narrow columns): the button stacks its two lines. */
+const CELL_BUTTON = 'w-full flex-col items-start gap-0 whitespace-normal text-start'
 
 /**
  * The Trace card (v40 F11): six columns, 1 Event, 2 Signal, 3 Pattern, 4 Fix, 5 Check, 6 Report, every id a button
@@ -43,7 +35,9 @@ export function TraceCardView({ chain, chip, className }: { chain: TraceChain; c
   const events = [
     ...chain.events.slice(0, MAX_IN_CELL).map((e) => (
       <TraceId key={e.id} kind="event" id={e.id} className={CELL_BUTTON}>
-        <span aria-hidden>·</span> {L(CHANNEL_LABEL[e.channel])} <span aria-hidden>·</span> <bdi dir="ltr">{e.occurredAt.slice(5, 10)}</bdi>
+        <span className="font-sans">
+          {L(CHANNEL_LABEL[e.channel])} <span aria-hidden>·</span> <bdi dir="ltr">{e.occurredAt.slice(5, 10)}</bdi>
+        </span>
       </TraceId>
     )),
     ...(chain.events.length > MAX_IN_CELL ? [<span key="more">{more(chain.events.length - MAX_IN_CELL)}</span>] : []),
@@ -51,7 +45,9 @@ export function TraceCardView({ chain, chip, className }: { chain: TraceChain; c
   const signals = [
     ...chain.signals.slice(0, MAX_IN_CELL).map((s) => (
       <TraceId key={s.id} kind="signal" id={s.id} className={CELL_BUTTON}>
-        <span aria-hidden>·</span> <bdi dir="ltr">{s.occurredAt.slice(5, 10)}</bdi>
+        <span className="font-sans">
+          <bdi dir="ltr">{s.occurredAt.slice(5, 10)}</bdi>
+        </span>
       </TraceId>
     )),
     ...(chain.signals.length > MAX_IN_CELL ? [<span key="more">{more(chain.signals.length - MAX_IN_CELL)}</span>] : []),
@@ -59,28 +55,32 @@ export function TraceCardView({ chain, chip, className }: { chain: TraceChain; c
   const pattern = chain.pattern
     ? [
         <TraceId key="pt" kind="pattern" id={chain.pattern.traceId} className={CELL_BUTTON}>
-          <span aria-hidden>·</span> {chain.pattern.signalCount} {t('signals', 'إشارات')}
+          <span className="font-sans">
+            {chain.pattern.signalCount} {t('signals', 'إشارات')}
+          </span>
         </TraceId>,
       ]
     : []
   const fix = chain.fix
     ? [
         <TraceId key="ca" kind="fix" id={chain.fix.id} className={CELL_BUTTON}>
-          <span aria-hidden>·</span> {L(CORRECTIVE_STATUS_LABEL[chain.fix.status])}
+          <span className="font-sans">{L(CORRECTIVE_STATUS_LABEL[chain.fix.status])}</span>
         </TraceId>,
       ]
     : []
   const check = chain.check
     ? [
         <TraceId key="vr" kind="check" id={chain.check.fixId} className={CELL_BUTTON}>
-          <span aria-hidden>·</span> <bdi dir="ltr">{chain.check.dueAt.slice(0, 10)}</bdi> <span aria-hidden>·</span> {L(CORRECTIVE_STATUS_LABEL[chain.check.status])}
+          <span className="font-sans">
+            <bdi dir="ltr">{chain.check.dueAt.slice(0, 10)}</bdi> <span aria-hidden>·</span> {L(CORRECTIVE_STATUS_LABEL[chain.check.status])}
+          </span>
         </TraceId>,
       ]
     : []
   const report = chain.report
     ? [
         <TraceId key="rp" kind="report" id={chain.report.traceId} className={CELL_BUTTON}>
-          <span aria-hidden>·</span> {L(chain.report.label)}
+          <span className="font-sans">{L(chain.report.label)}</span>
         </TraceId>,
       ]
     : []

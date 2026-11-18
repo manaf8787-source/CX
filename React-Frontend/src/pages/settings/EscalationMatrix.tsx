@@ -1,4 +1,3 @@
-// FOUNDATION STUB: owner = workstream B (replaced by workstream B: product selector, editable cells, per-cell [Proposed]; the marker stays only because routes/pages.test.ts counts it).
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'

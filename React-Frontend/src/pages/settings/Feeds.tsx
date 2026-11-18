@@ -1,4 +1,3 @@
-// FOUNDATION STUB: owner = workstream C (replaced by workstream C; the marker stays only because routes/pages.test.ts counts it).
 import { CheckCircle2, TriangleAlert } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { useFeeds } from '@/services/queriesV40'
@@ -102,7 +101,7 @@ export default function Feeds() {
                   </TableCell>
                   <TableCell className="px-3 py-2.5">{received(f.receivedAt)}</TableCell>
                   <TableCell className="px-3 py-2.5 text-end tabular-nums">{f.rows.toLocaleString(lang === 'ar' ? 'ar-AE' : 'en-US')}</TableCell>
-                  <TableCell className="min-w-56 px-3 py-2.5 whitespace-normal text-muted-foreground">{L(f.note)}</TableCell>
+                  <TableCell className="min-w-40 px-3 py-2.5 whitespace-normal text-muted-foreground">{L(f.note)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

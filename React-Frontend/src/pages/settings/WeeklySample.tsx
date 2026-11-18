@@ -1,4 +1,3 @@
-// FOUNDATION STUB: owner = workstream C (replaced by workstream C; the marker stays only because routes/pages.test.ts counts it).
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { useI18n } from '@/i18n'
@@ -120,7 +119,7 @@ export default function WeeklySample() {
                   {(rates ?? []).map((r) => (
                     <TableRow key={r.agent}>
                       <TableCell className="px-3 py-2.5">
-                        <AgentChip agent={r.agent} />
+                        <AgentChip agent={r.agent} className="h-auto max-w-40 py-0.5 text-start leading-tight whitespace-normal" />
                       </TableCell>
                       <TableCell className="px-3 py-2.5 text-end tabular-nums">{r.sampled}</TableCell>
                       <TableCell className="px-3 py-2.5 text-end tabular-nums">{r.wrong}</TableCell>
@@ -141,7 +140,7 @@ export default function WeeklySample() {
                 <ul className="flex flex-col gap-1 text-sm text-muted-foreground">
                   {tests?.map((x) => (
                     <li key={x.id}>
-                      <AgentChip agent={x.agent} className="me-2" />
+                      <AgentChip agent={x.agent} className="me-2 align-middle" />
                       {L(x.text)}
                     </li>
                   ))}
@@ -190,10 +189,10 @@ export default function WeeklySample() {
                       <TableRow key={item.id}>
                         <TableCell className="px-3 py-2.5 tabular-nums text-muted-foreground">{n}</TableCell>
                         <TableCell className="px-3 py-2.5">
-                          <AgentChip agent={item.agent} />
+                          <AgentChip agent={item.agent} className="h-auto max-w-40 py-0.5 text-start leading-tight whitespace-normal" />
                         </TableCell>
                         <TableCell className="px-3 py-2.5">{L(item.kind)}</TableCell>
-                        <TableCell className="min-w-72 px-3 py-2.5 whitespace-normal">
+                        <TableCell className="min-w-56 px-3 py-2.5 whitespace-normal">
                           <span className="flex flex-wrap items-center gap-2">
                             {L(item.text)}
                             {traceKind ? <TraceId kind={traceKind} id={item.ref} /> : <bdi dir="ltr" className="font-mono text-xs text-muted-foreground">{item.ref}</bdi>}
@@ -211,7 +210,7 @@ export default function WeeklySample() {
                               )}
                             </span>
                           ) : canJudge ? (
-                            <span className="flex gap-1">
+                            <span className="flex flex-wrap gap-1">
                               <Button size="sm" variant="outline" className="h-9" onClick={() => verdict(item.id, item.agent, true)}>
                                 {L(COPY.right)}
                               </Button>

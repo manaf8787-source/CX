@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { DeferredRender } from '@/components/common/DeferredRender'
@@ -30,6 +30,7 @@ import { KpiTile } from '@/components/common/KpiTile'
 import { SectionCard } from '@/components/common/SectionCard'
 import { StatusBadge } from '@/components/common/StatusBadge'
 import { TraceId } from '@/components/common/TraceId'
+import { useScrollToTarget } from '@/components/trace/useScrollToTarget'
 import { WhatIfCard } from '@/components/signals/WhatIfCard'
 import { RulesPointer } from '@/components/signals/RulesPointer'
 import { SignalsTable } from './components/SignalsTable'
@@ -290,9 +291,7 @@ function PatternCard({ pattern: p, canCreate, onCreate, selected }: { pattern: P
   const found = evidence?.[p.id]
 
   // Opened from a Trace id (`?pt=`): scroll the card into view.
-  useEffect(() => {
-    if (selected) ref.current?.scrollIntoView?.({ block: 'center' })
-  }, [selected])
+  useScrollToTarget(ref, selected, 'center')
 
   return (
     <li ref={ref} id={`pattern-${p.traceId}`} data-pattern={p.traceId} data-selected={selected ? 'true' : undefined} className={cn('flex min-w-0 scroll-mt-24 flex-col gap-3 rounded-lg border bg-card p-4', selected && 'border-primary ring-2 ring-primary')}>

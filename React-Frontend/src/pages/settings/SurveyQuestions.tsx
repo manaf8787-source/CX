@@ -1,4 +1,3 @@
-// FOUNDATION STUB: owner = workstream C (replaced by workstream C; the marker stays only because routes/pages.test.ts counts it).
 import { useState } from 'react'
 import { MessageCircle } from 'lucide-react'
 import { useI18n, type Lang } from '@/i18n'

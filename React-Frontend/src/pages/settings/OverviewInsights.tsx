@@ -4,6 +4,9 @@ import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, X
 import { DeferredRender } from '@/components/common/DeferredRender'
 import { ArrowRight, Globe2, Star } from 'lucide-react'
 import { useI18n } from '@/i18n'
+import { useRole } from '@/auth/RoleContext'
+import { canAccessPath } from '@/auth/access'
+import { PUBLIC_MENTIONS_COPY } from '@/data/publicMentions'
 import { useChartMotion } from '@/hooks/useChartMotion'
 import { useNow } from '@/hooks/useNow'
 import { formatMonth } from '@/lib/format'
@@ -51,6 +54,7 @@ function heatClass(v: number | null) {
  * reply rate and time, per channel. Separate from NPS; nobody here is identified. */
 export function ReputationIndex() {
   const { t, L, lang } = useI18n()
+  const { role } = useRole()
   const { data: mentions, isLoading } = usePublicMentions()
   const idx = useMemo(() => {
     const list = mentions ?? []
@@ -92,6 +96,17 @@ export function ReputationIndex() {
         'Facebook, Instagram, LinkedIn and Google. Nobody here is identified, so there are no surveys: mentions count as signals and as reputation, never as journeys. Separate from NPS.',
         'فيسبوك وإنستغرام ولينكد إن وغوغل. لا أحد هنا معرَّف، فلا استبيانات: تُحسب الإشارات كإشارات وكسمعة، لا كرحلات. منفصل عن NPS.',
       )}
+      actions={
+        // v40 (F30): the button into the Public mentions list (reply status, Marketing as owner, the 48-hour clock).
+        canAccessPath(role.id, '/settings/public-mentions') && (
+          <Button size="sm" variant="outline" className="h-9" asChild>
+            <Link to="/settings/public-mentions">
+              {L(PUBLIC_MENTIONS_COPY.reputationButton)}
+              <ArrowRight aria-hidden className="rtl:rotate-180" />
+            </Link>
+          </Button>
+        )
+      }
       contentClassName="flex flex-col gap-4"
     >
       {isLoading ? (

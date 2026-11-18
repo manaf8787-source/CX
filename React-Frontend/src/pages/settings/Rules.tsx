@@ -13,6 +13,7 @@ import { SubPageHeader, ViewOnlyNotice } from './SubPageHeader'
 import { ESCALATION_PRINCIPLES } from '@/data/v38Reference'
 import { MATRIX_COPY } from '@/data/escalationDefaults'
 import { RULE_IDS } from '@/utils/ruleValues'
+import { cn } from '@/lib/utils'
 import type { Bi, RuleConfigItem } from '@/types'
 
 /** Modules KB §12: the rules layer is five decisions; every number is a setting. */
@@ -34,6 +35,56 @@ const DECISIONS: { n: number; title: Bi; ids: string[]; note?: Bi }[] = [
 
 /** The working week picker lists Monday first (JS weekday 1) to Sunday (0). */
 const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0]
+
+/** The working week (decided 18 Nov: Monday to Friday, still a setting): a checkbox per weekday, Monday first; saved with one button. */
+function WeekPicker({
+  rule,
+  selected,
+  canEdit,
+  dayName,
+  onChange,
+  onSave,
+}: {
+  rule: RuleConfigItem
+  selected: number[]
+  canEdit: boolean
+  dayName: (jsDay: number) => string
+  onChange: (days: number[]) => void
+  onSave: () => void
+}) {
+  const { t } = useI18n()
+  const current = [...(rule.days ?? [])].sort((a, b) => a - b).join()
+  const dirty = [...selected].sort((a, b) => a - b).join() !== current
+  return (
+    <div className="flex flex-col gap-2 sm:items-end">
+      <div role="group" aria-labelledby={`rule-${rule.id}-label`} className="flex flex-wrap gap-1.5">
+        {WEEK_ORDER.map((d) => {
+          const on = selected.includes(d)
+          return (
+            <label
+              key={d}
+              className={cn('inline-flex h-9 items-center gap-1.5 rounded-md border px-2.5 text-sm', canEdit && 'cursor-pointer', on ? 'border-primary bg-primary/10 font-medium' : 'text-muted-foreground')}
+            >
+              <input
+                type="checkbox"
+                className="size-4 accent-[var(--primary)]"
+                checked={on}
+                disabled={!canEdit}
+                onChange={(e) => onChange([...new Set(e.target.checked ? [...selected, d] : selected.filter((x) => x !== d))].sort((a, b) => a - b))}
+              />
+              {dayName(d)}
+            </label>
+          )
+        })}
+      </div>
+      {canEdit && (
+        <Button size="sm" className={dirty ? '' : 'invisible'} aria-hidden={!dirty} tabIndex={dirty ? 0 : -1} disabled={selected.length === 0} onClick={onSave}>
+          {t('Save', 'حفظ')}
+        </Button>
+      )}
+    </div>
+  )
+}
 
 /** Net-new (NFR-4): "every numeric threshold named anywhere in the
  * requirements must be editable under Settings by the CX manager, without a
@@ -99,52 +150,6 @@ export default function Rules() {
     </SectionCard>
   )
 
-  function WeekPicker({ r }: { r: RuleConfigItem }) {
-    const current = r.days ?? []
-    const selected = draftDays[r.id] ?? current
-    const dirty = draftDays[r.id] !== undefined && draftDays[r.id].join() !== [...current].sort((a, b) => a - b).join()
-    const groupId = `rule-${r.id}`
-    return (
-      <div className="flex flex-col gap-2 sm:items-end">
-        <div role="group" aria-labelledby={`${groupId}-label`} className="flex flex-wrap gap-1.5">
-          {WEEK_ORDER.map((d) => {
-            const on = selected.includes(d)
-            return (
-              <label
-                key={d}
-                className={`inline-flex h-9 items-center gap-1.5 rounded-md border px-2.5 text-sm ${canEdit ? 'cursor-pointer' : ''} ${on ? 'border-primary bg-primary/10 font-medium' : 'text-muted-foreground'}`}
-              >
-                <input
-                  type="checkbox"
-                  className="size-4 accent-[var(--primary)]"
-                  checked={on}
-                  disabled={!canEdit}
-                  onChange={(e) => {
-                    const next = e.target.checked ? [...selected, d] : selected.filter((x) => x !== d)
-                    setDraftDays((m) => ({ ...m, [r.id]: [...new Set(next)].sort((a, b) => a - b) }))
-                  }}
-                />
-                {dayName(d)}
-              </label>
-            )
-          })}
-        </div>
-        {canEdit && (
-          <Button
-            size="sm"
-            className={dirty ? '' : 'invisible'}
-            aria-hidden={!dirty}
-            tabIndex={dirty ? 0 : -1}
-            disabled={(draftDays[r.id]?.length ?? 0) === 0}
-            onClick={() => update.mutate({ id: r.id, days: draftDays[r.id] })}
-          >
-            {t('Save', 'حفظ')}
-          </Button>
-        )}
-      </div>
-    )
-  }
-
   return (
     <section className="flex flex-col gap-4">
       <SubPageHeader
@@ -171,9 +176,15 @@ export default function Rules() {
                     <li key={r.id} className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between">
                       <div className="flex min-w-0 flex-col gap-0.5">
                         <div className="flex flex-wrap items-center gap-2">
-                          <label id={r.days ? `${inputId}-label` : undefined} htmlFor={canEdit && !r.days ? inputId : undefined} className="text-sm font-medium">
-                            {L(r.label)}
-                          </label>
+                          {r.days ? (
+                            <span id={`${inputId}-label`} className="text-sm font-medium">
+                              {L(r.label)}
+                            </span>
+                          ) : (
+                            <label htmlFor={canEdit ? inputId : undefined} className="text-sm font-medium">
+                              {L(r.label)}
+                            </label>
+                          )}
                           {r.proposed && <ProposedBadge />}
                         </div>
                         <span className="font-mono text-xs text-muted-foreground">{r.source}</span>
@@ -181,7 +192,14 @@ export default function Rules() {
                       </div>
                       <div className="flex shrink-0 items-center gap-2">
                         {r.days ? (
-                          <WeekPicker r={r} />
+                          <WeekPicker
+                            rule={r}
+                            selected={draftDays[r.id] ?? r.days}
+                            canEdit={canEdit}
+                            dayName={dayName}
+                            onChange={(days) => setDraftDays((m) => ({ ...m, [r.id]: days }))}
+                            onSave={() => update.mutate({ id: r.id, days: draftDays[r.id] })}
+                          />
                         ) : canEdit ? (
                           <>
                             <Input
