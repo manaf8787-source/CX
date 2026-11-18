@@ -24,15 +24,28 @@ No environment variables are needed — there is nothing to configure yet, since
 
 React 19 + TypeScript + Vite, **Tailwind CSS v4 + shadcn/ui** (Radix primitives, components copied into `src/components/ui/`), `motion` for animation, React Router, TanStack Query, TanStack Table, Recharts, React Hook Form + Zod, Lucide icons. Theming, i18n/RTL and roles use React Context (no Zustand).
 
-The UI moved from hand-written CSS to Tailwind CSS v4 + shadcn/ui by Manaf's decision on 17 Nov 2026; the migration is complete and no legacy stylesheet remains. Design direction (palette use, type, density, motion, accessibility checks) was guided by the [`ui-ux-pro-max`](../.claude/skills/ui-ux-pro-max/) skill installed in this repo, adjusted for a bilingual enterprise dashboard. Every page is lazy-loaded per route. **All UI conventions are in [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md)**, including how to add shadcn components and pages.
+The UI moved from hand-written CSS to Tailwind CSS v4 + shadcn/ui by Manaf's decision on 17 Nov 2026; the migration is complete and no legacy stylesheet remains. Every page is lazy-loaded per route. The look since 18 Nov 2026 is the Meo-inspired design (next section); [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md) still holds the RTL, motion, sign-in and how-to-add-a-component notes.
+
+## Design (Meo-inspired, 18 Nov 2026)
+
+Monochrome ink on white, two materials (light raised and dark raised; **selected = dark**), pill controls, large nested radii, shadow rings instead of borders (the only line is the 1px row divider), Plus Jakarta Sans at weights 400 and 500, one spring for state changes. Colour is categorical: product dots, status tags, a few chart categories. The skill is a design language only (no Meo name, logo or copy); the real PSI brand colour has one swap point, `--brand-accent*` in `src/styles/theme.css` **[Proposed]**.
+
+| Where | What |
+|---|---|
+| [`docs/MEO_DESIGN_SYSTEM.md`](docs/MEO_DESIGN_SYSTEM.md) | **The binding reference**: tokens, the classes pages must use, primitives, shell, shared components, charts, the phone composition, known exceptions, deviations from the skill with reasons, the audit gate (greps and the runtime check) |
+| [`docs/MEO_DESIGN_PLAN.md`](docs/MEO_DESIGN_PLAN.md) | The plan and the decisions where the skill and the product disagree |
+| [`docs/MEO_PAGES_A.md`](docs/MEO_PAGES_A.md), [`B`](docs/MEO_PAGES_B.md), [`C`](docs/MEO_PAGES_C.md) | What each page did with the system |
+| [`docs/IMPLEMENTATION_REPORT.md`](docs/IMPLEMENTATION_REPORT.md) section 15 | Steps, counts, gates, findings |
+
+Where the product wins over the skill: Arabic uses IBM Plex Sans Arabic with zero letter-spacing (Plus Jakarta Sans has no Arabic glyphs and tracking breaks joining), form fields keep a visible 1px edge ring (WCAG 1.4.11), the framed layout above 1440px is capped at 1600px, a dark theme is derived, and a phone shows stacked rows instead of a 10-column table. Dark theme and RTL are first-class: every change is checked light and dark, EN and AR, at 1440, 1024 and 390px.
 
 ## Testing
 
 | Command | What it runs | Time |
 |---|---|---|
-| `npm test` | **610 tests in 55 files.** Vitest + Testing Library in jsdom: the business rules (pattern thresholds, runaway types, 60-day effectiveness, due-date clocks, mystery-shopper scoring, close-the-loop capacity and sampling), role permissions and page access, the sample session, i18n completeness, the assistant engine, and component tests (KpiTile, DataTable, sign-in, Timeline role gating) | ~25 s |
+| `npm test` | **678 tests in 59 files.** Vitest + Testing Library in jsdom: the business rules (pattern thresholds, runaway types, 60-day effectiveness, due-date clocks, mystery-shopper scoring, close-the-loop capacity and sampling), role permissions and page access, the sample session, i18n completeness, the assistant engine, and component tests (KpiTile, DataTable, sign-in, Timeline role gating) | ~25 s |
 | `npm run test:coverage` | the same, with v8 coverage for `src/utils`, `src/lib`, `src/auth` | ~4 s |
-| `npm run test:e2e` | Playwright (Chromium) against a production build served by `vite preview` on port 4321: **334 of 334 passed.** Sign-in flow, all 33 routes in English and Arabic, the v40 specs (`v40-foundation`, `v40-orientation`, `v40-trace`, `v40-people`, `v40-integration`), role gating, the assistant, reduced motion; an **axe-core WCAG 2.1 AA scan** of every route in English/Arabic × light/dark plus the login page and dialogs (fails on any serious or critical violation); and a **keyboard-only** spec (skip link, sidebar, tabs, table sort, dialog focus trap and return, assistant) | ~3 min plus the build (6 workers) |
+| `npm run test:e2e` | Playwright (Chromium) against a production build served by `vite preview` on port 4321: **413 of 413 passed** (twice in a row). Sign-in flow, every one of the 33 routes in English and Arabic (one test each), the phone composition and the Meo restyle checks (`meo-restyle`), the v40 specs (`v40-foundation`, `v40-orientation`, `v40-trace`, `v40-people`, `v40-integration`), role gating, the assistant, reduced motion; an **axe-core WCAG 2.1 AA scan** of every route in English/Arabic × light/dark plus the login page and dialogs (fails on any serious or critical violation); and a **keyboard-only** spec (skip link, sidebar, tabs, table sort, dialog focus trap and return, assistant) | ~3 min plus the build (6 workers) |
 | `npm run check` | typecheck, lint, unit tests, build | ~10 s |
 
 Unit tests live next to the code (`*.test.ts(x)`); shared helpers are in `src/test/`. End-to-end specs are in `e2e/`.

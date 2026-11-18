@@ -327,7 +327,7 @@ Analysis: `docs/V40_DELTA.md` (36 features, F01 to F36). Contract: `docs/V40_FOU
 | `npm run build` | green |
 | `npm run test:e2e` (default port 4321, fresh build) | 334 of 334 passed; new spec `e2e/v40-integration.spec.ts` |
 
-Counts over time: 141 unit and 135 e2e at the v38 close (pass I); 355 and 188 after the foundation; 610 and 334 now. With ten parallel browsers (Playwright's default on this 20-core machine, beside several dev servers) four or five tests per run stalled on a page stuck at "Loading…" and passed alone; `playwright.config.ts` now caps the workers at 6 (`E2E_WORKERS` overrides it), and the full suite is green at 6.
+Counts over time: 141 unit and 135 e2e at the v38 close (pass I); 355 and 188 after the foundation; 610 and 334 after v40; 678 and 413 after the Meo restyle (section 15). With ten parallel browsers (Playwright's default on this 20-core machine, beside several dev servers) four or five tests per run stalled on a page stuck at "Loading…" and passed alone; `playwright.config.ts` now caps the workers at 6 (`E2E_WORKERS` overrides it), and the full suite is green at 6.
 
 ### 14.4 Decisions of 18 Nov applied
 
@@ -360,9 +360,77 @@ Counts over time: 141 unit and 135 e2e at the v38 close (pass I); 355 and 188 af
 | No verdict buttons (effective, partial, failed) on a fix | Agent 6's call; only the seeded verdicts exist |
 | Matrix and mapping edits live in the session | as in the prototype; the matrix keeps a confirmation stamp, edits are not audited |
 | The Arabic titles of the matrix, the owner lookup and the new copy | written for this build, need native review |
-| The inbox is a table that scrolls sideways on a phone, not cards | F34 asked for scroll |
+| The inbox is a table that scrolls sideways on a phone, not cards | F34 asked for scroll; **superseded by the Meo restyle (section 15): a phone gets stacked rows** |
 | "Due" dates use the browser locale format | |
 | Radix Select cannot be driven in jsdom | the environment switch is proved in e2e |
 | Mapping "unmapped values" queue | the page shows rows set to Ignore; no list of unseen values (no data) |
 | Home shows each live product's card to roles without a product (CX, Executive, Marketing) | one line in `pages/Home.tsx` if Marketing should not read NPS there |
 | Ten parallel e2e workers can starve on a busy machine | the config caps them at 6, see 14.3 |
+
+## 15. Meo-inspired restyle (18 Nov 2026)
+
+Source: `meo-admin-design-skill/` (a design language only; no Meo name, logo or copy). Plan: `docs/MEO_DESIGN_PLAN.md`. Rules, tokens, components, exceptions and deviations: **`docs/MEO_DESIGN_SYSTEM.md`**. Page notes: `MEO_PAGES_A.md`, `MEO_PAGES_B.md`, `MEO_PAGES_C.md`. No business logic, data, route, permission or hook changed.
+
+### 15.1 Steps
+
+| Step | What | Where |
+|---|---|---|
+| 1 | Tokens in `theme.css` (colours, radius ladder, shadow stacks, gradients, motion, density), Plus Jakarta Sans 400/500 self-hosted, Arabic tracking 0, global focus ring, derived dark theme | `styles/`, `public/fonts/` |
+| 2 | 26 primitives restyled in place, plus `checkbox`, `radio-group`, `segmented` | `components/ui/` |
+| 3 | Shell: light 220px sidebar with one sliding dark pill, 56px rail, 60px top bar, framed layout above 1440px, phone sheet | `components/layout/` |
+| 4 | Shared components (KpiTile, DataTable, StatusBadge, StepStrip, NextBox, EmptyState ...) and the chart kit | `components/common/` |
+| 5 | Pages, three workstreams (A: Home, people, loop; B: Actions, trace, six settings pages; C: settings and reference, Surveys) | `pages/` |
+| 6 | Consolidation and QA (this section) | everywhere under `React-Frontend/` |
+
+### 15.2 Consolidation pass
+
+**Shared code (once, then the local copies were deleted).** `KpiTile variant well|dark` (`StatWell` deleted); `RankedBars layout stacked`, `wrap`, `labelWidth` (`StackedBars`, Surveys' `BarList` body and the Intelligent CX team list deleted); one `common/InlineNote` (three existed) and `common/StepPills`; `Segmented variant="pressed"` (`PressFilter` deleted) and the sliding pill now watches `aria-pressed`; `TraceId surface="well"`; classes `ring-selected`, `ring-within`, `row-divider-well`, `scroll-fade`; `SettingsSection actions`; `RouteTabs end` (`CustomersTabs` reuses it); `DataTable` pinned column (`meta.sticky`), optional `density` and a `phone` composition; `Table` density inherited from the page; `StatusBadge` dot and icon together (`SourceBadge`, `LeadSourceBadge` use it); `Button roll={false}`; chips on the dark card by one CSS rule. Small gaps: the What-if hint said "bold" (now "the dark one", EN and AR), matrix text cells are growing fields instead of 150px inputs that cut long titles, the heatmap has a legend.
+
+**Legacy shim.** The light-theme `bg-primary/10` shim in `theme.css` is deleted; no tint class remains (grep, section 17 of the design doc).
+
+**Phones.** Close the loop, Inbox, Personas (and the Signals table) show stacked two-line rows with the action visible and the other columns behind "Details"; above 809px the table is unchanged. This overrides v40 F34 ("the inbox scrolls sideways on a phone") on request.
+
+**Global audit.** Greps and a runtime audit of all 396 page states (33 routes x EN/AR x light/dark x 1440/1024/390): no element with a border width, weights only 400 and 500 (62,788 text nodes), Arabic letter-spacing 0 everywhere, no page-level sideways overflow, no element past the viewport edge outside a scroller, no console error. Spacing: every padding, margin and gap is on the skill's scale or is one the skill itself specifies (13px segment padding, 9px button gap, 36px input with icon). Radii are all on the ladder. Fixed by the audit: 47 `outline-none` (became `outline-hidden`, so forced-colours users keep a focus outline), 19 arbitrary radius values (6, 10, 12, 14, 20 and 28px), the dark card's chip override, the skip link (flat ink, now the dark material). Deliberate exceptions are listed in design doc section 15.
+
+### 15.3 What the browser pass found and fixed
+
+| Defect (seen in screenshots, not by the tests) | Fix |
+|---|---|
+| Every input lost its bottom edge: the 1px lip shadow sat before the field ring and painted over it | Ring first, lip second (`--shadow-field`, `--shadow-field-invalid`) |
+| Top bar at 1024px: workspace name, search placeholder and feeds text all truncated | Collapse thresholds 1000 and 900 became 1180 and 1120 (container width); on a phone the workspace name may be 13rem |
+| Assistant drawer was 10px wider than a phone (a `w-full` overrode the width), cut on the left in English and the right in Arabic | Class removed; the subtitle wraps instead of being clipped |
+| Native search clear button was the browser's blue cross | A grey 14px cross (colour is categorical here) |
+| Light tags on the dark Daily brief card kept a blue icon (a utility class beat the component rule) | The icon rule lives in the utilities layer; the `TINT_CHIP` override is gone |
+| Close the loop: the 10-column table hid the Call button off the edge, and the pinned column sat mid-table | Call is the last column and pinned to the end edge; a phone gets stacked rows |
+| Hand-offs trigger: the chevron sat alone on a line above the title on a phone | Title and note wrap together beside the chevron |
+| Page tabs and filters scrolled sideways with no sign that more was there | The strip fades the edge that has content (works in RTL) |
+| Skip link was flat ink | `material-dark` |
+
+### 15.4 Gates
+
+| Gate | Result |
+|---|---|
+| `npm run check` | green: typecheck, lint (the 3 known fast-refresh warnings only), **678 unit tests in 59 files** (660 before this pass: 18 new in `meoShared.test.tsx`; two racy tests made to wait: `CustomersPages`, `WhatIfCard`), build |
+| `npm run test:e2e` (port 4321, 6 workers, trace on failure) | **413 passed, twice in a row** (3.0 min each plus the build). 334 before the restyle; 79 more: the two "all 33 routes" tests are now 66 one-route tests (they timed out at 120 s with tracing on a busy machine), 7 phone no-overflow tests, 9 in the new `meo-restyle.spec.ts`. One test changed: the inbox at phone width now expects stacked rows, not a table |
+| axe WCAG 2.1 AA | 0 serious or critical on every route, EN/AR x light/dark, login, dialogs |
+| Lighthouse 13.6, desktop | Home 100, Signals 97 (four runs alternating with the pre-restyle build: 97, 97, 97, 99 against 97, 97, 98, 96) |
+| Lighthouse 13.6, mobile (4x CPU) | Home 86 (85, 86, 87), Signals 66 (66, 66, 67). The pre-restyle build, measured in the same session: Home 82 to 83, Signals 65. Accessibility and Best Practices 100 on all of them. The Signals page is still about 1.2 s of blocking time under throttling (React rendering 11 patterns, tiles, a chart and a table), as noted in section 12.3; the earlier 88 to 89 was measured on a quieter machine (this one runs several stale dev servers) |
+| Bundle | initial JS (entry plus the chunks the HTML preloads) **274.1 KB gzip**, 271.4 KB before the restyle (+2.7 KB); entry plus React vendor 156.2 KB; CSS 23.9 KB gzip (18.5 before) |
+| Fonts | 6 woff2 files, **130.6 KB** in all (294.5 KB before): Latin 400 and 500 are 23.5 KB (preloaded), Latin Extended 20.9 KB (on demand), Arabic 400 and 500 86 KB (only for Arabic sessions) |
+
+The "about 215 KB" target for initial JS was set against the section 12.3 measure (entry and a few shared chunks); with v40's shared chunks preloaded the same build measured 271 KB before the restyle began, so the restyle did not move it by more than 3 KB.
+
+### 15.5 Remaining gaps
+
+| Gap | Note |
+|---|---|
+| Mobile Lighthouse Signals 66 (target 85) | Parity with the pre-restyle build (65) in the same session; needs the pattern list virtualised or collapsed, a design decision (section 12.3) |
+| Wide registers scroll inside their card: escalation matrix (about 950px at 1440 beside the settings menu), the two access matrices, Standards register, Feeds, Public mentions under about 1200px | By design: cards scroll, the page never does; the strip fades the edge |
+| New Arabic strings ("Details", the heatmap legend, "the dark one is the current setting") | Need native review, like the other new copy |
+| The N/A answer in the shopper form has `aria-label="Not applicable"` but the visible text "N/A" (axe label-content-name-mismatch) | Pre-existing, left because aria attributes were not to change; the route is not in the axe list |
+| Home "Your work today": a long header action squeezes the heading on a phone | Cosmetic; `SectionCard` could stack actions under the title below 640px |
+| Radix tab triggers show the focus ring after a mouse click | Known system behaviour |
+
+### 15.6 Where the skill and the product conflict (decided here)
+
+Arabic needs another font and zero tracking (the skill's Latin type rules cannot apply); form fields need a visible edge (the skill has none; WCAG 1.4.11); the frame is capped at 1600px, not 1440; a 10-column table cannot be a table at 390px, so phones get stacked rows; ink replaces navy and gold as a **[Proposed]** swap point for the real brand. The full list with reasons is design doc section 16.

@@ -1,5 +1,7 @@
 # Meo-inspired design: pages C (settings and reference, Surveys) (18 Nov 2026)
 
+> **Consolidation pass (18 Nov 2026):** the shared requests and most known gaps below were closed in shared code; where each landed is in `MEO_DESIGN_SYSTEM.md` section 12 ("Shared requests ... where each landed"), the phone composition in section 14. Still open: the wide registers (matrices, Standards register, Feeds) scroll inside their card (section 15).
+
 Step 5 of `MEO_DESIGN_PLAN.md`, workstream C. Composition only: every string, aria attribute, role, test id, route, hook and permission check is unchanged. Rules used: `MEO_DESIGN_SYSTEM.md` sections 2, 4, 12, 13, 14 and the skill's `admin-dashboard-adaptation.md` sections 3 to 6.
 
 Files: `src/pages/settings/{AccessMatrix, AdminSettings, AiInsightsAccess, CrmMapping, Feeds, Glossary, HrTeamPerf, Ld, MysteryShopper, PublicMentions, SettingsLayout, Standards, StandardsRegister, SubPageHeader, SurveyQuestions, SurveysReference, TeamsStructure, WeeklySample}.tsx` and `src/pages/Surveys.tsx`. No test file needed a change (116 unit tests in `settings` and `components/common` pass unchanged).

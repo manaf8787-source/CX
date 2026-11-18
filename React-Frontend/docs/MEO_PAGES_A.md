@@ -1,5 +1,7 @@
 # Pages A: step 5 of the Meo-inspired design (18 Nov 2026)
 
+> **Consolidation pass (18 Nov 2026):** the shared requests and most known gaps below were closed in shared code; where each landed is in `MEO_DESIGN_SYSTEM.md` section 12 ("Shared requests ... where each landed"), the phone composition in section 14. Still open: the wide registers (matrices, Standards register, Feeds) scroll inside their card (section 15).
+
 Scope: Home, Login, My inbox, Overview wrapper, Customers (list and person), Who is leaving, Personas and campaigns, Product page, Intelligent CX team, Close the loop. Composition only: every string, aria attribute, role, test id, route, hook and permission check is unchanged. Rules and tokens: `MEO_DESIGN_SYSTEM.md`; this file records what each page did with them. Marks: **derived** = a choice not in the skill.
 
 ## Files

@@ -13,7 +13,7 @@ Marks: **measured** = from the skill's reference site, **derived** = added by us
 | `src/components/common/{InlineNote,StepPills,StackedRows}.tsx` | The one inline note, the pill stepper and the phone row list (promoted from the page folders in the consolidation pass) |
 | `src/components/ui/ui.test.tsx` | Unit tests of the new behaviour: label roll, loading, density, selection controls, RTL arrow keys |
 
-Font: `@fontsource/plus-jakarta-sans` **5.3.0** (published 19 Jul 2026), pinned in `devDependencies`; the four woff2 files are copied unchanged into `public/fonts/` (see the header of `fonts.css` to update). Removed: IBM Plex Sans (Latin, 4 weights), IBM Plex Sans Arabic 600 and 700, IBM Plex Mono: about 150 KB less than before. `font-synthesis: none`, so a stray `font-bold` cannot fake a weight.
+Font: `@fontsource/plus-jakarta-sans` **5.3.0** (published 19 Jul 2026), pinned in `devDependencies`; the four woff2 files are copied unchanged into `public/fonts/` (see the header of `fonts.css` to update). Removed: IBM Plex Sans (Latin, 4 weights), IBM Plex Sans Arabic 600 and 700, IBM Plex Mono: the six woff2 files total 130.6 KB, 164 KB less than before (294.5 KB): Latin 400 and 500 are 23.5 KB, Latin Extended 20.9 KB (on demand), Arabic 86 KB (Arabic sessions only). `font-synthesis: none`, so a stray `font-bold` cannot fake a weight.
 
 ## 2. Rules (the skill's, as applied here)
 
@@ -188,6 +188,21 @@ Same exports and props as before; additive props are marked. `components/common/
 | `LangSwitch`, `ThemeSwitch`, `RoleSwitch` | Light pill with the language name (a 36px round icon below 1024px); 36px round icon button + menu; 36px select. All keep their accessible names |
 | `AnimatedValue` | Unchanged (the unit cannot be split from the number without changing the text nodes the tests read) |
 | `AssistantPanel` | Floating drawer (10px from the edge, radius 24, **never wider than the screen minus 20px**: a `w-full` class had made it overflow by 10px on a phone), 60px header with the dark mark (the subtitle wraps instead of being cut), the conversation in a **well**, bubbles in the two materials (yours dark, the assistant's light, radius 20 with a 5px tail), suggestions as light pills, the voice button turns dark while listening. `AssistantResult` cards are white cards in the well, rows use `row-divider` |
+
+### Shared requests from the page engineers: where each landed (consolidation pass)
+
+| Request (A, B, C) | Now |
+|---|---|
+| `KpiTile` variants `well` and `dark`; `StatWell` | `KpiTile variant`; `StatWell` deleted |
+| `RankedBars` wide or wrapping labels; `StackedBars`, Surveys `BarList`, the Intelligent CX team list | `RankedBars layout, wrap, labelWidth`; the copies are gone (Surveys keeps a 6-line adapter) |
+| One `InlineNote` (three existed); `StepPills` | `common/InlineNote`, `common/StepPills`; the home, login, customers, personas, rules-pointer and AI-team notes use it |
+| `PressFilter` as a `Segmented` variant; the sliding pill must watch `aria-pressed` | `Segmented variant="pressed"`; `PressFilter` and the `data-active` workaround deleted |
+| `TraceId` on a well; a named selected ring; a label-wrapped focus ring | `TraceId surface="well"`; `ring-selected`; `ring-within` |
+| `SettingsSection` actions slot; `RouteTabs end` | `actions` (Decision 4's Open pill moved to the heading); `end` (`CustomersTabs` reuses `RouteTabs`) |
+| `DataTable` pinned action column; `Table` density from the page | `meta.sticky` (Close the loop, Call is now the last column); density inherited |
+| `StatusBadge` dot and icon; `Button roll={false}` | both; `SourceBadge` and `LeadSourceBadge` are `StatusBadge`; the `span` workarounds on Home and Login are gone |
+| `row-divider` on a well; chip tints on the dark card | `row-divider-well`; the `.surface-dark` rule (the Daily brief's `TINT_CHIP` override is gone) |
+| What-if hint says "bold"; matrix inputs cut long titles; heatmap without a legend | "the dark one is the current setting" (EN and AR); text cells are growing fields; a legend under the heatmap (NPS 30 or more, 0 to 29, below 0) |
 
 ## 13. Charts
 

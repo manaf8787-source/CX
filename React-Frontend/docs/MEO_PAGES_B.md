@@ -1,5 +1,7 @@
 # Meo-inspired design: pages workstream B (18 Nov 2026)
 
+> **Consolidation pass (18 Nov 2026):** the shared requests and most known gaps below were closed in shared code; where each landed is in `MEO_DESIGN_SYSTEM.md` section 12 ("Shared requests ... where each landed"), the phone composition in section 14. Still open: the wide registers (matrices, Standards register, Feeds) scroll inside their card (section 15).
+
 Step 5 of `MEO_DESIGN_PLAN.md` for the Actions area, the Trace and signal components, and six settings pages. Source rules: `MEO_DESIGN_SYSTEM.md` (sections 2, 4, 12 to 14) and the skill. No strings, aria attributes, roles, test ids, routes, hooks or permission checks changed; only layout, classes and markup structure. Marks: **derived** = a choice made here that the skill does not state.
 
 ## Files
