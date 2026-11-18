@@ -38,7 +38,7 @@ export function StepStrip({ current, size = 'full', className }: StepStripProps)
           const done = currentIndex >= 0 && i < currentIndex
           const body = (
             <>
-              <span className="flex items-center gap-2 text-sm font-medium">
+              <span className={cn('flex items-center gap-2 text-sm font-medium', small && 'gap-1.5 whitespace-nowrap sm:gap-2')}>
                 {done && (
                   <span aria-hidden className="material-dark inline-grid size-5 shrink-0 place-items-center rounded-full">
                     <Check className="size-3 stroke-[2.2]" />
@@ -51,7 +51,7 @@ export function StepStrip({ current, size = 'full', className }: StepStripProps)
           )
           const cls = cn(
             'flex h-full min-w-0 flex-col justify-center gap-0.5 text-start outline-none transition-[background-color,color] duration-200',
-            small ? 'min-h-9 rounded-full px-3.5 pt-1 pb-1.5' : 'min-h-14 rounded-well px-3.5 py-2.5',
+            small ? 'min-h-9 rounded-full px-2.5 pt-1 pb-1.5 sm:px-3.5' : 'min-h-14 rounded-well px-3.5 py-2.5',
             on ? 'material-dark' : small ? 'bg-card text-foreground shadow-hairline' : 'bg-well text-foreground',
           )
           const to = `${step.to}${step.hash ?? ''}`

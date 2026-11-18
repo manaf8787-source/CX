@@ -1,6 +1,6 @@
 # Design system: Meo-inspired (binding for every page)
 
-Status: step 1 and 2 of `MEO_DESIGN_PLAN.md` (18 Nov 2026), tokens and primitives. Source: `meo-admin-design-skill/` (SKILL.md, `references/`, `tokens/`). A design language only: no Meo name, logo, photos or copy.
+Status: steps 1 to 4 of `MEO_DESIGN_PLAN.md` (18 Nov 2026): tokens and primitives (sections 1 to 10), shell (11), shared components (12), charts (13); section 14 is the page migration checklist for step 5. Source: `meo-admin-design-skill/` (SKILL.md, `references/`, `tokens/`). A design language only: no Meo name, logo, photos or copy.
 Marks: **measured** = from the skill's reference site, **derived** = added by us (dark theme, density, status text shades, field ring, destructive dialog, collapsed rail). It supersedes `DESIGN_SYSTEM.md` sections 2 (tokens), 3 (type, radius) and the colour parts of 5 and 6; the rest of that file (RTL, motion code, sign-in, adding components) still holds.
 
 ## 1. Files
@@ -140,6 +140,83 @@ Status tints are dark mixes (`#0f2a1d` success, `#0f1d33` info, `#2b1d0c` warnin
 | `font-mono` | No mono webfont. Existing `font-mono` uses fall back to the system mono stack until the page steps move ids to `tabular` |
 | Tab focus ring after a mouse click | Radix Tabs triggers match `:focus-visible` after a click in Chromium; the ring is the system ring, so it shows. Native buttons, switches, checkboxes and `Segmented` do not |
 
-## 10. Hand-off to steps 3 to 5
+## 10. Hand-off to steps 3 to 5 (done for 3 and 4: see sections 11 to 13)
 
 Shell: use `Sidebar*` primitives as they are (active pill, rail, group label), `useSlidingIndicator` for the sliding pill, `Segmented` for filters; pass `aria-label` to every `Progress`. Common components: `StatusBadge` should become `Badge` variants or `pill-*`; `RouteTabs` should use the `TabsList` look (and `useSlidingIndicator`); `TraceId`, emails and codes: `tabular` instead of `font-mono`. Pages: drop `border` classes and repeated cards (use `CardWell`, `row-divider`), set `density`, keep strings and logic untouched.
+
+## 11. Shell (step 3, 18 Nov 2026)
+
+Files: `src/components/layout/{Shell,Sidebar,TopBar,AsOfBar,UserMenu,UiProviders}.tsx`, hooks `useViewportMode.ts`, `useScrollEdge.ts`, `sidebarState.ts`. Tests: `layout/Shell.test.tsx`, `AsOfBar.test.tsx`.
+
+| Part | What it is |
+|---|---|
+| Grid | `220px 1fr` (`--sidebar-w`), `56px 1fr` as a rail, one column on a phone; the column width animates on the spring (reduced motion: it jumps). The **window** scrolls (not an inner box), so a page's own `sticky` elements keep working. The page is white, the sidebar `#f6f6f6`, no divider |
+| Framed variant (derived) | Only above 1440px: page `#f6f6f6` with 22px padding, the app in a frame (radius 26, padding 10, `shadow-window`), inner surface radius 18 + hairline, frame at most 1600px wide (the skill's mock uses 1440; a data tool needs the width). At or under 1440px the same wrappers add nothing |
+| Landmarks | A skip link (first tab stop, targets `main#main`; the focus ring is suppressed on `main` itself), one `nav` ("Main navigation": brand, menu, role card), one `header` (the top bar, outside `main`, so it really is the banner), one `main` |
+| Content | Padding 20 / 24 / 32 (phone / tablet / desktop). Reading width at most 1320px. A page that needs the full width (a wide table) puts `data-fluid-page` on its root element: `main` drops the cap through `has-[[data-fluid-page]]` |
+| Widths (skill, measured breakpoints) | **Desktop >= 1200**: 220px sidebar, collapsible to the 56px rail by a 26px light round button (remembered in `localStorage` key `psicx.sidebar`; every access is in try/catch, it works without storage). **Tablet 810-1199**: always the rail; its button opens the full menu as a floating drawer. **Phone <= 809**: no sidebar; the header's menu button (`aria-label` "Toggle navigation") opens a **full-screen sheet**. Both are Radix dialogs: Esc closes, focus is trapped and returned to the button that opened it. Ctrl/Cmd+B toggles the rail on desktop and the sheet on the other two |
+| Sidebar | Brand row (our own text mark: a 22px dark tile with "CX", "PSI CX Portal", the prototype caption). Group headings are `label-style`. Items 36px radius 8, 16px icons stroke 1.7, grey idle, hover `rgba(0,0,0,.04)`, **active = ONE dark pill that slides on the spring** (`useSlidingIndicator`, physical coordinates, so right in RTL) with white text and `aria-current="page"` (NavLink). Until the pill is measured the active item paints the material itself. Products show their 6px hue dot instead of an icon (dots only). The component supports nested items (indent 26, 32px, a dot on the active child) and counts (`SidebarNavNode.children`, `.count`), but `data/nav.ts` has neither, and `e2e/v40-foundation` asserts that the last sidebar link is "Settings and reference", so nothing nested renders today |
+| Bottom card | The skill's usage card (light material, radius 10, padding 10): "Viewing as (demo)", the role select, "Sample data only" |
+| Top bar | 60px, padding `0 18px`, white, sticky (static on a phone). Left: **AsOfBar** is now the workspace selector: a 30px round tile, the environment as the 14/500 name, "Environment" as the 13px meta line, a chevron (it is still the Radix Select, the accessible name stays "Environment"), then "Data as of ..." (14px sync icon + text) and the feeds state (tinted tag "N feeds late or missing" that links to Data feeds when the role may open it, otherwise a green dot and "All feeds received"). A role fixed to one environment sees its name and a lock. Right: the search field (a real input: the inset well field with a light "Ctrl K" key-hint tag), language (light pill), theme (36px round icon button), the assistant (the one dark pill) and the profile menu (30px avatar, 2px ring) |
+| Responsive top bar | The bar is a CSS container named `bar`, so parts collapse by its width, not the window's (the sidebar changes the space): under 1000px the date becomes screen-reader text; under 900 the feeds text, the key hint and the assistant's label too (the dot or icon stays); under 640 (a phone) row 1 is menu, workspace, profile and row 2 is search and tools |
+| Hairline | The bar's bottom edge is a 1px `#ececec` shadow, drawn only while content scrolls beneath it (a 1px sentinel above the bar and an IntersectionObserver, no scroll listener) |
+| Toasts | `UiProviders` offsets the toaster by `--toast-inline` (the shell sets it to the sidebar's edge plus 16px, mirrored in Arabic), so a toast no longer covers the role card |
+
+## 12. Shared components (step 4)
+
+Same exports and props as before; additive props are marked. `components/common/skill.test.tsx` and `layout/Shell.test.tsx` assert behaviour (roles, names, aria state), not class names.
+
+| Component | Now |
+|---|---|
+| `PageHeader` | Heading 3 title (24, 22 tablet, 20 phone), 13px grey description; on the right the sample-data state and "What the terms mean" (light), then `actions` **last: pass the one primary pill as the last child and the others as `variant="outline"`**. `eyebrow` is `label-style` |
+| `KpiTile` | Card; label (small strong, grey) with an optional 30px light icon tile or **`delta`** (light tag, additive); the value (44 comfortable / 32 dense, `tabular`, counted up) with an optional **`unit`** (additive); `sub`; `children` go in a well. `accent` is now the **6px status dot** before the label, never a tint: pass it only when the colour means something. Hover nudges the label 3px (spring) and shows the arrow. Value and delta sit in `bdi`, so "+29" keeps its sign in Arabic |
+| `SectionCard` | Card -> well -> text. **`density`** (additive; otherwise it inherits `data-density`) and **`well`** (additive: the content sits in a well). Title is `t-card-title` (22 / 17) |
+| `DataTable` | The skill's table (section 5): no border, 13px grey header, row dividers, pill hover, numeric columns (`meta.align: 'end'`) right-aligned `tabular text-foreground font-medium`. Sort button with a 12px chevron (on hover, focus, or when sorted) and `aria-sort` on the `th`. Pager: "1-10 of 23" and 32px round buttons, the current page dark (`aria-current="page"`), numbered buttons from `sm` up. **`stickyHeader`** (additive): the table scrolls in a box of at most 70vh, the header is white and gains a 1px line once rows scroll under it. Additive change in `ui/table.tsx`: `containerClassName`, and the keyboard tab stop also appears for vertical overflow |
+| `StatusBadge`, `Chip`, `AgentChip`, `DayChip`, `ProductTag`, `ProposedBadge`, `TraceId` | One 24px pill. Quiet tones (success, info, neutral) are a **light tag**, success and info with a 6px dot. Only **warning and danger are tinted** (states that need action). `ProposedBadge` is a plain light tag (it marks status, it does not alarm). `TraceId` is a flat grey tag with tabular figures (no mono face). `StatusBadge` carries `data-slot="status-badge"` and `data-tone` |
+| `StepStrip` | The stepper: the current step is the dark material, a completed step has a 20px dark check circle, the rest are wells (white pills inside the next-step well). Still links where the role may open the page; `aria-current="step"` |
+| `NextBox` | A well (not a coloured banner) with the small strip and a 6px ink dot before "Next step:" |
+| `RouteTabs` | Page-level tabs: white pill track, ONE sliding dark pill (`useSlidingIndicator`), `aria-current="page"` |
+| `EmptyState` | Dot-grid motif in a well (14 columns of 10px dots, a few lit), Heading 4, Body M (max 420), one action. `icon` (optional) sits in a 30px light circle on the motif |
+| `ErrorState` | A well with a 30px light circle and a 14px alert icon, Heading 4, the message, one primary "Try again" (`role="alert"`) |
+| `LoadingState` | Skeleton rows with matching radii (circle, 6px text lines at 60 and 40%, pill); `role="status"` kept |
+| `SampleBanner` | The inline notification: a well with a 6px warning dot, sized to sit beside 36px pills |
+| `TermHelp`, `TermsButton` | "?" in an 18px light circle (30px hit area) and a popover; the glossary dialog's entries are wells |
+| `LangSwitch`, `ThemeSwitch`, `RoleSwitch` | Light pill with the language name (a 36px round icon below 1024px); 36px round icon button + menu; 36px select. All keep their accessible names |
+| `AnimatedValue` | Unchanged (the unit cannot be split from the number without changing the text nodes the tests read) |
+| `AssistantPanel` | Floating drawer (10px from the edge, radius 24): 60px header with the dark mark, the conversation in a **well**, bubbles in the two materials (yours dark, the assistant's light, radius 20 with a 6px tail), suggestions as light pills, the voice button turns dark while listening. `AssistantResult` cards are white cards in the well, rows use `row-divider` |
+
+## 13. Charts
+
+`components/common/chartTheme.ts` (presets) and `components/common/charts.tsx` (components). No page uses them yet: step 5 swaps each Recharts chart (Signals, AI Insights, Overview insights).
+
+| Export | Use |
+|---|---|
+| `ChartWell` | The chart inside a well inside its card; `height`, `legend`, `label` (names the group for assistive technology) |
+| `chartAxis`, `chartGrid` | Spread on `XAxis`/`YAxis` and `CartesianGrid`: no axis or tick lines, 12px `#6e6e6e` labels, horizontal gridlines only |
+| `chartArea`, `chartLine`, `chartLineMuted`, `chartLineReference` | Ink area (6% fill) over a 2px ink line; grey 1.5px line; dashed reference line |
+| `chartBar`, `chartBarMuted`, `HeroGradient`, `HERO_FILL` | Dark-gradient hero column (radius 6 on top) and grey columns at 62%. Render `<HeroGradient />` inside the chart |
+| `chartCursorLine`, `chartCursorBar`, `chartActiveDot` | Hover cursors and the 6px ink dot with a 2px ring |
+| `ChartTooltip` | Dark pill (light in the dark theme): label, a row per series with a 6px dot and a tabular value; `valueFormatter`, `labelFormatter` |
+| `ChartLegend` | 6px dots, 13px grey text; `items`, or Recharts' `payload` |
+| `chartColor(i)`, `CHART_SERIES`, `CHART_MAX_CATEGORIES` | Categorical colours: ink, grey, blue, amber only. From the fifth on it returns the light grey: use `RankedBars` or small multiples |
+| `RankedBars` | The skill's bar comparison, the answer to "more than four categories": label, 12px pill track, fill, **printed** value. The first row (or `hero`) is dark, the others grey at 62% |
+
+Contrast note (derived finding): grey at 62% on a well is about 2.2:1, below the 3:1 non-text guide. It is the skill's spec, so a series drawn that way must also print its values (a label or the tooltip); a series that carries the data alone should be the ink hero.
+
+## 14. Page migration checklist (step 5)
+
+Found while screenshotting Home, Signals, Customers, Close the loop, Overview and Login at 1440, 1024 and 390 in both languages and themes. Counts are files, from a grep of `pages/` and the page-owned component folders.
+
+| Heading | What to change |
+|---|---|
+| Borders (55 files) | Remove every `border`, `border-*`, `divide-*`, `border-dashed`. Use `row-divider` on rows, `well` for a group, `shadow-hairline` for a ring on something that has its own colour. Cards inside cards: keep the outer card, make the inner groups wells or dividers |
+| Coloured tints and banners (46 files) | `bg-info/8 border border-info/20` asides (`ScoresVsSignalsNotice`, Investigations, Shopper cases), `bg-warning/12`, `bg-success/..`, `bg-gold/..`: replace with an inline notification well (a 6px status dot + text) or a `StatusBadge`. No coloured backgrounds on groups, no coloured icons |
+| Tab and nav strips built by hand | `CustomersTabs` (white active tab on a well track) and the `SettingsLayout` side nav (`bg-accent` active with a gold left bar, `rounded-xl border`) must use the `RouteTabs` look or the dark sliding pill; no left bars |
+| Page chrome | Put `data-density="dense"` on the root of table and operations pages (Signals, Fixes, Close the loop lists, Customers list, registers) and `comfortable` on Home, Overview and settings; delete ad-hoc paddings. Put `data-fluid-page` on pages whose table needs the full width. Pass the one primary action last in `PageHeader` `actions`, the rest as `variant="outline"` |
+| KPI tiles | Drop `accent` unless the colour means something: about 60 call sites pass `var(--chart-1)`, `--chart-4`, `--warning`, `--info`, `--success` decoratively (each now shows a dot). Use `unit`, `delta` and the well for a mono chart |
+| Charts (3 files) | Replace the Recharts props in `Signals`, `AiInsights`, `OverviewInsights` with `chartTheme` and `ChartWell`; the per-product coloured lines (six hues) and the red/green bars in AI Insights must become ink + grey, or `RankedBars` / small multiples beyond four |
+| Own focus rings (26 files) | Delete `focus-visible:ring-[3px] focus-visible:ring-ring/50` and `outline-none` ring hacks: the system ring is global and these override it |
+| Weights and type (53 files) | `font-semibold` and `font-bold` resolve to 500 but should read `font-medium`; `uppercase` and `tracking-*` become `label-style`; `font-mono` ids become `tabular` (12 files); `text-gold-text` becomes ink |
+| Hand-made pills and tags | `inline-flex h-6 rounded-full border bg-info/10 ...` (FixCard's investigation link, LifecycleStepper's `partial` state) become `StatusBadge` or `pill-*` |
+| Hover lift | `hover:-translate-y-*` and `hover:shadow-md` on cards (3 files): cards do not lift |
+| Login | Outside the shell (no sidebar or top bar): it needs its own pass with the same materials |

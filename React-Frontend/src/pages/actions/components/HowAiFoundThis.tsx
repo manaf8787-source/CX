@@ -21,7 +21,10 @@ import { cn } from '@/lib/utils'
  *
  * v40 (F33, S17): a line of agent chips under the heading: Agent 3 (counted it), Agent 5 when the AI made the suggestion,
  * "CX Supervisor: 6 checks passed", and a "Who does what" button to the AI team page (only for roles that may open it).
- * The chips carry the agent name in the active language. */
+ * The chips carry the agent name in the active language.
+ *
+ * Composition: card -> well -> text. The whole panel is ONE well (the trigger row, the chips, the details), with no inner boxes.
+ * The system focus ring applies to the trigger; its hover is the light tint. */
 export function HowAiFoundThis({ actionId, pattern, aiMade = true }: { actionId: string; pattern?: Pattern; aiMade?: boolean }) {
   const { t, L, lang } = useI18n()
   const { role } = useRole()
@@ -35,35 +38,35 @@ export function HowAiFoundThis({ actionId, pattern, aiMade = true }: { actionId:
     : null
 
   return (
-    <Collapsible open={open} onOpenChange={setOpen} className="rounded-lg border bg-muted/40">
-      <CollapsibleTrigger className="flex min-h-10 w-full cursor-pointer items-center justify-between gap-2 rounded-lg px-3 py-2 text-start outline-none transition-colors duration-150 hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50">
-        <span className="inline-flex items-center gap-2 text-sm font-semibold">
-          <BrainCircuit aria-hidden className="size-4 text-primary" />
+    <Collapsible open={open} onOpenChange={setOpen} className="well p-1.5">
+      <CollapsibleTrigger className="flex min-h-10 w-full cursor-pointer items-center justify-between gap-2 rounded-md px-3 py-2 text-start outline-none transition-colors duration-200 hover:bg-(--hover-tint)">
+        <span className="t-ui-strong inline-flex items-center gap-2">
+          <BrainCircuit aria-hidden className="size-4 text-muted-foreground" />
           {t('How the AI found this', 'كيف توصّل الذكاء الاصطناعي لهذا')}
         </span>
-        <ChevronDown aria-hidden className={cn('size-4 text-muted-foreground transition-transform duration-200', open && 'rotate-180')} />
+        <ChevronDown aria-hidden className={cn('size-4 text-muted-foreground transition-transform duration-400 ease-spring motion-reduce:transition-none', open && 'rotate-180')} />
       </CollapsibleTrigger>
       <div className="flex flex-wrap items-center gap-1.5 px-3 pb-2" data-testid="found-agents">
         <AgentChip agent={3} />
         {aiMade && <AgentChip agent={5} />}
         <AgentChip agent="supervisor" />
         {canSeeTeam && (
-          <Button variant="outline" size="sm" asChild className="h-7 px-2 text-xs">
+          <Button variant="outline" size="xs" asChild>
             <Link to="/intelligent-cx-team">{L(WHO_DOES_WHAT)}</Link>
           </Button>
         )}
       </div>
-      <CollapsibleContent className="px-3 pb-3">
-        <dl className="grid grid-cols-1 gap-x-4 gap-y-2 border-t pt-3 text-sm sm:grid-cols-[minmax(8rem,auto)_1fr]">
+      <CollapsibleContent className="px-3 pt-2 pb-3">
+        <dl className="grid grid-cols-1 gap-x-4 gap-y-2 text-sm sm:grid-cols-[minmax(8rem,auto)_1fr]">
           <Row label={t('Where', 'أين')} value={pattern?.team ?? '—'} />
           <Row label={t('Who', 'من')} value={agentDisplay ? agentDisplay.label : t('Team-level, no single agent named', 'على مستوى الفريق، دون وكيل بعينه')} />
-          <Row label={t('Rule that fired', 'القاعدة التي انطبقت')} value={envelope?.rulesApplied.join(', ') || '—'} mono />
+          <Row label={t('Rule that fired', 'القاعدة التي انطبقت')} value={envelope?.rulesApplied.join(', ') || '—'} code />
           {envelope?.payload.whyThisTeam && <Row label={t('Why this team', 'لماذا هذا الفريق')} value={L(envelope.payload.whyThisTeam)} />}
           {pattern?.recoveryFigure && <Row label={t('Why this action', 'لماذا هذا الإجراء')} value={L(pattern.recoveryFigure)} />}
           {envelope?.payload.whatAiDidNotDo && <Row label={t('What the AI did not do', 'ما لم يقم به الذكاء الاصطناعي')} value={L(envelope.payload.whatAiDidNotDo)} />}
         </dl>
-        <div className="mt-3 flex flex-col gap-1.5">
-          <span className="text-xs font-semibold text-muted-foreground">{t('Sources', 'المصادر')}</span>
+        <div className="mt-4 flex flex-col gap-1.5">
+          <span className="t-small-strong">{t('Sources', 'المصادر')}</span>
           <ul className="flex flex-col gap-1 ps-4 text-sm marker:text-muted-foreground [list-style:disc]">
             {envelope?.evidence.map((e) => (
               <li key={e.sourceId}>
@@ -74,8 +77,8 @@ export function HowAiFoundThis({ actionId, pattern, aiMade = true }: { actionId:
           </ul>
         </div>
         {envelope && (
-          <p className="mt-3 text-xs text-muted-foreground">
-            {t('Confidence', 'مستوى الثقة')}: <bdi dir="ltr" className="font-medium text-foreground tabular-nums">{Math.round(envelope.confidence * 100)}%</bdi>
+          <p className="mt-3 t-body-s">
+            {t('Confidence', 'مستوى الثقة')}: <bdi dir="ltr" className="font-medium text-foreground tabular">{Math.round(envelope.confidence * 100)}%</bdi>
           </p>
         )}
       </CollapsibleContent>
@@ -83,11 +86,11 @@ export function HowAiFoundThis({ actionId, pattern, aiMade = true }: { actionId:
   )
 }
 
-function Row({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+function Row({ label, value, code }: { label: string; value: string; code?: boolean }) {
   return (
     <>
       <dt className="text-muted-foreground">{label}</dt>
-      <dd className={cn('text-foreground', mono && 'font-mono text-xs')}>{value}</dd>
+      <dd className={cn('text-foreground', code && 'tabular')}>{value}</dd>
     </>
   )
 }

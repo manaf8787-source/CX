@@ -15,15 +15,18 @@ function stamp(d: Date): string {
  * The audit trail of a fix (v40 F21): every change, when, what, by which role, newest first. "By" is the role title of whoever
  * acted (never a person), "System" when the agents acted. Nothing is deleted. Every status change and every decision writes an
  * entry (`useDecideCorrectiveAction`, `useSetFixStatus`, `useSendToInvestigation`, `useReturnInvestigation`).
+ *
+ * Composition: heading and hint on the card, then the skill's dense table straight on the white card (a divider line is only visible on
+ * white, so the log is not put in a well). The stamp is the dark-ink tabular column, the role grey.
  */
 export function AuditTrail({ log }: { log: readonly AuditEntry[] }) {
   const { L } = useI18n()
   const headingId = useId()
   const rows = newestFirst(log)
   return (
-    <section aria-labelledby={headingId} className="flex flex-col gap-2 rounded-xl border bg-card p-4 text-card-foreground" data-testid="audit-trail">
+    <section aria-labelledby={headingId} className="flex flex-col gap-2 text-card-foreground" data-testid="audit-trail">
       <div className="flex flex-col gap-0.5">
-        <h3 id={headingId} className="text-base font-semibold">
+        <h3 id={headingId} className="t-h4">
           {L(AUDIT_COPY.title)}
         </h3>
         <p className="text-sm text-muted-foreground">{L(AUDIT_COPY.hint)}</p>
@@ -33,10 +36,10 @@ export function AuditTrail({ log }: { log: readonly AuditEntry[] }) {
       ) : (
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead className="w-44 px-3">{L(AUDIT_COPY.columns.when)}</TableHead>
-              <TableHead className="px-3">{L(AUDIT_COPY.columns.what)}</TableHead>
-              <TableHead className="w-56 px-3">{L(AUDIT_COPY.columns.by)}</TableHead>
+            <TableRow className="row-divider-none">
+              <TableHead className="w-44">{L(AUDIT_COPY.columns.when)}</TableHead>
+              <TableHead>{L(AUDIT_COPY.columns.what)}</TableHead>
+              <TableHead className="w-56">{L(AUDIT_COPY.columns.by)}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -44,13 +47,13 @@ export function AuditTrail({ log }: { log: readonly AuditEntry[] }) {
               const when = new Date(e.at)
               return (
                 <TableRow key={`${e.at}-${i}`}>
-                  <TableCell className="px-3 text-sm tabular-nums">
+                  <TableCell className="tabular">
                     <time dateTime={e.at}>
                       <bdi dir="ltr">{stamp(when)}</bdi>
                     </time>
                   </TableCell>
-                  <TableCell className="px-3 text-sm whitespace-normal">{L(e.what)}</TableCell>
-                  <TableCell className="px-3 text-sm whitespace-normal text-muted-foreground">
+                  <TableCell className="whitespace-normal text-foreground">{L(e.what)}</TableCell>
+                  <TableCell className="whitespace-normal">
                     {e.byRole === 'system' ? L(AUDIT_COPY.system) : (roleDef(e.byRole) ? L(roleDef(e.byRole)!.name) : e.byRole)}
                   </TableCell>
                 </TableRow>

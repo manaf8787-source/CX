@@ -4,7 +4,6 @@ import { useI18n, type Lang } from '@/i18n'
 import { useQuestionSets } from '@/services/queriesV40'
 import { SURVEY_QUESTIONS_COPY as COPY, questionSetsFor } from '@/data/surveyQuestions'
 import { PRODUCTS } from '@/data/products'
-import { cn } from '@/lib/utils'
 import type { Product, SurveyQuestionSet } from '@/types'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -14,7 +13,7 @@ import { ProposedBadge } from '@/components/common/ProposedBadge'
 import { SectionCard } from '@/components/common/SectionCard'
 import { StatusBadge } from '@/components/common/StatusBadge'
 import { EmptyState } from '@/components/common/EmptyState'
-import { SubPageHeader } from './SubPageHeader'
+import { IN_CARD, PressFilter, SubPageHeader } from './SubPageHeader'
 
 /**
  * Survey questions (v40 F23): the exact questions per product and moment, in both languages, with a preview of what the
@@ -22,6 +21,9 @@ import { SubPageHeader } from './SubPageHeader'
  * fires, how many questions), on the right the phone-style preview in the language of your choice, and below the two
  * languages side by side. Each set that is not confirmed by its product owners (PSI Club, Tour Estate, PSI Events) carries
  * [Proposed] at the set level. A product with no set (PSI Wallet) shows an empty state.
+ *
+ * Design: comfortable. The product selector is the segmented tab track; the sets are rows (the chosen one is the dark material); the
+ * phone preview is a well holding light-material bubbles with the 6px tail; the two languages are one table in a card.
  */
 export default function SurveyQuestions() {
   const { t, L, lang } = useI18n()
@@ -31,7 +33,7 @@ export default function SurveyQuestions() {
   const [previewLang, setPreviewLang] = useState<Lang>(lang)
 
   return (
-    <section className="flex flex-col gap-4">
+    <section data-density="comfortable" className="flex flex-col gap-4">
       <SubPageHeader title={L(COPY.title)} description={L(COPY.intro)} />
 
       {isError ? (
@@ -40,10 +42,10 @@ export default function SurveyQuestions() {
         <LoadingState rows={5} />
       ) : (
         <Tabs value={product} onValueChange={(v) => setProduct(v as Product['id'])} className="gap-4">
-          <div className="-mx-1 overflow-x-auto px-1 pb-1">
-            <TabsList className="h-10 min-w-max" aria-label={t('Product', 'المنتج')}>
+          <div className="-m-1 overflow-x-auto p-1">
+            <TabsList className="min-w-max" aria-label={t('Product', 'المنتج')}>
               {PRODUCTS.map((p) => (
-                <TabsTrigger key={p.id} value={p.id} className="gap-1.5 px-3">
+                <TabsTrigger key={p.id} value={p.id}>
                   {L(p.name)}
                 </TabsTrigger>
               ))}
@@ -74,7 +76,7 @@ function ProductSets({ product, sets, previewLang, onPreviewLang }: { product: P
     <>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <SectionCard title={L(product.name)} description={t(`${sets.length} sets, one per moment`, `${sets.length} مجموعات، واحدة لكل لحظة`)}>
-          <ul className="flex flex-col gap-2" aria-label={t('Question sets', 'مجموعات الأسئلة')}>
+          <ul className="flex flex-col gap-1" aria-label={t('Question sets', 'مجموعات الأسئلة')}>
             {sets.map((s) => {
               const active = s.id === selected.id
               return (
@@ -83,16 +85,13 @@ function ProductSets({ product, sets, previewLang, onPreviewLang }: { product: P
                     type="button"
                     aria-pressed={active}
                     onClick={() => setPickedId(s.id)}
-                    className={cn(
-                      'flex w-full min-w-0 flex-col gap-1 rounded-lg border px-3 py-2.5 text-start outline-none transition-colors duration-150 focus-visible:ring-[3px] focus-visible:ring-ring/50',
-                      active ? 'border-primary bg-primary/5' : 'hover:bg-muted/60',
-                    )}
+                    className="group/set flex w-full min-w-0 cursor-pointer flex-col gap-1 rounded-well px-4 py-3 text-start outline-none transition-colors duration-200 ease-out hover:bg-row-hover aria-pressed:material-dark aria-pressed:hover:bg-transparent"
                   >
-                    <span className="flex flex-wrap items-center gap-2 font-medium">
+                    <span className="t-ui-strong flex flex-wrap items-center gap-2 group-aria-pressed/set:text-inherit">
                       {L(s.name)}
                       {s.proposed && <ProposedBadge title={L(COPY.proposedNote)} />}
                     </span>
-                    <span className="text-sm text-muted-foreground">
+                    <span className="text-sm text-muted-foreground group-aria-pressed/set:text-(--on-dark-muted)">
                       {L(s.when)} · {L(COPY.count(s.questions.length))}
                     </span>
                   </button>
@@ -100,64 +99,53 @@ function ProductSets({ product, sets, previewLang, onPreviewLang }: { product: P
               )
             })}
           </ul>
-          {showResurveyNote && <p className="mt-3 text-sm text-muted-foreground">{L(COPY.resurveyNote)}</p>}
+          {showResurveyNote && <p className="mt-4 text-sm text-muted-foreground">{L(COPY.resurveyNote)}</p>}
         </SectionCard>
 
         <SectionCard
           title={L(COPY.previewCaption)}
           actions={
-            <div role="group" aria-label={t('Preview language', 'لغة المعاينة')} className="inline-flex rounded-lg bg-muted p-0.5">
-              {(['en', 'ar'] as const).map((l) => (
-                <button
-                  key={l}
-                  type="button"
-                  aria-pressed={previewLang === l}
-                  onClick={() => onPreviewLang(l)}
-                  className={cn(
-                    'h-8 rounded-md px-3 text-sm font-medium outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50',
-                    previewLang === l ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
-                  )}
-                >
-                  {l === 'en' ? 'English' : 'العربية'}
-                </button>
-              ))}
-            </div>
+            <PressFilter
+              label={t('Preview language', 'لغة المعاينة')}
+              options={[
+                { id: 'en' as const, label: 'English' },
+                { id: 'ar' as const, label: 'العربية' },
+              ]}
+              value={previewLang}
+              onChange={onPreviewLang}
+            />
           }
         >
           <Preview set={selected} previewLang={previewLang} />
         </SectionCard>
       </div>
 
-      <SectionCard title={t('Both languages', 'اللغتان معاً')} description={`${L(selected.name)} · ${L(selected.when)}`}>
-        <div className="overflow-hidden rounded-lg border">
-          <Table>
-            <TableHeader className="bg-muted/60">
-              <TableRow className="hover:bg-transparent">
-                <TableHead className="w-10 px-3 text-xs font-semibold text-muted-foreground">#</TableHead>
-                <TableHead className="px-3 text-xs font-semibold text-muted-foreground">English</TableHead>
-                <TableHead className="px-3 text-xs font-semibold text-muted-foreground">العربية</TableHead>
+      <SectionCard title={t('Both languages', 'اللغتان معاً')} description={`${L(selected.name)} · ${L(selected.when)}`} contentClassName={IN_CARD}>
+        <Table density="comfortable">
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-10">#</TableHead>
+              <TableHead dir="ltr">English</TableHead>
+              <TableHead dir="rtl">العربية</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {selected.questions.map((q, i) => (
+              <TableRow key={i}>
+                <TableCell className="align-top tabular">{i + 1}</TableCell>
+                <TableCell className="min-w-64 align-top whitespace-normal text-foreground" dir="ltr" lang="en">
+                  {q.en}
+                </TableCell>
+                <TableCell className="min-w-64 align-top whitespace-normal text-foreground" dir="rtl" lang="ar">
+                  {q.ar}
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {selected.questions.map((q, i) => (
-                <TableRow key={i}>
-                  <TableCell className="px-3 py-2.5 align-top tabular-nums text-muted-foreground">{i + 1}</TableCell>
-                  <TableCell className="min-w-64 px-3 py-2.5 align-top whitespace-normal" dir="ltr" lang="en">
-                    {q.en}
-                  </TableCell>
-                  <TableCell className="min-w-64 px-3 py-2.5 align-top whitespace-normal" dir="rtl" lang="ar">
-                    {q.ar}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+            ))}
+          </TableBody>
+        </Table>
         {selected.proposed && (
-          <p className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
-            <StatusBadge tone="warning" className="border-dashed">
-              {t('[Proposed]', '[مقترح]')}
-            </StatusBadge>
+          <p className="mt-4 flex items-center gap-2 px-2.5 text-sm text-muted-foreground">
+            <StatusBadge tone="warning">{t('[Proposed]', '[مقترح]')}</StatusBadge>
             {L(COPY.proposedNote)}
           </p>
         )}
@@ -176,19 +164,19 @@ function Preview({ set, previewLang }: { set: SurveyQuestionSet; previewLang: La
         aria-label={t('Preview of the survey on a phone', 'معاينة الاستبيان على هاتف')}
         dir={dir}
         lang={previewLang}
-        className="mx-auto flex w-full max-w-sm flex-col gap-2 rounded-[2rem] border-4 border-foreground/15 bg-muted/40 p-4"
+        className="well mx-auto flex w-full max-w-sm flex-col gap-2 rounded-[28px] p-4"
       >
-        <div className="flex items-center gap-2 pb-1 text-sm font-semibold">
-          <span aria-hidden className="flex size-7 items-center justify-center rounded-full bg-success/15 text-success-text">
-            <MessageCircle className="size-4" />
+        <div className="t-ui-strong flex items-center gap-2.5 pb-1">
+          <span aria-hidden className="material-light inline-grid size-[30px] place-items-center rounded-full [&_svg]:size-4">
+            <MessageCircle />
           </span>
           PSI
         </div>
-        <p className="max-w-[88%] rounded-2xl rounded-ss-sm bg-card px-3 py-2 text-sm shadow-xs">{COPY.greeting[previewLang]}</p>
+        <p className="material-light max-w-[88%] rounded-[20px] rounded-ss-[6px] px-3.5 py-2.5 text-base text-foreground">{COPY.greeting[previewLang]}</p>
         <ol className="flex flex-col gap-2">
           {set.questions.map((q, i) => (
-            <li key={i} className="max-w-[88%] rounded-2xl rounded-ss-sm bg-card px-3 py-2 text-sm shadow-xs">
-              <span className="me-1.5 font-semibold tabular-nums">{i + 1}.</span>
+            <li key={i} className="material-light max-w-[88%] rounded-[20px] rounded-ss-[6px] px-3.5 py-2.5 text-base text-foreground">
+              <span className="me-1.5 font-medium tabular">{i + 1}.</span>
               {q[previewLang]}
             </li>
           ))}

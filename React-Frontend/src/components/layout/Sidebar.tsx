@@ -67,7 +67,7 @@ function matches(pathname: string, path: string) {
 }
 
 /** KB §2: each role sees only its own pages; KB §16: not-launched products stay out of the menu. The data is unchanged (data/nav.ts). */
-export function useSidebarGroups(): SidebarNavGroup[] {
+function useSidebarGroups(): SidebarNavGroup[] {
   const { L } = useI18n()
   const { role } = useRole()
   const { data: products } = useProducts()
@@ -124,20 +124,19 @@ export function SidebarNavItem({ node, pathname, tooltip, tall, onNavigate }: { 
   )
 }
 
-/** The brand row: our own text mark (a 22px dark tile with "CX") and the name. A link home, named even when the rail hides the words. */
+/** The brand row: our own text mark (a 22px dark tile with "CX") and the name. A link home; in the rail the words stay as screen-reader text, so the name always equals the visible text. */
 function Brand({ onNavigate }: { onNavigate?: () => void }) {
   const { t } = useI18n()
   return (
     <NavLink
       to="/home"
       onClick={onNavigate}
-      aria-label="PSI CX Portal"
       className="flex min-w-0 items-center gap-2 rounded-md px-2 py-1 outline-none group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
     >
       <span aria-hidden className="material-dark grid size-[22px] shrink-0 place-items-center rounded-sm text-[9px] leading-none font-medium">
         CX
       </span>
-      <span className="flex min-w-0 flex-col leading-tight group-data-[collapsible=icon]:hidden">
+      <span className="flex min-w-0 flex-col leading-tight group-data-[collapsible=icon]:sr-only">
         <span className="t-h4 truncate">PSI CX Portal</span>
         <span className="truncate text-xs text-muted-foreground">{t('v40 · prototype', 'الإصدار 40 · نموذج أولي')}</span>
       </span>

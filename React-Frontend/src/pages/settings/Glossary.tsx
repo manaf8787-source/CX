@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
-import { BookOpen, Search } from 'lucide-react'
+import { Search } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { useGlossaryTerms } from '@/services/queries'
+import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { EmptyState } from '@/components/common/EmptyState'
 import { LoadingState } from '@/components/common/LoadingState'
@@ -12,7 +13,10 @@ import { SubPageHeader } from './SubPageHeader'
  * mean' search modal, sourced from one glossary data file" — this page
  * *is* that one data file's reference view; the sitewide "?" affordance
  * reading the same `useGlossaryTerms()` hook is a later, separate build
- * pass (each page would need its own "?" wiring), not done here. */
+ * pass (each page would need its own "?" wiring), not done here.
+ *
+ * Design: comfortable. One card holds the whole list (term in ink 500 on the left, the definition in grey on the right, a row divider
+ * between entries) instead of a grid of cards; the search is the inset field. */
 export default function Glossary() {
   const { t, L } = useI18n()
   const { data: terms, isLoading } = useGlossaryTerms()
@@ -25,36 +29,37 @@ export default function Glossary() {
   }, [terms, q, L])
 
   return (
-    <section className="flex flex-col gap-4">
+    <section data-density="comfortable" className="flex flex-col gap-6">
       <SubPageHeader
         title={t('What the terms mean', 'ماذا تعني المصطلحات')}
         description={t('Plain definitions for the terms used across the portal.', 'تعريفات مبسّطة للمصطلحات المستخدمة في البوابة.')}
       />
       <div className="relative w-full sm:w-80">
-        <Search aria-hidden className="pointer-events-none absolute start-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Search aria-hidden className="pointer-events-none absolute start-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
         <Input
           type="search"
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder={t('Search terms…', 'ابحث عن مصطلح…')}
           aria-label={t('Search terms', 'ابحث عن مصطلح')}
-          className="h-9 bg-card ps-8"
+          className="h-9 ps-9"
         />
       </div>
       {isLoading ? (
         <LoadingState rows={4} />
       ) : filtered.length ? (
-        <dl className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          {filtered.map((g) => (
-            <div key={L(g.term)} className="flex min-w-0 flex-col gap-1 rounded-xl border bg-card p-4 shadow-xs">
-              <dt className="flex items-center gap-2 text-base font-semibold">
-                <BookOpen aria-hidden className="size-4 shrink-0 text-gold-text" />
-                {L(g.term)}
-              </dt>
-              <dd className="text-sm text-muted-foreground">{L(g.definition)}</dd>
-            </div>
-          ))}
-        </dl>
+        <Card>
+          <CardContent>
+            <dl className="flex flex-col">
+              {filtered.map((g) => (
+                <div key={L(g.term)} className="row-divider grid grid-cols-1 gap-1.5 py-4 first:pt-0 last:pb-0 md:grid-cols-[minmax(0,13rem)_minmax(0,1fr)] md:gap-10">
+                  <dt className="t-ui-strong">{L(g.term)}</dt>
+                  <dd className="t-ui">{L(g.definition)}</dd>
+                </div>
+              ))}
+            </dl>
+          </CardContent>
+        </Card>
       ) : (
         <EmptyState title={t('No terms match your search.', 'لا توجد مصطلحات مطابقة لبحثك.')} />
       )}

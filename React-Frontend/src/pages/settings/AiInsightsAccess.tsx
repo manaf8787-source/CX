@@ -32,7 +32,7 @@ export default function AiInsightsAccess() {
   const byKey = new Map((matrix ?? []).map((r) => [`${r.group.en}|${r.label.en}`, r]))
 
   return (
-    <section className="flex flex-col gap-4">
+    <section data-density="dense" className="flex flex-col gap-4">
       <SubPageHeader
         title={t('AI Insights access matrix', 'مصفوفة صلاحيات رؤى الذكاء الاصطناعي')}
         description={t(
@@ -42,7 +42,7 @@ export default function AiInsightsAccess() {
       />
       {!canEdit && <ViewOnlyNotice>{t('View only — the CX manager edits this matrix.', 'للعرض فقط — يعدّل هذه المصفوفة مدير تجربة العملاء.')}</ViewOnlyNotice>}
 
-      <SectionCard contentClassName="flex flex-col gap-3">
+      <SectionCard contentClassName="flex flex-col gap-4">
         <AccessLegend hint={canEdit ? t('Select a cell to change it.', 'اختر خلية لتغييرها.') : undefined} />
         {isLoading ? (
           <LoadingState rows={6} />

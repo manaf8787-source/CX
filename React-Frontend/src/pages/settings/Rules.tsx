@@ -5,15 +5,14 @@ import { useRole } from '@/auth/RoleContext'
 import { canAccessPath } from '@/auth/access'
 import { useRulesConfig, useUpdateRuleConfig } from '@/services/queries'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import { Input } from '@/components/ui/input'
-import { SectionCard } from '@/components/common/SectionCard'
 import { LoadingState } from '@/components/common/LoadingState'
 import { ProposedBadge } from '@/components/common/ProposedBadge'
-import { SubPageHeader, ViewOnlyNotice } from './SubPageHeader'
+import { SettingsSection, SubPageHeader, ViewOnlyNotice } from './SubPageHeader'
 import { ESCALATION_PRINCIPLES } from '@/data/v38Reference'
 import { MATRIX_COPY } from '@/data/escalationDefaults'
 import { RULE_IDS } from '@/utils/ruleValues'
-import { cn } from '@/lib/utils'
 import type { Bi, RuleConfigItem } from '@/types'
 
 /** Modules KB §12: the rules layer is five decisions; every number is a setting. */
@@ -36,7 +35,8 @@ const DECISIONS: { n: number; title: Bi; ids: string[]; note?: Bi }[] = [
 /** The working week picker lists Monday first (JS weekday 1) to Sunday (0). */
 const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0]
 
-/** The working week (decided 18 Nov: Monday to Friday, still a setting): a checkbox per weekday, Monday first; saved with one button. */
+/** The working week (decided 18 Nov: Monday to Friday, still a setting): a checkbox per weekday, Monday first; saved with one button.
+ * Each day is a quiet pill holding a native checkbox (`accent-primary`, so a ticked box is ink); the name of a ticked day turns ink. */
 function WeekPicker({
   rule,
   selected,
@@ -56,18 +56,18 @@ function WeekPicker({
   const current = [...(rule.days ?? [])].sort((a, b) => a - b).join()
   const dirty = [...selected].sort((a, b) => a - b).join() !== current
   return (
-    <div className="flex flex-col gap-2 sm:items-end">
+    <div className="flex flex-wrap items-center gap-2">
       <div role="group" aria-labelledby={`rule-${rule.id}-label`} className="flex flex-wrap gap-1.5">
         {WEEK_ORDER.map((d) => {
           const on = selected.includes(d)
           return (
             <label
               key={d}
-              className={cn('inline-flex h-9 items-center gap-1.5 rounded-md border px-2.5 text-sm', canEdit && 'cursor-pointer', on ? 'border-primary bg-primary/10 font-medium' : 'text-muted-foreground')}
+              className={cn('inline-flex h-9 items-center gap-2 rounded-full bg-well ps-3 pe-3.5 pt-px text-sm transition-colors duration-200', canEdit && 'cursor-pointer hover:bg-well-hover', on ? 'font-medium text-foreground' : 'text-muted-foreground')}
             >
               <input
                 type="checkbox"
-                className="size-4 accent-[var(--primary)]"
+                className="size-4 shrink-0 accent-primary"
                 checked={on}
                 disabled={!canEdit}
                 onChange={(e) => onChange([...new Set(e.target.checked ? [...selected, d] : selected.filter((x) => x !== d))].sort((a, b) => a - b))}
@@ -94,7 +94,11 @@ function WeekPicker({
  *
  * v40: Decision 4 (the escalation matrix) is no longer an empty template here: it points to the matrix page, where each cell is
  * edited (the per-complaint-category template is superseded, decided 18 Nov). The working week is a weekday picker; an item may
- * carry a small note ("Legal to confirm the hours") and, when it is still a proposal, the [Proposed] badge. */
+ * carry a small note ("Legal to confirm the hours") and, when it is still a proposal, the [Proposed] badge.
+ *
+ * Composition (the skill's settings layout, comfortable): each decision is a section, the heading and its note above one card (stacked,
+ * not split: the Settings menu already takes a third of the width) whose rows are divided by the one line (label, FR source and note on the left, the field, its unit and Save on
+ * the right). 48px between the decisions. A read-only role sees the value as ink text and the view-only note. */
 export default function Rules() {
   const { t, L, lang } = useI18n()
   const { role } = useRole()
@@ -123,43 +127,44 @@ export default function Rules() {
 
   const canOpenMatrix = canAccessPath(role.id, '/settings/escalation-matrix')
   const escalation = (
-    <SectionCard
+    <SettingsSection
+      key="escalation"
+      layout="stacked"
       title={t('Decision 4 · The escalation matrix', 'القرار 4 · مصفوفة التصعيد')}
       description={t(
         'One table per product, a row per kind of fix or case. The product owners fill the cells with the Internal Audit and Marketing Lead by 28 November; the matrix decides who, by title, receives each kind of action, and a fix’s due date comes from its “Resolve (h)”. It is edited on its own page.',
         'جدول لكل منتج، وصف لكل نوع من الحلول أو الحالات. يملأ مالكو المنتجات الخلايا مع مسؤول التدقيق الداخلي والتسويق بحلول 28 نوفمبر؛ وتحدد المصفوفة من يستلم كل نوع من الإجراءات حسب المسمى، ويأتي موعد الحل من «الحل (ساعة)». تُعدَّل في صفحتها.',
       )}
-      actions={
-        canOpenMatrix ? (
-          <Button variant="outline" size="sm" asChild>
-            <Link to="/settings/escalation-matrix">{t('Open the escalation matrix', 'افتح مصفوفة التصعيد')}</Link>
-          </Button>
-        ) : undefined
-      }
-      contentClassName="flex flex-col gap-3"
     >
-      <ul className="grid grid-cols-1 gap-1.5 text-sm md:grid-cols-2">
+      <ul className="grid grid-cols-1 gap-x-8 gap-y-3 text-sm md:grid-cols-2">
         {ESCALATION_PRINCIPLES.map((p) => (
-          <li key={p.en} className="flex gap-2">
-            <span aria-hidden className="mt-2 size-1.5 shrink-0 rounded-full bg-primary" />
+          <li key={p.en} className="flex gap-2.5">
+            <span aria-hidden className="dot mt-[7px]" />
             {L(p)}
           </li>
         ))}
       </ul>
-      <p className="text-sm text-muted-foreground">{L(MATRIX_COPY.defaultCellsNote)}</p>
-    </SectionCard>
+      <p className="t-body-s">{L(MATRIX_COPY.defaultCellsNote)}</p>
+      {canOpenMatrix && (
+        <Button variant="outline" size="sm" asChild className="self-start">
+          <Link to="/settings/escalation-matrix">{t('Open the escalation matrix', 'افتح مصفوفة التصعيد')}</Link>
+        </Button>
+      )}
+    </SettingsSection>
   )
 
   return (
-    <section className="flex flex-col gap-4">
-      <SubPageHeader
-        title={t('Rules as configuration', 'القواعد كإعدادات')}
-        description={t(
-          'The five decisions of the rules layer. Every number the agents apply lives here and is changed by the CX manager without a developer; the full text is "CX Portal: Rules and Definitions".',
-          'القرارات الخمسة لطبقة القواعد. كل رقم تطبقه الوكلاء موجود هنا ويغيّره مدير تجربة العملاء دون مطوّر؛ والنص الكامل في "بوابة تجربة العملاء: القواعد والتعريفات".',
-        )}
-      />
-      {!canEdit && <ViewOnlyNotice>{t('View only — the CX manager edits these.', 'للعرض فقط — يعدّل هذه القيم مدير تجربة العملاء.')}</ViewOnlyNotice>}
+    <section data-density="comfortable" className="@container flex flex-col gap-12">
+      <div className="flex flex-col gap-4">
+        <SubPageHeader
+          title={t('Rules as configuration', 'القواعد كإعدادات')}
+          description={t(
+            'The five decisions of the rules layer. Every number the agents apply lives here and is changed by the CX manager without a developer; the full text is "CX Portal: Rules and Definitions".',
+            'القرارات الخمسة لطبقة القواعد. كل رقم تطبقه الوكلاء موجود هنا ويغيّره مدير تجربة العملاء دون مطوّر؛ والنص الكامل في "بوابة تجربة العملاء: القواعد والتعريفات".',
+          )}
+        />
+        {!canEdit && <ViewOnlyNotice>{t('View only — the CX manager edits these.', 'للعرض فقط — يعدّل هذه القيم مدير تجربة العملاء.')}</ViewOnlyNotice>}
+      </div>
 
       {isLoading && <LoadingState rows={6} />}
       {groups.map((group) => {
@@ -167,28 +172,28 @@ export default function Rules() {
         if (!rows.length) return null
         return (
           <Fragment key={group.key}>
-            <SectionCard title={L(group.title)} description={group.note ? L(group.note) : undefined}>
-              <ul className="flex flex-col divide-y">
+            <SettingsSection layout="stacked" title={L(group.title)} description={group.note ? L(group.note) : undefined}>
+              <ul className="flex flex-col">
                 {rows.map((r) => {
                   const dirty = draft[r.id] !== undefined && draft[r.id] !== r.value
                   const inputId = `rule-${r.id}`
                   return (
-                    <li key={r.id} className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between">
+                    <li key={r.id} className={cn('row-divider flex min-h-(--row-h) flex-col gap-2 py-3.5 first:pt-0 last:pb-0', !r.days && 'sm:flex-row sm:items-center sm:justify-between sm:gap-6')}>
                       <div className="flex min-w-0 flex-col gap-0.5">
                         <div className="flex flex-wrap items-center gap-2">
                           {r.days ? (
-                            <span id={`${inputId}-label`} className="text-sm font-medium">
+                            <span id={`${inputId}-label`} className="t-ui-strong">
                               {L(r.label)}
                             </span>
                           ) : (
-                            <label htmlFor={canEdit ? inputId : undefined} className="text-sm font-medium">
+                            <label htmlFor={canEdit ? inputId : undefined} className="t-ui-strong">
                               {L(r.label)}
                             </label>
                           )}
                           {r.proposed && <ProposedBadge />}
                         </div>
-                        <span className="font-mono text-xs text-muted-foreground">{r.source}</span>
-                        {r.note && <span className="text-xs text-muted-foreground">{L(r.note)}</span>}
+                        <span className="t-caption tabular">{r.source}</span>
+                        {r.note && <span className="t-caption">{L(r.note)}</span>}
                       </div>
                       <div className="flex shrink-0 items-center gap-2">
                         {r.days ? (
@@ -208,7 +213,7 @@ export default function Rules() {
                               inputMode="numeric"
                               value={valueFor(r.id, r.value)}
                               onChange={(e) => setDraft((d) => ({ ...d, [r.id]: Number(e.target.value) }))}
-                              className="h-9 w-24 text-end tabular-nums"
+                              className="h-9 w-24 text-end tabular"
                             />
                             <span className="w-24 text-sm text-muted-foreground">{L(r.unit)}</span>
                             <Button
@@ -222,8 +227,8 @@ export default function Rules() {
                             </Button>
                           </>
                         ) : (
-                          <span className="text-base font-semibold tabular-nums">
-                            {r.value} <span className="text-sm font-normal text-muted-foreground">{L(r.unit)}</span>
+                          <span className="t-ui-strong tabular">
+                            {r.value} <span className="font-normal text-muted-foreground">{L(r.unit)}</span>
                           </span>
                         )}
                       </div>
@@ -231,7 +236,7 @@ export default function Rules() {
                   )
                 })}
               </ul>
-            </SectionCard>
+            </SettingsSection>
             {group.key === 'd3' && escalation}
           </Fragment>
         )

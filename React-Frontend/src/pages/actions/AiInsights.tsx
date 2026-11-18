@@ -1,12 +1,10 @@
 import { useState } from 'react'
-import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis } from 'recharts'
 import { Link, useNavigate } from 'react-router-dom'
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
-import { AlertTriangle, CheckCircle2, Lightbulb, Plus, Send } from 'lucide-react'
-import { DeferredRender } from '@/components/common/DeferredRender'
+import { Lightbulb, Plus, Send } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { useRole } from '@/auth/RoleContext'
 import { isTopManagementTitle } from '@/auth/permissions'
@@ -31,13 +29,14 @@ import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { StatusBadge } from '@/components/common/StatusBadge'
+import { RankedBars } from '@/components/common/charts'
 import { EmptyState } from '@/components/common/EmptyState'
 import { LoadingState } from '@/components/common/LoadingState'
 import { ErrorState } from '@/components/common/ErrorState'
 import { TermHelp } from '@/components/common/TermHelp'
 import { PercentagesExplainer } from './components/PercentagesExplainer'
+import { InlineNote } from './components/InlineNote'
 import { ScoresVsSignalsNotice } from './components/ScoresVsSignalsNotice'
-import { useChartMotion } from '@/hooks/useChartMotion'
 import { useNow } from '@/hooks/useNow'
 
 const MINIMUM_SAMPLE = 10
@@ -65,7 +64,7 @@ export default function AiInsights() {
   const canPropose = role.id === 'cxmgr' || role.id === 'cxteam'
 
   return (
-    <div className="flex flex-col gap-4">
+    <div data-density="dense" className="flex flex-col gap-4">
       <ScoresVsSignalsNotice register="ai-insights" />
       <PercentagesExplainer />
 
@@ -76,7 +75,7 @@ export default function AiInsights() {
       ) : !insights?.length ? (
         <EmptyState title={t('No AI Insights yet', 'لا توجد رؤى بعد')} />
       ) : (
-        <ul className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        <ul className="grid grid-cols-1 gap-(--grid-gap) xl:grid-cols-2">
           {insights.map((envelope) => (
             <InsightCard
               key={envelope.subjectId}
@@ -117,6 +116,11 @@ export default function AiInsights() {
   )
 }
 
+/**
+ * One insight (FR-4): a dense card that reads top to bottom as header, the recovery sentence, the comparison in a well, the AI's
+ * suggestions as divided rows, and the "Send to a case" pill. The old low-score and recovered columns (red and green) are the skill's
+ * bar comparison: the recovered series is the dark hero row, the low-score series grey, and the case counts are printed as text.
+ */
 function InsightCard({
   envelope,
   canPropose,
@@ -128,113 +132,101 @@ function InsightCard({
   proposedIds: Set<string>
   onPropose: (s: InsightSuggestion) => void
 }) {
-  const chartMotion = useChartMotion()
-  const { t, L, lang } = useI18n()
+  const { t, L } = useI18n()
   const navigate = useNavigate()
   const p = envelope.payload
   const info = INSIGHT_CATEGORIES[p.category as InsightCategory]
   const small = p.sampleSize < MINIMUM_SAMPLE
-  const series = p.chartSeries.map((s, i) => ({ ...s, name: SERIES_LABEL[s.label] ? L(SERIES_LABEL[s.label]) : s.label, i }))
-  const ordered = lang === 'ar' ? [...series].reverse() : series
+  const series = p.chartSeries.map((s, i, all) => ({
+    key: s.label,
+    label: SERIES_LABEL[s.label] ? L(SERIES_LABEL[s.label]) : s.label,
+    value: s.value,
+    hero: i === all.length - 1,
+  }))
 
   return (
     <li className="min-w-0">
-      <Card className="h-full gap-0 py-0">
-        <CardContent className="flex h-full flex-col gap-3 p-5">
+      <Card className="h-full">
+        <CardContent className="flex h-full flex-col gap-4">
           <div className="flex items-start justify-between gap-2">
             <div className="flex min-w-0 flex-col gap-0.5">
-              <h2 className="text-base font-semibold">{info ? L(info.label) : p.category}</h2>
+              <h2 className="t-h4">{info ? L(info.label) : p.category}</h2>
               <span className="text-sm text-muted-foreground">
                 {p.environment} · {L(p.serviceTimeBand)}
               </span>
             </div>
             {small ? (
-              <StatusBadge tone="warning" icon={<AlertTriangle aria-hidden />}>
-                {t('Small sample', 'عينة صغيرة')}
-              </StatusBadge>
+              <StatusBadge tone="warning">{t('Small sample', 'عينة صغيرة')}</StatusBadge>
             ) : (
               <StatusBadge tone="neutral">
-                {t('Sample', 'العينة')} <bdi dir="ltr" className="tabular-nums">{p.sampleSize}</bdi>
+                {t('Sample', 'العينة')} <bdi dir="ltr" className="tabular">{p.sampleSize}</bdi>
               </StatusBadge>
             )}
           </div>
           <p className="text-sm">{L(p.recoveryFigure)}</p>
-          <div className="h-28" dir="ltr">
-            <DeferredRender>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={ordered} margin={{ top: 4, right: 4, bottom: 0, left: 4 }}>
-                  <XAxis dataKey="name" tickLine={false} axisLine={false} tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }} />
-                  <Tooltip
-                    cursor={{ fill: 'var(--muted)' }}
-                    formatter={(v) => [v, t('Cases', 'حالات')]}
-                    contentStyle={{ background: 'var(--popover)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--popover-foreground)', fontSize: 12 }}
-                  />
-                  <Bar dataKey="value" radius={[4, 4, 0, 0]} maxBarSize={56} {...chartMotion}>
-                    {ordered.map((entry) => (
-                      <Cell key={entry.label} fill={entry.i === 0 ? 'var(--destructive)' : 'var(--success)'} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </DeferredRender>
+          <div className="well flex flex-col gap-3">
+            <span className="t-body-s">{t('Cases', 'حالات')}</span>
+            <RankedBars
+              label={info ? L(info.label) : p.category}
+              items={series.map((r) => ({ key: r.key, label: r.label, value: r.value, hero: r.hero }))}
+            />
           </div>
 
           {info && (
-            <section aria-label={t('Suggested corrective actions', 'الإجراءات التصحيحية المقترحة')} className="flex flex-col gap-2 border-t pt-3">
-              <h3 className="flex items-center gap-1.5 text-sm font-semibold">
-                <Lightbulb aria-hidden className="size-4 text-gold-text" />
+            <section aria-label={t('Suggested corrective actions', 'الإجراءات التصحيحية المقترحة')} className="flex flex-col gap-1">
+              <h3 className="t-h4 flex items-center gap-1.5">
+                <Lightbulb aria-hidden className="size-4 text-muted-foreground" />
                 {t('AI suggests', 'يقترح الذكاء الاصطناعي')}
                 <TermHelp term="Corrective action" />
               </h3>
-              <ul className="flex flex-col gap-2">
+              <ul className="flex flex-col">
                 {info.suggestions.map((s) => {
                   const pct = suggestionPercent(s)
                   const done = proposedIds.has(s.id)
                   return (
-                    <li key={s.id} className="flex flex-col gap-1.5 rounded-lg border bg-muted/30 p-3">
-                      <p className="text-sm font-medium">{L(s.text)}</p>
-                      <p className="text-xs text-muted-foreground">{L(suggestionSentence(s))}</p>
-                      <Progress value={pct} aria-label={t(`Recovered ${pct}%`, `تعافى ${pct}%`)} className="h-1.5 bg-muted" />
+                    <li key={s.id} className="row-divider flex flex-col gap-2 py-3.5">
+                      <p className="t-ui-strong">{L(s.text)}</p>
+                      <p className="t-body-s">{L(suggestionSentence(s))}</p>
+                      <Progress value={pct} aria-label={t(`Recovered ${pct}%`, `تعافى ${pct}%`)} className="h-1.5" />
                       {s.tried < SMALL_SAMPLE && (
-                        <p className="flex items-start gap-1.5 text-xs text-warning-text">
-                          <AlertTriangle aria-hidden className="mt-px size-3.5 shrink-0" />
+                        <p className="t-body-s flex items-start gap-2">
+                          <span aria-hidden className="dot dot-warning mt-1.5" />
                           {t('Fewer than 10 similar cases: read this figure with care.', 'أقل من 10 حالات مشابهة: اقرأ هذا الرقم بحذر.')}
                         </p>
                       )}
-                      <div className="flex flex-wrap items-center gap-2 pt-1">
+                      <div className="flex flex-wrap items-center gap-2 pt-0.5">
                         {done ? (
-                          <StatusBadge tone="success" icon={<CheckCircle2 aria-hidden />}>
-                            <Link to="/actions/corrective" className="underline-offset-4 hover:underline">
+                          <StatusBadge tone="success">
+                            <Link to="/actions/corrective" className="underline underline-offset-4">
                               {t('Proposed — see Corrective actions', 'مقترح — انظر الإجراءات التصحيحية')}
                             </Link>
                           </StatusBadge>
                         ) : canPropose ? (
-                          <Button size="sm" variant="outline" className="h-9" onClick={() => onPropose(s)}>
+                          <Button size="sm" variant="outline" onClick={() => onPropose(s)}>
                             <Plus aria-hidden />
                             {t('Make it a proposed action', 'اجعله إجراءً مقترحاً')}
                           </Button>
                         ) : (
-                          <span className="text-xs text-muted-foreground">{t('CX creates the action.', 'فريق تجربة العملاء ينشئ الإجراء.')}</span>
+                          <span className="t-body-s">{t('CX creates the action.', 'فريق تجربة العملاء ينشئ الإجراء.')}</span>
                         )}
                       </div>
                     </li>
                   )
                 })}
               </ul>
-              <p className="text-xs text-muted-foreground">{L(info.guidance)}</p>
+              <p className="t-body-s">{L(info.guidance)}</p>
             </section>
           )}
 
-          <div className="mt-auto flex flex-wrap items-center justify-end gap-2 border-t pt-3">
+          <div className="mt-auto flex flex-wrap items-center justify-end gap-2">
             {!p.sendToCaseEligibleCaseId && (
-              <span className="me-auto text-xs text-muted-foreground">
+              <span className="t-body-s me-auto">
                 {t('Only available when a shopper case in the same category is open.', 'متاح فقط عند وجود حالة تسوق سري بنفس الفئة ومفتوحة.')}
               </span>
             )}
             <Button
               variant="outline"
               size="sm"
-              className="h-9"
               disabled={!p.sendToCaseEligibleCaseId}
               onClick={() => p.sendToCaseEligibleCaseId && navigate('/actions/shopper-cases')}
             >
@@ -298,12 +290,12 @@ function ProposeDialog({
               {L(suggestion.text)} — {envelope.payload.environment}
             </DialogDescription>
           </DialogHeader>
-          <p className="rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
+          <InlineNote tone="neutral">
             {t(
               'A suggestion is never an order. It goes to the receiver as proposed; they approve, change, reject or ask for an investigation first. Heads and C-level are informed only.',
               'الاقتراح ليس أمراً أبداً. يصل إلى المستلم كمقترح؛ فيعتمده أو يعدّله أو يرفضه أو يطلب تحقيقاً أولاً. الرؤساء والإدارة العليا للعلم فقط.',
             )}
-          </p>
+          </InlineNote>
           <FieldGroup className="gap-4">
             <Field>
               <FieldLabel htmlFor="pi-kind">{t('Kind', 'النوع')}</FieldLabel>
@@ -318,7 +310,7 @@ function ProposeDialog({
                       if (!dirtyFields.owner) setValue('owner', L(DEFAULT_OWNER_BY_KIND[v as CorrectiveActionKind]))
                     }}
                   >
-                    <SelectTrigger id="pi-kind" className="h-9 w-full">
+                    <SelectTrigger id="pi-kind" className="w-full">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -334,7 +326,7 @@ function ProposeDialog({
             </Field>
             <Field data-invalid={!!errors.owner}>
               <FieldLabel htmlFor="pi-owner">{t('Receiver (title)', 'المستلم (المسمى الوظيفي)')}</FieldLabel>
-              <Input id="pi-owner" className="h-9" aria-invalid={!!errors.owner} aria-describedby="pi-owner-help" {...register('owner')} />
+              <Input id="pi-owner" aria-invalid={!!errors.owner} aria-describedby="pi-owner-help" {...register('owner')} />
               <FieldDescription id="pi-owner-help">
                 {t('A title, not a name. The exact title per product comes from the escalation matrix, still awaiting the product owners.', 'مسمى وظيفي لا اسم. المسمى الدقيق لكل منتج يأتي من مصفوفة التصعيد التي ما زالت بانتظار مالكي المنتجات.')}
               </FieldDescription>
@@ -346,7 +338,7 @@ function ProposeDialog({
             </Field>
             <Field data-invalid={!!errors.dueDate}>
               <FieldLabel htmlFor="pi-due">{t('Due date', 'تاريخ الاستحقاق')}</FieldLabel>
-              <Input id="pi-due" type="date" className="h-9" aria-invalid={!!errors.dueDate} {...register('dueDate')} />
+              <Input id="pi-due" type="date" aria-invalid={!!errors.dueDate} {...register('dueDate')} />
               {errors.dueDate && <FieldError>{t('Due date is required.', 'تاريخ الاستحقاق مطلوب.')}</FieldError>}
             </Field>
           </FieldGroup>

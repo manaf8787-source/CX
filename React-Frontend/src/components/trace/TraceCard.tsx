@@ -16,14 +16,21 @@ const MAX_IN_CELL = 4
 /** The column of the record you are on is highlighted (v40 F11). */
 const COLUMN_OF_KIND: Record<TraceKind, number> = { event: 0, signal: 1, pattern: 2, fix: 3, check: 4, report: 5 }
 
-/** The id on its own line, the detail under it (six narrow columns): the button stacks its two lines. */
-const CELL_BUTTON = 'w-full flex-col items-start gap-0 whitespace-normal text-start'
+/**
+ * The id on its own line, the detail under it (six narrow columns): the button stacks its two lines. The tag is white with a hairline
+ * because the card is a well (the grey tag would vanish on it); long details wrap inside a rounded box instead of a pill.
+ */
+const CELL_BUTTON = 'h-auto min-h-6 w-full flex-col items-start gap-0 rounded-[12px] bg-card py-1.5 whitespace-normal text-start shadow-hairline hover:bg-card hover:opacity-80'
 
 /**
  * The Trace card (v40 F11): six columns, 1 Event, 2 Signal, 3 Pattern, 4 Fix, 5 Check, 6 Report, every id a button
  * that opens the record (walkable in both directions), the column of the current record highlighted, and one line on
  * what happens next. A public mention shows "public mention, no person identified" in the Event column and never
  * links to a person. Presentational: it takes the chain; `TraceCard` below fetches it.
+ *
+ * Composition: card -> well -> text. The card is ONE well; the six columns sit on it with no boxes of their own. Each column head is the
+ * small step pill ("2 Signal"): the column of the record you are on is the dark material, the others are white pills, and the ids under it
+ * are white hairline tags. The ordered list keeps `aria-current="true"` on the current column.
  */
 export function TraceCardView({ chain, chip, className }: { chain: TraceChain; chip?: ReactNode; className?: string }) {
   const { t, L } = useI18n()
@@ -31,7 +38,7 @@ export function TraceCardView({ chain, chip, className }: { chain: TraceChain; c
   const current = COLUMN_OF_KIND[chain.from.kind]
   const next = traceNextLine(chain)
 
-  const more = (n: number) => <span className="text-xs text-muted-foreground">+{n}</span>
+  const more = (n: number) => <span className="t-body-s">+{n}</span>
   const events = [
     ...chain.events.slice(0, MAX_IN_CELL).map((e) => (
       <TraceId key={e.id} kind="event" id={e.id} className={CELL_BUTTON}>
@@ -95,32 +102,34 @@ export function TraceCardView({ chain, chip, className }: { chain: TraceChain; c
   ]
 
   return (
-    <section aria-labelledby={headingId} className={cn('@container flex flex-col gap-3 rounded-xl border bg-card p-4 text-card-foreground', className)} data-testid="trace-card">
+    <section aria-labelledby={headingId} className={cn('well @container flex flex-col gap-4 text-card-foreground', className)} data-testid="trace-card">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="flex min-w-0 flex-col gap-0.5">
-          <h3 id={headingId} className="text-base font-semibold">
+          <h3 id={headingId} className="t-h4">
             {L(TRACE_COPY.title)}
           </h3>
           <p className="text-sm text-muted-foreground">{L(TRACE_COPY.hint)}</p>
         </div>
         {chip}
       </div>
-      <ol className="grid grid-cols-2 gap-2 @md:grid-cols-3 @3xl:grid-cols-6">
+      <ol className="grid grid-cols-2 gap-x-3 gap-y-4 @md:grid-cols-3 @3xl:grid-cols-6">
         {columns.map((col, i) => (
           <li
             key={i}
             aria-current={i === current ? 'true' : undefined}
             data-current={i === current ? 'true' : undefined}
-            className={cn('flex min-h-16 min-w-0 flex-col gap-1.5 rounded-lg border bg-background p-2', i === current && 'border-primary ring-1 ring-primary')}
+            className="flex min-w-0 flex-col items-start gap-2"
           >
-            <span className="text-xs font-bold tracking-wide text-muted-foreground uppercase">{L(TRACE_COPY.columns[i])}</span>
-            {col.items.length > 0 ? col.items : <span className="text-xs text-muted-foreground">{L(col.empty)}</span>}
+            <span className={cn('inline-flex h-6 items-center rounded-full px-2.5 pt-px text-xs font-medium whitespace-nowrap', i === current ? 'material-dark' : 'bg-card text-muted-foreground shadow-hairline')}>
+              {L(TRACE_COPY.columns[i])}
+            </span>
+            {col.items.length > 0 ? col.items : <span className="t-body-s">{L(col.empty)}</span>}
           </li>
         ))}
       </ol>
       {next && (
         <p className="text-sm text-muted-foreground">
-          <strong className="font-semibold text-foreground">{L(TRACE_COPY.nextLabel)}:</strong> {L(next)}
+          <strong className="font-medium text-foreground">{L(TRACE_COPY.nextLabel)}:</strong> {L(next)}
         </p>
       )}
     </section>

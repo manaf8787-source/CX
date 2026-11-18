@@ -89,29 +89,31 @@ export function InterviewDialog({
                 </StatusBadge>
                 {who && <span className="font-medium text-foreground">{who}</span>}
                 <span>
-                  {t('First score', 'النتيجة الأولى')}: <bdi dir="ltr" className="font-medium text-foreground tabular-nums">{item.firstScore}</bdi>
+                  {t('First score', 'النتيجة الأولى')}: <bdi dir="ltr" className="tabular font-medium text-foreground">{item.firstScore}</bdi>
                 </span>
               </div>
             </DialogDescription>
           </DialogHeader>
 
-          <section aria-label={t('Brief', 'الملخص')} className="flex flex-col gap-1.5 rounded-lg border bg-muted/40 p-3 text-sm">
-            <span className="font-semibold">{t('Brief from the timeline (Agent 8)', 'ملخص من الجدول الزمني (الوكيل 8)')}</span>
+          <section aria-label={t('Brief', 'الملخص')} className="well flex flex-col gap-2 px-4 py-3.5 text-sm">
+            <span className="t-small-strong">{t('Brief from the timeline (Agent 8)', 'ملخص من الجدول الزمني (الوكيل 8)')}</span>
             {brief.length === 0 ? (
               <span className="text-muted-foreground">{t('No events on the record yet.', 'لا أحداث في السجل بعد.')}</span>
             ) : (
-              <ol className="flex flex-col gap-1">
+              <ol className="flex flex-col">
                 {brief.map((i) => (
-                  <li key={i.id} className="flex gap-2">
-                    <bdi dir="ltr" className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                  <li key={i.id} className="row-divider flex gap-3 py-2 first:pt-0 last:pb-0">
+                    <bdi dir="ltr" className="tabular shrink-0 pt-0.5 text-xs text-muted-foreground">
                       {new Date(i.occurredAt).toLocaleDateString(lang === 'ar' ? 'ar-AE' : 'en-GB')}
                     </bdi>
-                    <span>
+                    <span className="text-foreground">
                       {i.reason ?? ''}
                       {i.problemFlags.length > 0 && (
-                        <span className="text-danger-text">
+                        <span className="text-muted-foreground">
                           {' '}
-                          · {i.problemFlags.map((f) => L(JOURNEY_RULES.find((r) => r.id === f)?.label ?? { en: 'Detractor', ar: 'منتقد' })).join(', ')}
+                          {/* the problem flags carry the one status colour, as a 6px dot */}
+                          <span aria-hidden className="dot dot-error me-1.5 align-middle" />
+                          {i.problemFlags.map((f) => L(JOURNEY_RULES.find((r) => r.id === f)?.label ?? { en: 'Detractor', ar: 'منتقد' })).join(', ')}
                         </span>
                       )}
                     </span>
@@ -138,7 +140,7 @@ export function InterviewDialog({
               {errors.q3 && <FieldError>{required}</FieldError>}
             </Field>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-3">
               <Field>
                 <FieldLabel htmlFor="iv-back">{t('4. May we come back to you?', '٤. هل يمكننا التواصل معك لاحقاً؟')}</FieldLabel>
                 <Controller
@@ -146,7 +148,7 @@ export function InterviewDialog({
                   name="mayComeBack"
                   render={({ field }) => (
                     <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger id="iv-back" className="h-9 w-full">
+                      <SelectTrigger id="iv-back" className="w-full">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -167,7 +169,7 @@ export function InterviewDialog({
                   name="reasonCode"
                   render={({ field }) => (
                     <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger id="iv-reason" className="h-9 w-full">
+                      <SelectTrigger id="iv-reason" className="w-full">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -188,7 +190,7 @@ export function InterviewDialog({
                   name="outcome"
                   render={({ field }) => (
                     <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger id="iv-outcome" className="h-9 w-full">
+                      <SelectTrigger id="iv-outcome" className="w-full">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>

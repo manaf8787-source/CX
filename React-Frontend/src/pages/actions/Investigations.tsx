@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
-import { ClipboardCheck, Info, MessagesSquare, Send, UserSearch } from 'lucide-react'
+import { ClipboardCheck, MessagesSquare, Send, UserSearch } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { useRole } from '@/auth/RoleContext'
 import { canAccessPath } from '@/auth/access'
@@ -26,6 +26,7 @@ import { EmptyState } from '@/components/common/EmptyState'
 import { LoadingState } from '@/components/common/LoadingState'
 import { TraceId } from '@/components/common/TraceId'
 import { useScrollToTarget } from '@/components/trace/useScrollToTarget'
+import { InlineNote } from './components/InlineNote'
 import { signalCategoryLabel } from './components/labels'
 
 const STATUS_LABEL: Record<'requested' | 'in_progress' | 'returned', { en: string; ar: string }> = {
@@ -52,17 +53,14 @@ export default function Investigations() {
   const thinPatterns = (patterns ?? []).filter((p) => !p.hasMinimumSample && !investigations?.some((i) => i.patternId === p.id))
 
   return (
-    <div className="flex flex-col gap-4">
-      <aside className="flex gap-3 rounded-xl border border-info/20 bg-info/8 p-4">
-        <Info aria-hidden className="mt-0.5 size-4 shrink-0 text-info-text" />
-        <p className="max-w-[80ch] text-sm">
-          {t('When pattern evidence is thin, the system does not guess a fix — it requests customer interviews or a mystery shopper check, and only proposes an action once that evidence comes back.', 'عندما تكون أدلة النمط ضعيفة، لا يُخمَّن حل — بل يُطلب إجراء مقابلات مع العملاء أو فحص تسوق سري، ولا يُقترح إجراء إلا بعد عودة تلك الأدلة.')}
-        </p>
-      </aside>
+    <div data-density="dense" className="flex flex-col gap-4">
+      <InlineNote>
+        {t('When pattern evidence is thin, the system does not guess a fix — it requests customer interviews or a mystery shopper check, and only proposes an action once that evidence comes back.', 'عندما تكون أدلة النمط ضعيفة، لا يُخمَّن حل — بل يُطلب إجراء مقابلات مع العملاء أو فحص تسوق سري، ولا يُقترح إجراء إلا بعد عودة تلك الأدلة.')}
+      </InlineNote>
 
       {thinPatterns.length > 0 && (
         <SectionCard term="Pattern" title={t('Thin-evidence patterns awaiting a request', 'أنماط ذات أدلة ضعيفة بانتظار طلب')}>
-          <ul className="flex flex-col divide-y">
+          <ul className="flex flex-col">
             {thinPatterns.map((p) => (
               <RequestRow key={p.id} pattern={p} />
             ))}
@@ -75,17 +73,23 @@ export default function Investigations() {
       ) : !investigations?.length && !thinPatterns.length ? (
         <EmptyState title={t('No investigations needed right now — every pattern has enough evidence.', 'لا حاجة لتحقيقات الآن — كل الأنماط لديها أدلة كافية.')} />
       ) : (
-        <ul className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          {investigations?.map((inv) => (
-            <InvestigationCard
-              key={inv.id}
-              inv={inv}
-              pattern={patterns?.find((p) => p.id === inv.patternId)}
-              selected={!!selectedInv && (selectedInv === invId(inv.id) || selectedInv === inv.id)}
-              onRecord={setReturningId}
-            />
-          ))}
-        </ul>
+        !!investigations?.length && (
+          <Card>
+            <CardContent>
+              <ul className="flex flex-col">
+                {investigations.map((inv) => (
+                  <InvestigationRow
+                    key={inv.id}
+                    inv={inv}
+                    pattern={patterns?.find((p) => p.id === inv.patternId)}
+                    selected={!!selectedInv && (selectedInv === invId(inv.id) || selectedInv === inv.id)}
+                    onRecord={setReturningId}
+                  />
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        )
       )}
 
       {returningId && (
@@ -112,8 +116,12 @@ export default function Investigations() {
   )
 }
 
-/** One investigation: its id, what was asked, and once the result is recorded the result, the pattern it is now evidence on and the fix it proposed. */
-function InvestigationCard({ inv, pattern, selected, onRecord }: { inv: Investigation; pattern?: Pattern; selected: boolean; onRecord: (id: string) => void }) {
+/**
+ * One investigation: its id, what was asked, and once the result is recorded the result, the pattern it is now evidence on and the fix it
+ * proposed. A row on the list card (not a card of its own): a light icon circle, the id tag and the title, the status tag at the end,
+ * the result in a well. A linked investigation (`?inv=`) is the 1.5px ink ring.
+ */
+function InvestigationRow({ inv, pattern, selected, onRecord }: { inv: Investigation; pattern?: Pattern; selected: boolean; onRecord: (id: string) => void }) {
   const { t, L } = useI18n()
   const { role } = useRole()
   const ref = useRef<HTMLLIElement>(null)
@@ -123,83 +131,85 @@ function InvestigationCard({ inv, pattern, selected, onRecord }: { inv: Investig
 
   const canOpenFix = canAccessPath(role.id, '/actions/corrective')
   return (
-    <li ref={ref} id={`inv-${invId(inv.id)}`} data-inv={invId(inv.id)} data-selected={selected ? 'true' : undefined} className="min-w-0 scroll-mt-24">
-      <Card className={cn('h-full gap-0 py-0', selected && 'ring-2 ring-primary')}>
-        <CardContent className="flex h-full flex-col gap-3 p-5">
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex min-w-0 items-start gap-3">
-              <span aria-hidden className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <Icon className="size-4" />
+    <li
+      ref={ref}
+      id={`inv-${invId(inv.id)}`}
+      data-inv={invId(inv.id)}
+      data-selected={selected ? 'true' : undefined}
+      className={cn('row-divider -mx-3 flex min-w-0 scroll-mt-24 flex-col gap-3 rounded-well px-3 py-5 first:pt-3 last:pb-3', selected && 'row-divider-none shadow-(--ring-selected)')}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-start gap-3">
+          <span aria-hidden className="material-light inline-grid size-[30px] shrink-0 place-items-center rounded-full [&_svg]:size-4">
+            <Icon />
+          </span>
+          <div className="flex min-w-0 flex-col gap-1">
+            <h2 className="t-ui-strong flex flex-wrap items-center gap-2">
+              <StatusBadge tone="neutral" className="tabular">
+                <bdi dir="ltr">{invId(inv.id)}</bdi>
+              </StatusBadge>
+              {L(KIND_LABEL[inv.kind])}
+            </h2>
+            <span className="text-sm text-muted-foreground">
+              <span>{pattern ? `${L(signalCategoryLabel(pattern.category))} — ${pattern.team}` : inv.environment}</span>
+              {inv.requestedCount ? (
+                <>
+                  {' · '}
+                  <bdi dir="ltr" className="tabular">
+                    {inv.status === 'returned' && inv.doneCount !== undefined ? `${inv.doneCount}/${inv.requestedCount}` : inv.requestedCount}
+                  </bdi>{' '}
+                  {t('interviews', 'مقابلات')}
+                </>
+              ) : null}
+              {inv.scenario ? ` · ${L(inv.scenario)}` : ''}
+            </span>
+            {inv.lookFor && (
+              <span className="text-sm">
+                <span className="text-muted-foreground">{t('Look for', 'ما يُبحث عنه')}:</span> {L(inv.lookFor)}
               </span>
-              <div className="flex min-w-0 flex-col gap-0.5">
-                <h2 className="flex flex-wrap items-center gap-2 text-base font-semibold">
-                  <span className="inline-flex shrink-0 items-center rounded-md border bg-muted px-1.5 py-0.5 font-mono text-xs font-normal text-muted-foreground">
-                    <bdi dir="ltr">{invId(inv.id)}</bdi>
-                  </span>
-                  {L(KIND_LABEL[inv.kind])}
-                </h2>
-                <span className="text-sm text-muted-foreground">
-                  <span>{pattern ? `${L(signalCategoryLabel(pattern.category))} — ${pattern.team}` : inv.environment}</span>
-                  {inv.requestedCount ? (
-                    <>
-                      {' · '}
-                      <bdi dir="ltr" className="tabular-nums">
-                        {inv.status === 'returned' && inv.doneCount !== undefined ? `${inv.doneCount}/${inv.requestedCount}` : inv.requestedCount}
-                      </bdi>{' '}
-                      {t('interviews', 'مقابلات')}
-                    </>
-                  ) : null}
-                  {inv.scenario ? ` · ${L(inv.scenario)}` : ''}
-                </span>
-                {inv.lookFor && (
-                  <span className="text-sm">
-                    <span className="text-muted-foreground">{t('Look for', 'ما يُبحث عنه')}:</span> {L(inv.lookFor)}
-                  </span>
-                )}
-              </div>
-            </div>
-            <StatusBadge tone={INVESTIGATION_STATUS_TONE[inv.status]} dot>
-              {L(STATUS_LABEL[inv.status])}
-            </StatusBadge>
+            )}
           </div>
-          {inv.resultSummary && (
-            <p className="rounded-lg bg-muted/50 px-3 py-2 text-sm" data-testid="inv-result">
-              <span className="font-medium">{t('Result', 'النتيجة')}:</span> {L(inv.resultSummary)}
-            </p>
-          )}
-          {inv.status === 'returned' && (pattern || inv.proposedFixId) && (
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
-              {pattern && (
-                <span className="inline-flex items-center gap-1.5">
-                  {t('Evidence on pattern', 'دليل على النمط')} <TraceId kind="pattern" id={pattern.traceId} />
-                </span>
-              )}
-              {inv.proposedFixId && (
-                <span className="inline-flex items-center gap-1.5" data-testid="inv-proposed-fix">
-                  {t('Fix proposed', 'الحل المقترح')}:{' '}
-                  {canOpenFix ? (
-                    <Link to={`/actions/corrective?fix=${caId(inv.proposedFixId)}`} className="font-mono text-xs text-primary underline-offset-4 hover:underline">
-                      <bdi dir="ltr">{caId(inv.proposedFixId)}</bdi>
-                    </Link>
-                  ) : (
-                    <bdi dir="ltr" className="font-mono text-xs">
-                      {caId(inv.proposedFixId)}
-                    </bdi>
-                  )}
-                </span>
-              )}
-            </div>
-          )}
+        </div>
+        <div className="flex shrink-0 flex-col items-end gap-3">
+          <StatusBadge tone={INVESTIGATION_STATUS_TONE[inv.status]} dot>
+            {L(STATUS_LABEL[inv.status])}
+          </StatusBadge>
           {inv.status !== 'returned' && (
-            <div className="mt-auto flex justify-end">
-              <Button size="sm" className="h-9" onClick={() => onRecord(inv.id)}>
-                <ClipboardCheck aria-hidden />
-                {t('Record the result', 'سجّل النتيجة')}
-              </Button>
-            </div>
+            <Button size="sm" onClick={() => onRecord(inv.id)}>
+              <ClipboardCheck aria-hidden />
+              {t('Record the result', 'سجّل النتيجة')}
+            </Button>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
+      {inv.resultSummary && (
+        <p className="well px-4 py-3 text-sm" data-testid="inv-result">
+          <span className="font-medium">{t('Result', 'النتيجة')}:</span> {L(inv.resultSummary)}
+        </p>
+      )}
+      {inv.status === 'returned' && (pattern || inv.proposedFixId) && (
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
+          {pattern && (
+            <span className="inline-flex items-center gap-1.5">
+              {t('Evidence on pattern', 'دليل على النمط')} <TraceId kind="pattern" id={pattern.traceId} />
+            </span>
+          )}
+          {inv.proposedFixId && (
+            <span className="inline-flex items-center gap-1.5" data-testid="inv-proposed-fix">
+              {t('Fix proposed', 'الحل المقترح')}:{' '}
+              {canOpenFix ? (
+                <Link to={`/actions/corrective?fix=${caId(inv.proposedFixId)}`} className="font-medium text-foreground tabular underline underline-offset-4">
+                  <bdi dir="ltr">{caId(inv.proposedFixId)}</bdi>
+                </Link>
+              ) : (
+                <bdi dir="ltr" className="font-medium text-foreground tabular">
+                  {caId(inv.proposedFixId)}
+                </bdi>
+              )}
+            </span>
+          )}
+        </div>
+      )}
     </li>
   )
 }
@@ -211,11 +221,11 @@ function RequestRow({ pattern }: { pattern: Pattern }) {
   const [formOpen, setFormOpen] = useState(false)
   const selectId = `inv-kind-${pattern.id}`
   return (
-    <li className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between">
-      <span className="text-sm">
+    <li className="row-divider flex min-h-(--row-h) flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
+      <span className="text-sm font-medium text-foreground">
         {L(signalCategoryLabel(pattern.category))} — {pattern.team}{' '}
-        <span className="text-muted-foreground">
-          (<bdi dir="ltr" className="tabular-nums">{pattern.sampleSize}</bdi> {t('signals', 'إشارة')})
+        <span className="font-normal text-muted-foreground">
+          (<bdi dir="ltr" className="tabular">{pattern.sampleSize}</bdi> {t('signals', 'إشارة')})
         </span>
       </span>
       <div className="flex items-center gap-2">
@@ -233,7 +243,6 @@ function RequestRow({ pattern }: { pattern: Pattern }) {
         </Select>
         <Button
           size="sm"
-          className="h-9"
           onClick={() => {
             // KB §6: a shopper check is requested with environment, scenario and what to look for.
             if (kind === 'mystery_shopper_check') {

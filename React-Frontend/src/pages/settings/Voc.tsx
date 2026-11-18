@@ -8,8 +8,8 @@ import { SectionCard } from '@/components/common/SectionCard'
 import { StatusBadge } from '@/components/common/StatusBadge'
 import { EmptyState } from '@/components/common/EmptyState'
 import { LoadingState } from '@/components/common/LoadingState'
-import { cn } from '@/lib/utils'
-import { SubPageHeader } from './SubPageHeader'
+import { NpsBar, NpsLegend } from './NpsBar'
+import { PressFilter, SubPageHeader } from './SubPageHeader'
 
 const VOC_CHANNEL_LABEL: Record<string, { en: string; ar: string }> = {
   digital: { en: 'Digital', ar: 'رقمي' },
@@ -33,7 +33,11 @@ function fmtSigned(v: number | null) {
 /** Ported from `frontend/src/pages/VoiceOfCustomer.tsx` (APPLICATION_MODULES.md
  * §C) — "what customers say across every channel," reusing the results view
  * as-is while the Surveys and triggers page (net-new) owns the current
- * trigger/cap model. */
+ * trigger/cap model.
+ *
+ * Composition (comfortable): the per-product summaries are wells on the page (the product tag and its NPS in the head, a row per channel
+ * with the three-segment bar and the response count), not a card each; the legend is written once under them. The comments are one
+ * card: the product filter is the skill's sliding pill filter, each comment a divided row with its tags. */
 export default function Voc() {
   const { t, L, lang } = useI18n()
   const { data: products, isLoading: productsLoading } = useProducts()
@@ -47,14 +51,8 @@ export default function Voc() {
   )
   const filters: { id: ProductId | 'all'; label: string }[] = [{ id: 'all', label: t('All', 'الكل') }, ...launched.map((p) => ({ id: p.id, label: L(p.name) }))]
 
-  const legend = [
-    { cls: 'bg-success', label: t('Promoters', 'المروّجون') },
-    { cls: 'bg-muted-foreground/40', label: t('Passives', 'المحايدون') },
-    { cls: 'bg-destructive', label: t('Detractors', 'المنتقدون') },
-  ]
-
   return (
-    <section className="flex flex-col gap-4">
+    <section data-density="comfortable" className="flex flex-col gap-8">
       <SubPageHeader
         title={t('Voice of Customer', 'صوت العميل')}
         description={t(
@@ -66,91 +64,62 @@ export default function Voc() {
       {productsLoading ? (
         <LoadingState rows={4} />
       ) : (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          {launched.map((p) => {
-            const rows = (vocRows ?? []).filter((r) => r.product === p.id)
-            return (
-              <SectionCard
-                key={p.id}
-                title={<ProductTag productId={p.id} lang={lang} />}
-                actions={
-                  <span className="text-sm text-muted-foreground">
-                    NPS <bdi dir="ltr" className="font-semibold text-foreground tabular-nums">{fmtSigned(nps(rows))}</bdi>
-                  </span>
-                }
-                contentClassName="flex flex-col gap-3"
-              >
-                {rows.length ? (
-                  <ul className="flex flex-col gap-2.5">
-                    {rows.map((r) => {
-                      const n = Math.max(1, r.n)
-                      return (
+        <div className="flex flex-col gap-4">
+          <div className="grid grid-cols-1 gap-(--grid-gap) md:grid-cols-2">
+            {launched.map((p) => {
+              const rows = (vocRows ?? []).filter((r) => r.product === p.id)
+              return (
+                <div key={p.id} role="group" aria-label={L(p.name)} className="well flex flex-col gap-5">
+                  <div className="flex items-center justify-between gap-2">
+                    <ProductTag productId={p.id} lang={lang} />
+                    <span className="t-body-s">
+                      NPS <bdi dir="ltr" className="t-ui-strong tabular">{fmtSigned(nps(rows))}</bdi>
+                    </span>
+                  </div>
+                  {rows.length ? (
+                    <ul className="flex flex-col gap-3.5">
+                      {rows.map((r) => (
                         <li key={r.channel} className="grid grid-cols-[5.5rem_1fr_auto] items-center gap-3">
-                          <span className="truncate text-sm">{VOC_CHANNEL_LABEL[r.channel] ? L(VOC_CHANNEL_LABEL[r.channel]) : r.channel}</span>
-                          <div
-                            className="flex h-2.5 overflow-hidden rounded-full bg-muted"
-                            role="img"
-                            aria-label={`${r.channel}: ${r.promoters} ${t('promoters', 'مروّجون')}, ${r.passives} ${t('passives', 'محايدون')}, ${r.detractors} ${t('detractors', 'منتقدون')}`}
-                          >
-                            <span className="bg-success" style={{ width: `${(r.promoters / n) * 100}%` }} />
-                            <span className="bg-muted-foreground/40" style={{ width: `${(r.passives / n) * 100}%` }} />
-                            <span className="bg-destructive" style={{ width: `${(r.detractors / n) * 100}%` }} />
-                          </div>
-                          <span className="w-16 text-end text-xs text-muted-foreground tabular-nums">
+                          <span className="t-small-strong truncate">{VOC_CHANNEL_LABEL[r.channel] ? L(VOC_CHANNEL_LABEL[r.channel]) : r.channel}</span>
+                          <NpsBar
+                            promoters={r.promoters}
+                            passives={r.passives}
+                            detractors={r.detractors}
+                            label={`${r.channel}: ${r.promoters} ${t('promoters', 'مروّجون')}, ${r.passives} ${t('passives', 'محايدون')}, ${r.detractors} ${t('detractors', 'منتقدون')}`}
+                          />
+                          <span className="t-body-s w-16 text-end tabular">
                             {r.n} {t('resp.', 'ردّ')}
                           </span>
                         </li>
-                      )
-                    })}
-                  </ul>
-                ) : (
-                  <span className="text-sm text-muted-foreground">{t('no data yet', 'لا توجد بيانات بعد')}</span>
-                )}
-                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                  {legend.map((l) => (
-                    <span key={l.label} className="inline-flex items-center gap-1.5">
-                      <span aria-hidden className={cn('size-2.5 rounded-full', l.cls)} />
-                      {l.label}
-                    </span>
-                  ))}
+                      ))}
+                    </ul>
+                  ) : (
+                    <span className="t-body-s">{t('no data yet', 'لا توجد بيانات بعد')}</span>
+                  )}
                 </div>
-              </SectionCard>
-            )
-          })}
+              )
+            })}
+          </div>
+          <NpsLegend />
         </div>
       )}
 
-      <SectionCard title={t('Comments and free text', 'التعليقات والنصوص الحرة')}>
-        <div className="mb-4 flex flex-wrap gap-2" role="group" aria-label={t('Filter by product', 'تصفية حسب المنتج')}>
-          {filters.map((f) => (
-            <button
-              key={f.id}
-              type="button"
-              aria-pressed={filterProduct === f.id}
-              onClick={() => setFilterProduct(f.id)}
-              className={cn(
-                'inline-flex h-8 cursor-pointer items-center rounded-full border px-3 text-sm outline-none transition-colors duration-150 focus-visible:ring-[3px] focus-visible:ring-ring/50',
-                filterProduct === f.id ? 'border-primary bg-primary text-primary-foreground' : 'bg-card hover:bg-muted',
-              )}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
+      <SectionCard title={t('Comments and free text', 'التعليقات والنصوص الحرة')} contentClassName="flex flex-col gap-5">
+        <PressFilter label={t('Filter by product', 'تصفية حسب المنتج')} value={filterProduct} onChange={setFilterProduct} options={filters} />
         {commentsLoading ? (
           <LoadingState rows={3} />
         ) : visibleComments.length ? (
-          <ul className="flex flex-col divide-y">
+          <ul className="flex flex-col">
             {visibleComments.map((c, i) => (
-              <li key={i} className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
+              <li key={i} className="row-divider flex items-start gap-3 py-4 first:pt-0 last:pb-0">
                 <MessageSquareQuote aria-hidden className="mt-0.5 size-4 shrink-0 text-muted-foreground rtl:-scale-x-100" />
                 <div className="flex min-w-0 flex-1 flex-col gap-1.5">
                   <div className="flex flex-wrap items-center gap-2">
                     <ProductTag productId={c.product} lang={lang} />
-                    <span className="text-xs text-muted-foreground">{VOC_CHANNEL_LABEL[c.channel] ? L(VOC_CHANNEL_LABEL[c.channel]) : c.channel}</span>
+                    <span className="t-body-s">{VOC_CHANNEL_LABEL[c.channel] ? L(VOC_CHANNEL_LABEL[c.channel]) : c.channel}</span>
                     <StatusBadge>{L(c.theme)}</StatusBadge>
                   </div>
-                  <p className="text-sm">{L(c.text)}</p>
+                  <p className="text-base text-foreground">{L(c.text)}</p>
                 </div>
                 <StatusBadge tone={c.sentiment === 'positive' ? 'success' : c.sentiment === 'negative' ? 'danger' : 'neutral'}>{c.sentiment}</StatusBadge>
               </li>

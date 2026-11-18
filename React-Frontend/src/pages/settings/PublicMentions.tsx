@@ -9,7 +9,6 @@ import { useMarkReplied, useRules } from '@/services/queriesV40'
 import { PUBLIC_MENTIONS_COPY as COPY, replyLabel, replyState, type ReplyState } from '@/data/publicMentions'
 import { envNameFromShort } from '@/data/environments'
 import { useNow } from '@/hooks/useNow'
-import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { SourceBadge } from '@/components/customers/SourceBadge'
@@ -17,8 +16,9 @@ import { EmptyState } from '@/components/common/EmptyState'
 import { ErrorState } from '@/components/common/ErrorState'
 import { KpiTile } from '@/components/common/KpiTile'
 import { LoadingState } from '@/components/common/LoadingState'
+import { SectionCard } from '@/components/common/SectionCard'
 import { StatusBadge } from '@/components/common/StatusBadge'
-import { SubPageHeader } from './SubPageHeader'
+import { IN_CARD, PressFilter, SubPageHeader } from './SubPageHeader'
 
 type Filter = 'all' | ReplyState
 
@@ -31,6 +31,9 @@ const HOUR_MS = 3_600_000
  * can open the page; the Internal Audit and Marketing Lead audits monthly. Decided 18 Nov, so the owner column has no badge.
  * Nobody here is surveyed or matched to a record: a mention is never linked to a person. "Mark replied" is for the
  * CX roles and Marketing.
+ *
+ * Design: a register, so dense. The filter is the segmented pill track (toggle buttons with counts), the list is one card with a
+ * table; colour appears only as the status tags and the dot on a KPI that needs a look.
  */
 export default function PublicMentions() {
   const { t, L, lang } = useI18n()
@@ -58,9 +61,9 @@ export default function PublicMentions() {
   ]
 
   return (
-    <section className="flex flex-col gap-4">
+    <section data-density="dense" className="flex flex-col gap-4">
       <SubPageHeader title={L(COPY.title)} description={L(COPY.intro(hours))} />
-      <p className="text-sm text-muted-foreground">{L(COPY.ownerNote(hours))}</p>
+      <p className="max-w-[72ch] text-sm text-muted-foreground">{L(COPY.ownerNote(hours))}</p>
 
       {isError ? (
         <ErrorState onRetry={() => void refetch()} />
@@ -68,42 +71,29 @@ export default function PublicMentions() {
         <LoadingState rows={6} />
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-            <KpiTile label={t('Mentions', 'الإشارات')} value={counts.all} accent="var(--chart-4)" />
-            <KpiTile label={t('Awaiting reply', 'بانتظار الرد')} value={counts.awaiting} accent="var(--warning)" sub={t(`inside the ${hours}-hour clock`, `ضمن مهلة ${hours} ساعة`)} />
-            <KpiTile label={t(`Over ${hours} h, no reply`, `تجاوزت ${hours} ساعة بلا رد`)} value={counts.overdue} accent={counts.overdue ? 'var(--destructive)' : 'var(--success)'} sub={counts.overdue ? L(COPY.missedSignal) : undefined} />
-            <KpiTile label={t('Replied', 'رُدّ عليها')} value={counts.replied} accent="var(--success)" />
+          <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+            <KpiTile label={t('Mentions', 'الإشارات')} value={counts.all} />
+            <KpiTile label={t('Awaiting reply', 'بانتظار الرد')} value={counts.awaiting} sub={t(`inside the ${hours}-hour clock`, `ضمن مهلة ${hours} ساعة`)} />
+            <KpiTile label={t(`Over ${hours} h, no reply`, `تجاوزت ${hours} ساعة بلا رد`)} value={counts.overdue} accent={counts.overdue ? 'var(--destructive)' : undefined} sub={counts.overdue ? L(COPY.missedSignal) : undefined} />
+            <KpiTile label={t('Replied', 'رُدّ عليها')} value={counts.replied} />
           </div>
 
-          <div role="group" aria-label={t('Filter by reply status', 'تصفية حسب حالة الرد')} className="flex flex-wrap gap-2">
-            {FILTERS.map((f) => (
-              <button
-                key={f.id}
-                type="button"
-                aria-pressed={filter === f.id}
-                onClick={() => setFilter(f.id)}
-                className={cn(
-                  'inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-sm font-medium outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50',
-                  filter === f.id ? 'border-primary bg-primary/10 text-foreground' : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-                )}
-              >
-                {f.label}
-                <span className="tabular-nums text-xs text-muted-foreground">{counts[f.id]}</span>
-              </button>
-            ))}
-          </div>
+          <PressFilter
+            label={t('Filter by reply status', 'تصفية حسب حالة الرد')}
+            options={FILTERS.map((f) => ({ id: f.id, label: f.label, count: counts[f.id] }))}
+            value={filter}
+            onChange={setFilter}
+          />
 
           {shown.length === 0 ? (
             <EmptyState title={t('No mentions match this filter.', 'لا إشارات تطابق هذه التصفية.')} />
           ) : (
-            <div className="overflow-hidden rounded-lg border bg-card">
+            <SectionCard contentClassName={IN_CARD}>
               <Table>
-                <TableHeader className="bg-muted/60">
-                  <TableRow className="hover:bg-transparent">
+                <TableHeader>
+                  <TableRow>
                     {[c.date, c.channel, c.mention, c.tone, c.reply, c.identified, c.owner].map((h) => (
-                      <TableHead key={h.en} className="px-3 text-xs font-semibold text-muted-foreground">
-                        {L(h)}
-                      </TableHead>
+                      <TableHead key={h.en}>{L(h)}</TableHead>
                     ))}
                   </TableRow>
                 </TableHeader>
@@ -112,30 +102,29 @@ export default function PublicMentions() {
                     const leftH = Math.max(1, Math.ceil(hours - (now - Date.parse(m.date)) / HOUR_MS))
                     return (
                       <TableRow key={m.id}>
-                        <TableCell className="px-3 py-2.5 tabular-nums">
+                        <TableCell className="tabular">
                           <bdi dir="ltr">{fmtDate(m.date)}</bdi>
                         </TableCell>
-                        <TableCell className="px-3 py-2.5">
+                        <TableCell>
                           <span className="flex flex-col items-start gap-1">
                             <SourceBadge channel={m.platform} />
-                            <span className="text-xs text-muted-foreground">{L(envNameFromShort(m.environment))}</span>
+                            <span className="text-xs">{L(envNameFromShort(m.environment))}</span>
                           </span>
                         </TableCell>
-                        <TableCell className="min-w-48 px-3 py-2.5 whitespace-normal">{m.text}</TableCell>
-                        <TableCell className="px-3 py-2.5">
+                        <TableCell className="min-w-40 whitespace-normal text-foreground">{m.text}</TableCell>
+                        <TableCell>
                           <StatusBadge tone={m.sentiment < 0 ? 'danger' : m.sentiment > 0 ? 'success' : 'neutral'}>{L(tone(m.sentiment))}</StatusBadge>
                         </TableCell>
-                        <TableCell className="px-3 py-2.5">
-                          <span className="flex flex-col items-start gap-1">
+                        <TableCell>
+                          <span className="flex flex-col items-start gap-1.5">
                             <StatusBadge tone={state === 'replied' ? 'success' : state === 'overdue' ? 'danger' : 'warning'} icon={state === 'overdue' ? <TimerOff aria-hidden /> : undefined}>
                               {L(replyLabel(m, now, hours))}
                             </StatusBadge>
-                            {state === 'awaiting' && <span className="text-xs text-muted-foreground tabular-nums">{t(`${leftH} h left on the clock`, `${leftH} ساعة متبقية على المهلة`)}</span>}
+                            {state === 'awaiting' && <span className="text-xs tabular">{t(`${leftH} h left on the clock`, `${leftH} ساعة متبقية على المهلة`)}</span>}
                             {canReply && !m.replied && (
                               <Button
-                                size="sm"
+                                size="xs"
                                 variant="outline"
-                                className="h-8"
                                 aria-label={`${L(COPY.action)}: ${m.text.slice(0, 40)}`}
                                 onClick={() => markReplied.mutate({ id: m.id }, { onSuccess: () => toast(L(COPY.toast)) })}
                               >
@@ -145,14 +134,14 @@ export default function PublicMentions() {
                             )}
                           </span>
                         </TableCell>
-                        <TableCell className="min-w-28 px-3 py-2.5 whitespace-normal">{m.becameIdentified ? L(COPY.identified[m.channelMovedTo ?? 'private']) : '–'}</TableCell>
-                        <TableCell className="min-w-28 px-3 py-2.5 whitespace-normal">{L(m.owner)}</TableCell>
+                        <TableCell className="min-w-24 whitespace-normal">{m.becameIdentified ? L(COPY.identified[m.channelMovedTo ?? 'private']) : '–'}</TableCell>
+                        <TableCell className="min-w-24 whitespace-normal">{L(m.owner)}</TableCell>
                       </TableRow>
                     )
                   })}
                 </TableBody>
               </Table>
-            </div>
+            </SectionCard>
           )}
         </>
       )}

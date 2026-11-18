@@ -35,6 +35,9 @@ type Filter<T extends string> = 'all' | T
  * (decided 18 Nov): the Internal Audit and Marketing Lead sees the reference (`P-005`) in the list, in the search and in
  * the file. The export is scope-respecting: it writes the rows the filters leave, with no mobile column for a role
  * without the right.
+ *
+ * Design: dense (the page sets `data-density="dense"`): 44px rows, the skill's table, light tags for the source and product, tinted tags only
+ * for the two states that need attention (problems, drifting).
  */
 export function CustomerList() {
   const { t, L, lang } = useI18n()
@@ -74,10 +77,7 @@ export function CustomerList() {
       header: ({ column }) => <SortableHeader column={column}>{L(COPY.columns.person)}</SortableHeader>,
       cell: ({ row }) => (
         <span className="inline-flex items-center gap-2">
-          <Link
-            to={`/customers/${row.original.id}`}
-            className="rounded-sm font-medium text-primary underline-offset-4 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
-          >
+          <Link to={`/customers/${row.original.id}`} className="rounded-xs font-medium text-foreground underline-offset-4 outline-none hover:underline">
             {personLabel(row.original, role.id)}
           </Link>
           {row.original.vip && (
@@ -123,7 +123,7 @@ export function CustomerList() {
       header: ({ column }) => <SortableHeader column={column}>{L(COPY.columns.lastContact)}</SortableHeader>,
       cell: ({ getValue }) => {
         const iso = getValue<string>()
-        return iso ? <bdi dir="ltr" className="tabular-nums">{fmtDate(iso)}</bdi> : <span className="text-muted-foreground">–</span>
+        return iso ? <bdi dir="ltr" className="tabular">{fmtDate(iso)}</bdi> : <span className="text-muted-foreground">–</span>
       },
     },
     {
@@ -133,7 +133,7 @@ export function CustomerList() {
       meta: { align: 'end' },
       cell: ({ row }) => {
         const n = facts.problems.get(row.original.id) ?? 0
-        if (n === 0) return <span className="text-muted-foreground tabular-nums">0</span>
+        if (n === 0) return <span className="tabular text-muted-foreground">0</span>
         return <StatusBadge tone={facts.critical.has(row.original.id) ? 'danger' : 'warning'}>{n}</StatusBadge>
       },
     },
@@ -165,10 +165,10 @@ export function CustomerList() {
       description={L(COPY.hint)}
       actions={
         <span className="flex items-center gap-3">
-          <span className="text-sm text-muted-foreground tabular-nums" aria-live="polite">
+          <span className="tabular t-body-s" aria-live="polite">
             {L(COPY.count(visible.length))}
           </span>
-          <Button variant="outline" size="sm" className="h-9" onClick={exportList} disabled={!visible.length}>
+          <Button variant="outline" size="sm" onClick={exportList} disabled={!visible.length}>
             <Download aria-hidden />
             {L(COPY.export)}
           </Button>
@@ -185,8 +185,8 @@ export function CustomerList() {
         toolbar={
           <>
             <div className="relative w-full sm:w-72">
-              <Search aria-hidden className="pointer-events-none absolute start-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={searchLabel} aria-label={t('Search this list', 'ابحث في هذه القائمة')} className="h-9 ps-8" />
+              <Search aria-hidden className="pointer-events-none absolute start-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={searchLabel} aria-label={t('Search this list', 'ابحث في هذه القائمة')} className="h-9 ps-9" />
             </div>
             {fixed ? (
               <StatusBadge tone="info">
@@ -219,7 +219,8 @@ export function CustomerList() {
         }
       />
       {!names && (
-        <p className="mt-3 text-xs text-muted-foreground">
+        <p className="well mt-4 flex items-start gap-2.5 px-4 py-3 text-sm text-muted-foreground">
+          <span aria-hidden className="dot dot-info mt-[5px]" />
           {t('Names and mobiles are not shown to this role: people appear by reference (for example P-005), in the list and in the file.', 'الأسماء وأرقام الجوال لا تظهر لهذا الدور: يظهر الأشخاص بمرجع (مثل P-005)، في القائمة وفي الملف.')}
         </p>
       )}

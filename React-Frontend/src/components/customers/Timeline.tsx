@@ -96,12 +96,12 @@ export function Timeline({ interactions }: { interactions: Interaction[] }) {
       {!sorted.length ? (
         <EmptyState title={t('No interactions on this channel.', 'لا توجد تفاعلات على هذه القناة.')} />
       ) : (
-        <ol className="relative flex flex-col">
-          {sorted.map((i, idx) => {
+        <ol className="flex flex-col gap-2.5">
+          {sorted.map((i) => {
             const agent = directory ? resolveAgentDisplay(i.agentRef, role.id, directory, { en: 'Agent', ar: 'وكيل' }, lang) : null
             const hasProblem = i.problemFlags.length > 0
+            const isPublic = PUBLIC_CHANNELS.has(i.channel)
             const Icon = CHANNEL_ICON[i.channel]
-            const isLast = idx === sorted.length - 1
             const when = new Date(i.occurredAt)
             const target = isTarget(i)
             const produced = signalsByEvent.get(i.id) ?? []
@@ -114,36 +114,22 @@ export function Timeline({ interactions }: { interactions: Interaction[] }) {
                 data-trace-id={evId(i.id)}
                 data-highlighted={target ? 'true' : undefined}
                 tabIndex={target ? -1 : undefined}
-                className="relative flex scroll-mt-24 gap-3 rounded-lg pb-5 outline-none last:pb-0 focus-visible:ring-[3px] focus-visible:ring-ring/60"
+                // an event is a well; the one named by ?ev= is the selected row (the 1.5px ink ring), and takes the focus ring when focused
+                className={cn('flex scroll-mt-24 gap-3 rounded-well bg-well px-4 py-3.5', target && 'shadow-(--ring-selected)')}
               >
-                {!isLast && <span aria-hidden className="absolute start-4 top-9 bottom-0 w-px -translate-x-1/2 bg-border rtl:translate-x-1/2" />}
-                <span
-                  aria-hidden
-                  className={cn(
-                    'relative z-10 flex size-8 shrink-0 items-center justify-center rounded-full border-2 bg-card',
-                    hasProblem
-                      ? 'border-destructive text-danger-text'
-                      : PUBLIC_CHANNELS.has(i.channel)
-                        ? 'border-info/40 text-info-text'
-                        : 'border-border text-muted-foreground',
-                  )}
-                >
+                {/* the channel icon in a 30px circle: dark material for an event the rules flagged; a 6px status dot at its corner (red = problem, blue = public channel) */}
+                <span aria-hidden className={cn('relative inline-grid size-[30px] shrink-0 place-items-center rounded-full', hasProblem ? 'material-dark' : 'material-light')}>
                   <Icon className="size-4" />
+                  {(hasProblem || isPublic) && <span className={cn('dot absolute -end-px -top-px ring-2 ring-(--surface-well)', hasProblem ? 'dot-error' : 'dot-info')} />}
                 </span>
-                <div
-                  className={cn(
-                    'flex min-w-0 flex-1 flex-col gap-1.5 rounded-lg px-3 py-2',
-                    hasProblem ? 'border border-destructive/25 bg-destructive/5' : 'bg-muted/40',
-                    target && 'ring-2 ring-primary',
-                  )}
-                >
+                <div className="flex min-w-0 flex-1 flex-col gap-1.5">
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
                     <TraceId kind="event" id={i.id} plain />
                     {produced.map((s) => (
                       <TraceId key={s.id} kind="signal" id={s.id} />
                     ))}
-                    <span className="font-medium">{L(CHANNEL_LABEL[i.channel])}</span>
-                    <time dateTime={i.occurredAt} className="text-muted-foreground tabular-nums">
+                    <span className="t-small-strong">{L(CHANNEL_LABEL[i.channel])}</span>
+                    <time dateTime={i.occurredAt} className="tabular text-muted-foreground">
                       {when.toLocaleDateString(lang, { day: 'numeric', month: 'short', year: 'numeric' })} ·{' '}
                       {when.toLocaleTimeString(lang, { hour: '2-digit', minute: '2-digit' })}
                     </time>
@@ -157,12 +143,12 @@ export function Timeline({ interactions }: { interactions: Interaction[] }) {
                     </span>
                     {canSeeAgents && agent?.visible && <span className="text-muted-foreground">· {agent.label}</span>}
                   </div>
-                  {i.reason && <p className="text-sm">{i.reason}</p>}
+                  {i.reason && <p className="text-sm text-foreground">{i.reason}</p>}
                   {i.outcome && <p className="text-sm text-muted-foreground">{t('Outcome', 'النتيجة')}: {i.outcome}</p>}
                   {i.promiseDueAt && (
-                    <p className={cn('text-sm', i.promiseKept === false ? 'text-danger-text' : 'text-muted-foreground')}>
+                    <p className="text-sm text-muted-foreground">
                       {t('Promise due', 'موعد الوعد')}{' '}
-                      <time dateTime={i.promiseDueAt} className="tabular-nums">
+                      <time dateTime={i.promiseDueAt} className="tabular">
                         {new Date(i.promiseDueAt).toLocaleString(lang, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                       </time>
                       {' · '}
@@ -175,7 +161,11 @@ export function Timeline({ interactions }: { interactions: Interaction[] }) {
                       {t('Call — fact, time, reason and result only, never a recording or transcript.', 'مكالمة — الواقعة والوقت والسبب والنتيجة فقط، دون تسجيل أو نص.')}
                     </p>
                   ) : (
-                    canSeeText && i.text && <blockquote dir="auto" className="border-s-2 border-border ps-3 text-start text-sm text-muted-foreground">{i.text}</blockquote>
+                    canSeeText && i.text && (
+                      <blockquote dir="auto" className="rounded-xl bg-card px-3.5 py-2.5 text-start text-sm text-muted-foreground shadow-hairline">
+                        {i.text}
+                      </blockquote>
+                    )
                   )}
                   {(hasProblem || i.promiseKept === false) && (
                     <div className="flex flex-wrap gap-1.5">

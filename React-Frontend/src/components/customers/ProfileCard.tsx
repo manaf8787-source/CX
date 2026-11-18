@@ -8,6 +8,7 @@ import { SEGMENT_LABEL, SOURCE_LABEL } from '@/data/customersList'
 import type { Person } from '@/types'
 import { SectionCard } from '@/components/common/SectionCard'
 import { StatusBadge } from '@/components/common/StatusBadge'
+import { cn } from '@/lib/utils'
 import { CHANNEL_LABEL } from './channels'
 
 /** FR-2.2 — the CRM profile block: type, environment, units/deals,
@@ -27,6 +28,7 @@ export function ProfileCard({ person }: { person: Person }) {
 
   return (
     <SectionCard
+      well
       title={t('Profile', 'الملف الشخصي')}
       actions={
         person.vip && (
@@ -36,7 +38,7 @@ export function ProfileCard({ person }: { person: Person }) {
         )
       }
     >
-      <dl className="grid grid-cols-2 gap-x-6 gap-y-4 md:grid-cols-3">
+      <dl className="grid grid-cols-2 gap-x-6 gap-y-5 md:grid-cols-3">
         <Item label={t('Type', 'النوع')} value={L(SEGMENT_LABEL[person.segment])} />
         <Item label={t('Environment', 'البيئة')} value={L(envNameFromShort(person.environment))} />
         <Item label={t('Source of the lead', 'مصدر العميل المحتمل')} value={L(SOURCE_LABEL[person.sourceOfLead])} />
@@ -49,11 +51,11 @@ export function ProfileCard({ person }: { person: Person }) {
         <Item label={t('Persona', 'الشخصية')} value={persona ? L(persona.name) : t('Not yet assigned', 'لم تُحدَّد بعد')} />
       </dl>
       {identity.length > 0 && (
-        <p className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 border-t pt-3 text-sm text-muted-foreground">
+        <p className="mt-6 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-sm text-muted-foreground">
           <Fingerprint aria-hidden className="size-4" />
           {t('Identity stitched by', 'هوية موحّدة عبر')}:
           {identity.map((id) => (
-            <bdi key={id} dir="ltr" className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground">
+            <bdi key={id} dir="ltr" className="pill pill-light tabular">
               {id}
             </bdi>
           ))}
@@ -67,7 +69,7 @@ function Item({ label, value, numeric }: { label: string; value: string; numeric
   return (
     <div className="flex min-w-0 flex-col gap-0.5">
       <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className={numeric ? 'text-sm font-medium tabular-nums' : 'truncate text-sm font-medium'}>{value}</dd>
+      <dd className={cn('t-ui-strong', numeric ? 'tabular' : 'truncate')}>{value}</dd>
     </div>
   )
 }

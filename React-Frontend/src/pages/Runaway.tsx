@@ -1,4 +1,4 @@
-import { useMemo, type CSSProperties } from 'react'
+import { useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import type { LucideIcon } from 'lucide-react'
 import { ArrowRight, CalendarX, Hourglass, MessageSquareWarning, MoonStar, PhoneMissed, Shuffle } from 'lucide-react'
@@ -13,6 +13,7 @@ import { CUSTOMERS_LIST_COPY } from '@/data/customersList'
 import { envName } from '@/data/environments'
 import type { RunawayType } from '@/types'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import { PageHeader } from '@/components/common/PageHeader'
 import { SectionCard } from '@/components/common/SectionCard'
 import { KpiTile } from '@/components/common/KpiTile'
@@ -22,14 +23,14 @@ import { LoadingState } from '@/components/common/LoadingState'
 import { CustomersTabs } from '@/components/customers/CustomersTabs'
 import { usePeopleFacts } from '@/components/customers/usePeopleFacts'
 
-/** One icon and one hue per type so the six read apart at a glance (icon carries meaning, colour only reinforces it). */
-const TYPE_STYLE: Record<RunawayType, { icon: LucideIcon; accent: string }> = {
-  silent_lead: { icon: PhoneMissed, accent: 'var(--chart-4)' },
-  did_not_renew: { icon: CalendarX, accent: 'var(--warning)' },
-  dormant_owner: { icon: MoonStar, accent: 'var(--chart-1)' },
-  went_to_competitor: { icon: Shuffle, accent: 'var(--destructive)' },
-  frozen_deal: { icon: Hourglass, accent: 'var(--chart-3)' },
-  complained_then_left: { icon: MessageSquareWarning, accent: 'var(--chart-5)' },
+/** One neutral icon per type so the six read apart at a glance. The name carries the meaning; colour is not used (the skill keeps hues for status). */
+const TYPE_ICON: Record<RunawayType, LucideIcon> = {
+  silent_lead: PhoneMissed,
+  did_not_renew: CalendarX,
+  dormant_owner: MoonStar,
+  went_to_competitor: Shuffle,
+  frozen_deal: Hourglass,
+  complained_then_left: MessageSquareWarning,
 }
 
 /** FR-3.1–3.5 — six types as live counters (classified from real sample
@@ -68,7 +69,7 @@ export default function Runaway() {
   const anyClassified = [...byType.values()].some((l) => l.length)
 
   return (
-    <div className="flex flex-col gap-6">
+    <div data-density="dense" className="flex flex-col gap-6">
       <PageHeader
         term="Runaway customer" title={L(CUSTOMERS_LIST_COPY.tabs.leaving)}
         description={t(
@@ -85,16 +86,15 @@ export default function Runaway() {
         </StatusBadge>
       )}
 
-      <section aria-label={t('Runaway types', 'أنواع العملاء الهاربين')} className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-3">
+      <section aria-label={t('Runaway types', 'أنواع العملاء الهاربين')} className="grid grid-cols-2 gap-(--grid-gap) xl:grid-cols-3">
         {RUNAWAY_LEARNING_ORDER.map((type, idx) => {
-          const { icon: Icon, accent } = TYPE_STYLE[type]
+          const Icon = TYPE_ICON[type]
           return (
             <KpiTile
               key={type}
               label={L(RUNAWAY_TYPE_LABEL[type])}
               value={(byType.get(type) ?? []).length}
               sub={idx < 3 ? t(`Learn first · #${idx + 1}`, `للتعلّم أولاً · ${idx + 1}`) : undefined}
-              accent={accent}
               icon={<Icon />}
               loading={loading}
               onClick={() => document.getElementById(`ra-${type}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
@@ -112,62 +112,71 @@ export default function Runaway() {
         ) : !faults.length ? (
           <EmptyState title={t('No faults found across runaway records yet.', 'لا توجد أخطاء مسجّلة عبر السجلات الهاربة بعد.')} />
         ) : (
-          <ul className="flex flex-col gap-1">
-            {faults.map((f) => {
-              const rule = JOURNEY_RULES.find((r) => r.id === f.flag)
-              return (
-                <li key={f.flag}>
-                  <button
-                    type="button"
-                    onClick={() => navigate('/actions/corrective')}
-                    className="group flex min-h-10 w-full cursor-pointer items-center gap-3 rounded-lg px-2 py-2 text-start outline-none transition-colors duration-150 hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                  >
-                    <span className="w-28 shrink-0 truncate text-sm font-medium first-letter:uppercase sm:w-56">{rule ? L(rule.label) : f.flag.replace(/_/g, ' ')}</span>
-                    <span aria-hidden className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
-                      <span className="block h-full rounded-full bg-destructive/70" style={{ width: `${(f.count / maxFault) * 100}%` }} />
-                    </span>
-                    <span className="w-8 shrink-0 text-end text-sm font-semibold tabular-nums">{f.count}</span>
-                    <ArrowRight aria-hidden className="size-4 shrink-0 text-muted-foreground transition-transform duration-150 group-hover:translate-x-0.5 rtl:rotate-180 rtl:group-hover:-translate-x-0.5 motion-reduce:transition-none" />
-                  </button>
-                </li>
-              )
-            })}
-          </ul>
+          <div className="well">
+            <ul className="flex flex-col gap-1">
+              {faults.map((f, i) => {
+                const rule = JOURNEY_RULES.find((r) => r.id === f.flag)
+                const hero = i === 0
+                return (
+                  <li key={f.flag}>
+                    <button
+                      type="button"
+                      onClick={() => navigate('/actions/corrective')}
+                      className="group grid min-h-11 w-full cursor-pointer grid-cols-[minmax(5rem,12rem)_minmax(0,1fr)_2rem_1rem] items-center gap-3.5 rounded-xl px-3 py-2 text-start outline-none transition-colors duration-200 hover:bg-card sm:grid-cols-[minmax(8rem,16rem)_minmax(0,1fr)_2rem_1rem]"
+                    >
+                      <span className={cn('truncate first-letter:uppercase', hero ? 't-small-strong' : 't-body-s')}>{rule ? L(rule.label) : f.flag.replace(/_/g, ' ')}</span>
+                      <span aria-hidden className="h-3 overflow-hidden rounded-full bg-line shadow-inset-track">
+                        <span
+                          className={cn('block h-full rounded-full', hero ? 'material-dark' : 'bg-grad-muted-fill opacity-[0.62]')}
+                          style={{ width: `${(f.count / maxFault) * 100}%` }}
+                        />
+                      </span>
+                      <span className={cn('tabular text-end', hero ? 't-small-strong' : 't-body-s')}>{f.count}</span>
+                      <ArrowRight
+                        aria-hidden
+                        className="size-4 shrink-0 text-muted-foreground transition-transform duration-400 ease-spring group-hover:translate-x-0.5 motion-reduce:transform-none rtl:rotate-180 rtl:group-hover:-translate-x-0.5"
+                      />
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
         )}
       </SectionCard>
 
       {!loading && !anyClassified && <EmptyState title={t('No runaway customers classified in this scope yet.', 'لا يوجد عملاء هاربون مصنَّفون ضمن هذا النطاق بعد.')} />}
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-(--grid-gap) lg:grid-cols-2">
         {RUNAWAY_LEARNING_ORDER.map((type) => {
           const list = byType.get(type) ?? []
           if (!list.length) return null
-          const { icon: Icon, accent } = TYPE_STYLE[type]
+          const Icon = TYPE_ICON[type]
           return (
-            <section key={type} id={`ra-${type}`} className="scroll-mt-20" style={{ '--c': accent } as CSSProperties}>
+            <section key={type} id={`ra-${type}`} className="scroll-mt-20">
               <SectionCard
-                className="h-full border-t-2 border-t-(--c)"
+                className="h-full"
                 title={
-                  <span className="inline-flex items-center gap-2">
-                    <span aria-hidden className="flex size-7 items-center justify-center rounded-md bg-(--c)/12 text-(--c)">
-                      <Icon className="size-4" />
+                  <span className="inline-flex items-center gap-2.5">
+                    <span aria-hidden className="material-light inline-grid size-[30px] shrink-0 place-items-center rounded-full [&_svg]:size-4">
+                      <Icon />
                     </span>
                     {L(RUNAWAY_TYPE_LABEL[type])}
-                    <span className="rounded-full bg-muted px-2 text-xs font-medium text-muted-foreground tabular-nums">{list.length}</span>
+                    <span className="pill pill-light tabular">{list.length}</span>
                   </span>
                 }
                 description={L(RUNAWAY_TYPE_DEFINITION[type])}
               >
-                <ul className="flex flex-col divide-y">
+                <ul className="flex flex-col">
                   {list.map((p) => {
                     const reason = classifications.get(p.id)?.reason
                     return (
-                      <li key={p.id} className="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0">
+                      <li key={p.id} className="row-divider flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0">
                         <div className="flex min-w-0 flex-col gap-0.5">
-                          <span className="text-sm font-medium">{p.label}</span>
+                          <span className="text-sm font-medium text-foreground">{p.label}</span>
                           {reason && <span className="text-xs text-muted-foreground">{L(reason)}</span>}
                         </div>
-                        <Button variant="outline" size="sm" asChild className="h-9 shrink-0">
+                        <Button variant="ghost" size="sm" asChild className="shrink-0">
                           <Link to={`/customers/${p.id}`}>
                             {t('Full journey', 'الرحلة الكاملة')}
                             <ArrowRight aria-hidden className="rtl:rotate-180" />

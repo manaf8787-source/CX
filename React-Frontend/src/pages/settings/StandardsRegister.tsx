@@ -17,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DataTable, SortableHeader } from '@/components/common/DataTable'
 import { SectionCard } from '@/components/common/SectionCard'
 import { StatusBadge } from '@/components/common/StatusBadge'
-import { SubPageHeader, ViewOnlyNotice } from './SubPageHeader'
+import { CountTile, SubPageHeader, ViewOnlyNotice } from './SubPageHeader'
 import { LdDocumentList } from './Standards'
 
 const STATUS_ORDER: RegisterStatus[] = ['obs', 'draft', 'appr']
@@ -47,7 +47,7 @@ export default function StandardsRegister() {
       {
         accessorKey: 'code',
         header: ({ column }) => <SortableHeader column={column}>{t('Code', 'الرمز')}</SortableHeader>,
-        cell: ({ row }) => <span className="font-mono text-xs text-muted-foreground">{row.original.code}</span>,
+        cell: ({ row }) => <span className="tabular">{row.original.code}</span>,
       },
       {
         id: 'name',
@@ -55,7 +55,7 @@ export default function StandardsRegister() {
         header: ({ column }) => <SortableHeader column={column}>{t('Standard', 'المعيار')}</SortableHeader>,
         cell: ({ row }) => (
           <div className="flex min-w-52 flex-col gap-0.5 whitespace-normal">
-            <span className="inline-flex flex-wrap items-center gap-1.5 text-sm font-medium">
+            <span className="inline-flex flex-wrap items-center gap-1.5 font-medium text-foreground">
               {L(row.original.name)}
               {row.original.critical && (
                 <StatusBadge tone="danger" icon={<ShieldAlert aria-hidden />}>
@@ -63,7 +63,7 @@ export default function StandardsRegister() {
                 </StatusBadge>
               )}
             </span>
-            <span className="text-xs text-muted-foreground">{L(row.original.rule)}</span>
+            <span className="text-xs">{L(row.original.rule)}</span>
           </div>
         ),
       },
@@ -71,16 +71,17 @@ export default function StandardsRegister() {
         id: 'area',
         accessorFn: (s) => L(STANDARD_AREA_LABEL[s.area]),
         header: t('Area', 'المجال'),
-        cell: ({ getValue }) => <span className="text-muted-foreground">{getValue<string>()}</span>,
+        cell: ({ getValue }) => <span className="whitespace-normal">{getValue<string>()}</span>,
+        meta: { cellClassName: 'min-w-28 whitespace-normal' },
       },
       {
         id: 'owner',
         accessorFn: (s) => L(s.owner),
         header: t('Owner', 'المالك'),
         cell: ({ row }) => (
-          <div className="flex flex-col">
-            <span>{L(row.original.owner)}</span>
-            {PEOPLE_FACING.has(row.original.area) && <span className="text-xs text-muted-foreground">{t('Edited by L&D', 'يحرره التعلم والتطوير')}</span>}
+          <div className="flex min-w-24 flex-col whitespace-normal">
+            <span className="text-foreground">{L(row.original.owner)}</span>
+            {PEOPLE_FACING.has(row.original.area) && <span className="text-xs">{t('Edited by L&D', 'يحرره التعلم والتطوير')}</span>}
           </div>
         ),
       },
@@ -88,7 +89,7 @@ export default function StandardsRegister() {
         id: 'source',
         accessorFn: (s) => L(REGISTER_SOURCE[s.source]),
         header: t('Source', 'المصدر'),
-        cell: ({ getValue }) => <span className="text-muted-foreground">{getValue<string>()}</span>,
+        cell: ({ getValue }) => <span className="whitespace-normal">{getValue<string>()}</span>,
       },
       {
         id: 'status',
@@ -98,7 +99,7 @@ export default function StandardsRegister() {
           const s = row.original
           return canEditRow(s) && !(role.id === 'ld' && s.status === 'appr') ? (
             <Select value={s.status} onValueChange={(v) => setStatus.mutate({ code: s.code, status: v as RegisterStatus })}>
-              <SelectTrigger size="sm" className="h-9 w-40" aria-label={`${s.code}: ${t('status', 'الحالة')}`}>
+              <SelectTrigger size="sm" className="h-9 w-36" aria-label={`${s.code}: ${t('status', 'الحالة')}`}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -114,7 +115,7 @@ export default function StandardsRegister() {
               <StatusBadge tone={STATUS_TONE[s.status]} dot>
                 {L(REGISTER_STATUS[s.status].label)}
               </StatusBadge>
-              {s.effective && <span className="text-xs text-muted-foreground">{L(s.effective)}</span>}
+              {s.effective && <span className="text-xs">{L(s.effective)}</span>}
             </div>
           )
         },
@@ -125,7 +126,7 @@ export default function StandardsRegister() {
   )
 
   return (
-    <section className="flex flex-col gap-4">
+    <section data-density="dense" className="flex flex-col gap-4">
       <SubPageHeader
         title={t('Standards register', 'سجل المعايير')}
         description={t(
@@ -146,19 +147,18 @@ export default function StandardsRegister() {
           const n = (register ?? []).filter((s) => s.status === st).length
           const active = statusFilter === st
           return (
-            <button
+            <CountTile
               key={st}
-              type="button"
-              aria-pressed={active}
-              onClick={() => setStatusFilter(active ? 'all' : st)}
-              className="flex min-w-0 cursor-pointer flex-col items-start gap-1 rounded-xl border bg-card p-3 text-start shadow-xs outline-none transition-colors duration-150 hover:bg-muted/50 focus-visible:ring-[3px] focus-visible:ring-ring/50 aria-pressed:border-primary aria-pressed:bg-accent"
-            >
-              <StatusBadge tone={STATUS_TONE[st]} dot>
-                {L(REGISTER_STATUS[st].label)}
-              </StatusBadge>
-              <span className="text-2xl font-semibold tabular-nums">{n}</span>
-              <span className="text-xs text-muted-foreground">{L(REGISTER_STATUS[st].description)}</span>
-            </button>
+              pressed={active}
+              onPress={() => setStatusFilter(active ? 'all' : st)}
+              head={
+                <StatusBadge tone={STATUS_TONE[st]} dot>
+                  {L(REGISTER_STATUS[st].label)}
+                </StatusBadge>
+              }
+              count={n}
+              note={L(REGISTER_STATUS[st].description)}
+            />
           )
         })}
       </div>

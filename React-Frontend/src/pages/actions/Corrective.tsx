@@ -19,6 +19,7 @@ import { ErrorState } from '@/components/common/ErrorState'
 import { DecisionDialog } from './components/DecisionDialog'
 import { FixCard } from './components/FixCard'
 import { HandoffsBlock } from './components/HandoffsBlock'
+import { InlineNote } from './components/InlineNote'
 
 const STATUS_FILTERS = ['all', 'proposed', 'approved', 'in_progress', 'verification', 'effective', 'partial', 'failed'] as const
 
@@ -72,19 +73,19 @@ export default function Corrective() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <section aria-label={t('The register', 'السجل')} className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <KpiTile label={t('Proposed', 'مقترحة')} value={tally.proposed} sub={t('Waiting for a person’s yes', 'بانتظار موافقة شخص')} icon={<Inbox />} accent="var(--info)" loading={isLoading} onClick={() => setStatusFilter('proposed')} />
-        <KpiTile label={t('Open', 'مفتوحة')} value={tally.open} sub={t('Not yet verified', 'لم يُتحقق منها بعد')} icon={<ListChecks />} accent="var(--warning)" loading={isLoading} onClick={() => setStatusFilter('all')} />
-        <KpiTile label={t('Late', 'متأخرة')} value={tally.late} sub={t('Past the due date', 'تجاوزت تاريخ الاستحقاق')} icon={<Clock4 />} accent="var(--destructive)" loading={isLoading} />
-        <KpiTile term="60-day check" label={t('Effective', 'فعّالة')} value={tally.effective} sub={t('Signals halved, held 90 days', 'انخفضت الإشارات للنصف وثبتت 90 يوماً')} icon={<CheckCircle2 />} accent="var(--success)" loading={isLoading} onClick={() => setStatusFilter('effective')} />
+    <div data-density="dense" className="flex flex-col gap-4">
+      <section aria-label={t('The register', 'السجل')} className="grid grid-cols-2 gap-(--grid-gap) md:grid-cols-4">
+        <KpiTile label={t('Proposed', 'مقترحة')} value={tally.proposed} sub={t('Waiting for a person’s yes', 'بانتظار موافقة شخص')} icon={<Inbox />} loading={isLoading} onClick={() => setStatusFilter('proposed')} />
+        <KpiTile label={t('Open', 'مفتوحة')} value={tally.open} sub={t('Not yet verified', 'لم يُتحقق منها بعد')} icon={<ListChecks />} loading={isLoading} onClick={() => setStatusFilter('all')} />
+        <KpiTile label={t('Late', 'متأخرة')} value={tally.late} sub={t('Past the due date', 'تجاوزت تاريخ الاستحقاق')} icon={<Clock4 />} accent={tally.late ? 'var(--destructive)' : undefined} loading={isLoading} />
+        <KpiTile term="60-day check" label={t('Effective', 'فعّالة')} value={tally.effective} sub={t('Signals halved, held 90 days', 'انخفضت الإشارات للنصف وثبتت 90 يوماً')} icon={<CheckCircle2 />} loading={isLoading} onClick={() => setStatusFilter('effective')} />
       </section>
       {role.id === 'ld' && (
-        <p className="text-sm text-muted-foreground">{t('Showing the actions classified as training gap — the ones L&D receives.', 'عرض الإجراءات المصنفة كفجوة تدريبية — التي يستلمها التعلم والتطوير.')}</p>
+        <InlineNote tone="neutral">{t('Showing the actions classified as training gap — the ones L&D receives.', 'عرض الإجراءات المصنفة كفجوة تدريبية — التي يستلمها التعلم والتطوير.')}</InlineNote>
       )}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <label htmlFor="corrective-status" className="text-sm text-muted-foreground">
+          <label htmlFor="corrective-status" className="t-body-s">
             {t('Status', 'الحالة')}
           </label>
           <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
@@ -101,11 +102,11 @@ export default function Corrective() {
           </Select>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground tabular-nums">
+          <span className="t-body-s tabular">
             {visible.length} {t('actions', 'إجراء')}
           </span>
           {visible.length > 1 && (
-            <Button variant="outline" size="sm" className="h-9" onClick={() => setOpenIds(openNow.size >= visible.length ? new Set() : new Set(visible.map((a) => a.id)))}>
+            <Button variant="outline" size="sm" onClick={() => setOpenIds(openNow.size >= visible.length ? new Set() : new Set(visible.map((a) => a.id)))}>
               {openNow.size >= visible.length ? <ChevronsDownUp aria-hidden /> : <ChevronsUpDown aria-hidden />}
               {openNow.size >= visible.length ? t('Collapse all', 'طيّ الكل') : t('Expand all', 'فتح الكل')}
             </Button>
@@ -120,7 +121,7 @@ export default function Corrective() {
       ) : visible.length === 0 ? (
         <EmptyState title={t('No corrective actions for this filter.', 'لا توجد إجراءات تصحيحية لهذا الفلتر.')} />
       ) : (
-        <ul className="flex flex-col gap-6">
+        <ul className="flex flex-col gap-4">
           {visible.map((a) => (
             <FixCard
               key={a.id}

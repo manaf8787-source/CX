@@ -15,7 +15,6 @@ import { evaluateEffectiveness, EFFECTIVENESS_LABEL } from '@/utils/effectivenes
 import { approvalDaysLeft } from '@/utils/fixClock'
 import { caId, invId } from '@/utils/trace'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { StatusBadge } from '@/components/common/StatusBadge'
 import { NextBox } from '@/components/common/NextBox'
@@ -25,6 +24,7 @@ import { TraceCard } from '@/components/trace/TraceCard'
 import { useScrollToTarget } from '@/components/trace/useScrollToTarget'
 import { cn } from '@/lib/utils'
 import type { Bi, CorrectiveAction, Pattern } from '@/types'
+import { InlineNote } from './InlineNote'
 import { LifecycleStepper } from './LifecycleStepper'
 import { HowAiFoundThis } from './HowAiFoundThis'
 import { MatrixLine } from './MatrixLine'
@@ -56,6 +56,11 @@ interface FixCardProps {
  * The page is long with every fix open, so the details fold (v40 integration): the next-step box and the header (title, kind,
  * status, owner, product, due date, decision) always show; the rest sits behind a "Details" toggle (`aria-expanded`, a real
  * button, so Enter and Space work). The page keeps the first card and the one a link named (`?fix=`) open.
+ *
+ * Composition (Meo-inspired): ONE comfortable card per fix (the `li` is the card, so the next-step box is its first child, a well on
+ * top). Header: the id and status tags, the title (22), then a well with owner, product and due. The details are dense and sit under
+ * the toggle: the lifecycle is the skill's stepper, the matrix line, the classification and "How the AI found this" are wells, the
+ * audit trail is a table on the white card, the Trace card a well. A linked fix (`?fix=`) is the 1.5px ink ring.
  */
 export function FixCard({ fix: a, pattern, selected, now, onDecide, open, onOpenChange }: FixCardProps) {
   const { t, L, lang } = useI18n()
@@ -88,17 +93,17 @@ export function FixCard({ fix: a, pattern, selected, now, onDecide, open, onOpen
 
   const action = canAct ? (
     a.status === 'proposed' && !a.sentToInvestigation && a.decision !== 'rejected' ? (
-      <Button size="sm" className="h-9" onClick={() => onDecide(a.id)}>
+      <Button size="sm" onClick={() => onDecide(a.id)}>
         <Gavel aria-hidden />
         {t('Decide', 'اتخاذ قرار')}
       </Button>
     ) : a.status === 'approved' ? (
-      <Button size="sm" className="h-9" disabled={setStatus.isPending} onClick={() => move('in_progress')}>
+      <Button size="sm" disabled={setStatus.isPending} onClick={() => move('in_progress')}>
         <Play aria-hidden className="rtl:-scale-x-100" />
         {t('Start', 'بدء')}
       </Button>
     ) : a.status === 'in_progress' ? (
-      <Button size="sm" className="h-9" disabled={setStatus.isPending} onClick={() => move('verification')}>
+      <Button size="sm" disabled={setStatus.isPending} onClick={() => move('verification')}>
         <CheckCheck aria-hidden />
         {t('Done, start the 60-day check', 'تم، ابدأ فحص 60 يوماً')}
       </Button>
@@ -119,126 +124,132 @@ export function FixCard({ fix: a, pattern, selected, now, onDecide, open, onOpen
         : null
 
   return (
-    <li ref={itemRef} id={`fix-${caId(a.id)}`} className="flex scroll-mt-24 flex-col gap-3" data-fix={caId(a.id)} data-selected={selected ? 'true' : undefined}>
+    <li
+      ref={itemRef}
+      id={`fix-${caId(a.id)}`}
+      data-density="comfortable"
+      className={cn('surface-card flex scroll-mt-24 flex-col gap-5 p-(--card-pad)', selected && 'ring-[1.5px] ring-primary')}
+      data-fix={caId(a.id)}
+      data-selected={selected ? 'true' : undefined}
+    >
       <NextBox next={next} who={L(ownerTitle(a.owner))} action={action} />
-      <Card className={cn('gap-0 py-0', selected && 'ring-2 ring-primary')}>
-        <CardContent className="flex flex-col gap-4 p-5">
-          <div className="flex min-w-0 flex-col gap-1.5">
-            <div className="flex flex-wrap items-center gap-2">
-              <TraceId kind="fix" id={a.id} plain />
-              <h2 ref={headingRef} tabIndex={-1} className="text-lg font-semibold outline-none">
-                {L(a.title)}
-              </h2>
-              <StatusBadge tone="info">{L(ACTION_KIND[a.kind].label)}</StatusBadge>
-              <StatusBadge tone={a.status === 'effective' ? 'success' : a.status === 'failed' ? 'danger' : 'neutral'}>{L(CORRECTIVE_STATUS_LABEL[a.status])}</StatusBadge>
-              {a.fromInsight && <StatusBadge tone="neutral">{t('From AI Insights', 'من رؤى الذكاء الاصطناعي')}</StatusBadge>}
-            </div>
-            {a.fromInsight && <p className="text-xs text-muted-foreground">{L(a.fromInsight.recovery)}</p>}
-            {(a.proposedBy || a.source) && (
-              <p className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                {a.proposedBy && (
-                  <span>
-                    {t('Proposed by', 'اقترحه')} {L(a.proposedBy)}
-                  </span>
-                )}
-                {a.source && <EvidenceTag investigationId={a.source.investigationId} />}
-              </p>
-            )}
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
-              <span className="inline-flex items-center gap-1.5">
-                <UserRound aria-hidden className="size-4" />
-                {t('Owner', 'المالك')}: <span className="text-foreground">{L(ownerTitle(a.owner))}</span>
+
+      <div className="flex min-w-0 flex-col gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <TraceId kind="fix" id={a.id} plain />
+          <StatusBadge tone="neutral">{L(ACTION_KIND[a.kind].label)}</StatusBadge>
+          <StatusBadge tone={a.status === 'effective' ? 'success' : a.status === 'failed' ? 'danger' : 'neutral'}>{L(CORRECTIVE_STATUS_LABEL[a.status])}</StatusBadge>
+          {a.fromInsight && <StatusBadge tone="neutral">{t('From AI Insights', 'من رؤى الذكاء الاصطناعي')}</StatusBadge>}
+        </div>
+        <h2 ref={headingRef} tabIndex={-1} className="t-card-title outline-none focus-visible:[--tw-ring-shadow:0_0_#0000]">
+          {L(a.title)}
+        </h2>
+        {a.fromInsight && <p className="text-sm text-muted-foreground">{L(a.fromInsight.recovery)}</p>}
+        {(a.proposedBy || a.source) && (
+          <p className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+            {a.proposedBy && (
+              <span>
+                {t('Proposed by', 'اقترحه')} {L(a.proposedBy)}
               </span>
-              {product && (
-                <span className="inline-flex items-center gap-1.5">
-                  <Package aria-hidden className="size-4" />
-                  {t('Product', 'المنتج')}: <span className="text-foreground">{L(product.name)}</span>
-                </span>
-              )}
-              <span className="inline-flex flex-wrap items-center gap-1.5">
-                <CalendarClock aria-hidden className="size-4" />
-                {t('Due', 'الاستحقاق')}{' '}
-                <span className="text-foreground tabular-nums" data-testid="fix-due">
-                  {new Date(dueIso).toLocaleDateString(lang)}
-                </span>
-                {dueHint && <span>({L(dueHint)})</span>}
-              </span>
-              {approvalLeft !== null && (
-                <span className="inline-flex items-center gap-1.5">
-                  {t('Approval window', 'نافذة الاعتماد')}: <DayChip daysLeft={approvalLeft} unit="wd" />
-                </span>
-              )}
-            </div>
-            {a.kind === 'employee' && (
-              <p className="text-sm text-warning-text">
-                {t('Management note — the direct manager only, never a case, never HR, never a name outside this line.', 'ملاحظة إدارية — للمدير المباشر فقط، دون حالة أو موارد بشرية أو اسم خارج هذا الخط.')}
-              </p>
             )}
+            {a.source && <EvidenceTag investigationId={a.source.investigationId} />}
+          </p>
+        )}
+      </div>
+
+      <div className="well flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
+        <span className="inline-flex items-center gap-1.5">
+          <UserRound aria-hidden className="size-4" />
+          {t('Owner', 'المالك')}: <span className="font-medium text-foreground">{L(ownerTitle(a.owner))}</span>
+        </span>
+        {product && (
+          <span className="inline-flex items-center gap-1.5">
+            <Package aria-hidden className="size-4" />
+            {t('Product', 'المنتج')}: <span className="font-medium text-foreground">{L(product.name)}</span>
+          </span>
+        )}
+        <span className="inline-flex flex-wrap items-center gap-1.5">
+          <CalendarClock aria-hidden className="size-4" />
+          {t('Due', 'الاستحقاق')}{' '}
+          <span className="font-medium text-foreground tabular" data-testid="fix-due">
+            {new Date(dueIso).toLocaleDateString(lang)}
+          </span>
+          {dueHint && <span>({L(dueHint)})</span>}
+        </span>
+        {approvalLeft !== null && (
+          <span className="inline-flex items-center gap-1.5">
+            {t('Approval window', 'نافذة الاعتماد')}: <DayChip daysLeft={approvalLeft} unit="wd" />
+          </span>
+        )}
+      </div>
+
+      {a.kind === 'employee' && (
+        <InlineNote tone="warning">
+          {t('Management note — the direct manager only, never a case, never HR, never a name outside this line.', 'ملاحظة إدارية — للمدير المباشر فقط، دون حالة أو موارد بشرية أو اسم خارج هذا الخط.')}
+        </InlineNote>
+      )}
+
+      {(a.decision === 'modified' || a.decision === 'rejected') && (
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <StatusBadge tone={a.decision === 'rejected' ? 'danger' : 'warning'}>{L(DECISION_LABEL[a.decision])}</StatusBadge>
+          {a.decisionReason && <span className="text-muted-foreground">{L(a.decisionReason)}</span>}
+        </div>
+      )}
+
+      {showEff && (
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <span className="text-muted-foreground">{t('60-day verification', 'تحقق 60 يوماً')}</span>
+          <StatusBadge tone={eff.verdict === 'effective' ? 'success' : eff.verdict === 'failed' ? 'danger' : eff.verdict === 'too_early' ? 'neutral' : 'warning'}>
+            {L(EFFECTIVENESS_LABEL[eff.verdict])}
+          </StatusBadge>
+          <bdi dir="ltr" className="tabular text-muted-foreground">
+            ({Math.round(eff.changePct * 100)}%)
+          </bdi>
+        </div>
+      )}
+
+      {a.sentToInvestigation && (
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <StatusBadge tone="info" icon={<FileSearch aria-hidden />}>
+            {t('Sent to investigation first', 'أُحيل إلى التحقيق أولاً')}
+          </StatusBadge>
+          <span className="text-muted-foreground">{t('Five customer interviews requested; see Investigations.', 'طُلبت خمس مقابلات مع العملاء؛ انظر التحقيقات.')}</span>
+        </div>
+      )}
+
+      <Collapsible open={open} onOpenChange={onOpenChange} className="flex flex-col gap-5">
+        <CollapsibleTrigger asChild>
+          <Button variant="outline" size="sm" className="w-fit [&[data-state=open]>svg]:rotate-180">
+            {t('Details', 'التفاصيل')}
+            <span className="sr-only"> {caId(a.id)}</span>
+            <ChevronDown aria-hidden className="transition-transform duration-400 ease-spring motion-reduce:transition-none" />
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent data-density="dense" className="flex flex-col gap-4">
+          <LifecycleStepper status={a.status} />
+          <MatrixLine fix={a} />
+          <div className="well grid gap-x-6 gap-y-3 text-sm sm:grid-cols-3">
+            <div className="flex flex-col gap-1">
+              <span className="t-body-s inline-flex items-center gap-1.5">
+                <Route aria-hidden className="size-3.5" />
+                {t('Kind and path', 'النوع والمسار')}
+              </span>
+              <span className="text-foreground">{L(ACTION_KIND[a.kind].path)}</span>
+            </div>
+            <div className="flex flex-col gap-1">
+              <span className="t-body-s">{t('Who receives it', 'من يستلمه')}</span>
+              <span className="text-foreground">{L(ownerTitle(a.owner))}</span>
+            </div>
+            <div className="flex flex-col gap-1">
+              <span className="t-body-s">{t('What comes back', 'ما الذي يعود')}</span>
+              <span className="text-foreground">{L(ACTION_KIND[a.kind].comesBack)}</span>
+            </div>
           </div>
-
-          {(a.decision === 'modified' || a.decision === 'rejected') && (
-            <div className="flex flex-wrap items-center gap-2 text-sm">
-              <StatusBadge tone={a.decision === 'rejected' ? 'danger' : 'warning'}>{L(DECISION_LABEL[a.decision])}</StatusBadge>
-              {a.decisionReason && <span className="text-muted-foreground">{L(a.decisionReason)}</span>}
-            </div>
-          )}
-
-          {showEff && (
-            <div className="flex flex-wrap items-center gap-2 rounded-lg bg-muted/50 px-3 py-2 text-sm">
-              <span className="text-muted-foreground">{t('60-day verification', 'تحقق 60 يوماً')}</span>
-              <StatusBadge tone={eff.verdict === 'effective' ? 'success' : eff.verdict === 'failed' ? 'danger' : eff.verdict === 'too_early' ? 'neutral' : 'warning'}>
-                {L(EFFECTIVENESS_LABEL[eff.verdict])}
-              </StatusBadge>
-              <bdi dir="ltr" className="text-muted-foreground tabular-nums">
-                ({Math.round(eff.changePct * 100)}%)
-              </bdi>
-            </div>
-          )}
-
-          {a.sentToInvestigation && (
-            <div className="flex flex-wrap items-center gap-2 text-sm">
-              <StatusBadge tone="info" icon={<FileSearch aria-hidden />}>
-                {t('Sent to investigation first', 'أُحيل إلى التحقيق أولاً')}
-              </StatusBadge>
-              <span className="text-muted-foreground">{t('Five customer interviews requested; see Investigations.', 'طُلبت خمس مقابلات مع العملاء؛ انظر التحقيقات.')}</span>
-            </div>
-          )}
-
-          <Collapsible open={open} onOpenChange={onOpenChange} className="flex flex-col gap-4">
-            <CollapsibleTrigger
-              className="inline-flex h-9 w-fit cursor-pointer items-center gap-1.5 rounded-md border bg-card px-3 text-sm font-medium outline-none transition-colors duration-150 hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50 [&[data-state=open]>svg]:rotate-180"
-            >
-              {t('Details', 'التفاصيل')}
-              <span className="sr-only"> {caId(a.id)}</span>
-              <ChevronDown aria-hidden className="size-4 transition-transform duration-150 motion-reduce:transition-none" />
-            </CollapsibleTrigger>
-            <CollapsibleContent className="flex flex-col gap-4">
-              <LifecycleStepper status={a.status} />
-              <MatrixLine fix={a} />
-              <div className="grid gap-x-4 gap-y-2 rounded-lg border bg-muted/30 p-3 text-sm sm:grid-cols-3">
-                <div className="flex flex-col gap-0.5">
-                  <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
-                    <Route aria-hidden className="size-3.5" />
-                    {t('Kind and path', 'النوع والمسار')}
-                  </span>
-                  <span>{L(ACTION_KIND[a.kind].path)}</span>
-                </div>
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-xs font-semibold text-muted-foreground">{t('Who receives it', 'من يستلمه')}</span>
-                  <span>{L(ownerTitle(a.owner))}</span>
-                </div>
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-xs font-semibold text-muted-foreground">{t('What comes back', 'ما الذي يعود')}</span>
-                  <span>{L(ACTION_KIND[a.kind].comesBack)}</span>
-                </div>
-              </div>
-              <HowAiFoundThis actionId={a.id} pattern={pattern} aiMade={isAiMadeFix(a)} />
-              <AuditTrail log={a.auditLog} />
-              <TraceCard kind="fix" id={a.id} />
-            </CollapsibleContent>
-          </Collapsible>
-        </CardContent>
-      </Card>
+          <HowAiFoundThis actionId={a.id} pattern={pattern} aiMade={isAiMadeFix(a)} />
+          <AuditTrail log={a.auditLog} />
+          <TraceCard kind="fix" id={a.id} />
+        </CollapsibleContent>
+      </Collapsible>
     </li>
   )
 }
@@ -255,7 +266,8 @@ function EvidenceTag({ investigationId }: { investigationId: string }) {
   )
   if (canAccessPath(role.id, '/actions/investigations')) {
     return (
-      <Link to={`/actions/investigations?inv=${id}`} className="inline-flex h-6 items-center rounded-full border bg-info/10 px-2.5 text-xs font-medium text-info-text underline-offset-4 hover:underline">
+      <Link to={`/actions/investigations?inv=${id}`} className="pill pill-light transition-opacity duration-200 hover:opacity-80">
+        <span aria-hidden className="dot dot-info" />
         {label}
       </Link>
     )

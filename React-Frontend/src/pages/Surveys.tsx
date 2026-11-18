@@ -1,17 +1,16 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, Ban, ChevronRight, EyeOff, MessageCircleOff, PieChart, SlidersHorizontal } from 'lucide-react'
+import { ArrowRight, ChevronRight, SlidersHorizontal } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { useLeadFunnel, useProductSurveyMoments, useSurveyTriggers } from '@/services/queries'
 import { useSurveyDelivery, useSurveyInstruments } from '@/services/referenceQueries'
-import { KpiTile } from '@/components/common/KpiTile'
 import { PRODUCTS } from '@/data/products'
 import type { LeadFunnelStage } from '@/types'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { TermHelp } from '@/components/common/TermHelp'
-import { SubPageHeader } from '@/pages/settings/SubPageHeader'
+import { IN_CARD, InlineNote, SubPageHeader } from '@/pages/settings/SubPageHeader'
 import { SectionCard } from '@/components/common/SectionCard'
 import { StatusBadge } from '@/components/common/StatusBadge'
 import { ProductTag } from '@/components/common/Chip'
@@ -36,7 +35,7 @@ const STAGE_LABEL: Record<LeadFunnelStage, { en: string; ar: string }> = {
 
 function GoLink({ to, children }: { to: string; children: ReactNode }) {
   return (
-    <Button variant="ghost" size="sm" asChild className="-ms-3 h-auto min-h-8 max-w-full self-start py-1.5 text-start whitespace-normal text-primary">
+    <Button variant="ghost" size="sm" asChild className="-ms-3.5 h-auto min-h-8 max-w-full self-start py-1.5 text-start whitespace-normal">
       <Link to={to}>
         {children}
         <ArrowRight aria-hidden className="rtl:rotate-180" />
@@ -45,31 +44,39 @@ function GoLink({ to, children }: { to: string; children: ReactNode }) {
   )
 }
 
-function BarList({ items, tone }: { items: { label: string; count: number }[]; tone: 'primary' | 'warning' }) {
+/**
+ * A bar list: the skill's bar comparison (a pill track, the first row dark, the rest grey, the count printed at the end). The same look as
+ * `RankedBars`, but the label wraps instead of being cut: the reasons here are sentences.
+ */
+function BarList({ items, label }: { items: { label: string; count: number }[]; label: string }) {
   const { lang } = useI18n()
-  const max = Math.max(1, ...items.map((i) => i.count))
+  const top = Math.max(1, ...items.map((i) => i.count))
   return (
-    <ul className="flex flex-col gap-2.5">
+    <ul aria-label={label} className="flex flex-col gap-4">
       {items.map((it, i) => (
-        <li key={i} className="flex flex-col gap-1">
-          <div className="flex items-baseline justify-between gap-3 text-sm">
-            <span className="min-w-0">{it.label}</span>
-            <span className="shrink-0 font-medium tabular-nums">{it.count.toLocaleString(lang === 'ar' ? 'ar' : 'en')}</span>
-          </div>
-          <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-            <div className={cn('h-full rounded-full', tone === 'primary' ? 'bg-primary' : 'bg-warning')} style={{ width: `${(it.count / max) * 100}%` }} />
-          </div>
+        <li key={i} className="grid grid-cols-[minmax(5rem,10rem)_minmax(0,1fr)_auto] items-center gap-3.5">
+          <span className={cn('min-w-0 break-words', i === 0 ? 't-small-strong' : 't-body-s')}>{it.label}</span>
+          <span aria-hidden className="h-3 overflow-hidden rounded-full bg-line shadow-inset-track">
+            <span className={cn('block h-full rounded-full', i === 0 ? 'material-dark' : 'bg-grad-muted-fill opacity-[0.62]')} style={{ width: `${(it.count / top) * 100}%` }} />
+          </span>
+          <span className={cn('tabular text-end', i === 0 ? 't-small-strong' : 't-body-s')}>{it.count.toLocaleString(lang === 'ar' ? 'ar' : 'en')}</span>
         </li>
       ))}
     </ul>
   )
 }
 
-/** FR-7.1–7.4 — the lead funnel framing every transactional survey, the
+/**
+ * FR-7.1–7.4 — the lead funnel framing every transactional survey, the
  * nine-row trigger/cap table (FR-7.2) collapsed to the five confirmed
  * instruments, the public-channel exemption (FR-7.3), and the per-product
  * "no group NPS, by design" breakdown (FR-7.4) as explicit UI copy, not an
- * implied omission. */
+ * implied omission.
+ *
+ * Design: an operations reference, so dense. The two rules that must not be missed ("Group NPS: none", "Never surveyed") are inline
+ * notification wells with a status dot, not coloured banners. The funnel stages are wells (the chosen one is the dark material);
+ * counts are bar comparisons; the delivery figures are a stat well inside the instruments card; the tables sit in cards.
+ */
 export default function Surveys() {
   const { t, L, lang } = useI18n()
   const { data: funnel, isLoading: funnelLoading } = useLeadFunnel()
@@ -82,10 +89,10 @@ export default function Surveys() {
   const selected = useMemo(() => funnel?.find((f) => f.stage === selectedStage), [funnel, selectedStage])
   const maxCount = Math.max(1, ...(funnel ?? []).map((f) => f.count))
   const fmt = (n: number) => n.toLocaleString(lang === 'ar' ? 'ar' : 'en')
-  const th = 'px-3 text-xs font-semibold text-muted-foreground'
+  const fmtDelivery = (n: number) => n.toLocaleString(lang === 'ar' ? 'ar-AE' : 'en-US')
 
   return (
-    <div className="flex flex-col gap-6">
+    <div data-density="dense" className="flex flex-col gap-6">
       {/* v40 (F18): a page under Settings and reference, so its heading is the sub-page heading (the layout carries the one h1). */}
       <SubPageHeader
         title={
@@ -100,20 +107,12 @@ export default function Surveys() {
         )}
       />
 
-      <div className="flex items-start gap-3 rounded-xl border border-warning/30 bg-warning/8 p-4">
-        <span aria-hidden className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-warning/15 text-warning-text">
-          <Ban className="size-4" />
-        </span>
-        <div className="flex min-w-0 flex-col gap-1">
-          <span className="text-sm font-semibold text-warning-text">{t('Group NPS: none, by design', 'مؤشر NPS الموحد: غير موجود، بالتصميم')}</span>
-          <p className="text-sm">
-            {t(
-              'Each product has its own NPS, CSAT and CES line and its own moments — Tour Estate, PSI Club and PSI Events are separate businesses with different customers, so no number ever mixes them (FR-7.4).',
-              'لكل منتج خط NPS وCSAT وCES خاص به ولحظاته الخاصة — تور إستيت ونادي بي إس آي وفعاليات بي إس آي أعمال منفصلة بعملاء مختلفين، فلا يُدمج أي رقم بينها — FR-7.4.',
-            )}
-          </p>
-        </div>
-      </div>
+      <InlineNote tone="warning" title={t('Group NPS: none, by design', 'مؤشر NPS الموحد: غير موجود، بالتصميم')}>
+        {t(
+          'Each product has its own NPS, CSAT and CES line and its own moments — Tour Estate, PSI Club and PSI Events are separate businesses with different customers, so no number ever mixes them (FR-7.4).',
+          'لكل منتج خط NPS وCSAT وCES خاص به ولحظاته الخاصة — تور إستيت ونادي بي إس آي وفعاليات بي إس آي أعمال منفصلة بعملاء مختلفين، فلا يُدمج أي رقم بينها — FR-7.4.',
+        )}
+      </InlineNote>
 
       <SectionCard
         title={t('The lead funnel: who completes, and why the rest do not', 'قمع العملاء المحتملين: من يكمل، ولماذا لا يكمل الباقون')}
@@ -131,21 +130,21 @@ export default function Surveys() {
               {funnel?.map((f, i) => {
                 const active = f.stage === selectedStage
                 return (
-                  <div key={f.stage} className="flex min-w-0 items-center gap-2 lg:flex-1">
+                  <div key={f.stage} className="flex min-w-0 items-center gap-1.5 lg:flex-1">
                     <button
                       type="button"
                       role="radio"
                       aria-checked={active}
                       onClick={() => setSelectedStage(f.stage)}
-                      className={cn(
-                        'flex min-w-0 flex-1 cursor-pointer flex-col items-start gap-1.5 rounded-lg border p-3 text-start outline-none transition-colors duration-150 focus-visible:ring-[3px] focus-visible:ring-ring/50',
-                        active ? 'border-primary bg-accent' : 'bg-card hover:bg-muted/60',
-                      )}
+                      className="group/stage flex min-w-0 flex-1 cursor-pointer flex-col items-start gap-2 rounded-well bg-well p-3.5 text-start outline-none transition-colors duration-200 ease-out hover:bg-well-hover aria-checked:material-dark"
                     >
-                      <span className="text-xs font-medium text-muted-foreground">{L(STAGE_LABEL[f.stage])}</span>
-                      <span className="text-2xl font-semibold tabular-nums">{fmt(f.count)}</span>
-                      <span className="h-1 w-full overflow-hidden rounded-full bg-muted">
-                        <span className={cn('block h-full rounded-full', active ? 'bg-primary' : 'bg-muted-foreground/40')} style={{ width: `${(f.count / maxCount) * 100}%` }} />
+                      <span className="t-small-strong group-aria-checked/stage:text-inherit">{L(STAGE_LABEL[f.stage])}</span>
+                      <span className="text-3xl font-medium tabular">{fmt(f.count)}</span>
+                      <span aria-hidden className="h-1 w-full overflow-hidden rounded-full bg-line group-aria-checked/stage:bg-(--on-dark-tint)">
+                        <span
+                          className="block h-full rounded-full bg-grad-muted-fill opacity-[0.62] group-aria-checked/stage:bg-(--on-dark) group-aria-checked/stage:opacity-100"
+                          style={{ width: `${(f.count / maxCount) * 100}%` }}
+                        />
                       </span>
                     </button>
                     {i < (funnel?.length ?? 0) - 1 && <ChevronRight aria-hidden className="hidden size-4 shrink-0 text-muted-foreground lg:block rtl:rotate-180" />}
@@ -161,21 +160,15 @@ export default function Surveys() {
             </p>
 
             {selected && (
-              <div className="grid grid-cols-1 gap-4 border-t pt-4 md:grid-cols-2">
-                <div className="flex flex-col gap-3">
-                  <h3 className="flex items-center gap-2 text-sm font-semibold">
-                    <PieChart aria-hidden className="size-4 text-muted-foreground" />
-                    {t('Source split', 'تقسيم المصدر')}
-                  </h3>
-                  <BarList tone="primary" items={selected.sourceSplit.map((s) => ({ label: L(s.label), count: s.count }))} />
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                <div className="well flex flex-col gap-4">
+                  <h3 className="t-small-strong">{t('Source split', 'تقسيم المصدر')}</h3>
+                  <BarList label={t('Source split', 'تقسيم المصدر')} items={selected.sourceSplit.map((s) => ({ label: L(s.label), count: s.count }))} />
                 </div>
-                <div className="flex flex-col gap-3">
-                  <h3 className="flex items-center gap-2 text-sm font-semibold">
-                    <MessageCircleOff aria-hidden className="size-4 text-muted-foreground" />
-                    {t('Why they stopped here', 'لماذا توقفوا هنا')}
-                  </h3>
+                <div className="well flex flex-col gap-4">
+                  <h3 className="t-small-strong">{t('Why they stopped here', 'لماذا توقفوا هنا')}</h3>
                   {selected.whyTheyStopped ? (
-                    <BarList tone="warning" items={selected.whyTheyStopped.map((w) => ({ label: L(w.reason), count: w.count }))} />
+                    <BarList label={t('Why they stopped here', 'لماذا توقفوا هنا')} items={selected.whyTheyStopped.map((w) => ({ label: L(w.reason), count: w.count }))} />
                   ) : (
                     <p className="text-sm text-muted-foreground">{t('Everyone here completed — nothing to explain.', 'الجميع هنا أكملوا — لا يوجد ما يُفسَّر.')}</p>
                   )}
@@ -196,22 +189,27 @@ export default function Surveys() {
         contentClassName="flex flex-col gap-4"
       >
         {delivery && (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <KpiTile label={t('Sent last month', 'أُرسل الشهر الماضي')} value={delivery.sent.toLocaleString(lang === 'ar' ? 'ar-AE' : 'en-US')} accent="var(--info)" />
-            <KpiTile label={t('Answered', 'أُجيب')} value={delivery.answered.toLocaleString(lang === 'ar' ? 'ar-AE' : 'en-US')} accent="var(--success)" />
-            <KpiTile
-              label={t('Skipped', 'تُخطّي')}
-              value={delivery.skipped.toLocaleString(lang === 'ar' ? 'ar-AE' : 'en-US')}
-              sub={t(`${delivery.skippedBy.length} reasons, listed below`, `${delivery.skippedBy.length} أسباب، مفصّلة أدناه`)}
-              accent="var(--warning)"
-            />
-          </div>
+          <dl className="well grid grid-cols-1 gap-5 sm:grid-cols-3">
+            <div className="flex flex-col gap-1.5">
+              <dt className="t-small-strong text-muted-foreground">{t('Sent last month', 'أُرسل الشهر الماضي')}</dt>
+              <dd className="text-4xl font-medium tabular">{fmtDelivery(delivery.sent)}</dd>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <dt className="t-small-strong text-muted-foreground">{t('Answered', 'أُجيب')}</dt>
+              <dd className="text-4xl font-medium tabular">{fmtDelivery(delivery.answered)}</dd>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <dt className="t-small-strong text-muted-foreground">{t('Skipped', 'تُخطّي')}</dt>
+              <dd className="text-4xl font-medium tabular">{fmtDelivery(delivery.skipped)}</dd>
+              <dd className="text-sm text-muted-foreground">{t(`${delivery.skippedBy.length} reasons, listed below`, `${delivery.skippedBy.length} أسباب، مفصّلة أدناه`)}</dd>
+            </div>
+          </dl>
         )}
         {delivery && (
-          <div className="flex flex-col gap-3 rounded-lg border bg-muted/30 p-4">
-            <h3 className="text-sm font-semibold">{t('Skipped, by reason', 'المتخطّى، حسب السبب')}</h3>
-            <BarList tone="warning" items={delivery.skippedBy.map((x) => ({ label: L(x.reason), count: x.count }))} />
-            <p className="text-xs text-muted-foreground">
+          <div className="well flex flex-col gap-4">
+            <h3 className="t-small-strong">{t('Skipped, by reason', 'المتخطّى، حسب السبب')}</h3>
+            <BarList label={t('Skipped, by reason', 'المتخطّى، حسب السبب')} items={delivery.skippedBy.map((x) => ({ label: L(x.reason), count: x.count }))} />
+            <p className="text-sm text-muted-foreground">
               {t(
                 'The reasons add up to the total skipped. DNCR is counted from the people flagged in the CRM; a person flagged DNCR is never surveyed by call.',
                 'الأسباب مجموعها يساوي إجمالي المتخطّى. يُحسب DNCR من الأشخاص الموسومين في CRM؛ ولا يُستبان بالهاتف شخص موسوم DNCR.',
@@ -222,33 +220,33 @@ export default function Surveys() {
         {instrumentsLoading ? (
           <LoadingState rows={4} />
         ) : (
-          <div className="overflow-x-auto rounded-lg border">
+          <div className="-mx-2.5">
             <Table>
-              <TableHeader className="bg-muted/60">
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className={th}>{t('Instrument', 'الأداة')}</TableHead>
-                  <TableHead className={th}>{t('Trigger', 'المحفّز')}</TableHead>
-                  <TableHead className={th}>{t('Cap', 'الحد')}</TableHead>
-                  <TableHead className={th}>{t('Never', 'أبداً')}</TableHead>
-                  <TableHead className={cn(th, 'text-end')}>{t('Sent / answered, last month', 'أُرسل / أُجيب، الشهر الماضي')}</TableHead>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t('Instrument', 'الأداة')}</TableHead>
+                  <TableHead>{t('Trigger', 'المحفّز')}</TableHead>
+                  <TableHead>{t('Cap', 'الحد')}</TableHead>
+                  <TableHead>{t('Never', 'أبداً')}</TableHead>
+                  <TableHead className="text-end">{t('Sent / answered, last month', 'أُرسل / أُجيب، الشهر الماضي')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {(instruments ?? []).map((i) => (
                   <TableRow key={i.id}>
-                    <TableCell className="min-w-44 px-3 align-top text-sm whitespace-normal">
-                      <span className="font-medium">{L(i.name)}</span>
-                      <div className="text-xs text-muted-foreground">{L(i.kind)}</div>
+                    <TableCell className="min-w-36 align-top whitespace-normal">
+                      <span className="font-medium text-foreground">{L(i.name)}</span>
+                      <div className="text-xs">{L(i.kind)}</div>
                     </TableCell>
-                    <TableCell className="min-w-64 px-3 align-top text-sm whitespace-normal">
+                    <TableCell className="min-w-52 align-top whitespace-normal text-foreground">
                       {L(i.trigger)}
                       <div className="text-xs text-muted-foreground">{L(i.channel)}</div>
                     </TableCell>
-                    <TableCell className="min-w-40 px-3 align-top text-sm whitespace-normal">{L(i.cap)}</TableCell>
-                    <TableCell className="min-w-40 px-3 align-top text-sm whitespace-normal">{L(i.never)}</TableCell>
-                    <TableCell className="px-3 text-end align-top text-sm whitespace-nowrap tabular-nums">
-                      {i.sent.toLocaleString(lang === 'ar' ? 'ar-AE' : 'en-US')} / {i.answered.toLocaleString(lang === 'ar' ? 'ar-AE' : 'en-US')}
-                      <div className="text-xs text-muted-foreground">{Math.round((100 * i.answered) / i.sent)}%</div>
+                    <TableCell className="min-w-32 align-top whitespace-normal">{L(i.cap)}</TableCell>
+                    <TableCell className="min-w-32 align-top whitespace-normal">{L(i.never)}</TableCell>
+                    <TableCell className="text-end align-top font-medium whitespace-nowrap tabular text-foreground">
+                      {fmtDelivery(i.sent)} / {fmtDelivery(i.answered)}
+                      <div className="text-xs font-normal text-muted-foreground">{Math.round((100 * i.answered) / i.sent)}%</div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -259,7 +257,9 @@ export default function Surveys() {
       </SectionCard>
 
       <SectionCard
-        term="Survey trigger" title={t('When we ask, and when we never ask', 'متى نسأل، ومتى لا نسأل أبداً')}
+        term="Survey trigger"
+        title={t('When we ask, and when we never ask', 'متى نسأل، ومتى لا نسأل أبداً')}
+        contentClassName={IN_CARD}
         actions={
           <Button variant="outline" size="sm" asChild>
             <Link to="/settings/rules">
@@ -272,74 +272,67 @@ export default function Surveys() {
         {triggersLoading ? (
           <LoadingState rows={4} />
         ) : triggers?.length ? (
-          <div className="overflow-x-auto rounded-lg border">
-            <Table>
-              <TableHeader className="bg-muted/60">
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className={th}>{t('Instrument', 'الأداة')}</TableHead>
-                  <TableHead className={th}>{t('Moment and rule', 'اللحظة والقاعدة')}</TableHead>
-                  <TableHead className={cn(th, 'text-end')}>{t('Cap', 'الحد')}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                <TableRow>
-                  <TableCell className="px-3 align-top">
-                    <StatusBadge tone="neutral">{t('None', 'لا شيء')}</StatusBadge>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t('Instrument', 'الأداة')}</TableHead>
+                <TableHead>{t('Moment and rule', 'اللحظة والقاعدة')}</TableHead>
+                <TableHead className="text-end">{t('Cap', 'الحد')}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow>
+                <TableCell className="align-top">
+                  <StatusBadge tone="neutral">{t('None', 'لا شيء')}</StatusBadge>
+                </TableCell>
+                <TableCell className="min-w-64 whitespace-normal text-foreground">
+                  {t(
+                    'Enquiry on the website or app — no survey. Measured by the reach index (reply time, channels needed).',
+                    'استفسار على الموقع أو التطبيق — بلا استبيان. يُقاس بمؤشر الوصول (زمن الرد، عدد القنوات اللازمة).',
+                  )}
+                </TableCell>
+                <TableCell className="text-end">—</TableCell>
+              </TableRow>
+              {triggers.map((tr) => (
+                <TableRow key={tr.id}>
+                  <TableCell className="align-top">
+                    <StatusBadge tone="neutral">{L(INSTRUMENT_LABEL[tr.instrument] ?? { en: tr.instrument, ar: tr.instrument })}</StatusBadge>
                   </TableCell>
-                  <TableCell className="min-w-64 px-3 text-sm whitespace-normal">
-                    {t(
-                      'Enquiry on the website or app — no survey. Measured by the reach index (reply time, channels needed).',
-                      'استفسار على الموقع أو التطبيق — بلا استبيان. يُقاس بمؤشر الوصول (زمن الرد، عدد القنوات اللازمة).',
-                    )}
+                  <TableCell className="min-w-64 whitespace-normal text-foreground">{L(tr.triggerDescription)}</TableCell>
+                  <TableCell className="text-end whitespace-nowrap tabular">
+                    {tr.capDays ? <span className="font-medium text-foreground">{t(`${tr.capDays}d`, `${tr.capDays} يوم`)}</span> : t('No cap', 'بدون حد')}
                   </TableCell>
-                  <TableCell className="px-3 text-end text-sm text-muted-foreground">—</TableCell>
                 </TableRow>
-                {triggers.map((tr) => (
-                  <TableRow key={tr.id}>
-                    <TableCell className="px-3 align-top">
-                      <StatusBadge tone="info">{L(INSTRUMENT_LABEL[tr.instrument] ?? { en: tr.instrument, ar: tr.instrument })}</StatusBadge>
-                    </TableCell>
-                    <TableCell className="min-w-64 px-3 text-sm whitespace-normal">{L(tr.triggerDescription)}</TableCell>
-                    <TableCell className="px-3 text-end text-sm whitespace-nowrap tabular-nums">
-                      {tr.capDays ? t(`${tr.capDays}d`, `${tr.capDays} يوم`) : <span className="text-muted-foreground">{t('No cap', 'بدون حد')}</span>}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+              ))}
+            </TableBody>
+          </Table>
         ) : (
           <EmptyState title={t('No instruments configured yet.', 'لا توجد أدوات مُعدّة بعد.')} />
         )}
       </SectionCard>
 
-      <div className="flex items-start gap-3 rounded-xl border border-destructive/25 bg-destructive/6 p-4">
-        <span aria-hidden className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-destructive/12 text-danger-text">
-          <EyeOff className="size-4" />
-        </span>
-        <div className="flex min-w-0 flex-col gap-1">
-          <span className="text-sm font-semibold text-danger-text">{t('Never surveyed', 'لا يُستبين أبداً')}</span>
-          <p className="text-sm">
-            {t(
-              'Facebook, Instagram, LinkedIn and Google are never surveyed — a public mention cannot be tied to a customer, a stage or an agent with confidence. Instead it is counted as a signal with a public reply within 48 hours, feeding the public reputation index (FR-7.3).',
-              'فيسبوك وإنستغرام ولينكد إن وجوجل لا تُستبين أبداً — لا يمكن ربط الإشارة العامة بعميل أو مرحلة أو وكيل بثقة. بدلاً من ذلك تُحتسب إشارةً مع رد عام خلال 48 ساعة، لتغذية مؤشر السمعة العامة — FR-7.3.',
-            )}
-          </p>
-          <GoLink to="/actions/signals">{t('See the 48h public-reply clock in Signals & patterns', 'انظر ساعة الرد العام خلال 48 ساعة في الإشارات والأنماط')}</GoLink>
-        </div>
-      </div>
+      <InlineNote
+        tone="error"
+        title={t('Never surveyed', 'لا يُستبين أبداً')}
+        action={<GoLink to="/actions/signals">{t('See the 48h public-reply clock in Signals & patterns', 'انظر ساعة الرد العام خلال 48 ساعة في الإشارات والأنماط')}</GoLink>}
+      >
+        {t(
+          'Facebook, Instagram, LinkedIn and Google are never surveyed — a public mention cannot be tied to a customer, a stage or an agent with confidence. Instead it is counted as a signal with a public reply within 48 hours, feeding the public reputation index (FR-7.3).',
+          'فيسبوك وإنستغرام ولينكد إن وجوجل لا تُستبين أبداً — لا يمكن ربط الإشارة العامة بعميل أو مرحلة أو وكيل بثقة. بدلاً من ذلك تُحتسب إشارةً مع رد عام خلال 48 ساعة، لتغذية مؤشر السمعة العامة — FR-7.3.',
+        )}
+      </InlineNote>
 
       <SectionCard term="NPS" title={t('Per product, no group number', 'لكل منتج، دون رقم موحد')}>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {PRODUCTS.map((p) => {
             const moments = productMoments?.find((m) => m.product === p.id)
             return (
-              <div key={p.id} className={cn('flex min-w-0 flex-col gap-2 rounded-lg border p-4', p.live ? 'bg-card' : 'bg-muted/40')}>
+              <div key={p.id} className="well flex min-w-0 flex-col gap-2.5">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <ProductTag productId={p.id} lang={lang} />
                   {!p.live && <StatusBadge>{t('Hidden until launch', 'مخفي حتى الإطلاق')}</StatusBadge>}
                 </div>
-                <p className="text-sm">{moments ? L(moments.momentsSummary) : '—'}</p>
+                <p className="text-sm text-foreground">{moments ? L(moments.momentsSummary) : '—'}</p>
                 {moments && !moments.hasNps && (
                   <StatusBadge tone="warning" className="self-start">
                     {t('No NPS for this product', 'لا يوجد NPS لهذا المنتج')}

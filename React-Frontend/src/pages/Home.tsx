@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { FlaskConical, Info, Search } from 'lucide-react'
+import { Search } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { useRole } from '@/auth/RoleContext'
 import { usePersonSearch } from '@/hooks/usePersonSearch'
@@ -13,7 +13,6 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
-import { StatusBadge } from '@/components/common/StatusBadge'
 import { EmptyState } from '@/components/common/EmptyState'
 import { TermsButton } from '@/components/common/TermHelp'
 import { DailyBrief } from '@/components/home/DailyBrief'
@@ -26,6 +25,10 @@ import { WorkToday } from '@/components/home/WorkToday'
  * Home as v40 builds it (docs/V40_DELTA.md F01), top to bottom: the header with the six-step line, the Daily brief,
  * "New here? Three things to know", the indicators per live product, "Your work today", and the one search.
  * Everything here reads the same registers as the pages it links to, narrowed by the environment switch where it carries one.
+ *
+ * Design (comfortable density, docs/MEO_PAGES_A.md): one white header card holding the six-step wells, the Daily brief as the ONE dark
+ * feature card, a quiet well for the three notes, a card per live product (card -> three wells), then the work list and the search.
+ * Colour appears only as the product dots and the status dots; every number is ink.
  */
 export default function Home() {
   const { t, L } = useI18n()
@@ -46,18 +49,20 @@ export default function Home() {
   const searchTitle = assistant.available ? t('Find a person, or ask', 'ابحث عن شخص، أو اسأل') : t('Find a person', 'ابحث عن شخص')
 
   return (
-    <div className="mx-auto flex w-full max-w-[1100px] flex-col gap-6">
+    <div data-density="comfortable" className="mx-auto flex w-full max-w-[1100px] flex-col gap-8">
       <header>
-        <Card className="gap-4 py-5">
-          <CardContent className="flex flex-col gap-4 px-5">
+        <Card>
+          <CardContent className="flex flex-col gap-7">
             <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="flex min-w-0 flex-col gap-1">
-                <h1 className="text-2xl font-semibold tracking-tight text-foreground">{L(HOME_COPY.h1)}</h1>
-                <p className="max-w-[72ch] text-base text-muted-foreground">{L(HOME_COPY.lede)}</p>
+              <div className="flex min-w-0 flex-col gap-1.5">
+                <h1 className="t-page-title text-[20px] tablet:text-[22px] desktop:text-[24px]">{L(HOME_COPY.h1)}</h1>
+                <p className="t-body-m max-w-[72ch]">{L(HOME_COPY.lede)}</p>
               </div>
-              <StatusBadge tone="warning" icon={<FlaskConical aria-hidden />}>
+              {/* the inline notification (a well and a 6px warning dot), the same state SampleBanner shows in the other pages' headers */}
+              <span className="inline-flex h-9 shrink-0 items-center gap-2 rounded-xl bg-well px-3 pt-px text-sm font-medium whitespace-nowrap text-foreground">
+                <span aria-hidden className="dot dot-warning" />
                 {L(HOME_COPY.tag)}
-              </StatusBadge>
+              </span>
             </div>
             <StepLine />
           </CardContent>
@@ -68,23 +73,23 @@ export default function Home() {
 
       <StartHere />
 
-      <section aria-labelledby="home-indicators" className="flex flex-col gap-3">
+      <section aria-labelledby="home-indicators" className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 id="home-indicators" className="text-lg font-semibold">
+          <h2 id="home-indicators" className="t-card-title">
             {L(INDICATOR_COPY.heading)}
           </h2>
           <TermsButton />
         </div>
         {env !== 'all' && (
-          <p className="flex items-start gap-2 text-sm text-muted-foreground">
-            <Info aria-hidden className="mt-0.5 size-4 shrink-0" />
+          <p className="well flex items-start gap-2.5 px-4 py-3.5 text-sm text-muted-foreground">
+            <span aria-hidden className="dot dot-info mt-[5px]" />
             {L(INDICATOR_COPY.envHint)}
           </p>
         )}
         {isLoading || !sets ? (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <Skeleton className="h-52 rounded-xl" />
-            <Skeleton className="h-52 rounded-xl" />
+            <Skeleton className="h-52 rounded-card" />
+            <Skeleton className="h-52 rounded-card" />
           </div>
         ) : cards.length === 0 ? (
           <EmptyState title={t('No live product to show.', 'لا منتج فعّال لعرضه.')} />
@@ -99,20 +104,20 @@ export default function Home() {
 
       <WorkToday />
 
-      <Card className="py-5">
-        <CardContent className="flex flex-col gap-3 px-5">
-          <h2 className="text-lg font-semibold">{searchTitle}</h2>
+      <Card>
+        <CardContent className="flex flex-col gap-4">
+          <h2 className="t-card-title">{searchTitle}</h2>
           <form
             role="search"
             aria-label={searchTitle}
-            className="flex flex-col gap-2 sm:flex-row"
+            className="flex flex-col gap-2.5 sm:flex-row"
             onSubmit={(e) => {
               e.preventDefault()
               search(query)
             }}
           >
             <div className="relative flex-1">
-              <Search aria-hidden className="pointer-events-none absolute start-3 top-1/2 size-5 -translate-y-1/2 text-muted-foreground" />
+              <Search aria-hidden className="pointer-events-none absolute start-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 type="search"
                 value={query}
@@ -138,10 +143,11 @@ export default function Home() {
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="h-auto min-h-8 max-w-full rounded-full py-1 text-start font-normal whitespace-normal"
+                  className="h-auto min-h-9 max-w-full py-1.5 text-start whitespace-normal"
                   onClick={() => assistant.open(L(q))}
                 >
-                  {L(q)}
+                  {/* a span, so the label does not take the hover roll (its mask is one line and would clip a long request) */}
+                  <span>{L(q)}</span>
                 </Button>
               ))}
             </div>

@@ -8,7 +8,6 @@ import { usePersonsAll } from '@/services/queries'
 import { WEEKLY_SAMPLE_COPY as COPY } from '@/data/weeklySample'
 import { personLabel } from '@/utils/peopleExport'
 import { kindOfTraceId } from '@/utils/trace'
-import { cn } from '@/lib/utils'
 import { AgentChip } from '@/components/common/AgentChip'
 import { EmptyState } from '@/components/common/EmptyState'
 import { ErrorState } from '@/components/common/ErrorState'
@@ -20,9 +19,12 @@ import { StatusBadge } from '@/components/common/StatusBadge'
 import { TraceId } from '@/components/common/TraceId'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { SubPageHeader, ViewOnlyNotice } from './SubPageHeader'
+import { IN_CARD, PressFilter, SubPageHeader, ViewOnlyNotice } from './SubPageHeader'
 
 type Filter = 'all' | 'unread' | 'wrong'
+
+/** One half of the Right / Wrong pair: a 29px pill key (the light one is Right, the dark one Wrong). */
+const VERDICT_KEY = 'inline-flex min-h-[29px] cursor-pointer items-center justify-center rounded-full px-3.5 pt-[3px] pb-[5px] text-sm font-medium whitespace-nowrap outline-none transition-opacity duration-200 hover:opacity-85'
 
 /**
  * Weekly sample (v40 F31): fifty outputs that passed the supervisor this week, read by eye. Each one is Right or Wrong; a
@@ -30,6 +32,9 @@ type Filter = 'all' | 'unread' | 'wrong'
  * the pass-rate formula is still [Proposed], badged where the rates are). It is due every Thursday. The CX manager, the CX
  * team and the Internal Audit and Marketing Lead judge; others read. A sample text never holds a customer name: an item
  * about a person shows `personLabel`, so the Internal Audit and Marketing Lead sees `P-005`, not a name.
+ *
+ * Design: a register, so dense. Right and Wrong are a light/dark segmented pair on a well track (the skill's segmented control read as
+ * two answers); a judged row shows its verdict as a tag and a small "Change". A role that may only read sees plain text, not buttons.
  */
 export default function WeeklySample() {
   const { t, L, lang } = useI18n()
@@ -74,7 +79,7 @@ export default function WeeklySample() {
   ]
 
   return (
-    <section className="flex flex-col gap-4">
+    <section data-density="dense" className="flex flex-col gap-4">
       <SubPageHeader title={L(COPY.title)} description={L(COPY.intro)} />
 
       {!canJudge && <ViewOnlyNotice>{t('You can read the sample. The CX manager, the CX team and the Internal Audit and Marketing Lead judge it.', 'يمكنك قراءة العينة. يحكم عليها مدير CX وفريقه ومدير التدقيق الداخلي والتسويق.')}</ViewOnlyNotice>}
@@ -85,11 +90,11 @@ export default function WeeklySample() {
         <LoadingState rows={6} />
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-            <KpiTile label={L(COPY.tiles.read)} value={`${sample.read} / ${sample.size}`} accent="var(--chart-4)" />
-            <KpiTile label={L(COPY.tiles.wrong)} value={sample.wrong} accent={sample.wrong ? 'var(--destructive)' : 'var(--success)'} />
-            <KpiTile label={L(COPY.tiles.accuracy)} value={sample.accuracyPct === null ? '–' : `${sample.accuracyPct}%`} accent="var(--success)" />
-            <KpiTile label={L(COPY.tiles.due)} value={fmtDue(sample.due)} accent="var(--warning)" />
+          <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+            <KpiTile label={L(COPY.tiles.read)} value={`${sample.read} / ${sample.size}`} />
+            <KpiTile label={L(COPY.tiles.wrong)} value={sample.wrong} accent={sample.wrong ? 'var(--destructive)' : undefined} />
+            <KpiTile label={L(COPY.tiles.accuracy)} value={sample.accuracyPct === null ? '–' : `${sample.accuracyPct}%`} />
+            <KpiTile label={L(COPY.tiles.due)} value={fmtDue(sample.due)} />
           </div>
 
           <SectionCard
@@ -103,41 +108,44 @@ export default function WeeklySample() {
               'A "wrong" lowers that agent’s pass rate (the agents page shows the same figure) and becomes a test the supervisor runs from now on.',
               'كل "خطأ" يخفض نسبة نجاح ذلك الوكيل (صفحة الوكلاء تعرض الرقم نفسه) ويصبح اختباراً يجريه السوبرفايزر من الآن.',
             )}
+            contentClassName={IN_CARD}
           >
-            <div className="overflow-hidden rounded-lg border">
-              <Table>
-                <TableHeader className="bg-muted/60">
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead className="px-3 text-xs font-semibold text-muted-foreground">{L(c.agent)}</TableHead>
-                    <TableHead className="px-3 text-end text-xs font-semibold text-muted-foreground">{t('In the sample', 'في العينة')}</TableHead>
-                    <TableHead className="px-3 text-end text-xs font-semibold text-muted-foreground">{t('Wrong', 'خطأ')}</TableHead>
-                    <TableHead className="px-3 text-end text-xs font-semibold text-muted-foreground">{t('Pass rate', 'نسبة النجاح')}</TableHead>
-                    <TableHead className="px-3 text-end text-xs font-semibold text-muted-foreground">{t('New tests', 'اختبارات جديدة')}</TableHead>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{L(c.agent)}</TableHead>
+                  <TableHead className="text-end">{t('In the sample', 'في العينة')}</TableHead>
+                  <TableHead className="text-end">{t('Wrong', 'خطأ')}</TableHead>
+                  <TableHead className="text-end">{t('Pass rate', 'نسبة النجاح')}</TableHead>
+                  <TableHead className="text-end">{t('New tests', 'اختبارات جديدة')}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(rates ?? []).map((r) => (
+                  <TableRow key={r.agent}>
+                    <TableCell>
+                      <AgentChip agent={r.agent} />
+                    </TableCell>
+                    <TableCell className="text-end font-medium tabular text-foreground">{r.sampled}</TableCell>
+                    <TableCell className="text-end font-medium tabular text-foreground">{r.wrong}</TableCell>
+                    <TableCell className="text-end font-medium tabular text-foreground">
+                      {r.current !== r.base ? (
+                        <StatusBadge tone="danger">
+                          <bdi dir="ltr">{r.base === null ? '–' : `${r.base}% → ${r.current}%`}</bdi>
+                        </StatusBadge>
+                      ) : (
+                        <bdi dir="ltr">{r.base === null ? '–' : `${r.base}%`}</bdi>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-end font-medium tabular text-foreground">{r.tests}</TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {(rates ?? []).map((r) => (
-                    <TableRow key={r.agent}>
-                      <TableCell className="px-3 py-2.5">
-                        <AgentChip agent={r.agent} className="h-auto max-w-40 py-0.5 text-start leading-tight whitespace-normal" />
-                      </TableCell>
-                      <TableCell className="px-3 py-2.5 text-end tabular-nums">{r.sampled}</TableCell>
-                      <TableCell className="px-3 py-2.5 text-end tabular-nums">{r.wrong}</TableCell>
-                      <TableCell className="px-3 py-2.5 text-end tabular-nums">
-                        <bdi dir="ltr" className={cn(r.current !== r.base && 'font-semibold text-danger-text')}>
-                          {r.base === null ? '–' : r.current === r.base ? `${r.base}%` : `${r.base}% → ${r.current}%`}
-                        </bdi>
-                      </TableCell>
-                      <TableCell className="px-3 py-2.5 text-end tabular-nums">{r.tests}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                ))}
+              </TableBody>
+            </Table>
             {(tests?.length ?? 0) > 0 && (
-              <div className="mt-4 flex flex-col gap-1.5">
-                <p className="text-sm font-semibold">{t(`New supervisor tests (${tests?.length})`, `اختبارات جديدة للسوبرفايزر (${tests?.length})`)}</p>
-                <ul className="flex flex-col gap-1 text-sm text-muted-foreground">
+              <div className="well mx-2.5 mt-4 flex flex-col gap-2.5">
+                <p className="t-small-strong">{t(`New supervisor tests (${tests?.length})`, `اختبارات جديدة للسوبرفايزر (${tests?.length})`)}</p>
+                <ul className="flex flex-col gap-2 text-sm text-muted-foreground">
                   {tests?.map((x) => (
                     <li key={x.id}>
                       <AgentChip agent={x.agent} className="me-2 align-middle" />
@@ -149,35 +157,22 @@ export default function WeeklySample() {
             )}
           </SectionCard>
 
-          <div role="group" aria-label={t('Filter the sample', 'تصفية العينة')} className="flex flex-wrap gap-2">
-            {FILTERS.map((f) => (
-              <button
-                key={f.id}
-                type="button"
-                aria-pressed={filter === f.id}
-                onClick={() => setFilter(f.id)}
-                className={cn(
-                  'inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-sm font-medium outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50',
-                  filter === f.id ? 'border-primary bg-primary/10 text-foreground' : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-                )}
-              >
-                {f.label}
-                <span className="tabular-nums text-xs text-muted-foreground">{f.count}</span>
-              </button>
-            ))}
-          </div>
+          <PressFilter
+            label={t('Filter the sample', 'تصفية العينة')}
+            options={FILTERS.map((f) => ({ id: f.id, label: f.label, count: f.count }))}
+            value={filter}
+            onChange={setFilter}
+          />
 
           {shown.length === 0 ? (
             <EmptyState title={t('Nothing in this view.', 'لا شيء في هذا العرض.')} />
           ) : (
-            <div className="overflow-hidden rounded-lg border bg-card">
+            <SectionCard contentClassName={IN_CARD}>
               <Table>
-                <TableHeader className="bg-muted/60">
-                  <TableRow className="hover:bg-transparent">
+                <TableHeader>
+                  <TableRow>
                     {[c.n, c.agent, c.kind, c.output, c.verdict].map((h) => (
-                      <TableHead key={h.en} className="px-3 text-xs font-semibold text-muted-foreground">
-                        {L(h)}
-                      </TableHead>
+                      <TableHead key={h.en}>{L(h)}</TableHead>
                     ))}
                   </TableRow>
                 </TableHeader>
@@ -187,39 +182,39 @@ export default function WeeklySample() {
                     const traceKind = kindOfTraceId(item.ref)
                     return (
                       <TableRow key={item.id}>
-                        <TableCell className="px-3 py-2.5 tabular-nums text-muted-foreground">{n}</TableCell>
-                        <TableCell className="px-3 py-2.5">
-                          <AgentChip agent={item.agent} className="h-auto max-w-40 py-0.5 text-start leading-tight whitespace-normal" />
+                        <TableCell className="tabular">{n}</TableCell>
+                        <TableCell>
+                          <AgentChip agent={item.agent} />
                         </TableCell>
-                        <TableCell className="px-3 py-2.5">{L(item.kind)}</TableCell>
-                        <TableCell className="min-w-56 px-3 py-2.5 whitespace-normal">
+                        <TableCell>{L(item.kind)}</TableCell>
+                        <TableCell className="min-w-56 whitespace-normal text-foreground">
                           <span className="flex flex-wrap items-center gap-2">
                             {L(item.text)}
-                            {traceKind ? <TraceId kind={traceKind} id={item.ref} /> : <bdi dir="ltr" className="font-mono text-xs text-muted-foreground">{item.ref}</bdi>}
+                            {traceKind ? <TraceId kind={traceKind} id={item.ref} /> : <bdi dir="ltr" className="text-sm text-muted-foreground tabular">{item.ref}</bdi>}
                             {who && <span className="text-muted-foreground">· {who}</span>}
                           </span>
                         </TableCell>
-                        <TableCell className="px-3 py-2.5">
+                        <TableCell>
                           {item.verdict !== null ? (
                             <span className="flex flex-wrap items-center gap-2">
                               <StatusBadge tone={item.verdict ? 'success' : 'danger'}>{L(item.verdict ? COPY.chipRight : COPY.chipWrong)}</StatusBadge>
                               {canJudge && (
-                                <Button size="sm" variant="ghost" className="h-8 text-muted-foreground" onClick={() => verdict(item.id, item.agent, !item.verdict)}>
+                                <Button size="xs" variant="ghost" className="text-muted-foreground" onClick={() => verdict(item.id, item.agent, !item.verdict)}>
                                   {t('Change', 'تغيير')}
                                 </Button>
                               )}
                             </span>
                           ) : canJudge ? (
-                            <span className="flex flex-wrap gap-1">
-                              <Button size="sm" variant="outline" className="h-9" onClick={() => verdict(item.id, item.agent, true)}>
+                            <span className="inline-flex items-center gap-0.5 rounded-full bg-well p-[3px] shadow-inset-well">
+                              <button type="button" className={VERDICT_KEY + ' material-light text-foreground'} onClick={() => verdict(item.id, item.agent, true)}>
                                 {L(COPY.right)}
-                              </Button>
-                              <Button size="sm" variant="outline" className="h-9" onClick={() => verdict(item.id, item.agent, false)}>
+                              </button>
+                              <button type="button" className={VERDICT_KEY + ' material-dark text-primary-foreground'} onClick={() => verdict(item.id, item.agent, false)}>
                                 {L(COPY.wrong)}
-                              </Button>
+                              </button>
                             </span>
                           ) : (
-                            <span className="text-muted-foreground">{t('Not read yet', 'لم يُقرأ بعد')}</span>
+                            <span>{t('Not read yet', 'لم يُقرأ بعد')}</span>
                           )}
                         </TableCell>
                       </TableRow>
@@ -227,11 +222,11 @@ export default function WeeklySample() {
                   })}
                 </TableBody>
               </Table>
-            </div>
+            </SectionCard>
           )}
 
           {sample.items.some((i) => i.personId) && !canViewNamesInSample(role.id) && (
-            <p className="text-sm text-muted-foreground">{t('No customer names are shown to this role: an output about a person carries the reference (for example P-005).', 'لا تظهر أسماء الزبائن لهذا الدور: المخرج عن شخص يحمل المرجع (مثل P-005).')}</p>
+            <p className="max-w-[72ch] text-sm text-muted-foreground">{t('No customer names are shown to this role: an output about a person carries the reference (for example P-005).', 'لا تظهر أسماء الزبائن لهذا الدور: المخرج عن شخص يحمل المرجع (مثل P-005).')}</p>
           )}
         </>
       )}

@@ -18,7 +18,8 @@ import { RouteTabs } from './Tabs'
 import { TermHelp } from './TermHelp'
 import { ThemeSwitch } from './ThemeSwitch'
 import { LangSwitch } from './LangSwitch'
-import { ChartLegend, ChartTooltip, RankedBars, chartColor, CHART_MAX_CATEGORIES } from './charts'
+import { ChartLegend, ChartTooltip, RankedBars } from './charts'
+import { CHART_MAX_CATEGORIES, chartColor } from './chartTheme'
 
 beforeAll(() => preferReducedMotion())
 

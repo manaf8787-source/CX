@@ -23,7 +23,9 @@ type Decision = FormValues['decision']
 
 /** FR-4.4 — a proposed action can be approved, modified, or rejected (with
  * reason); modified/rejected need CX manager approval before a case can
- * close (enforced upstream by who gets `canActOnCorrectiveAction`). */
+ * close (enforced upstream by who gets `canActOnCorrectiveAction`).
+ * The options are wells; the chosen one is the dark material (selected = dark). The radio itself is visually hidden, so the label
+ * carries the focus ring. */
 export function DecisionDialog({
   title,
   approveLabel,
@@ -76,9 +78,8 @@ export function DecisionDialog({
                       <label
                         key={o.value}
                         className={cn(
-                          'flex min-h-10 cursor-pointer flex-col gap-0.5 rounded-lg border p-3 transition-colors duration-150',
-                          'has-focus-visible:ring-[3px] has-focus-visible:ring-ring/50',
-                          checked ? 'border-primary bg-primary/5' : 'hover:bg-accent',
+                          'flex min-h-10 cursor-pointer flex-col gap-0.5 rounded-well px-4 py-3 text-start transition-colors duration-200 has-focus-visible:[--tw-ring-shadow:var(--ring-focus)]',
+                          checked ? 'material-dark' : 'bg-well shadow-none hover:bg-well-hover',
                         )}
                       >
                         <input
@@ -89,8 +90,8 @@ export function DecisionDialog({
                           checked={checked}
                           onChange={() => field.onChange(o.value)}
                         />
-                        <span className="text-sm font-semibold">{o.label}</span>
-                        <span className="text-xs text-muted-foreground">{o.note}</span>
+                        <span className="t-ui-strong text-inherit">{o.label}</span>
+                        <span className={cn('text-xs', checked ? 'text-(--on-dark-muted)' : 'text-muted-foreground')}>{o.note}</span>
                       </label>
                     )
                   })}

@@ -9,7 +9,7 @@ import { SectionCard } from '@/components/common/SectionCard'
 import { StatusBadge } from '@/components/common/StatusBadge'
 import { EmptyState } from '@/components/common/EmptyState'
 import { LoadingState } from '@/components/common/LoadingState'
-import { SubPageHeader } from './SubPageHeader'
+import { IN_CARD, SubPageHeader } from './SubPageHeader'
 
 /** Ported from `frontend/src/pages/HrTeam.tsx` (APPLICATION_MODULES.md §C) —
  * "informed only: team numbers and a late alert, no access to individual
@@ -27,7 +27,7 @@ export default function HrTeamPerf() {
   const late = open.filter((c) => new Date(c.resolveDueAt).getTime() < now)
 
   return (
-    <section className="flex flex-col gap-4">
+    <section data-density="comfortable" className="flex flex-col gap-4">
       <SubPageHeader
         title={t('HR team performance', 'أداء فريق الموارد البشرية')}
         description={t('Informed only: team numbers and a late alert. No access to individual cases.', 'للعلم فقط: أرقام الفريق وتنبيه التأخير. لا صلاحية وصول للحالات الفردية.')}
@@ -36,51 +36,46 @@ export default function HrTeamPerf() {
       <LandingBrief roles={['hrmgr']} />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <KpiTile label={t('Open conduct cases', 'حالات السلوك المفتوحة')} value={open.length} icon={<FolderOpen />} accent="var(--chart-4)" loading={casesLoading} />
+        <KpiTile label={t('Open conduct cases', 'حالات السلوك المفتوحة')} value={open.length} icon={<FolderOpen />} loading={casesLoading} />
         <KpiTile
           label={t('Late or at risk', 'متأخرة أو في خطر')}
           value={late.length}
           icon={<AlertTriangle />}
-          accent={late.length ? 'var(--destructive)' : 'var(--chart-1)'}
+          accent={late.length ? 'var(--destructive)' : undefined}
           loading={casesLoading}
         />
         <KpiTile
           label={t('Closed total', 'إجمالي المغلقة')}
           value={conductCases.filter((c) => c.status === 'closed').length}
           icon={<CheckCircle2 />}
-          accent="var(--success)"
           loading={casesLoading}
         />
       </div>
 
-      <SectionCard title={t('By specialist', 'حسب الأخصائي')}>
+      <SectionCard title={t('By specialist', 'حسب الأخصائي')} contentClassName={IN_CARD}>
         {poolLoading ? (
           <LoadingState rows={3} />
         ) : !hrPool?.length ? (
           <EmptyState title={t('No specialists in the pool yet', 'لا يوجد أخصائيون في المجموعة بعد')} />
         ) : (
-          <div className="overflow-hidden rounded-lg border">
-            <Table>
-              <TableHeader className="bg-muted/60">
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="px-3 text-xs font-semibold text-muted-foreground">{t('Specialist', 'الأخصائي')}</TableHead>
-                  <TableHead className="px-3 text-end text-xs font-semibold text-muted-foreground">{t('Assigned cases', 'الحالات المسندة')}</TableHead>
-                  <TableHead className="px-3 text-end text-xs font-semibold text-muted-foreground">{t('Late', 'متأخرة')}</TableHead>
+          <Table density="comfortable">
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t('Specialist', 'الأخصائي')}</TableHead>
+                <TableHead className="text-end">{t('Assigned cases', 'الحالات المسندة')}</TableHead>
+                <TableHead className="text-end">{t('Late', 'متأخرة')}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {hrPool.map((h) => (
+                <TableRow key={h.title}>
+                  <TableCell className="font-medium text-foreground">{h.title}</TableCell>
+                  <TableCell className="text-end font-medium tabular text-foreground">{h.assignedCases}</TableCell>
+                  <TableCell className="text-end tabular">{h.lateCases > 0 ? <StatusBadge tone="danger">{h.lateCases}</StatusBadge> : 0}</TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {hrPool.map((h) => (
-                  <TableRow key={h.title}>
-                    <TableCell className="px-3 text-sm">{h.title}</TableCell>
-                    <TableCell className="px-3 text-end text-sm tabular-nums">{h.assignedCases}</TableCell>
-                    <TableCell className="px-3 text-end text-sm tabular-nums">
-                      {h.lateCases > 0 ? <StatusBadge tone="danger">{h.lateCases}</StatusBadge> : 0}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+              ))}
+            </TableBody>
+          </Table>
         )}
       </SectionCard>
     </section>

@@ -9,6 +9,7 @@ import { CONSENT_CHANNELS, CONSENT_CHANNEL_LABEL, SKIP_REASON_LABEL, surveyReach
  * then DNCR (critical) or "Consent given" (good), then WhatsApp, Email and SMS (a warning chip when there is no consent).
  * Under it the surveys line says what the flags mean and which reason a skipped survey carries (F25).
  * The flags are sample data until the CRM owner confirms the source (the tooltip says so).
+ * A flat well (no edge line, no card shadow): the tags on it are the light material, the two attention states keep their tint.
  */
 export function ConsentRow({ person }: { person: Pick<Person, 'consent'> }) {
   const { t, L } = useI18n()
@@ -17,9 +18,9 @@ export function ConsentRow({ person }: { person: Pick<Person, 'consent'> }) {
   const sampleNote = t('Sample flags, as the CRM would hold them. Confirm the consent source with the CRM owner.', 'علامات افتراضية كما سيحملها CRM. يؤكَّد مصدر الموافقة مع مالك CRM.')
 
   return (
-    <section aria-label={t('Consent', 'الموافقة')} className="flex flex-col gap-2 rounded-xl border bg-card px-4 py-3" title={sampleNote}>
+    <section aria-label={t('Consent', 'الموافقة')} className="well flex flex-col gap-2.5 px-5 py-4" title={sampleNote}>
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-sm text-muted-foreground">{t('Consent (from the CRM):', 'الموافقة (من CRM):')}</span>
+        <span className="t-small-strong text-muted-foreground">{t('Consent (from the CRM):', 'الموافقة (من CRM):')}</span>
         {consent.dncr ? (
           <StatusBadge tone="danger" icon={<PhoneOff aria-hidden />}>
             {t('DNCR · no calls, no surveys by call', 'DNCR · لا مكالمات ولا استبيانات بالهاتف')}

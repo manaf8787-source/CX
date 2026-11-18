@@ -59,8 +59,8 @@ export function CampaignDialog({
         <form onSubmit={handleSubmit(onCreate)} className="flex flex-col gap-5">
           <DialogHeader>
             <DialogTitle>{t('Create an AI interview campaign', 'إنشاء حملة مقابلات بالذكاء الاصطناعي')}</DialogTitle>
-            <DialogDescription className="flex items-start gap-1.5 text-warning-text">
-              <ShieldAlert aria-hidden className="mt-0.5 size-4 shrink-0" />
+            <DialogDescription className="flex items-start gap-2">
+              <ShieldAlert aria-hidden className="mt-0.5 size-4 shrink-0 text-foreground" />
               {t('Critical detractors are never offered here — human call only.', 'المنتقدون الحرجون لا يُعرضون هنا أبداً — مكالمة بشرية فقط.')}
             </DialogDescription>
           </DialogHeader>
@@ -69,12 +69,12 @@ export function CampaignDialog({
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field data-invalid={!!errors.name}>
                 <FieldLabel htmlFor="cmp-name">{t('Name', 'الاسم')}</FieldLabel>
-                <Input id="cmp-name" className="h-9" aria-invalid={!!errors.name} {...register('name')} />
+                <Input id="cmp-name" aria-invalid={!!errors.name} {...register('name')} />
                 {errors.name && <FieldError>{required}</FieldError>}
               </Field>
               <Field data-invalid={!!errors.segmentDescription}>
                 <FieldLabel htmlFor="cmp-segment">{t('Segment', 'الشريحة')}</FieldLabel>
-                <Input id="cmp-segment" className="h-9" aria-invalid={!!errors.segmentDescription} {...register('segmentDescription')} />
+                <Input id="cmp-segment" aria-invalid={!!errors.segmentDescription} {...register('segmentDescription')} />
                 {errors.segmentDescription && <FieldError>{required}</FieldError>}
               </Field>
             </div>
@@ -91,8 +91,8 @@ export function CampaignDialog({
               </Field>
             </div>
 
-            <div className="flex flex-col gap-1 rounded-lg border bg-muted/40 p-3 text-sm">
-              <span className="font-semibold">{t('Hand-off rules (always on)', 'قواعد التحويل (مفعّلة دائماً)')}</span>
+            <div className="well flex flex-col gap-1.5 px-4 py-3.5 text-sm text-muted-foreground">
+              <span className="t-small-strong">{t('Hand-off rules (always on)', 'قواعد التحويل (مفعّلة دائماً)')}</span>
               <span>
                 {t(`Hangs up or does not answer ${timesEn} → needs a human`, `أغلق الخط أو لم يرد ${timesAr} ← يحتاج شخصاً`)}
               </span>
@@ -102,12 +102,13 @@ export function CampaignDialog({
 
             <FieldSet data-invalid={!!errors.memberIds} className="gap-2">
               <FieldLegend variant="label">{t('Members (non-critical, not yet called)', 'الأعضاء (غير حرجين، لم يُتصل بهم بعد)')}</FieldLegend>
-              <div className="flex max-h-48 flex-col overflow-y-auto rounded-lg border">
+              {/* a well of rows divided by the row divider: no outline box */}
+              <div className="well flex max-h-48 flex-col overflow-y-auto p-1.5">
                 {eligibleItems.map((i) => (
-                  <label key={i.id} className="flex min-h-10 cursor-pointer items-center gap-3 border-b px-3 py-2 text-sm transition-colors duration-150 last:border-b-0 hover:bg-muted/60">
+                  <label key={i.id} className="row-divider flex min-h-10 cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors duration-200 hover:bg-(--hover-tint)">
                     <input type="checkbox" value={i.id} className="size-4 shrink-0 cursor-pointer accent-primary" {...register('memberIds')} />
-                    <span className="font-mono text-xs text-muted-foreground">{i.id}</span>
-                    <span>{L(SEVERITY_LABEL[i.severity])}</span>
+                    <span className="tabular text-xs text-muted-foreground">{i.id}</span>
+                    <span className="text-foreground">{L(SEVERITY_LABEL[i.severity])}</span>
                     <span className="text-muted-foreground">· {L(envNameFromShort(i.environment))}</span>
                   </label>
                 ))}

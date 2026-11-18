@@ -12,6 +12,7 @@ import { signalCategoryLabel, signalKindLabel } from './labels'
  * The signals as rows (v40 F12): the first column is the date, and under it a button `SG-n` that opens the signal detail dialog
  * (a public mention keeps its `PUB-3nn` id and links to no person). The last column names the pattern each signal counts toward.
  * Signals are counted, not worked: nothing here is an action on one signal.
+ * Dense table (row 44): the date and the signal are the ink cells, the rest grey; the ids are grey tags.
  */
 export function SignalsTable({ signals, patterns, isLoading }: { signals: Signal[] | undefined; patterns: Pattern[] | undefined; isLoading: boolean }) {
   const { t, L } = useI18n()
@@ -30,14 +31,14 @@ export function SignalsTable({ signals, patterns, isLoading }: { signals: Signal
       accessorFn: (s) => s.occurredAt,
       cell: ({ row }) => (
         <div className="flex flex-col items-start gap-1">
-          <time dateTime={row.original.occurredAt} className="tabular-nums">
+          <time dateTime={row.original.occurredAt} className="tabular font-medium text-foreground">
             <bdi dir="ltr">{row.original.occurredAt.slice(0, 10)}</bdi>
           </time>
           <TraceId kind="signal" id={row.original.id} />
         </div>
       ),
     },
-    { id: 'signal', header: t('Signal', 'الإشارة'), accessorFn: (s) => L(signalCategoryLabel(s.category)) },
+    { id: 'signal', header: t('Signal', 'الإشارة'), accessorFn: (s) => L(signalCategoryLabel(s.category)), meta: { cellClassName: 'font-medium text-foreground' } },
     { id: 'type', header: t('Type', 'النوع'), accessorFn: (s) => L(signalKindLabel(s.kind)) },
     {
       id: 'where',
@@ -52,7 +53,7 @@ export function SignalsTable({ signals, patterns, isLoading }: { signals: Signal
       cell: ({ row }) => {
         const list = patternsOf.get(row.original.id) ?? []
         return list.length ? (
-          <div className="flex flex-wrap gap-1">
+          <div className="flex flex-wrap gap-1.5">
             {list.map((p) => (
               <TraceId key={p.id} kind="pattern" id={p.traceId} />
             ))}

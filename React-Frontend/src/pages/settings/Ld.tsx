@@ -19,7 +19,7 @@ import { SectionCard } from '@/components/common/SectionCard'
 import { StatusBadge } from '@/components/common/StatusBadge'
 import { EmptyState } from '@/components/common/EmptyState'
 import { LoadingState } from '@/components/common/LoadingState'
-import { SubPageHeader } from './SubPageHeader'
+import { IN_CARD, SubPageHeader } from './SubPageHeader'
 
 function GoLink({ to, children }: { to: string; children: ReactNode }) {
   return (
@@ -50,10 +50,9 @@ export default function Ld() {
   const ownedStandards = (register ?? []).filter((s) => ['beh', 'com', 'sell', 'fol'].includes(s.area))
   const lowFindings = (shopperCases ?? []).filter((c) => c.severity === 'low').length
   const types = Object.keys(LD_COMPLAINT_TYPE) as LdComplaintType[]
-  const th = 'px-3 text-xs font-semibold text-muted-foreground'
 
   return (
-    <section className="flex flex-col gap-4">
+    <section data-density="comfortable" className="flex flex-col gap-4">
       <SubPageHeader
         title={t('L&D: training & materials', 'التعلم والتطوير')}
         description={t('Training-gap actions, L&D requests, and the standards L&D owns and writes.', 'إجراءات فجوة التدريب، طلبات التعلم والتطوير، والمعايير التي يملكها ويكتبها قسم التعلم والتطوير.')}
@@ -61,15 +60,14 @@ export default function Ld() {
       {/* v40 F09: L&D lands here, not on Home, so the Daily brief sits at the top of this page. */}
       <LandingBrief roles={['ld']} />
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiTile label={t('Training-gap actions', 'إجراءات فجوة التدريب')} value={trainingGapActions.length} accent="var(--warning)" loading={actionsLoading} />
-        <KpiTile label={t('Materials in preparation', 'مواد قيد التحضير')} value={(materials ?? []).filter((m) => m.status !== 'ready').length} accent="var(--info)" />
-        <KpiTile label={t('Sessions planned', 'جلسات مخططة')} value={(sessions ?? []).filter((x) => x.status === 'planned').length} accent="var(--chart-1)" />
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <KpiTile label={t('Training-gap actions', 'إجراءات فجوة التدريب')} value={trainingGapActions.length} loading={actionsLoading} />
+        <KpiTile label={t('Materials in preparation', 'مواد قيد التحضير')} value={(materials ?? []).filter((m) => m.status !== 'ready').length} />
+        <KpiTile label={t('Sessions planned', 'جلسات مخططة')} value={(sessions ?? []).filter((x) => x.status === 'planned').length} />
         <KpiTile
           label={t('Low shopper findings', 'نتائج تسوق منخفضة')}
           value={lowFindings}
           sub={t('Arrive here as statistics, not cases', 'تصل هنا كإحصاءات لا كحالات')}
-          accent="var(--muted-foreground)"
         />
       </div>
 
@@ -80,10 +78,10 @@ export default function Ld() {
         {actionsLoading ? (
           <LoadingState rows={2} />
         ) : trainingGapActions.length ? (
-          <ul className="flex flex-col divide-y">
+          <ul className="flex flex-col">
             {trainingGapActions.map((a) => (
-              <li key={a.id} className="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0">
-                <span className="min-w-0 text-sm">{L(a.title)}</span>
+              <li key={a.id} className="row-divider flex min-h-14 items-center justify-between gap-3 py-2">
+                <span className="t-ui-strong min-w-0">{L(a.title)}</span>
                 <StatusBadge tone={CORRECTIVE_STATUS_TONE[a.status]}>{L(CORRECTIVE_STATUS_LABEL[a.status])}</StatusBadge>
               </li>
             ))}
@@ -93,78 +91,75 @@ export default function Ld() {
         )}
       </SectionCard>
 
-      <SectionCard title={t('L&D requests', 'طلبات التعلم والتطوير')}>
+      <SectionCard title={t('L&D requests', 'طلبات التعلم والتطوير')} contentClassName={IN_CARD}>
         {requestsLoading ? (
           <LoadingState rows={3} />
         ) : !requests?.length ? (
           <EmptyState title={t('No L&D requests yet.', 'لا توجد طلبات تعلم وتطوير بعد.')} />
         ) : (
-          <div className="overflow-x-auto rounded-lg border">
-            <Table>
-              <TableHeader className="bg-muted/60">
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="px-3 text-xs font-semibold text-muted-foreground">{t('Request', 'الطلب')}</TableHead>
-                  <TableHead className="px-3 text-xs font-semibold text-muted-foreground">{t('Requested by', 'الطلب من')}</TableHead>
-                  <TableHead className="px-3 text-xs font-semibold text-muted-foreground">{t('Status', 'الحالة')}</TableHead>
+          <Table density="comfortable">
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t('Request', 'الطلب')}</TableHead>
+                <TableHead>{t('Requested by', 'الطلب من')}</TableHead>
+                <TableHead>{t('Status', 'الحالة')}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {requests.map((r) => (
+                <TableRow key={r.id}>
+                  <TableCell className="font-medium whitespace-normal text-foreground">{L(r.title)}</TableCell>
+                  <TableCell>
+                    {r.requestedBy}
+                    {r.environment ? ` · ${r.environment}` : ''}
+                  </TableCell>
+                  <TableCell>
+                    <StatusBadge tone={LD_REQUEST_STATUS_TONE[r.status]}>{L(LD_REQUEST_STATUS_LABEL[r.status])}</StatusBadge>
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {requests.map((r) => (
-                  <TableRow key={r.id}>
-                    <TableCell className="px-3 text-sm whitespace-normal">{L(r.title)}</TableCell>
-                    <TableCell className="px-3 text-sm text-muted-foreground">
-                      {r.requestedBy}
-                      {r.environment ? ` · ${r.environment}` : ''}
-                    </TableCell>
-                    <TableCell className="px-3">
-                      <StatusBadge tone={LD_REQUEST_STATUS_TONE[r.status]}>{L(LD_REQUEST_STATUS_LABEL[r.status])}</StatusBadge>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+              ))}
+            </TableBody>
+          </Table>
         )}
       </SectionCard>
 
       <SectionCard
         title={t('Complaint types in L&D’s area', 'أنواع الشكاوى ضمن مجال التعلم والتطوير')}
         description={t('Which materials and sessions cover each type.', 'أي المواد والجلسات تغطي كل نوع.')}
+        contentClassName={IN_CARD}
       >
-        <div className="overflow-x-auto rounded-lg border">
-          <Table>
-            <TableHeader className="bg-muted/60">
-              <TableRow className="hover:bg-transparent">
-                <TableHead className={th}>{t('Complaint type', 'نوع الشكوى')}</TableHead>
-                <TableHead className={th}>{t('Materials', 'المواد')}</TableHead>
-                <TableHead className={th}>{t('Sessions', 'الجلسات')}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {types.map((ty) => {
-                const mats = (materials ?? []).filter((m) => m.covers.includes(ty))
-                const ses = (sessions ?? []).filter((x) => x.covers.includes(ty))
-                return (
-                  <TableRow key={ty}>
-                    <TableCell className="px-3 text-sm font-medium">{L(LD_COMPLAINT_TYPE[ty])}</TableCell>
-                    <TableCell className="px-3 text-sm whitespace-normal">{mats.map((m) => L(m.name)).join(' · ') || <span className="text-danger-text">{t('Not covered', 'غير مغطى')}</span>}</TableCell>
-                    <TableCell className="px-3 text-sm whitespace-normal">{ses.map((x) => L(x.name)).join(' · ') || <span className="text-muted-foreground">—</span>}</TableCell>
-                  </TableRow>
-                )
-              })}
-            </TableBody>
-          </Table>
-        </div>
+        <Table density="comfortable">
+          <TableHeader>
+            <TableRow>
+              <TableHead>{t('Complaint type', 'نوع الشكوى')}</TableHead>
+              <TableHead>{t('Materials', 'المواد')}</TableHead>
+              <TableHead>{t('Sessions', 'الجلسات')}</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {types.map((ty) => {
+              const mats = (materials ?? []).filter((m) => m.covers.includes(ty))
+              const ses = (sessions ?? []).filter((x) => x.covers.includes(ty))
+              return (
+                <TableRow key={ty}>
+                  <TableCell className="font-medium text-foreground">{L(LD_COMPLAINT_TYPE[ty])}</TableCell>
+                  <TableCell className="whitespace-normal">{mats.map((m) => L(m.name)).join(' · ') || <StatusBadge tone="danger">{t('Not covered', 'غير مغطى')}</StatusBadge>}</TableCell>
+                  <TableCell className="whitespace-normal">{ses.map((x) => L(x.name)).join(' · ') || '—'}</TableCell>
+                </TableRow>
+              )
+            })}
+          </TableBody>
+        </Table>
       </SectionCard>
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+      <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-2">
         <SectionCard title={t('Training materials in preparation', 'المواد التدريبية قيد التحضير')}>
-          <ul className="flex flex-col divide-y">
+          <ul className="flex flex-col">
             {(materials ?? []).map((m) => (
-              <li key={m.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5 first:pt-0 last:pb-0">
-                <div className="flex min-w-0 flex-col">
-                  <span className="text-sm">{L(m.name)}</span>
-                  <span className="text-xs text-muted-foreground">
+              <li key={m.id} className="row-divider flex min-h-14 flex-wrap items-center justify-between gap-2 py-2">
+                <div className="flex min-w-0 flex-col gap-0.5">
+                  <span className="t-ui-strong">{L(m.name)}</span>
+                  <span className="text-sm text-muted-foreground">
                     {m.standard ? `${m.standard} · ` : ''}
                     {m.due ? <bdi dir="ltr">{m.due}</bdi> : '—'}
                   </span>
@@ -175,14 +170,14 @@ export default function Ld() {
           </ul>
         </SectionCard>
         <SectionCard title={t('Training plan', 'خطة التدريب')}>
-          <ul className="flex flex-col divide-y">
+          <ul className="flex flex-col">
             {[...(sessions ?? [])].sort((a, b) => a.date.localeCompare(b.date)).map((x) => (
-              <li key={x.id} className="flex flex-col gap-0.5 py-2.5 first:pt-0 last:pb-0">
+              <li key={x.id} className="row-divider flex min-h-14 flex-col justify-center gap-0.5 py-2">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-sm font-medium">{L(x.name)}</span>
-                  <bdi dir="ltr" className="text-xs text-muted-foreground tabular-nums">{x.date}</bdi>
+                  <span className="t-ui-strong">{L(x.name)}</span>
+                  <bdi dir="ltr" className="text-sm text-muted-foreground tabular">{x.date}</bdi>
                 </div>
-                <span className="text-xs text-muted-foreground">
+                <span className="text-sm text-muted-foreground">
                   {L(x.audience)} · {L(x.mode)} · {x.covers.map((c) => L(LD_COMPLAINT_TYPE[c])).join(', ')}
                 </span>
               </li>
@@ -199,11 +194,11 @@ export default function Ld() {
         {standardsLoading ? (
           <LoadingState rows={2} />
         ) : ownedStandards.length ? (
-          <ul className="flex flex-col divide-y">
+          <ul className="flex flex-col">
             {ownedStandards.map((s) => (
-              <li key={s.code} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
-                <span className="w-16 shrink-0 font-mono text-xs text-muted-foreground">{s.code}</span>
-                <span className="min-w-0 flex-1 text-sm">{L(s.name)}</span>
+              <li key={s.code} className="row-divider flex min-h-12 items-center gap-3 py-2">
+                <span className="w-16 shrink-0 text-sm tabular text-muted-foreground">{s.code}</span>
+                <span className="t-ui-strong min-w-0 flex-1">{L(s.name)}</span>
                 <StatusBadge tone={s.status === 'appr' ? 'success' : s.status === 'draft' ? 'info' : 'warning'}>{L(REGISTER_STATUS[s.status].label)}</StatusBadge>
               </li>
             ))}

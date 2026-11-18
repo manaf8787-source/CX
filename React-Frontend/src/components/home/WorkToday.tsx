@@ -20,6 +20,8 @@ const ROWS = 4
  * "Your work today" (v40 F06, S1): a summary of My inbox. The hint counts the items on the role and how many are urgent,
  * the box says where the first row sits on the six steps and what happens next, then the first four rows with their day
  * chip. The page and the card read the same `useInbox` list, so the two can never disagree.
+ *
+ * Design: card -> the next-step well -> rows divided by `row-divider`. "Open my inbox" is a light pill: the primary pill on Home is the search.
  */
 export function WorkToday({ className }: { className?: string }) {
   const { t, L } = useI18n()
@@ -37,7 +39,7 @@ export function WorkToday({ className }: { className?: string }) {
       description={isLoading || !items ? undefined : L(WORK_TODAY_COPY.hint(stats.total, stats.urgent))}
       actions={
         canInbox && (
-          <Button asChild size="sm">
+          <Button asChild variant="outline" size="sm">
             <Link to="/inbox">
               {L(WORK_TODAY_COPY.button)}
               <ArrowRight aria-hidden className="rtl:rotate-180" />
@@ -54,15 +56,15 @@ export function WorkToday({ className }: { className?: string }) {
       ) : (
         <>
           {next && first && <NextBox next={next} who={first.who ? L(first.who) : undefined} />}
-          <ul aria-label={t('First rows of my inbox', 'أول أسطر صندوقي')} className="flex flex-col divide-y">
+          <ul aria-label={t('First rows of my inbox', 'أول أسطر صندوقي')} className="flex flex-col">
             {items.slice(0, ROWS).map((item) => {
               const path = item.target.split('?')[0]
               return (
-                <li key={item.id} className="flex flex-wrap items-center gap-x-3 gap-y-1.5 py-2.5 first:pt-0 last:pb-0">
+                <li key={item.id} className="row-divider flex flex-wrap items-center gap-x-3 gap-y-1.5 py-3 first:pt-0 last:pb-0">
                   <span className="flex min-w-36 shrink-0 items-center">
                     <DayChip daysLeft={item.daysLeft} unit={item.unit} />
                   </span>
-                  <span className="min-w-0 flex-1 basis-56 text-sm">{L(item.text)}</span>
+                  <span className="min-w-0 flex-1 basis-56 text-base">{L(item.text)}</span>
                   {canAccessPath(role.id, path) && (
                     <Button asChild variant="outline" size="sm">
                       <Link to={item.target}>

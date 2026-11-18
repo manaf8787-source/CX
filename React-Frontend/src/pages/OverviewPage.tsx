@@ -19,7 +19,7 @@ export default function OverviewPage() {
   const { role } = useRole()
   const canOpenPack = canAccessPath(role.id, '/settings/monthly-pack')
   return (
-    <div className="flex flex-col gap-6">
+    <div data-density="comfortable" className="flex flex-col gap-8">
       <PageHeader
         eyebrow={t('6 · Report', '6 · تقرير')}
         title={t('CX indicators', 'مؤشرات تجربة العملاء')}
@@ -31,7 +31,7 @@ export default function OverviewPage() {
         next={OVERVIEW_NEXT}
         action={
           canOpenPack ? (
-            <Button size="sm" variant="outline" className="h-8" asChild>
+            <Button size="sm" variant="outline" asChild>
               <Link to="/settings/monthly-pack">{L(MONTHLY_PACK_BUTTON)}</Link>
             </Button>
           ) : undefined

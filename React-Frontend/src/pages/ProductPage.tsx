@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { ArrowRight, Ban, Globe, Smartphone } from 'lucide-react'
 import { useI18n } from '@/i18n'
@@ -54,7 +55,7 @@ export default function ProductPage() {
   const fmt = (v: number) => v.toLocaleString(lang === 'ar' ? 'ar-AE' : 'en-US')
 
   return (
-    <div className="flex flex-col gap-6">
+    <div data-density="comfortable" className="flex flex-col gap-8">
       <PageHeader
         eyebrow={t('Product', 'المنتج')}
         title={L(product.name)}
@@ -72,35 +73,39 @@ export default function ProductPage() {
         }
       />
 
-      <section aria-label={t('Indicators', 'المؤشرات')} className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiTile term="NPS" label="NPS" value={npsOf(rows) ?? t('Too early', 'مبكر')} accent={`var(${product.colorVar})`} sub={product.id === 'ev' ? t('No NPS for this product', 'لا NPS لهذا المنتج') : undefined} />
-        <KpiTile term="CSAT" label="CSAT" value={csat != null ? `${csat}%` : '–'} accent="var(--success)" />
-        <KpiTile term="CES" label="CES" value={ces != null ? `${ces}%` : '–'} accent="var(--info)" />
-        <KpiTile label={t('Responses', 'الردود')} value={n ? fmt(n) : '–'} accent="var(--chart-4)" />
-      </section>
-      <p className="-mt-3 inline-flex items-center gap-2 text-sm text-muted-foreground">
-        <Ban aria-hidden className="size-4" />
-        {t('This product’s own line — never combined into a group number.', 'هذا خط المنتج الخاص — لا يُدمج أبداً في رقم موحّد.')}
-      </p>
+      <div className="flex flex-col gap-4">
+        <section aria-label={t('Indicators', 'المؤشرات')} className="grid grid-cols-2 gap-(--grid-gap) lg:grid-cols-4">
+          {/* The product's own hue is the one colour that means something here: a 6px dot before NPS. */}
+          <KpiTile term="NPS" label="NPS" value={npsOf(rows) ?? t('Too early', 'مبكر')} accent={`var(${product.colorVar})`} sub={product.id === 'ev' ? t('No NPS for this product', 'لا NPS لهذا المنتج') : undefined} />
+          <KpiTile term="CSAT" label="CSAT" value={csat ?? '–'} unit={csat != null ? '%' : undefined} />
+          <KpiTile term="CES" label="CES" value={ces ?? '–'} unit={ces != null ? '%' : undefined} />
+          <KpiTile label={t('Responses', 'الردود')} value={n ? fmt(n) : '–'} />
+        </section>
+        <p className="well flex items-center gap-2.5 px-4 py-3 text-sm text-muted-foreground">
+          <Ban aria-hidden className="size-4 shrink-0" />
+          {t('This product’s own line — never combined into a group number.', 'هذا خط المنتج الخاص — لا يُدمج أبداً في رقم موحّد.')}
+        </p>
+      </div>
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <SectionCard title={t('By channel', 'حسب القناة')}>
+      <div className="grid grid-cols-1 gap-(--grid-gap) xl:grid-cols-2">
+        <SectionCard title={t('By channel', 'حسب القناة')} well>
           {rows.length === 0 ? (
             <p className="text-sm text-muted-foreground">{t('No responses yet.', 'لا ردود بعد.')}</p>
           ) : (
-            <ul className="flex flex-col gap-3">
+            <ul className="flex flex-col gap-5">
               {rows.map((r) => (
-                <li key={r.channel} className="flex flex-col gap-1">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="font-medium">{L(VOC_CHANNEL[r.channel] ?? { en: r.channel, ar: r.channel })}</span>
-                    <span className="text-muted-foreground tabular-nums">
+                <li key={r.channel} className="flex flex-col gap-2.5">
+                  <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+                    <span className="t-small-strong">{L(VOC_CHANNEL[r.channel] ?? { en: r.channel, ar: r.channel })}</span>
+                    <span className="t-body-s tabular">
                       NPS <bdi dir="ltr">{npsOf([r]) ?? '–'}</bdi> · CSAT {r.csat}% · n {r.n}
                     </span>
                   </div>
-                  <div className="flex h-2.5 overflow-hidden rounded-full bg-muted" aria-hidden>
-                    <span className="bg-success" style={{ width: `${(100 * r.promoters) / Math.max(1, r.n)}%` }} />
-                    <span className="bg-muted-foreground/40" style={{ width: `${(100 * r.passives) / Math.max(1, r.n)}%` }} />
-                    <span className="bg-destructive" style={{ width: `${(100 * r.detractors) / Math.max(1, r.n)}%` }} />
+                  {/* Promoters = the dark hero, passives and detractors = the two greys; the numbers above are the printed values. */}
+                  <div className="flex h-3 gap-0.5 overflow-hidden rounded-full bg-line shadow-inset-track" aria-hidden>
+                    <span className="material-dark" style={{ width: `${(100 * r.promoters) / Math.max(1, r.n)}%` }} />
+                    <span className="bg-chart-2" style={{ width: `${(100 * r.passives) / Math.max(1, r.n)}%` }} />
+                    <span className="bg-chart-5" style={{ width: `${(100 * r.detractors) / Math.max(1, r.n)}%` }} />
                   </div>
                 </li>
               ))}
@@ -113,19 +118,24 @@ export default function ProductPage() {
             term="Omnichannel" title={t('Website and app: two named sources', 'الموقع والتطبيق: مصدران منفصلان')}
             description={t('Kept apart in every count — a web user and an app user are different people at different stages.', 'منفصلان في كل عدد — مستخدم الموقع ومستخدم التطبيق شخصان مختلفان في مرحلتين مختلفتين.')}
           >
-            <div className="grid grid-cols-2 gap-3">
-              <KpiTile label={t('PSI Website', 'موقع PSI')} value={sourceCount('PSI Website') != null ? fmt(sourceCount('PSI Website')!) : '–'} sub={t('Enquiries, sample', 'استفسارات، عينة')} icon={<Globe />} accent="var(--p-to)" />
-              <KpiTile label={t('PSI Real Estate app', 'تطبيق PSI العقاري')} value={sourceCount('PSI Real Estate app') != null ? fmt(sourceCount('PSI Real Estate app')!) : '–'} sub={t('Enquiries, sample', 'استفسارات، عينة')} icon={<Smartphone />} accent="var(--p-cl)" />
+            <div className="grid grid-cols-1 gap-(--grid-gap) min-[480px]:grid-cols-2">
+              <SourceWell icon={<Globe />} label={t('PSI Website', 'موقع PSI')} value={sourceCount('PSI Website') != null ? fmt(sourceCount('PSI Website')!) : '–'} sub={t('Enquiries, sample', 'استفسارات، عينة')} />
+              <SourceWell
+                icon={<Smartphone />}
+                label={t('PSI Real Estate app', 'تطبيق PSI العقاري')}
+                value={sourceCount('PSI Real Estate app') != null ? fmt(sourceCount('PSI Real Estate app')!) : '–'}
+                sub={t('Enquiries, sample', 'استفسارات، عينة')}
+              />
             </div>
           </SectionCard>
         )}
 
         {product.id === 'wl' && (
           <SectionCard title={t('Complaint types and owners', 'أنواع الشكاوى والمالكون')} description={t('Wallet events sit on the investor’s timeline as a source.', 'أحداث المحفظة تظهر على الجدول الزمني للمستثمر كمصدر.')}>
-            <ul className="flex flex-col divide-y">
+            <ul className="flex flex-col">
               {WALLET_COMPLAINT_TYPES.map((c) => (
-                <li key={c.type.en} className="flex flex-wrap items-center justify-between gap-2 py-2.5 first:pt-0 last:pb-0 text-sm">
-                  <span>{L(c.type)}</span>
+                <li key={c.type.en} className="row-divider flex flex-wrap items-center justify-between gap-x-3 gap-y-1 py-3 text-sm first:pt-0 last:pb-0">
+                  <span className="font-medium text-foreground">{L(c.type)}</span>
                   <span className="text-muted-foreground">{L(c.owner)}</span>
                 </li>
               ))}
@@ -147,22 +157,38 @@ export default function ProductPage() {
             </Button>
           }
         >
-          <dl className="grid grid-cols-1 gap-3 text-sm md:grid-cols-2">
+          <dl className="grid grid-cols-1 gap-(--grid-gap) md:grid-cols-2">
             {[
               ['NPS', rule.nps],
               ['CSAT', rule.csat],
               ['CES', rule.ces],
               [t('"What stopped you?"', '"ما الذي أوقفك؟"'), rule.whatStoppedYou],
             ].map(([label, value]) => (
-              <div key={String(label)} className="flex flex-col gap-0.5 rounded-lg border bg-muted/30 p-3">
-                <dt className="text-xs font-semibold text-muted-foreground">{label as string}</dt>
-                <dd>{L(value as { en: string; ar: string })}</dd>
+              <div key={String(label)} className="well flex flex-col gap-1">
+                <dt className="text-xs font-medium text-muted-foreground">{label as string}</dt>
+                <dd className="text-sm text-foreground">{L(value as { en: string; ar: string })}</dd>
               </div>
             ))}
           </dl>
-          <p className="mt-3 text-xs text-muted-foreground">{L(rule.sources)}</p>
+          <p className="t-body-s mt-4">{L(rule.sources)}</p>
         </SectionCard>
       )}
+    </div>
+  )
+}
+
+/** One named source (website or app) as a well: a neutral light icon circle, the label, the count in the KPI style, a grey sub line. */
+function SourceWell({ icon, label, value, sub }: { icon: ReactNode; label: string; value: string; sub: string }) {
+  return (
+    <div className="well flex min-w-0 flex-col gap-2.5">
+      <span className="t-small-strong flex items-center gap-2 text-muted-foreground">
+        <span aria-hidden className="material-light inline-grid size-[30px] shrink-0 place-items-center rounded-full text-foreground [&_svg]:size-4">
+          {icon}
+        </span>
+        {label}
+      </span>
+      <bdi className="t-kpi">{value}</bdi>
+      <span className="text-sm text-muted-foreground">{sub}</span>
     </div>
   )
 }

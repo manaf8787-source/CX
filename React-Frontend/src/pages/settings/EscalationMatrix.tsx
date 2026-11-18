@@ -10,13 +10,13 @@ import { PRODUCTS } from '@/data/products'
 import { roleDef } from '@/data/roles'
 import { LoadingState } from '@/components/common/LoadingState'
 import { ProposedBadge } from '@/components/common/ProposedBadge'
-import { Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
 import type { MatrixCells, MatrixField, MatrixKind, MatrixRow, ProductId } from '@/types'
-import { SubPageHeader, ViewOnlyNotice } from './SubPageHeader'
+import { IN_CARD, PressFilter, SubPageHeader, ViewOnlyNotice } from './SubPageHeader'
 
 const PRODUCT_IDS = PRODUCTS.map((p) => p.id)
 
@@ -39,60 +39,56 @@ export default function EscalationMatrix() {
   const c = MATRIX_COPY.columns
 
   return (
-    <section className="flex flex-col gap-4">
+    <section data-density="dense" className="flex flex-col gap-4">
       <SubPageHeader title={L(MATRIX_COPY.title)} description={L(MATRIX_COPY.intro)} />
       {!canEdit && <ViewOnlyNotice>{t('View only — the CX manager and the Internal Audit and Marketing Lead fill these cells.', 'للعرض فقط — يملأ هذه الخلايا مدير تجربة العملاء ومسؤول التدقيق الداخلي والتسويق.')}</ViewOnlyNotice>}
 
-      <div role="group" aria-label={t('Product', 'المنتج')} className="flex flex-wrap gap-1.5">
-        {PRODUCTS.map((p) => (
-          <button
-            key={p.id}
-            type="button"
-            aria-pressed={p.id === product}
-            onClick={() => {
-              const next = new URLSearchParams(params)
-              next.set('product', p.id)
-              setParams(next, { replace: true })
-            }}
-            className={cn(
-              'inline-flex h-9 cursor-pointer items-center rounded-md border px-3 text-sm font-medium outline-none transition-colors duration-150 focus-visible:ring-[3px] focus-visible:ring-ring/50',
-              p.id === product ? 'border-primary bg-primary text-primary-foreground' : 'bg-card text-muted-foreground hover:bg-accent hover:text-accent-foreground',
-            )}
-          >
-            {L(p.name)}
-          </button>
-        ))}
-      </div>
+      <PressFilter
+        label={t('Product', 'المنتج')}
+        value={product}
+        onChange={(id) => {
+          const next = new URLSearchParams(params)
+          next.set('product', id)
+          setParams(next, { replace: true })
+        }}
+        options={PRODUCTS.map((p) => ({ id: p.id, label: L(p.name) }))}
+      />
 
-      {isLoading || !rows ? (
-        <LoadingState rows={6} />
-      ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{L(c.kind)}</TableHead>
-              {MATRIX_FIELDS.map((f) => (
-                <TableHead key={f}>{L(c[f])}</TableHead>
-              ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.map((r) => (
-              <TableRow key={r.kind}>
-                <TableCell className="font-medium whitespace-normal">{L(r.label)}</TableCell>
-                {MATRIX_FIELDS.map((f) => (
-                  <TableCell key={f} className="align-top whitespace-normal">
-                    <MatrixCell product={product} row={r} field={f} canEdit={canEdit} />
-                  </TableCell>
+      <Card>
+        <div className={IN_CARD}>
+          {isLoading || !rows ? (
+            <LoadingState rows={6} />
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow className="row-divider-none">
+                  <TableHead>{L(c.kind)}</TableHead>
+                  {MATRIX_FIELDS.map((f) => (
+                    <TableHead key={f}>{L(c[f])}</TableHead>
+                  ))}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rows.map((r) => (
+                  <TableRow key={r.kind}>
+                    <TableCell className="font-medium whitespace-normal text-foreground">{L(r.label)}</TableCell>
+                    {MATRIX_FIELDS.map((f) => (
+                      <TableCell key={f} className="align-top whitespace-normal">
+                        <MatrixCell product={product} row={r} field={f} canEdit={canEdit} />
+                      </TableCell>
+                    ))}
+                  </TableRow>
                 ))}
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      )}
-      <p className="text-sm text-muted-foreground">{L(MATRIX_COPY.defaultCellsNote)}</p>
-      <p className="text-sm text-muted-foreground">{L(MATRIX_COPY.hoursHint)}</p>
-      <p className="text-sm text-muted-foreground">{L(MATRIX_COPY.principles)}</p>
+              </TableBody>
+            </Table>
+          )}
+        </div>
+      </Card>
+      <div className="flex flex-col gap-1.5 px-1">
+        <p className="t-body-s">{L(MATRIX_COPY.defaultCellsNote)}</p>
+        <p className="t-body-s">{L(MATRIX_COPY.hoursHint)}</p>
+        <p className="t-body-s">{L(MATRIX_COPY.principles)}</p>
+      </div>
     </section>
   )
 }
@@ -139,7 +135,7 @@ function MatrixCell({ product, row, field, canEdit }: { product: ProductId; row:
   }
 
   return (
-    <div className="flex min-w-32 flex-col items-start gap-1">
+    <div className="flex min-w-36 flex-col items-start gap-1">
       {canEdit ? (
         <Input
           aria-label={label}
@@ -154,10 +150,10 @@ function MatrixCell({ product, row, field, canEdit }: { product: ProductId; row:
             if (e.key === 'Enter') e.currentTarget.blur()
             if (e.key === 'Escape') setEdit(null)
           }}
-          className={cn('h-9', hours && 'w-24 tabular-nums')}
+          className={cn('h-9', hours && 'w-24 tabular')}
         />
       ) : (
-        <bdi className="text-sm">{stored || '–'}</bdi>
+        <bdi className="text-sm text-foreground">{stored || '–'}</bdi>
       )}
       {row.isDefault[field] && (
         <span className="flex flex-wrap items-center gap-1.5">
@@ -166,8 +162,7 @@ function MatrixCell({ product, row, field, canEdit }: { product: ProductId; row:
             <Button
               type="button"
               variant="ghost"
-              size="sm"
-              className="h-7 px-2 text-xs"
+              size="xs"
               disabled={confirm.isPending}
               aria-label={t(`Confirm default: ${label}`, `تأكيد القيمة الافتراضية: ${label}`)}
               onClick={() =>
@@ -183,8 +178,8 @@ function MatrixCell({ product, row, field, canEdit }: { product: ProductId; row:
         </span>
       )}
       {confirmed && (
-        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground" data-testid="matrix-confirmed">
-          <Check aria-hidden className="size-3.5 text-success-text" />
+        <span className="t-caption inline-flex items-center gap-1.5" data-testid="matrix-confirmed">
+          <span aria-hidden className="dot dot-success" />
           {t('Confirmed', 'مؤكَّد')}
           <span className="sr-only">
             {' '}

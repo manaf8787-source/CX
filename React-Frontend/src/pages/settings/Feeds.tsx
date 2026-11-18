@@ -4,13 +4,13 @@ import { useFeeds } from '@/services/queriesV40'
 import { FEEDS_COPY, FEED_STATUS, lateFeedsLabel } from '@/data/feeds'
 import { environmentById } from '@/data/environments'
 import { useNow } from '@/hooks/useNow'
-import { cn } from '@/lib/utils'
 import { EmptyState } from '@/components/common/EmptyState'
 import { ErrorState } from '@/components/common/ErrorState'
 import { LoadingState } from '@/components/common/LoadingState'
+import { SectionCard } from '@/components/common/SectionCard'
 import { StatusBadge } from '@/components/common/StatusBadge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { SubPageHeader } from './SubPageHeader'
+import { IN_CARD, SubPageHeader } from './SubPageHeader'
 
 const DAY_MS = 86_400_000
 const startOfDay = (ms: number) => {
@@ -42,7 +42,7 @@ export default function Feeds() {
     return (
       <span className="inline-flex items-center gap-1.5">
         {day}
-        <bdi dir="ltr" className="tabular-nums">
+        <bdi dir="ltr" className="tabular">
           {time.format(ms)}
         </bdi>
       </span>
@@ -52,7 +52,7 @@ export default function Feeds() {
   const lateCount = (feeds ?? []).filter((f) => f.status !== 'ok').length
 
   return (
-    <section className="flex flex-col gap-4">
+    <section data-density="dense" className="flex flex-col gap-4">
       <SubPageHeader
         title={L(FEEDS_COPY.title)}
         description={L(FEEDS_COPY.intro)}
@@ -77,36 +77,36 @@ export default function Feeds() {
       ) : feeds.length === 0 ? (
         <EmptyState title={t('No feeds are configured yet.', 'لا توجد تغذيات مضبوطة بعد.')} />
       ) : (
-        <div className="overflow-hidden rounded-lg border bg-card">
+        <SectionCard contentClassName={IN_CARD}>
           <Table>
-            <TableHeader className="bg-muted/60">
-              <TableRow className="hover:bg-transparent">
-                <TableHead className="px-3 text-xs font-semibold text-muted-foreground">{L(c.feed)}</TableHead>
-                <TableHead className="px-3 text-xs font-semibold text-muted-foreground">{L(c.environment)}</TableHead>
-                <TableHead className="px-3 text-xs font-semibold text-muted-foreground">{L(c.today)}</TableHead>
-                <TableHead className="px-3 text-xs font-semibold text-muted-foreground">{L(c.lastReceived)}</TableHead>
-                <TableHead className="px-3 text-end text-xs font-semibold text-muted-foreground">{L(c.records)}</TableHead>
-                <TableHead className="px-3 text-xs font-semibold text-muted-foreground">{L(c.carries)}</TableHead>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{L(c.feed)}</TableHead>
+                <TableHead>{L(c.environment)}</TableHead>
+                <TableHead>{L(c.today)}</TableHead>
+                <TableHead>{L(c.lastReceived)}</TableHead>
+                <TableHead className="text-end">{L(c.records)}</TableHead>
+                <TableHead>{L(c.carries)}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {feeds.map((f) => (
-                <TableRow key={f.id} className={cn(f.status !== 'ok' && 'bg-warning/5')}>
-                  <TableCell className="px-3 py-2.5 font-medium">{L(f.name)}</TableCell>
-                  <TableCell className="px-3 py-2.5 text-muted-foreground">{f.env ? L(environmentById(f.env).name) : L(FEEDS_COPY.shared)}</TableCell>
-                  <TableCell className="px-3 py-2.5">
+                <TableRow key={f.id}>
+                  <TableCell className="font-medium text-foreground">{L(f.name)}</TableCell>
+                  <TableCell>{f.env ? L(environmentById(f.env).name) : L(FEEDS_COPY.shared)}</TableCell>
+                  <TableCell>
                     <StatusBadge tone={FEED_STATUS[f.status].tone} dot>
                       {L(FEED_STATUS[f.status].label)}
                     </StatusBadge>
                   </TableCell>
-                  <TableCell className="px-3 py-2.5">{received(f.receivedAt)}</TableCell>
-                  <TableCell className="px-3 py-2.5 text-end tabular-nums">{f.rows.toLocaleString(lang === 'ar' ? 'ar-AE' : 'en-US')}</TableCell>
-                  <TableCell className="min-w-40 px-3 py-2.5 whitespace-normal text-muted-foreground">{L(f.note)}</TableCell>
+                  <TableCell className="text-foreground">{received(f.receivedAt)}</TableCell>
+                  <TableCell className="text-end font-medium tabular text-foreground">{f.rows.toLocaleString(lang === 'ar' ? 'ar-AE' : 'en-US')}</TableCell>
+                  <TableCell className="min-w-40 whitespace-normal">{L(f.note)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-        </div>
+        </SectionCard>
       )}
 
       <p className="text-sm text-muted-foreground">{L(FEEDS_COPY.rule)}</p>

@@ -18,8 +18,8 @@ export function LeadSourceBadge({ source }: { source: LeadSource }) {
   const { L } = useI18n()
   const Icon = ICON[source]
   return (
-    <span className="inline-flex h-6 shrink-0 items-center gap-1.5 rounded-full border border-border bg-card px-2.5 text-xs font-medium whitespace-nowrap text-foreground">
-      <Icon aria-hidden className="size-3.5" />
+    <span data-slot="lead-source-badge" className="pill pill-light [&_svg]:size-3.5">
+      <Icon aria-hidden />
       {L(SOURCE_LABEL[source])}
     </span>
   )

@@ -21,7 +21,7 @@ export default function ActionsLayout() {
   const { t } = useI18n()
   const { pathname } = useLocation()
   return (
-    <div className="flex flex-col gap-6">
+    <div data-density="dense" className="flex flex-col gap-5">
       <PageHeader term="Corrective action" title={t('Actions', 'الإجراءات')} description={t('What is being fixed, why, and did it work.', 'ما الذي يتم إصلاحه، ولماذا، وهل نجح؟')} />
       {/* v40 F09: the HR specialist lands on the fixes tab, not on Home, so the Daily brief sits at the top of that landing page. */}
       {pathname === '/actions/corrective' && <LandingBrief roles={['hrspec']} />}

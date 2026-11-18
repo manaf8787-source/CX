@@ -14,6 +14,9 @@ import type { Bi, CorrectiveAction, MatrixCells } from '@/types'
  * respond {n} h · resolve {m} h" and a "Matrix" button to the page that holds it (only for roles that may open it). The fix's
  * classification reads the matrix of its own product. A value still at its default is a proposal until the owners confirm it:
  * the line then carries one [Proposed] badge.
+ *
+ * Composition: a well, the sentence's lead in ink, each value a white pill (label grey, value ink) so the five fields scan as one row.
+ * The text still reads "receiver X informed Y ..." in order (tests and screen readers read the sentence).
  */
 export function MatrixLine({ fix }: { fix: Pick<CorrectiveAction, 'kind' | 'product'> }) {
   const { L } = useI18n()
@@ -33,19 +36,18 @@ export function MatrixLine({ fix }: { fix: Pick<CorrectiveAction, 'kind' | 'prod
   ]
   const canOpen = canAccessPath(role.id, '/settings/escalation-matrix')
   return (
-    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border bg-muted/30 px-3 py-2 text-sm" data-testid="matrix-line">
-      <span>
-        <strong className="font-semibold">{L(MATRIX_LINE_LABELS.from)}</strong> ({product ? L(product.name) : line.product}):
+    <div className="well flex flex-wrap items-center gap-x-2 gap-y-2 text-sm" data-testid="matrix-line">
+      <span className="text-foreground">
+        <strong className="font-medium">{L(MATRIX_LINE_LABELS.from)}</strong> ({product ? L(product.name) : line.product}):
       </span>
       {parts.map(([label, value], i) => (
-        <span key={i}>
-          {i > 0 && <span aria-hidden className="text-muted-foreground">· </span>}
-          <span className="text-muted-foreground">{L(label)}</span> <bdi className="font-medium">{value}</bdi>
+        <span key={i} className="inline-flex min-h-6 items-center rounded-full bg-card px-2.5 py-0.5 shadow-hairline">
+          <span className="text-muted-foreground">{L(label)}</span> <bdi className="ms-1.5 font-medium text-foreground">{value}</bdi>
         </span>
       ))}
       {anyDefault && <ProposedBadge />}
       {canOpen && (
-        <Button variant="outline" size="sm" asChild className="ms-auto h-8">
+        <Button variant="outline" size="xs" asChild className="ms-auto">
           <Link to={`/settings/escalation-matrix?product=${line.product}`}>{L(MATRIX_COPY.matrixButton)}</Link>
         </Button>
       )}

@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Area, AreaChart, CartesianGrid, Tooltip, XAxis, YAxis } from 'recharts'
 import { DeferredRender } from '@/components/common/DeferredRender'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -16,10 +16,11 @@ import { useFixDue, useInvestigationEvidence } from '@/services/queriesV40'
 import { productOfPattern } from '@/utils/audit'
 import { sortByThresholdCloseness } from '@/utils/patterns'
 import { caId } from '@/utils/trace'
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { Collapsible, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { cn } from '@/lib/utils'
 import { CORRECTIVE_STATUS_LABEL, CORRECTIVE_STATUS_TONE } from '@/lib/status'
 import { HowAiFoundThis } from './components/HowAiFoundThis'
+import { InlineNote } from './components/InlineNote'
 import type { CorrectiveActionKind, Pattern } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -29,6 +30,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { KpiTile } from '@/components/common/KpiTile'
 import { SectionCard } from '@/components/common/SectionCard'
 import { StatusBadge } from '@/components/common/StatusBadge'
+import { ChartTooltip, ChartWell } from '@/components/common/charts'
+import { chartActiveDot, chartArea, chartAxis, chartCursorLine, chartGrid } from '@/components/common/chartTheme'
 import { TraceId } from '@/components/common/TraceId'
 import { useScrollToTarget } from '@/components/trace/useScrollToTarget'
 import { WhatIfCard } from '@/components/signals/WhatIfCard'
@@ -91,29 +94,16 @@ export default function Signals() {
   const canCreate = canActOnCorrectiveAction(role.id, 'process')
 
   return (
-    <div className="flex flex-col gap-4">
+    <div data-density="dense" className="flex flex-col gap-4">
       <ScoresVsSignalsNotice register="signals" />
 
-      <section aria-label={t('Signal totals', 'إجماليات الإشارات')} className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <KpiTile
-          label={t('Signals (counted, not worked)', 'الإشارات (تُحصى ولا تُعالج فردياً)')}
-          value={signals?.length}
-          accent="var(--chart-1)"
-          icon={<Activity />}
-          loading={signalsLoading}
-        />
-        <KpiTile
-          label={t('Patterns past threshold', 'أنماط تجاوزت الحد')}
-          value={patterns?.length}
-          accent="var(--warning)"
-          icon={<Layers />}
-          loading={patternsLoading}
-        />
+      <section aria-label={t('Signal totals', 'إجماليات الإشارات')} className="grid grid-cols-1 gap-(--grid-gap) sm:grid-cols-3">
+        <KpiTile label={t('Signals (counted, not worked)', 'الإشارات (تُحصى ولا تُعالج فردياً)')} value={signals?.length} icon={<Activity />} loading={signalsLoading} />
+        <KpiTile label={t('Patterns past threshold', 'أنماط تجاوزت الحد')} value={patterns?.length} icon={<Layers />} loading={patternsLoading} />
         <KpiTile
           label={t('Public mentions', 'الإشارات العامة')}
           value={signals ? publicMentions.length : undefined}
           sub={t('48-hour reply clock', 'ساعة رد 48 ساعة')}
-          accent="var(--chart-4)"
           icon={<Megaphone />}
           loading={signalsLoading}
         />
@@ -124,7 +114,7 @@ export default function Signals() {
         term="Signal"
         description={t('Signals per day across live products.', 'الإشارات يومياً عبر المنتجات الفعالة.')}
         actions={
-          <Button variant="ghost" size="sm" asChild className="text-primary">
+          <Button variant="outline" size="sm" asChild>
             <Link to="/settings/rules">
               <Settings2 aria-hidden />
               {t('Edit thresholds', 'تعديل الحدود')}
@@ -135,84 +125,61 @@ export default function Signals() {
         {signalsLoading ? (
           <LoadingState rows={2} />
         ) : (
-          <div className="h-44" dir="ltr">
-            <DeferredRender>
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart
-                  data={lang === 'ar' ? [...volumeSeries].reverse() : volumeSeries}
-                  margin={lang === 'ar' ? { top: 4, right: -20, bottom: 0, left: 4 } : { top: 4, right: 4, bottom: 0, left: -20 }}
-                >
-                  <CartesianGrid vertical={false} stroke="var(--border)" />
-                  <XAxis dataKey="day" tickLine={false} axisLine={false} minTickGap={24} tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }} />
-                  <YAxis
-                    allowDecimals={false}
-                    orientation={lang === 'ar' ? 'right' : 'left'}
-                    tickLine={false}
-                    axisLine={false}
-                    tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }}
-                  />
-                  <Tooltip
-                    cursor={{ stroke: 'var(--border)' }}
-                    formatter={(v) => [v, t('Signals', 'الإشارات')]}
-                    contentStyle={{ background: 'var(--popover)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--popover-foreground)', fontSize: 12 }}
-                  />
-                  <Area type="monotone" dataKey="count" stroke="var(--chart-1)" fill="var(--chart-1)" fillOpacity={0.12} strokeWidth={2} {...chartMotion} />
+          <div dir="ltr">
+            <DeferredRender fallback={<div aria-hidden className="well" style={{ height: 232 }} />}>
+              <ChartWell height={200} label={t('Signal volume', 'حجم الإشارات')}>
+                <AreaChart data={lang === 'ar' ? [...volumeSeries].reverse() : volumeSeries} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
+                  <CartesianGrid {...chartGrid} />
+                  <XAxis dataKey="day" {...chartAxis} minTickGap={24} />
+                  <YAxis {...chartAxis} width={28} allowDecimals={false} orientation={lang === 'ar' ? 'right' : 'left'} />
+                  <Tooltip cursor={chartCursorLine} content={<ChartTooltip />} />
+                  <Area type="monotone" dataKey="count" name={t('Signals', 'الإشارات')} {...chartArea} activeDot={chartActiveDot} {...chartMotion} />
                 </AreaChart>
-              </ResponsiveContainer>
+              </ChartWell>
             </DeferredRender>
           </div>
         )}
       </SectionCard>
 
       <div id="patterns" className="scroll-mt-24">
-      <SectionCard
-        title={t('Patterns', 'الأنماط')}
-        description={t('Each pattern shows how far its signals are toward the rule that makes it actionable. Closest to or furthest past the threshold first.', 'يُظهر كل نمط مدى اقتراب إشاراته من القاعدة التي تجعله قابلاً للإجراء. الأقرب إلى الحد أو الأبعد بعده أولاً.')}
-        term="Pattern"
-      >
-        {patternsLoading ? (
-          <LoadingState rows={4} />
-        ) : !patterns?.length ? (
-          <EmptyState title={t('No patterns past threshold yet.', 'لا توجد أنماط تجاوزت الحد بعد.')} />
-        ) : (
-          <>
-            <ul className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-              {orderedPatterns.slice(0, PATTERNS_SHOWN_FIRST).map((p) => (
-                <PatternCard key={p.id} pattern={p} canCreate={canCreate} onCreate={setCreatingFor} selected={orderedPatterns[targetIndex]?.id === p.id} />
-              ))}
-            </ul>
-            {orderedPatterns.length > PATTERNS_SHOWN_FIRST && (
-              <Collapsible
-                open={patternsOpen}
-                onOpenChange={(next) => {
-                  setShowAllPatterns(next)
-                  setCollapsedByUser(!next)
-                }}
-                className="mt-3"
-              >
-                <CollapsibleContent>
-                  {/* Rendered only once opened: the rest of the cards are the page's heaviest part on a phone. */}
-                  {patternsOpen && (
-                    <ul className="mb-3 grid grid-cols-1 gap-3 lg:grid-cols-2">
-                      {orderedPatterns.slice(PATTERNS_SHOWN_FIRST).map((p) => (
-                        <PatternCard key={p.id} pattern={p} canCreate={canCreate} onCreate={setCreatingFor} selected={orderedPatterns[targetIndex]?.id === p.id} />
-                      ))}
-                    </ul>
-                  )}
-                </CollapsibleContent>
-                <CollapsibleTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-10 w-full sm:w-auto">
-                    <ChevronDown aria-hidden className={cn('transition-transform duration-200', patternsOpen && 'rotate-180')} />
-                    {patternsOpen
-                      ? t('Show fewer patterns', 'عرض أنماط أقل')
-                      : t(`Show all patterns (${orderedPatterns.length})`, `عرض كل الأنماط (${orderedPatterns.length})`)}
-                  </Button>
-                </CollapsibleTrigger>
-              </Collapsible>
-            )}
-          </>
-        )}
-      </SectionCard>
+        <SectionCard
+          title={t('Patterns', 'الأنماط')}
+          description={t('Each pattern shows how far its signals are toward the rule that makes it actionable. Closest to or furthest past the threshold first.', 'يُظهر كل نمط مدى اقتراب إشاراته من القاعدة التي تجعله قابلاً للإجراء. الأقرب إلى الحد أو الأبعد بعده أولاً.')}
+          term="Pattern"
+        >
+          {patternsLoading ? (
+            <LoadingState rows={4} />
+          ) : !patterns?.length ? (
+            <EmptyState title={t('No patterns past threshold yet.', 'لا توجد أنماط تجاوزت الحد بعد.')} />
+          ) : (
+            <div className="flex flex-col gap-3">
+              {/* Rows on the card, divided by the one line; the rest render only once opened (the heaviest part of the page on a phone). */}
+              <ul className="flex flex-col">
+                {(patternsOpen ? orderedPatterns : orderedPatterns.slice(0, PATTERNS_SHOWN_FIRST)).map((p) => (
+                  <PatternRow key={p.id} pattern={p} canCreate={canCreate} onCreate={setCreatingFor} selected={orderedPatterns[targetIndex]?.id === p.id} />
+                ))}
+              </ul>
+              {orderedPatterns.length > PATTERNS_SHOWN_FIRST && (
+                <Collapsible
+                  open={patternsOpen}
+                  onOpenChange={(next) => {
+                    setShowAllPatterns(next)
+                    setCollapsedByUser(!next)
+                  }}
+                >
+                  <CollapsibleTrigger asChild>
+                    <Button variant="outline" size="sm" className="w-full sm:w-auto">
+                      <ChevronDown aria-hidden className={cn('transition-transform duration-400 ease-spring motion-reduce:transition-none', patternsOpen && 'rotate-180')} />
+                      {patternsOpen
+                        ? t('Show fewer patterns', 'عرض أنماط أقل')
+                        : t(`Show all patterns (${orderedPatterns.length})`, `عرض كل الأنماط (${orderedPatterns.length})`)}
+                    </Button>
+                  </CollapsibleTrigger>
+                </Collapsible>
+              )}
+            </div>
+          )}
+        </SectionCard>
       </div>
 
       <SectionCard
@@ -223,44 +190,43 @@ export default function Signals() {
         <SignalsTable signals={signals} patterns={patterns} isLoading={signalsLoading} />
       </SectionCard>
 
-      <div>
-        <SectionCard
-          term="Public reputation index" title={t('Public mentions', 'الإشارات العامة')}
-          description={t('Never tied to a person unless self-identified.', 'لا تُربط بشخص إلا إذا عرّف نفسه.')}
-        >
-          {signalsLoading ? (
-            <LoadingState rows={3} />
-          ) : publicMentions.length === 0 ? (
-            <EmptyState title={t('No public mentions yet.', 'لا توجد إشارات عامة بعد.')} />
-          ) : (
-            <ul className="flex flex-col divide-y">
-              {publicMentions.map((s) => {
-                const dueMs = s.publicReplyDueAt ? new Date(s.publicReplyDueAt).getTime() - now : null
-                const breached = dueMs !== null && dueMs <= 0
-                return (
-                  <li key={s.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5 first:pt-0 last:pb-0">
-                    <span className="inline-flex items-center gap-2 text-sm">
-                      <Megaphone aria-hidden className="size-4 text-muted-foreground" />
-                      <TraceId kind="signal" id={s.id} />
-                      <span>{L(signalCategoryLabel(s.category))}</span>
-                      <span className="text-muted-foreground">· {L(envNameFromShort(s.environment))}</span>
-                    </span>
-                    {s.publicReplyDueAt ? (
-                      <StatusBadge tone={breached ? 'danger' : 'warning'} dot>
-                        {breached ? t('48h reply breached', 'تجاوز ساعة الرد 48') : t('48h reply clock running', 'ساعة الرد 48 جارية')}
-                      </StatusBadge>
-                    ) : (
-                      <StatusBadge tone="neutral">{t('No reply clock', 'لا ساعة رد')}</StatusBadge>
-                    )}
-                  </li>
-                )
-              })}
-            </ul>
-          )}
-        </SectionCard>
-      </div>
+      <SectionCard
+        term="Public reputation index"
+        title={t('Public mentions', 'الإشارات العامة')}
+        description={t('Never tied to a person unless self-identified.', 'لا تُربط بشخص إلا إذا عرّف نفسه.')}
+      >
+        {signalsLoading ? (
+          <LoadingState rows={3} />
+        ) : publicMentions.length === 0 ? (
+          <EmptyState title={t('No public mentions yet.', 'لا توجد إشارات عامة بعد.')} />
+        ) : (
+          <ul className="flex flex-col">
+            {publicMentions.map((s) => {
+              const dueMs = s.publicReplyDueAt ? new Date(s.publicReplyDueAt).getTime() - now : null
+              const breached = dueMs !== null && dueMs <= 0
+              return (
+                <li key={s.id} className="row-divider flex min-h-(--row-h) flex-wrap items-center justify-between gap-x-3 gap-y-1.5 py-2">
+                  <span className="inline-flex flex-wrap items-center gap-2 text-sm">
+                    <Megaphone aria-hidden className="size-4 text-muted-foreground" />
+                    <TraceId kind="signal" id={s.id} />
+                    <span className="font-medium text-foreground">{L(signalCategoryLabel(s.category))}</span>
+                    <span className="text-muted-foreground">· {L(envNameFromShort(s.environment))}</span>
+                  </span>
+                  {s.publicReplyDueAt ? (
+                    <StatusBadge tone={breached ? 'danger' : 'warning'} dot>
+                      {breached ? t('48h reply breached', 'تجاوز ساعة الرد 48') : t('48h reply clock running', 'ساعة الرد 48 جارية')}
+                    </StatusBadge>
+                  ) : (
+                    <StatusBadge tone="neutral">{t('No reply clock', 'لا ساعة رد')}</StatusBadge>
+                  )}
+                </li>
+              )
+            })}
+          </ul>
+        )}
+      </SectionCard>
 
-      <section id="rules" aria-label={t('Rules for patterns', 'قواعد الأنماط')} className="flex scroll-mt-24 flex-col gap-4">
+      <section id="rules" aria-label={t('Rules for patterns', 'قواعد الأنماط')} className="flex scroll-mt-24 flex-col gap-(--grid-gap)">
         <RulesPointer />
         <WhatIfCard />
       </section>
@@ -280,7 +246,12 @@ export default function Signals() {
   )
 }
 
-function PatternCard({ pattern: p, canCreate, onCreate, selected }: { pattern: Pattern; canCreate: boolean; onCreate: (p: Pattern) => void; selected: boolean }) {
+/**
+ * One pattern, as a row on the Patterns card (not a card of its own): the left column is what it is (PT tag and heading, the threshold
+ * meter, the AI suggestion, the recovery figure), the right column is what follows from it (the fix it already has, "How the AI found
+ * this", the Create action pill). Rows are divided by the one line; a pattern opened from a Trace id (`?pt=`) gets the 1.5px ink ring.
+ */
+function PatternRow({ pattern: p, canCreate, onCreate, selected }: { pattern: Pattern; canCreate: boolean; onCreate: (p: Pattern) => void; selected: boolean }) {
   const { t, L } = useI18n()
   const { data: actions } = useCorrectiveActions()
   const { data: evidence } = useInvestigationEvidence()
@@ -294,40 +265,50 @@ function PatternCard({ pattern: p, canCreate, onCreate, selected }: { pattern: P
   useScrollToTarget(ref, selected, 'center')
 
   return (
-    <li ref={ref} id={`pattern-${p.traceId}`} data-pattern={p.traceId} data-selected={selected ? 'true' : undefined} className={cn('flex min-w-0 scroll-mt-24 flex-col gap-3 rounded-lg border bg-card p-4', selected && 'border-primary ring-2 ring-primary')}>
-      <div className="flex items-start justify-between gap-2">
-        <h3 className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-semibold">
-          <TraceId kind="pattern" id={p.traceId} plain />
-          <span>
-            {L(signalCategoryLabel(p.category))} <span className="font-normal text-muted-foreground">· {p.team}</span>
-          </span>
-        </h3>
-      </div>
-      {found && (
-        <p className="rounded-lg border border-success/40 bg-success/10 px-3 py-2 text-sm" data-testid="pattern-evidence">
-          {t('Evidence from investigation', 'دليل من التحقيق')} · <bdi dir="ltr">{found.traceId}</bdi>: {L(found.result)}
-        </p>
-      )}
-      <PatternThresholdMeter pattern={p} />
-      <p className="text-sm">{L(p.aiSuggestion)}</p>
-      <p className="text-xs text-muted-foreground">{L(p.recoveryFigure)}</p>
-      {existing && (
-        <div className="flex flex-wrap items-center gap-2 text-sm">
-          <span className="text-muted-foreground">{t('Action', 'الإجراء')}:</span>
-          <TraceId kind="fix" id={existing.id} plain />
-          <Link to={`/actions/corrective?fix=${caId(existing.id)}`} className="font-medium text-primary underline-offset-4 hover:underline">
-            {L(existing.title)}
-          </Link>
-          <StatusBadge tone={CORRECTIVE_STATUS_TONE[existing.status]}>{L(CORRECTIVE_STATUS_LABEL[existing.status])}</StatusBadge>
+    <li
+      ref={ref}
+      id={`pattern-${p.traceId}`}
+      data-pattern={p.traceId}
+      data-selected={selected ? 'true' : undefined}
+      className={cn('row-divider -mx-3 min-w-0 scroll-mt-24 rounded-well px-3 py-5 first:pt-3 last:pb-3', selected && 'row-divider-none shadow-(--ring-selected)')}
+    >
+      <div className="grid min-w-0 gap-x-8 gap-y-4 lg:grid-cols-2">
+        <div className="flex min-w-0 flex-col gap-3">
+          <h3 className="t-ui-strong flex flex-wrap items-center gap-x-2 gap-y-1">
+            <TraceId kind="pattern" id={p.traceId} plain />
+            <span>
+              {L(signalCategoryLabel(p.category))} <span className="font-normal text-muted-foreground">· {p.team}</span>
+            </span>
+          </h3>
+          {found && (
+            <InlineNote tone="success" data-testid="pattern-evidence">
+              {t('Evidence from investigation', 'دليل من التحقيق')} · <bdi dir="ltr">{found.traceId}</bdi>: {L(found.result)}
+            </InlineNote>
+          )}
+          <PatternThresholdMeter pattern={p} />
+          <p className="text-sm">{L(p.aiSuggestion)}</p>
+          <p className="t-body-s">{L(p.recoveryFigure)}</p>
         </div>
-      )}
-      <HowAiFoundThis actionId={existing?.id ?? ''} pattern={p} aiMade />
-      {canCreate && p.hasMinimumSample && !existing && (
-        <Button size="sm" className="h-9 self-start" onClick={() => onCreate(p)}>
-          <Plus aria-hidden />
-          {t('Create action', 'إنشاء إجراء')}
-        </Button>
-      )}
+        <div className="flex min-w-0 flex-col gap-3">
+          {existing && (
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              <span className="text-muted-foreground">{t('Action', 'الإجراء')}:</span>
+              <TraceId kind="fix" id={existing.id} plain />
+              <Link to={`/actions/corrective?fix=${caId(existing.id)}`} className="font-medium text-foreground underline underline-offset-4">
+                {L(existing.title)}
+              </Link>
+              <StatusBadge tone={CORRECTIVE_STATUS_TONE[existing.status]}>{L(CORRECTIVE_STATUS_LABEL[existing.status])}</StatusBadge>
+            </div>
+          )}
+          <HowAiFoundThis actionId={existing?.id ?? ''} pattern={p} aiMade />
+          {canCreate && p.hasMinimumSample && !existing && (
+            <Button size="sm" className="self-start" onClick={() => onCreate(p)}>
+              <Plus aria-hidden />
+              {t('Create action', 'إنشاء إجراء')}
+            </Button>
+          )}
+        </div>
+      </div>
     </li>
   )
 }
@@ -369,7 +350,7 @@ function CreateActionDialog({ pattern, onCancel, onCreate }: { pattern: Pattern;
                 name="kind"
                 render={({ field }) => (
                   <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger id="ca-kind" className="h-9 w-full">
+                    <SelectTrigger id="ca-kind" className="w-full">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -385,14 +366,14 @@ function CreateActionDialog({ pattern, onCancel, onCreate }: { pattern: Pattern;
             </Field>
             <Field data-invalid={!!errors.owner}>
               <FieldLabel htmlFor="ca-owner">{t('Owner (title)', 'المالك (المسمى الوظيفي)')}</FieldLabel>
-              <Input id="ca-owner" className="h-9" aria-invalid={!!errors.owner} {...register('owner')} />
+              <Input id="ca-owner" aria-invalid={!!errors.owner} {...register('owner')} />
               {errors.owner && <FieldError>{t('Owner title is required.', 'المسمى الوظيفي للمالك مطلوب.')}</FieldError>}
             </Field>
             <p className="text-sm text-muted-foreground" data-testid="create-due-note">
               {t('Due date: set when the fix is approved, from the escalation matrix (Resolve, in working hours).', 'تاريخ الاستحقاق: يُحدَّد عند اعتماد الحل من مصفوفة التصعيد (الحل، بساعات العمل).')}{' '}
               {due && (
                 <>
-                  {t('If approved today:', 'إن اعتُمد اليوم:')} <span className="text-foreground tabular-nums">{new Date(due.dueAt).toLocaleDateString(lang)}</span>
+                  {t('If approved today:', 'إن اعتُمد اليوم:')} <span className="font-medium text-foreground tabular">{new Date(due.dueAt).toLocaleDateString(lang)}</span>
                   {due.source === 'fallback' ? ` (${t('the matrix cell is empty: 14-day fallback', 'خلية المصفوفة فارغة: البديل 14 يوماً')})` : ''}
                 </>
               )}

@@ -18,8 +18,8 @@ import { useAgentActivity } from '@/services/queries'
 import type { AgentActivityEntry, AgentProfile, CorrectiveActionKind } from '@/types'
 import { AGENT_VERDICT_TONE } from '@/lib/status'
 import { cn } from '@/lib/utils'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
-import { Progress } from '@/components/ui/progress'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { PageHeader } from '@/components/common/PageHeader'
 import { SectionCard } from '@/components/common/SectionCard'
@@ -44,18 +44,31 @@ const VERDICT_LABEL: Record<AgentActivityEntry['supervisorVerdict'], { en: strin
   escalated: { en: 'Escalated', ar: 'مُصعَّد' },
 }
 
-const STAGE_TONE: Record<AgentStage, 'warning' | 'info' | 'success' | 'neutral'> = { shadow: 'warning', limited: 'info', live: 'success', phase2: 'neutral' }
+/** A stage is a fact about the rollout, not a state that needs action, so none of them is a tinted tag: shadow and phase two are the plain
+ * light tag, limited and live carry their status dot. */
+const STAGE_TONE: Record<AgentStage, 'success' | 'info' | 'neutral'> = { shadow: 'neutral', limited: 'info', live: 'success', phase2: 'neutral' }
 
 function rateTone(pct: number) {
   return pct >= 90 ? 'success' : pct >= 75 ? 'warning' : 'danger'
 }
+
+const RATE_DOT = { success: 'dot-success', warning: 'dot-warning', danger: 'dot-error' } as const
+
+/** The two rows of the path: the main path on top, what feeds it (4, 8) or reads it (7, 9) below. */
+const PATH_ROWS: (number | 'approve' | 'case' | 'receivers')[][] = [
+  [1, 2, 3, 5, 'approve', 6],
+  [4, 8, 7, 'case', 'receivers', 9],
+]
 
 /** APPLICATION_MODULES.md §E — "not a frontend module to build so much as a
  * contract the frontend must consume". This page is that contract made
  * legible: the envelope shape every agent shares, the ten agents + the one
  * supervisor who checks them (AI Agents Specification), the classification
  * routing matrix that decides who receives a corrective action, and a run
- * log derived from the same mock data every other page already reads. */
+ * log derived from the same mock data every other page already reads.
+ *
+ * Meo restyle: comfortable density; the path every event walks is the ONE dark feature card; the agents are wells inside one card, the
+ * envelope groups are wells, the approval rates are a bar list with printed values, the matrix and the run log are the skill's tables. */
 export default function IntelligentCxTeam() {
   const { t, L, lang } = useI18n()
   const { role } = useRole()
@@ -95,14 +108,14 @@ export default function IntelligentCxTeam() {
         // v40 F33: the agent's chip names it in the active language ("Agent 9 · Reporting" / "الوكيل 9 · التقارير").
         cell: ({ row, getValue }) => {
           const agent = AGENT_REGISTRY.find((a) => a.key === row.original.agentKey)
-          return typeof agent?.id === 'number' ? <AgentChip agent={agent.id} /> : <span className="font-medium">{getValue<string>()}</span>
+          return typeof agent?.id === 'number' ? <AgentChip agent={agent.id} /> : <span className="font-medium text-foreground">{getValue<string>()}</span>
         },
       },
       {
         id: 'subject',
         accessorFn: (e) => L(e.subjectSummary),
         header: t('What ran', 'ما الذي عمل'),
-        cell: ({ getValue }) => <span className="block min-w-56 whitespace-normal">{getValue<string>()}</span>,
+        cell: ({ getValue }) => <span className="block min-w-56 whitespace-normal text-foreground">{getValue<string>()}</span>,
       },
       {
         accessorKey: 'supervisorVerdict',
@@ -117,7 +130,7 @@ export default function IntelligentCxTeam() {
         accessorKey: 'createdAt',
         header: ({ column }) => <SortableHeader column={column}>{t('When', 'متى')}</SortableHeader>,
         cell: ({ row }) => (
-          <span className="whitespace-nowrap text-muted-foreground">
+          <span className="tabular whitespace-nowrap">
             {new Date(row.original.createdAt).toLocaleString(lang === 'ar' ? 'ar' : 'en', { dateStyle: 'medium', timeStyle: 'short' })}
           </span>
         ),
@@ -126,10 +139,8 @@ export default function IntelligentCxTeam() {
     [t, L, lang],
   )
 
-  const th = 'px-3 text-xs font-semibold text-muted-foreground'
-
   return (
-    <div className="flex flex-col gap-6">
+    <div data-density="comfortable" className="flex flex-col gap-8">
       <PageHeader
         term="Intelligent CX team" title={t('Intelligent CX team', 'فريق تجربة العملاء الذكي')}
         description={t(
@@ -138,56 +149,71 @@ export default function IntelligentCxTeam() {
         )}
       />
 
-      <SectionCard
-        title={t('The path every event walks', 'المسار الذي يسلكه كل حدث')}
-        description={t(
-          'Top row is the main path; the bottom row feeds it (4, 8) or reads it (7, 9). Agent 10 sits beside Agent 1, reading the same events. A person approves before anything leaves; the supervisor checks every arrow.',
-          'الصف العلوي هو المسار الرئيسي؛ والصف السفلي يغذّيه (4، 8) أو يقرؤه (7، 9). الوكيل 10 بجانب الوكيل 1 يقرأ نفس الأحداث. شخص يعتمد قبل أن يخرج أي شيء؛ والمشرف يفحص كل سهم.',
-        )}
-        contentClassName="flex flex-col gap-3"
-      >
-        {[
-          [1, 2, 3, 5, 'approve', 6],
-          [4, 8, 7, 'case', 'receivers', 9],
-        ].map((row, r) => (
-          <ol key={r} className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
-            {row.map((step, k) => {
-              const agent = typeof step === 'number' ? AGENT_REGISTRY.find((a) => a.id === step) : undefined
-              const special: Record<string, { title: string; body: string; tone: string }> = {
-                approve: { title: t('Approve', 'اعتماد'), body: t('Direct manager · 5 working days · always a person', 'المدير المباشر · 5 أيام عمل · شخص دائماً'), tone: 'border-gold/50 bg-gold/10' },
-                case: { title: t('Case', 'حالة'), body: t('Only a critical shopper finding or a legal and privacy event', 'فقط نتيجة تسوق حرجة أو حدث قانوني وخصوصية'), tone: 'border-dashed bg-muted/40' },
-                receivers: { title: t('Receivers', 'المستلمون'), body: t('Managers, L&D, Marketing, IT, HR, Legal; a status comes back', 'المدراء، التعلم والتطوير، التسويق، تقنية المعلومات، الموارد البشرية، القانونية؛ تعود الحالة'), tone: 'border-success/40 bg-success/8' },
-              }
-              const box = agent
-                ? { title: t(`Agent ${agent.id}`, `الوكيل ${agent.id}`), body: L(agent.name), tone: 'border-primary/30 bg-primary/5' }
-                : special[step as string]
-              return (
-                <li key={String(step)} className={cn('relative flex min-h-20 min-w-0 flex-col gap-0.5 rounded-lg border p-3', box.tone)}>
-                  <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">{box.title}</span>
-                  <span className="text-sm leading-snug">{box.body}</span>
-                  {k < row.length - 1 && (
-                    <ChevronRight aria-hidden className="absolute end-[-0.85rem] top-1/2 z-10 hidden size-4 -translate-y-1/2 text-muted-foreground xl:block rtl:rotate-180" />
-                  )}
-                </li>
-              )
-            })}
-          </ol>
-        ))}
-        <div className="rounded-lg border border-gold/40 bg-gold/8 p-3 text-sm">
-          <span className="font-semibold">{t('Agent 10 · beside Agent 1, reading the same events', 'الوكيل 10 · بجانب الوكيل 1، يقرأ نفس الأحداث')}</span>
-          {' — '}
-          {L(AGENT_REGISTRY.find((a) => a.id === 10)?.name ?? { en: '', ar: '' })}
-        </div>
-        <div className="rounded-lg border-2 border-dashed border-primary/40 p-3 text-sm">
-          <span className="font-semibold">{t('CX Supervisor', 'المشرف الذكي')}</span>{' '}
-          {t('checks every output before it moves to the next box.', 'يفحص كل مخرج قبل أن ينتقل إلى الصندوق التالي.')}
-        </div>
-      </SectionCard>
+      {/* The one dark feature card of the view. Inside it the text classes are remapped to the dark surface; the chips are white-7% tints. */}
+      <Card variant="dark">
+        <CardHeader>
+          <CardTitle>{t('The path every event walks', 'المسار الذي يسلكه كل حدث')}</CardTitle>
+          <CardDescription>
+            {t(
+              'Top row is the main path; the bottom row feeds it (4, 8) or reads it (7, 9). Agent 10 sits beside Agent 1, reading the same events. A person approves before anything leaves; the supervisor checks every arrow.',
+              'الصف العلوي هو المسار الرئيسي؛ والصف السفلي يغذّيه (4، 8) أو يقرؤه (7، 9). الوكيل 10 بجانب الوكيل 1 يقرأ نفس الأحداث. شخص يعتمد قبل أن يخرج أي شيء؛ والمشرف يفحص كل سهم.',
+            )}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3">
+          {PATH_ROWS.map((row, r) => (
+            <ol key={r} className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+              {row.map((step, k) => {
+                const agent = typeof step === 'number' ? AGENT_REGISTRY.find((a) => a.id === step) : undefined
+                const special: Record<string, { title: string; body: string; dot?: string }> = {
+                  approve: { title: t('Approve', 'اعتماد'), body: t('Direct manager · 5 working days · always a person', 'المدير المباشر · 5 أيام عمل · شخص دائماً') },
+                  case: { title: t('Case', 'حالة'), body: t('Only a critical shopper finding or a legal and privacy event', 'فقط نتيجة تسوق حرجة أو حدث قانوني وخصوصية'), dot: 'dot-warning' },
+                  receivers: { title: t('Receivers', 'المستلمون'), body: t('Managers, L&D, Marketing, IT, HR, Legal; a status comes back', 'المدراء، التعلم والتطوير، التسويق، تقنية المعلومات، الموارد البشرية، القانونية؛ تعود الحالة'), dot: 'dot-success' },
+                }
+                const box: { title: string; body: string; dot?: string } = agent
+                  ? { title: t(`Agent ${agent.id}`, `الوكيل ${agent.id}`), body: L(agent.name) }
+                  : special[step as string]
+                // The approval is the one step that is always a person: the lit chip (the card colour on the dark surface, so it is right in both themes).
+                const lit = step === 'approve'
+                return (
+                  <li key={String(step)} className={cn('relative flex min-h-20 min-w-0 flex-col gap-1 rounded-well px-3.5 py-3', lit ? 'bg-card text-primary' : 'bg-(--on-dark-tint)')}>
+                    <span className={cn('flex items-center gap-1.5 text-xs font-medium', lit ? 'text-primary' : 'text-muted-foreground')}>
+                      {box.dot && <span aria-hidden className={cn('dot', box.dot)} />}
+                      {box.title}
+                    </span>
+                    <span className={cn('text-sm leading-snug', lit ? 'text-primary' : 'text-foreground')}>{box.body}</span>
+                    {k < row.length - 1 && (
+                      <ChevronRight aria-hidden className="absolute end-[-13px] top-1/2 z-10 hidden size-3.5 -translate-y-1/2 text-muted-foreground xl:block rtl:rotate-180" />
+                    )}
+                  </li>
+                )
+              })}
+            </ol>
+          ))}
+          <div className="mt-1 grid grid-cols-1 gap-3 md:grid-cols-2">
+            <p className="flex items-start gap-2.5 rounded-well bg-(--on-dark-tint) px-4 py-3 text-sm">
+              <span aria-hidden className="dot mt-1.5" />
+              <span>
+                <span className="font-medium">{t('Agent 10 · beside Agent 1, reading the same events', 'الوكيل 10 · بجانب الوكيل 1، يقرأ نفس الأحداث')}</span>
+                {' — '}
+                {L(AGENT_REGISTRY.find((a) => a.id === 10)?.name ?? { en: '', ar: '' })}
+              </span>
+            </p>
+            <p className="flex items-start gap-2.5 rounded-well bg-(--on-dark-tint) px-4 py-3 text-sm">
+              <span aria-hidden className="dot mt-1.5" />
+              <span>
+                <span className="font-medium">{t('CX Supervisor', 'المشرف الذكي')}</span>{' '}
+                {t('checks every output before it moves to the next box.', 'يفحص كل مخرج قبل أن ينتقل إلى الصندوق التالي.')}
+              </span>
+            </p>
+          </div>
+        </CardContent>
+      </Card>
 
       <SectionCard
         title={
-          <span className="flex flex-col gap-1">
-            <span className="text-xs font-semibold tracking-wide text-gold-text uppercase">{t('The shape', 'الشكل')}</span>
+          <span className="flex flex-col gap-1.5">
+            <span className="label-style">{t('The shape', 'الشكل')}</span>
             {t('One output shape, for every agent', 'شكل مخرجات واحد لكل وكيل')}
           </span>
         }
@@ -195,45 +221,50 @@ export default function IntelligentCxTeam() {
           'Every agent writes the same eleven-field envelope. The "how the AI found this" panel on actions, patterns and AI Insights reads straight from it — nothing is rendered from a bespoke shape.',
           'يكتب كل وكيل نفس المغلف المكوَّن من أحد عشر حقلاً. تقرأ لوحة "كيف توصّل الذكاء الاصطناعي لهذا" في الإجراءات والأنماط ورؤى الذكاء الاصطناعي من هذا المغلف مباشرة — دون أي شكل مخصص.',
         )}
+        contentClassName="grid grid-cols-1 gap-3 md:grid-cols-3"
       >
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-          {ENVELOPE_FIELD_GROUPS.map((g) => (
-            <div key={g.title.en} className="relative flex min-w-0 flex-col gap-1.5 overflow-hidden rounded-lg border bg-muted/40 p-4 before:absolute before:inset-x-0 before:top-0 before:h-0.5 before:bg-primary">
-              <span className="flex items-center gap-2 text-sm font-semibold">
-                <FileJson aria-hidden className="size-4 text-primary" />
-                {L(g.title)}
-              </span>
-              <span className="font-mono text-xs break-words text-muted-foreground" dir="ltr">
-                {L(g.fields)}
-              </span>
-            </div>
-          ))}
-        </div>
+        {ENVELOPE_FIELD_GROUPS.map((g) => (
+          <div key={g.title.en} className="well flex min-w-0 flex-col gap-2.5">
+            <span className="t-small-strong flex items-center gap-2">
+              <FileJson aria-hidden className="size-4 text-muted-foreground" />
+              {L(g.title)}
+            </span>
+            {/* real field names (code): the one place the system mono stack is right */}
+            <span className="font-mono text-xs break-words text-muted-foreground" dir="ltr">
+              {L(g.fields)}
+            </span>
+          </div>
+        ))}
       </SectionCard>
 
-      <section aria-labelledby="agents-heading" className="flex flex-col gap-3">
-        <h2 id="agents-heading" className="text-lg font-semibold">
-          {t('The ten agents', 'الوكلاء العشرة')}
-        </h2>
-        <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {AGENT_REGISTRY.map((agent) => (
-            <AgentCard
-              key={agent.key}
-              agent={agent}
-              recent={activityByAgent.get(agent.key) ?? []}
-              rate={approvalRate.get(agent.key)}
-              expanded={expandedKey === agent.key}
-              onToggle={(open) => setExpandedKey(open ? agent.key : null)}
-            />
-          ))}
-        </div>
+      <section aria-labelledby="agents-heading">
+        <Card>
+          <CardHeader>
+            <h2 id="agents-heading" className="t-card-title">
+              {t('The ten agents', 'الوكلاء العشرة')}
+            </h2>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {AGENT_REGISTRY.map((agent) => (
+              <AgentCard
+                key={agent.key}
+                agent={agent}
+                recent={activityByAgent.get(agent.key) ?? []}
+                rate={approvalRate.get(agent.key)}
+                expanded={expandedKey === agent.key}
+                onToggle={(open) => setExpandedKey(open ? agent.key : null)}
+              />
+            ))}
+          </CardContent>
+        </Card>
       </section>
 
       <SectionCard
-        className="relative overflow-hidden before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-gold"
         title={
-          <span className="flex items-center gap-2">
-            <ShieldCheck aria-hidden className="size-5 text-gold-text" />
+          <span className="flex items-center gap-2.5">
+            <span aria-hidden className="material-light inline-grid size-[30px] place-items-center rounded-full [&_svg]:size-4">
+              <ShieldCheck />
+            </span>
             {t('The CX Supervisor', 'المشرف الذكي')}
           </span>
         }
@@ -241,62 +272,58 @@ export default function IntelligentCxTeam() {
           'Checks every worker output before it is released: approve, return with a reason, or escalate. It never edits a worker’s output and never approves its own escalation.',
           'يراجع مخرجات كل وكيل قبل اعتمادها: الموافقة، أو الإعادة بسبب، أو التصعيد. لا يُعدّل مخرجات الوكيل أبداً ولا يعتمد تصعيده الخاص.',
         )}
-        contentClassName="flex flex-col gap-4"
+        contentClassName="flex flex-col gap-6"
       >
         <StatusBadge tone="info" className="self-start">
           {t('Different model family, temperature 0', 'عائلة نموذج مختلفة، درجة حرارة 0')}
         </StatusBadge>
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <div className="flex flex-col gap-3">
-            <h3 className="text-sm font-semibold">{t('Order of checks', 'ترتيب الفحوصات')}</h3>
-            <ol className="flex flex-col gap-2">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+          <div className="flex flex-col gap-4">
+            <h3 className="t-ui-strong">{t('Order of checks', 'ترتيب الفحوصات')}</h3>
+            <ol className="flex flex-col">
               {SUPERVISOR_CHECK_ORDER.map((c, i) => (
-                <li key={i} className="flex items-start gap-3 text-sm">
-                  <span aria-hidden className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary tabular-nums">
+                <li key={i} className="row-divider flex items-start gap-3 py-3 text-sm first:pt-0 last:pb-0">
+                  <span aria-hidden className="material-light t-badge tabular inline-grid size-6 shrink-0 place-items-center rounded-full">
                     {i + 1}
                   </span>
-                  <span className="pt-0.5">{L(c)}</span>
+                  <span className="pt-0.5 text-muted-foreground">{L(c)}</span>
                 </li>
               ))}
             </ol>
           </div>
-          <div className="flex flex-col gap-3">
-            <h3 className="text-sm font-semibold">{t('Approved first time, per agent (sample)', 'المعتمد من أول مرة لكل وكيل (عينة)')}</h3>
-            <ul className="flex flex-col gap-2.5">
+          <div className="flex flex-col gap-4">
+            <h3 className="t-ui-strong">{t('Approved first time, per agent (sample)', 'المعتمد من أول مرة لكل وكيل (عينة)')}</h3>
+            <ul className="flex flex-col gap-4">
               {AGENT_REGISTRY.filter((a) => a.key !== 'supervisor').map((a) => {
                 const r = approvalRate.get(a.key)
                 const jdPct = AGENT_JDS.find((j) => j.id === a.id)?.approvalPct
                 const pct = jdPct !== undefined ? jdPct : r && r.total > 0 ? Math.round((r.approved / r.total) * 100) : null
                 const tone = pct === null ? null : rateTone(pct)
+                // Under 90% is the row to look at: the dark material; the rest are the grey comparison fill. The value is always printed.
+                const hero = tone !== null && tone !== 'success'
                 return (
-                  <li key={a.key} className="grid grid-cols-[minmax(0,9rem)_1fr_2.75rem] items-center gap-3 sm:grid-cols-[minmax(0,12rem)_1fr_2.75rem]">
-                    <span className="truncate text-sm" title={L(a.name)}>
-                      {L(a.name)}
-                    </span>
-                    {pct === null ? (
-                      <span className="col-span-2 text-xs text-muted-foreground">{t('no run sampled', 'لا يوجد تشغيل في العينة')}</span>
-                    ) : (
-                      <>
-                        <Progress
-                          value={pct}
-                          aria-label={L(a.name)}
-                          className={cn(
-                            'h-2',
-                            tone === 'success' && '[&>[data-slot=progress-indicator]]:bg-success',
-                            tone === 'warning' && '[&>[data-slot=progress-indicator]]:bg-warning',
-                            tone === 'danger' && '[&>[data-slot=progress-indicator]]:bg-destructive',
-                          )}
-                        />
-                        <span className="text-end text-sm font-medium tabular-nums">
+                  <li key={a.key} className="flex flex-col gap-1.5">
+                    <div className="flex items-baseline justify-between gap-3">
+                      <span className={cn('min-w-0', hero ? 't-small-strong' : 't-body-s')}>{L(a.name)}</span>
+                      {pct === null ? (
+                        <span className="shrink-0 text-xs text-muted-foreground">{t('no run sampled', 'لا يوجد تشغيل في العينة')}</span>
+                      ) : (
+                        <span className={cn('tabular inline-flex shrink-0 items-center gap-1.5', hero ? 't-small-strong' : 't-body-s')}>
+                          {tone && <span aria-hidden className={cn('dot', RATE_DOT[tone])} />}
                           <bdi dir="ltr">{pct}%</bdi>
                         </span>
-                      </>
-                    )}
+                      )}
+                    </div>
+                    <span aria-hidden className="h-3 overflow-hidden rounded-full bg-line shadow-inset-track">
+                      {pct !== null && (
+                        <span className={cn('block h-full rounded-full', hero ? 'material-dark' : 'bg-grad-muted-fill opacity-[0.62]')} style={{ width: `${pct}%` }} />
+                      )}
+                    </span>
                   </li>
                 )
               })}
             </ul>
-            <p className="text-xs text-muted-foreground">
+            <p className="t-body-s">
               {t(
                 'Share of each agent’s outputs approved first time (sample figures). Every week 50 passed outputs are read by eye.',
                 'نسبة مخرجات كل وكيل المعتمدة من أول مرة (أرقام تجريبية). كل أسبوع تُقرأ 50 مخرجاً معتمداً بالعين.',
@@ -304,34 +331,37 @@ export default function IntelligentCxTeam() {
             </p>
           </div>
         </div>
-        <dl className="grid grid-cols-1 gap-3 border-t pt-4 text-sm md:grid-cols-2">
-          <KeyValue label={t('Verdicts', 'الأحكام')} value={L(SUPERVISOR_VERDICTS)} />
-          <KeyValue label={t('Calibration', 'المعايرة')} value={L(SUPERVISOR_CALIBRATION)} />
+        <dl className="well grid grid-cols-1 gap-4 text-sm md:grid-cols-2">
+          <KeyValue plain label={t('Verdicts', 'الأحكام')} value={L(SUPERVISOR_VERDICTS)} />
+          <KeyValue plain label={t('Calibration', 'المعايرة')} value={L(SUPERVISOR_CALIBRATION)} />
         </dl>
       </SectionCard>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <SectionCard
+          well
           title={
-            <span className="flex items-center gap-2">
-              <UserCheck aria-hidden className="size-5 text-gold-text" />
+            <span className="flex items-center gap-2.5">
+              <span aria-hidden className="material-light inline-grid size-[30px] place-items-center rounded-full [&_svg]:size-4">
+                <UserCheck />
+              </span>
               {t('What stays with people', 'ما يبقى مع الناس')}
             </span>
           }
         >
-          <p className="text-sm">{L(WHAT_STAYS_WITH_PEOPLE)}</p>
+          <p className="text-sm text-muted-foreground">{L(WHAT_STAYS_WITH_PEOPLE)}</p>
         </SectionCard>
         <SectionCard title={t('How it is switched on', 'كيف يُفعَّل')}>
-          <ol className="flex flex-col gap-3">
+          <ol className="flex flex-col">
             {SWITCH_ON_STAGES.map((st, i) => (
-              <li key={st.stage.en} className="flex gap-3 text-sm">
-                <span aria-hidden className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary tabular-nums">
+              <li key={st.stage.en} className="row-divider flex gap-3 py-3.5 text-sm first:pt-0 last:pb-0">
+                <span aria-hidden className="material-light t-badge tabular inline-grid size-6 shrink-0 place-items-center rounded-full">
                   {i + 1}
                 </span>
-                <div className="flex min-w-0 flex-col gap-0.5">
-                  <span className="font-semibold">{L(st.stage)}</span>
-                  <span>{L(st.what)}</span>
-                  <span className="text-xs text-muted-foreground">
+                <div className="flex min-w-0 flex-col gap-1">
+                  <span className="t-ui-strong">{L(st.stage)}</span>
+                  <span className="text-muted-foreground">{L(st.what)}</span>
+                  <span className="t-body-s">
                     {t('Exit', 'الخروج')}: {L(st.exit)}
                   </span>
                 </div>
@@ -348,36 +378,35 @@ export default function IntelligentCxTeam() {
           'يضع الوكيل 5 تصنيفاً واحداً لكل إجراء، والتصنيف يحدد المسار — المصفوفة تزوّد الأسماء، أما المسار نفسه فلا يتغير حسب المنتج.',
         )}
       >
-        <div className="overflow-x-auto rounded-lg border">
-          <Table>
-            <TableHeader className="bg-muted/60">
-              <TableRow className="hover:bg-transparent">
-                <TableHead className={th}>{t('Classification', 'التصنيف')}</TableHead>
-                <TableHead className={th}>{t('Typical signal', 'إشارة نموذجية')}</TableHead>
-                <TableHead className={th}>{t('Path', 'المسار')}</TableHead>
-                <TableHead className={th}>{t('Receiver', 'المستلم')}</TableHead>
-                <TableHead className={th}>{t('What comes back', 'ما يعود')}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {(Object.keys(ROUTING_MATRIX) as CorrectiveActionKind[]).map((kind) => {
-                const row = ROUTING_MATRIX[kind]
-                return (
-                  <TableRow key={kind} className="align-top">
-                    <TableCell className="px-3 py-3 text-sm font-semibold whitespace-nowrap">{L(KIND_LABEL[kind])}</TableCell>
-                    <TableCell className="min-w-44 px-3 py-3 text-sm whitespace-normal text-muted-foreground">{L(row.typicalSignal)}</TableCell>
-                    <TableCell className="min-w-44 px-3 py-3 text-sm whitespace-normal">{L(row.path)}</TableCell>
-                    <TableCell className="min-w-36 px-3 py-3 text-sm whitespace-normal">{L(row.receiver)}</TableCell>
-                    <TableCell className="min-w-44 px-3 py-3 text-sm whitespace-normal text-muted-foreground">{L(row.whatComesBack)}</TableCell>
-                  </TableRow>
-                )
-              })}
-            </TableBody>
-          </Table>
-        </div>
+        <Table density="comfortable">
+          <TableHeader>
+            <TableRow className="row-divider-none h-auto">
+              <TableHead>{t('Classification', 'التصنيف')}</TableHead>
+              <TableHead>{t('Typical signal', 'إشارة نموذجية')}</TableHead>
+              <TableHead>{t('Path', 'المسار')}</TableHead>
+              <TableHead>{t('Receiver', 'المستلم')}</TableHead>
+              <TableHead>{t('What comes back', 'ما يعود')}</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {(Object.keys(ROUTING_MATRIX) as CorrectiveActionKind[]).map((kind) => {
+              const row = ROUTING_MATRIX[kind]
+              return (
+                <TableRow key={kind} className="align-top">
+                  <TableCell className="py-3.5 font-medium whitespace-nowrap text-foreground">{L(KIND_LABEL[kind])}</TableCell>
+                  <TableCell className="min-w-44 py-3.5 whitespace-normal">{L(row.typicalSignal)}</TableCell>
+                  <TableCell className="min-w-44 py-3.5 whitespace-normal text-foreground">{L(row.path)}</TableCell>
+                  <TableCell className="min-w-36 py-3.5 whitespace-normal text-foreground">{L(row.receiver)}</TableCell>
+                  <TableCell className="min-w-44 py-3.5 whitespace-normal">{L(row.whatComesBack)}</TableCell>
+                </TableRow>
+              )
+            })}
+          </TableBody>
+        </Table>
       </SectionCard>
 
-      <SectionCard title={t('Recent activity', 'النشاط الأخير')}>
+      {/* The run log is a table: dense rows. */}
+      <SectionCard title={t('Recent activity', 'النشاط الأخير')} density="dense">
         <DataTable
           columns={columns}
           data={activity}
@@ -390,7 +419,8 @@ export default function IntelligentCxTeam() {
       </SectionCard>
 
       {!canViewAgentNames(role.id) && (
-        <p className="text-sm text-muted-foreground">
+        <p className="well flex items-start gap-2.5 px-4 py-3.5 text-sm text-muted-foreground">
+          <span aria-hidden className="dot mt-1.5" />
           {t(
             'This page never names a human agent — only the AI agents themselves and the roles they escalate to.',
             'هذه الصفحة لا تذكر اسم أي موظف بشري أبداً — فقط وكلاء الذكاء الاصطناعي والأدوار التي يصعّدون إليها.',
@@ -401,6 +431,8 @@ export default function IntelligentCxTeam() {
   )
 }
 
+/** One agent as a well inside the agents card: number tile, name, stage and rate tags, the task, the latest run, and the job description
+ * behind a light pill trigger. The well is the Collapsible root (`data-slot="collapsible"`: e2e finds the card by it). */
 function AgentCard({
   agent,
   recent,
@@ -422,30 +454,15 @@ function AgentCard({
   const pct = jd ? jd.approvalPct : rate && rate.total > 0 ? Math.round((rate.approved / rate.total) * 100) : null
 
   return (
-    <Collapsible
-      open={expanded}
-      onOpenChange={onToggle}
-      className={cn(
-        'relative flex min-w-0 flex-col gap-3 overflow-hidden rounded-xl border bg-card p-4 shadow-xs before:absolute before:inset-x-0 before:top-0 before:h-0.5',
-        notBuilt ? 'bg-muted/40 before:bg-muted-foreground/40' : 'before:bg-primary',
-      )}
-    >
+    <Collapsible open={expanded} onOpenChange={onToggle} className="well flex min-w-0 flex-col gap-4">
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-start gap-3">
-          <span
-            aria-hidden
-            className={cn(
-              'flex size-9 shrink-0 items-center justify-center rounded-lg',
-              notBuilt ? 'bg-muted text-muted-foreground' : 'bg-primary/10 text-primary',
-            )}
-          >
-            {typeof agent.id === 'number' ? <span className="text-sm font-semibold tabular-nums">{agent.id}</span> : <Bot className="size-4" />}
+          <span aria-hidden className="material-light t-small-strong tabular inline-grid size-8 shrink-0 place-items-center rounded-full">
+            {typeof agent.id === 'number' ? agent.id : <Bot className="size-4" />}
           </span>
-          <div className="flex min-w-0 flex-col">
-            <span className="text-xs font-semibold tracking-wide text-gold-text uppercase">
-              {typeof agent.id === 'number' ? t(`Agent ${agent.id}`, `الوكيل ${agent.id}`) : t('Supervisor', 'المشرف')}
-            </span>
-            <span className="text-base leading-snug font-semibold">{L(agent.name)}</span>
+          <div className="flex min-w-0 flex-col gap-1">
+            <span className="label-style">{typeof agent.id === 'number' ? t(`Agent ${agent.id}`, `الوكيل ${agent.id}`) : t('Supervisor', 'المشرف')}</span>
+            <span className="t-ui-strong">{L(agent.name)}</span>
           </div>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1">
@@ -458,22 +475,27 @@ function AgentCard({
         </div>
       </div>
 
-      <p className="text-sm">{L(agent.task)}</p>
+      <p className="text-sm text-muted-foreground">{L(agent.task)}</p>
 
-      {notBuilt && <StatusBadge tone="warning" className="h-auto self-start py-1 whitespace-normal">{L(agent.phaseNote!)}</StatusBadge>}
+      {notBuilt && (
+        <p className="flex items-start gap-2.5 text-sm text-foreground">
+          <span aria-hidden className="dot dot-warning mt-1.5" />
+          {L(agent.phaseNote!)}
+        </p>
+      )}
 
       {latest && !notBuilt && (
-        <p className="rounded-md bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+        <p className="text-xs text-muted-foreground">
           {L(latest.subjectSummary)} — {new Date(latest.createdAt).toLocaleDateString(lang === 'ar' ? 'ar' : 'en')}
         </p>
       )}
 
-      <CollapsibleTrigger className="-mx-2 -mb-1 mt-auto flex h-9 cursor-pointer items-center justify-between rounded-md px-2 text-sm font-semibold text-primary outline-none transition-colors hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50">
+      <CollapsibleTrigger className="material-light t-small-strong mt-auto inline-flex h-8 w-fit cursor-pointer items-center gap-2 rounded-full ps-3.5 pe-3 pt-px outline-none transition-opacity hover:opacity-80">
         {t('Job description', 'الوصف الوظيفي')}
-        <ChevronDown aria-hidden className={cn('size-4 transition-transform duration-200 motion-reduce:transition-none', expanded && 'rotate-180')} />
+        <ChevronDown aria-hidden className={cn('size-3.5 transition-transform duration-400 ease-spring motion-reduce:transition-none', expanded && 'rotate-180')} />
       </CollapsibleTrigger>
       <CollapsibleContent>
-        <dl className="flex flex-col gap-3 border-t pt-3 text-sm">
+        <dl className="flex flex-col gap-3 text-sm">
           <KeyValue label={t('Trigger', 'المحفّز')} value={L(agent.trigger)} />
           <KeyValue label={t('Runs on', 'يعمل وفق')} value={L(agent.runsOn)} />
           {jd && (
@@ -506,11 +528,15 @@ function AgentCard({
   )
 }
 
-function KeyValue({ label, value, danger }: { label: string; value: string; danger?: boolean }) {
+/** A label above its value, divided from the next by the row divider (`plain` for a grid). `danger` marks the one item that is a prohibition with a 6px error dot (colour is a dot, never the text). */
+function KeyValue({ label, value, danger, plain }: { label: string; value: string; danger?: boolean; plain?: boolean }) {
   return (
-    <div className="flex flex-col gap-0.5">
-      <dt className={cn('text-xs font-semibold tracking-wide uppercase', danger ? 'text-danger-text' : 'text-muted-foreground')}>{label}</dt>
-      <dd>{value}</dd>
+    <div className={cn('flex flex-col gap-1', !plain && 'row-divider pb-3 last:pb-0')}>
+      <dt className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        {danger && <span aria-hidden className="dot dot-error" />}
+        {label}
+      </dt>
+      <dd className="text-foreground">{value}</dd>
     </div>
   )
 }

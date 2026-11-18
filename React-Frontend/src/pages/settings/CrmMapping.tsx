@@ -13,8 +13,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { ErrorState } from '@/components/common/ErrorState'
 import { LoadingState } from '@/components/common/LoadingState'
 import { ProposedBadge } from '@/components/common/ProposedBadge'
+import { SectionCard } from '@/components/common/SectionCard'
 import { StatusBadge } from '@/components/common/StatusBadge'
-import { SubPageHeader, ViewOnlyNotice } from './SubPageHeader'
+import { IN_CARD, SubPageHeader, ViewOnlyNotice } from './SubPageHeader'
 
 const KINDS: MappingKind[] = ['src', 'stg', 'act']
 
@@ -26,6 +27,9 @@ const KINDS: MappingKind[] = ['src', 'stg', 'act']
  * `row.confirmed` clears the badge, and a role that may edit records the confirmation with "Confirm" (changing a value
  * takes it back). The data default is unconfirmed, so today every row still carries it. Counts come from the data, not from the
  * prototype's sentence (it said 13 stages and listed 14).
+ *
+ * Design: a register, so dense (44px rows). Tabs are the segmented track with the count inside; the table sits in one card. A role
+ * that may only read sees the portal value as plain text, not a greyed select (permission-based UI).
  */
 export default function CrmMapping() {
   const { t, L } = useI18n()
@@ -38,7 +42,7 @@ export default function CrmMapping() {
   const countOf = (k: MappingKind) => (k === 'src' ? counts?.sources.crm : k === 'stg' ? counts?.stages.crm : counts?.events.crm)
 
   return (
-    <section className="flex flex-col gap-4">
+    <section data-density="dense" className="flex flex-col gap-4">
       <SubPageHeader title={L(COPY.title)} description={L(COPY.intro)} />
 
       {!canEdit && (
@@ -51,37 +55,39 @@ export default function CrmMapping() {
         <LoadingState rows={6} />
       ) : (
         <Tabs defaultValue="src" className="gap-4">
-          <div className="-mx-1 overflow-x-auto px-1 pb-1">
-            <TabsList className="h-10 min-w-max">
+          <div className="-m-1 overflow-x-auto p-1">
+            <TabsList className="min-w-max">
               {KINDS.map((k) => (
-                <TabsTrigger key={k} value={k} className="gap-1.5 px-3">
+                <TabsTrigger key={k} value={k}>
                   {L(COPY.tabs[k])}
-                  <span className="rounded-full bg-muted px-1.5 text-xs tabular-nums text-muted-foreground">{countOf(k)}</span>
+                  <span className="tabular font-normal">{countOf(k)}</span>
                 </TabsTrigger>
               ))}
             </TabsList>
           </div>
 
           {KINDS.map((kind) => (
-            <TabsContent key={kind} value={kind} className="flex flex-col gap-3">
-              <p className="text-sm text-muted-foreground">
-                {kind === 'src'
-                  ? t(`${counts.sources.crm} CRM media values shown, ${counts.sources.portal} portal sources.`, `${counts.sources.crm} قيمة وسيط من CRM معروضة، و${counts.sources.portal} مصادر في البورتال.`)
-                  : kind === 'stg'
-                    ? t(`${counts.stages.crm} CRM lead stages shown, ${counts.stages.portal} portal funnel stages.`, `${counts.stages.crm} مرحلة ليد من CRM معروضة، و${counts.stages.portal} مراحل قمع في البورتال.`)
-                    : t(`${counts.events.crm} CRM activity categories shown, ${counts.events.portal} portal events.`, `${counts.events.crm} فئة نشاط من CRM معروضة، و${counts.events.portal} أحداث في البورتال.`)}
-              </p>
-              <div className="overflow-hidden rounded-lg border bg-card">
+            <TabsContent key={kind} value={kind}>
+              <SectionCard
+                contentClassName={IN_CARD}
+                description={
+                  kind === 'src'
+                    ? t(`${counts.sources.crm} CRM media values shown, ${counts.sources.portal} portal sources.`, `${counts.sources.crm} قيمة وسيط من CRM معروضة، و${counts.sources.portal} مصادر في البورتال.`)
+                    : kind === 'stg'
+                      ? t(`${counts.stages.crm} CRM lead stages shown, ${counts.stages.portal} portal funnel stages.`, `${counts.stages.crm} مرحلة ليد من CRM معروضة، و${counts.stages.portal} مراحل قمع في البورتال.`)
+                      : t(`${counts.events.crm} CRM activity categories shown, ${counts.events.portal} portal events.`, `${counts.events.crm} فئة نشاط من CRM معروضة، و${counts.events.portal} أحداث في البورتال.`)
+                }
+              >
                 <Table>
-                  <TableHeader className="bg-muted/60">
-                    <TableRow className="hover:bg-transparent">
-                      <TableHead className="px-3 text-xs font-semibold text-muted-foreground">{L(COPY.columns[kind].crm)}</TableHead>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{L(COPY.columns[kind].crm)}</TableHead>
                       <TableHead className="w-8 px-0">
                         <span className="sr-only">→</span>
                       </TableHead>
-                      <TableHead className="px-3 text-xs font-semibold text-muted-foreground">{L(COPY.columns[kind].portal)}</TableHead>
-                      <TableHead className="px-3 text-xs font-semibold text-muted-foreground">{L(COPY.rule)}</TableHead>
-                      <TableHead className="px-3 text-xs font-semibold text-muted-foreground">{t('Status', 'الحالة')}</TableHead>
+                      <TableHead>{L(COPY.columns[kind].portal)}</TableHead>
+                      <TableHead>{L(COPY.rule)}</TableHead>
+                      <TableHead>{t('Status', 'الحالة')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -92,13 +98,13 @@ export default function CrmMapping() {
                         const ignored = r.portalValue === 'ignore'
                         return (
                           <TableRow key={`${kind}:${r.crmValue}`}>
-                            <TableCell className="px-3 py-2.5 font-medium">
+                            <TableCell className="font-medium text-foreground">
                               <bdi dir="ltr">{r.crmValue}</bdi>
                             </TableCell>
-                            <TableCell className="w-8 px-0 text-muted-foreground">
+                            <TableCell className="w-8 px-0">
                               <ArrowRight aria-hidden className="size-4 rtl:rotate-180" />
                             </TableCell>
-                            <TableCell className="px-3 py-2.5">
+                            <TableCell>
                               {canEdit ? (
                                 <Select
                                   value={r.portalValue}
@@ -106,7 +112,7 @@ export default function CrmMapping() {
                                     save.mutate({ kind, crmValue: r.crmValue, portalValue }, { onSuccess: () => toast(L(COPY.toast)), onError: (e) => toast.error(e instanceof Error ? e.message : t('Could not save the mapping.', 'تعذّر حفظ الربط.')) })
                                   }
                                 >
-                                  <SelectTrigger className="h-9 w-full min-w-48" aria-label={`${r.crmValue} → ${L(COPY.columns[kind].portal)}`}>
+                                  <SelectTrigger className="h-9 w-full min-w-44" aria-label={`${r.crmValue} → ${L(COPY.columns[kind].portal)}`}>
                                     <SelectValue />
                                   </SelectTrigger>
                                   <SelectContent>
@@ -118,11 +124,11 @@ export default function CrmMapping() {
                                   </SelectContent>
                                 </Select>
                               ) : (
-                                <span className="font-medium">{option ? L(option.label) : r.portalValue}</span>
+                                <span className="font-medium text-foreground">{option ? L(option.label) : r.portalValue}</span>
                               )}
                             </TableCell>
-                            <TableCell className="min-w-56 px-3 py-2.5 whitespace-normal text-muted-foreground">{L(COPY.ruleHint[kind])}</TableCell>
-                            <TableCell className="px-3 py-2.5">
+                            <TableCell className="min-w-48 whitespace-normal">{L(COPY.ruleHint[kind])}</TableCell>
+                            <TableCell className="min-w-44">
                               <span className="flex flex-wrap items-center gap-1.5">
                                 {r.confirmed ? (
                                   <StatusBadge tone="success" icon={<Check aria-hidden />}>
@@ -134,8 +140,7 @@ export default function CrmMapping() {
                                     {canEdit && (
                                       <Button
                                         variant="outline"
-                                        size="sm"
-                                        className="h-7 px-2 text-xs"
+                                        size="xs"
                                         disabled={confirm.isPending}
                                         aria-label={t(`Confirm the mapping of ${r.crmValue}`, `تأكيد ربط ${r.crmValue}`)}
                                         onClick={() =>
@@ -159,7 +164,7 @@ export default function CrmMapping() {
                       })}
                   </TableBody>
                 </Table>
-              </div>
+              </SectionCard>
             </TabsContent>
           ))}
         </Tabs>

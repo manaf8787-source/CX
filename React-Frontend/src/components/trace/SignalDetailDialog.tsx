@@ -17,6 +17,9 @@ import { TraceCard } from './TraceCard'
  * name only for roles that may see names), "Classified by Agent 2 as {category}. Counted by Agent 3; ..." and the Trace card for
  * the signal. A shadcn Dialog: focus is trapped, Escape and the backdrop close it, focus returns to what opened it. A public
  * mention names no person and links to none.
+ *
+ * Composition: the dialog is the card (radius 24, padding 28): title and hint, one row of light tags, the classification sentence, and
+ * the Trace card as a well. Only the kind of a legal, privacy or safety signal is tinted (it needs action).
  */
 export function SignalDetailDialog({ id }: { id: string }) {
   const { t, L, lang } = useI18n()
@@ -42,21 +45,21 @@ export function SignalDetailDialog({ id }: { id: string }) {
           <DialogDescription>{signal ? L(TRACE_COPY.hint) : t('No signal has this id.', 'لا توجد إشارة بهذا الرقم.')}</DialogDescription>
         </DialogHeader>
         {signal && category && (
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-4">
             <div className="flex flex-wrap items-center gap-2" aria-label={t('Signal details', 'تفاصيل الإشارة')} role="group">
-              <StatusBadge tone={signal.kind === 'legal_privacy_safety' ? 'danger' : signal.isPublic ? 'info' : 'warning'}>{L(signalKindLabel(signal.kind))}</StatusBadge>
+              <StatusBadge tone={signal.kind === 'legal_privacy_safety' ? 'danger' : signal.isPublic ? 'info' : 'neutral'}>{L(signalKindLabel(signal.kind))}</StatusBadge>
               {channels.map((c) => (
                 <StatusBadge key={c}>{L(CHANNEL_LABEL[c])}</StatusBadge>
               ))}
               <StatusBadge>{L(envNameFromShort(signal.environment))}</StatusBadge>
               {product && <StatusBadge>{L(product.name)}</StatusBadge>}
-              <StatusBadge>
+              <StatusBadge className="tabular">
                 <bdi dir="ltr">{signal.occurredAt.slice(0, 10)}</bdi>
               </StatusBadge>
               {agent?.visible && <StatusBadge>{agent.label}</StatusBadge>}
               {signal.isPublic && <StatusBadge tone="neutral">{t('No person identified', 'لا شخص معرَّف')}</StatusBadge>}
             </div>
-            <p className="text-sm">
+            <p className="text-base text-muted-foreground">
               {t(
                 `Classified by Agent 2 as ${L(category)}. Counted by Agent 3; it is worked only through the pattern it belongs to, never alone.`,
                 `صنّفه الوكيل 2 كـ ${L(category)}. عدّه الوكيل 3؛ يُعالج فقط عبر النمط الذي ينتمي إليه، لا وحده.`,

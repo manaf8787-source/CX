@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ArrowRight, Check, Gavel, Info, UserRound } from 'lucide-react'
+import { ArrowRight, Gavel, UserRound } from 'lucide-react'
 import { toast } from 'sonner'
 import { useI18n } from '@/i18n'
 import { useRole } from '@/auth/RoleContext'
@@ -15,9 +15,10 @@ import { ProductTag } from '@/components/common/Chip'
 import { EmptyState } from '@/components/common/EmptyState'
 import { LoadingState } from '@/components/common/LoadingState'
 import { ErrorState } from '@/components/common/ErrorState'
-import { cn } from '@/lib/utils'
 import { ClockBadge } from './components/ClockBadge'
 import { DecisionDialog } from './components/DecisionDialog'
+import { InlineNote } from './components/InlineNote'
+import { StepPills } from './components/StepPills'
 import { TermHelp } from '@/components/common/TermHelp'
 
 /** Mystery shopper checklist categories, in both languages. */
@@ -64,13 +65,10 @@ export default function ShopperCases() {
   const informedOnly = isInformedOnly(role.id)
 
   return (
-    <div className="flex flex-col gap-4">
-      <aside className="flex gap-3 rounded-xl border border-info/20 bg-info/8 p-4">
-        <Info aria-hidden className="mt-0.5 size-4 shrink-0 text-info-text" />
-        <p className="max-w-[80ch] text-sm">
-          {t('Critical opens same-day: respond within 1 working day, resolve within 5. A visit scoring under 60% is at least medium regardless of individual item results.', 'الحالة الحرجة تُفتح في اليوم نفسه: الرد خلال يوم عمل واحد والحل خلال 5 أيام. أي زيارة تقل درجتها عن 60% تُصنَّف متوسطة على الأقل بغض النظر عن نتائج البنود الفردية.')}
-        </p>
-      </aside>
+    <div data-density="dense" className="flex flex-col gap-4">
+      <InlineNote>
+        {t('Critical opens same-day: respond within 1 working day, resolve within 5. A visit scoring under 60% is at least medium regardless of individual item results.', 'الحالة الحرجة تُفتح في اليوم نفسه: الرد خلال يوم عمل واحد والحل خلال 5 أيام. أي زيارة تقل درجتها عن 60% تُصنَّف متوسطة على الأقل بغض النظر عن نتائج البنود الفردية.')}
+      </InlineNote>
 
       {isLoading ? (
         <LoadingState rows={4} />
@@ -79,82 +77,65 @@ export default function ShopperCases() {
       ) : !cases?.length ? (
         <EmptyState title={t('No shopper cases yet.', 'لا توجد حالات تسوق سري بعد.')} />
       ) : (
-        <ul className="flex flex-col gap-4">
+        <ul className="flex flex-col gap-(--grid-gap)">
           {cases.map((c) => {
             const flow = FLOW.filter((step) => step !== 'hr_review' || c.isConductIssue)
             const currentIndex = flow.indexOf(c.status)
             const next = FLOW[Math.min(FLOW.length - 1, FLOW.indexOf(c.status) + 1)]
             return (
               <li key={c.id}>
-                <Card className="gap-0 py-0">
-                  <CardContent className="flex flex-col gap-4 p-5">
+                <Card>
+                  <CardContent className="flex flex-col gap-4">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                      <div className="flex min-w-0 flex-col gap-2">
+                      <div className="flex min-w-0 flex-col gap-1.5">
                         <div className="flex flex-wrap items-center gap-2">
                           <StatusBadge tone={SEVERITY_TONE[c.severity]} dot>
                             {L(SEVERITY_LABEL[c.severity])}
                           </StatusBadge>
-                          <h2 className="text-base font-semibold">{SHOPPER_CATEGORY_LABEL[c.category] ? L(SHOPPER_CATEGORY_LABEL[c.category]) : c.category.replace(/_/g, ' ')}</h2>
+                          <h2 className="t-h4">{SHOPPER_CATEGORY_LABEL[c.category] ? L(SHOPPER_CATEGORY_LABEL[c.category]) : c.category.replace(/_/g, ' ')}</h2>
                           <ProductTag productId={c.product} lang={lang} />
                         </div>
                         <span className="text-sm text-muted-foreground">
                           {c.environment} · {t('visit score', 'درجة الزيارة')} <TermHelp term="Mystery Shopper Score" className="inline-flex size-5 align-middle" />{' '}
-                          <bdi dir="ltr" className="font-medium text-foreground tabular-nums">
+                          <bdi dir="ltr" className="font-medium text-foreground tabular">
                             {c.visitScorePct}%
                           </bdi>
                         </span>
-                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-                          <span className="inline-flex items-center gap-2">
-                            <span className="inline-flex items-center text-muted-foreground">{t('Respond', 'الرد')}<TermHelp term="Respond clock" className="size-5" /></span>
-                            <ClockBadge dueIso={c.respondDueAt} totalWindowMs={1 * DAY_MS} stoppedAtIso={c.respondedAt} />
-                          </span>
-                          <span className="inline-flex items-center gap-2">
-                            <span className="text-muted-foreground">{t('Resolve', 'الحل')}</span>
-                            <ClockBadge dueIso={c.resolveDueAt} totalWindowMs={5 * DAY_MS} stoppedAtIso={c.closedAt} />
-                          </span>
-                        </div>
                       </div>
                       <StatusBadge tone={informedOnly ? 'neutral' : 'info'} icon={<UserRound aria-hidden />} className="self-start">
                         {informedOnly ? t('Informed only', 'للعلم فقط') : `${t('Owner', 'المالك')}: ${c.ownerTitle}`}
                       </StatusBadge>
                     </div>
 
-                    <ol aria-label={t('Case flow', 'مسار الحالة')} className="flex flex-wrap items-center gap-1.5">
-                      {flow.map((step, i) => {
-                        const done = i < currentIndex
-                        const current = i === currentIndex
-                        return (
-                          <li key={step} className="flex items-center gap-1.5" aria-current={current ? 'step' : undefined}>
-                            <span
-                              className={cn(
-                                'inline-flex h-7 items-center gap-1 rounded-full border px-2.5 text-xs font-medium whitespace-nowrap',
-                                done && 'border-success/25 bg-success/10 text-success-text',
-                                current && 'border-primary bg-primary text-primary-foreground',
-                                !done && !current && 'border-border bg-card text-muted-foreground',
-                              )}
-                            >
-                              {done && <Check aria-hidden className="size-3.5" />}
-                              {L(STEP_LABEL[step])}
-                            </span>
-                            {i < flow.length - 1 && <span aria-hidden className={cn('hidden h-px w-3 bg-border sm:block', done && 'bg-success/50')} />}
-                          </li>
-                        )
-                      })}
-                    </ol>
+                    <div className="well flex flex-wrap items-center gap-x-8 gap-y-2 text-sm">
+                      <span className="inline-flex items-center gap-2">
+                        <span className="inline-flex items-center text-muted-foreground">{t('Respond', 'الرد')}<TermHelp term="Respond clock" className="size-5" /></span>
+                        <ClockBadge dueIso={c.respondDueAt} totalWindowMs={1 * DAY_MS} stoppedAtIso={c.respondedAt} />
+                      </span>
+                      <span className="inline-flex items-center gap-2">
+                        <span className="text-muted-foreground">{t('Resolve', 'الحل')}</span>
+                        <ClockBadge dueIso={c.resolveDueAt} totalWindowMs={5 * DAY_MS} stoppedAtIso={c.closedAt} />
+                      </span>
+                    </div>
+
+                    <StepPills
+                      label={t('Case flow', 'مسار الحالة')}
+                      steps={flow.map((step, i) => ({ key: step, label: L(STEP_LABEL[step]), state: i < currentIndex ? 'done' : i === currentIndex ? 'current' : 'todo' }))}
+                    />
                     {c.isConductIssue && (
                       <p className="text-sm text-muted-foreground">
                         {t("Conduct issue — routes through HR, then the agent's direct manager reviews HR's actions.", 'قضية سلوكية — تمر عبر الموارد البشرية، ثم يراجعها المدير المباشر للوكيل.')}
                       </p>
                     )}
 
-                    <div className="overflow-hidden rounded-lg border">
+                    <div className="-mx-2.5">
                       <Table>
-                        <TableHeader className="bg-muted/60">
-                          <TableRow className="hover:bg-transparent">
-                            <TableHead className="h-10 w-10 px-3 text-xs font-semibold text-muted-foreground">#</TableHead>
-                            <TableHead className="h-10 px-3 text-xs font-semibold text-muted-foreground">{t('Proposed action', 'الإجراء المقترح')}</TableHead>
-                            <TableHead className="h-10 w-36 px-3 text-xs font-semibold text-muted-foreground">{t('Decision', 'القرار')}</TableHead>
-                            <TableHead className="h-10 w-28 px-3">
+                        <TableHeader>
+                          <TableRow className="row-divider-none">
+                            <TableHead className="w-10">#</TableHead>
+                            <TableHead>{t('Proposed action', 'الإجراء المقترح')}</TableHead>
+                            <TableHead className="w-36">{t('Decision', 'القرار')}</TableHead>
+                            <TableHead className="w-28">
                               <span className="sr-only">{t('Actions', 'الإجراءات')}</span>
                             </TableHead>
                           </TableRow>
@@ -162,14 +143,14 @@ export default function ShopperCases() {
                         <TableBody>
                           {c.proposedActions.map((p) => (
                             <TableRow key={p.n}>
-                              <TableCell className="px-3 py-2.5 text-sm text-muted-foreground tabular-nums">{p.n}</TableCell>
-                              <TableCell className="px-3 py-2.5 text-sm whitespace-normal">{L(p.text)}</TableCell>
-                              <TableCell className="px-3 py-2.5">
+                              <TableCell className="tabular">{p.n}</TableCell>
+                              <TableCell className="whitespace-normal text-foreground">{L(p.text)}</TableCell>
+                              <TableCell>
                                 <StatusBadge tone={LINE_DECISION[p.decision].tone}>{L(LINE_DECISION[p.decision].label)}</StatusBadge>
                               </TableCell>
-                              <TableCell className="px-3 py-2.5 text-end">
+                              <TableCell className="text-end">
                                 {canAct && p.decision === 'pending' && (
-                                  <Button variant="outline" size="sm" className="h-9" onClick={() => setDecidingLine({ caseId: c.id, n: p.n })}>
+                                  <Button variant="outline" size="xs" onClick={() => setDecidingLine({ caseId: c.id, n: p.n })}>
                                     <Gavel aria-hidden />
                                     {t('Decide', 'قرار')}
                                   </Button>
@@ -186,7 +167,6 @@ export default function ShopperCases() {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="h-9"
                           onClick={() => {
                             advance.mutate({ caseId: c.id, status: next })
                             toast.success(t(`Moved to ${STEP_LABEL[next].en}`, `نُقلت إلى ${STEP_LABEL[next].ar}`))

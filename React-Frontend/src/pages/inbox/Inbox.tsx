@@ -66,85 +66,85 @@ export default function Inbox() {
   const next = first ? nextForInboxItem(first, rules) : null
 
   return (
-    <div className="flex flex-col gap-6">
+    <div data-density="dense" className="flex flex-col gap-6">
       <PageHeader title={L(INBOX_COPY.title)} description={L(INBOX_COPY.intro)} />
 
       {next && first && (
-        <div className="flex flex-col gap-1.5">
-          <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">{t('For your first row', 'للسطر الأول')}</p>
+        <div className="flex flex-col gap-2">
+          <p className="label-style">{t('For your first row', 'للسطر الأول')}</p>
           <NextBox next={next} who={first.who ? L(first.who) : undefined} />
         </div>
       )}
 
-      <SectionCard description={isLoading || !items ? undefined : L(WORK_TODAY_COPY.hint(stats.total, stats.urgent))} contentClassName="flex flex-col gap-4">
+      <SectionCard description={isLoading || !items ? undefined : L(WORK_TODAY_COPY.hint(stats.total, stats.urgent))} contentClassName="flex flex-col gap-5">
         {isLoading || !items ? (
           <LoadingState rows={5} />
         ) : items.length === 0 ? (
           <EmptyState title={L(INBOX_COPY.empty)} icon={<CircleCheck />} />
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{L(INBOX_COPY.columns.due)}</TableHead>
-                <TableHead>{L(INBOX_COPY.columns.what)}</TableHead>
-                <TableHead>{L(INBOX_COPY.columns.with)}</TableHead>
-                <TableHead>
-                  <span className="sr-only">{L(INBOX_COPY.open)}</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {items.map((item) => {
-                const Icon = KIND_ICON[item.kind]
-                const date = dueDate(item, today, rules)
-                const path = item.target.split('?')[0]
-                return (
-                  <TableRow key={item.id} data-kind={item.kind} data-priority={item.priority}>
-                    <TableCell className="align-top">
-                      {date ? (
-                        <div className="flex flex-col items-start gap-1">
-                          <DayChip daysLeft={item.daysLeft} unit={item.unit} />
-                          <span className="text-xs text-muted-foreground">
-                            <span className="sr-only">{t('Due', 'المهلة')} </span>
-                            <bdi>{fmt.format(date)}</bdi>
+          <div className="px-1">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{L(INBOX_COPY.columns.due)}</TableHead>
+                  <TableHead>{L(INBOX_COPY.columns.what)}</TableHead>
+                  <TableHead>{L(INBOX_COPY.columns.with)}</TableHead>
+                  <TableHead>
+                    <span className="sr-only">{L(INBOX_COPY.open)}</span>
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {items.map((item) => {
+                  const Icon = KIND_ICON[item.kind]
+                  const date = dueDate(item, today, rules)
+                  const path = item.target.split('?')[0]
+                  return (
+                    <TableRow key={item.id} data-kind={item.kind} data-priority={item.priority}>
+                      <TableCell>
+                        {date ? (
+                          <div className="flex flex-col items-start gap-1">
+                            <DayChip daysLeft={item.daysLeft} unit={item.unit} />
+                            <span className="t-caption">
+                              <span className="sr-only">{t('Due', 'المهلة')} </span>
+                              <bdi>{fmt.format(date)}</bdi>
+                            </span>
+                          </div>
+                        ) : (
+                          <span aria-label={t('No date', 'بلا موعد')}>–</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="whitespace-normal">
+                        <div className="flex items-center gap-3">
+                          <span aria-hidden className="material-light inline-grid size-[30px] shrink-0 place-items-center rounded-full [&_svg]:size-4">
+                            <Icon />
                           </span>
+                          <div className="flex min-w-0 flex-col items-start gap-1.5">
+                            <span className="min-w-48 font-medium text-foreground">{L(item.text)}</span>
+                            {item.priority === 2 && <StatusBadge tone="danger">{t('Most urgent', 'الأكثر إلحاحاً')}</StatusBadge>}
+                            {item.priority === 1 && <StatusBadge tone="warning">{t('Urgent', 'عاجل')}</StatusBadge>}
+                          </div>
                         </div>
-                      ) : (
-                        <span className="text-muted-foreground" aria-label={t('No date', 'بلا موعد')}>
-                          –
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell className="align-top whitespace-normal">
-                      <div className="flex items-start gap-3">
-                        <span aria-hidden className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                          <Icon className="size-4" />
-                        </span>
-                        <div className="flex min-w-0 flex-col items-start gap-1.5">
-                          <span className="min-w-48">{L(item.text)}</span>
-                          {item.priority === 2 && <StatusBadge tone="danger">{t('Most urgent', 'الأكثر إلحاحاً')}</StatusBadge>}
-                          {item.priority === 1 && <StatusBadge tone="warning">{t('Urgent', 'عاجل')}</StatusBadge>}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="align-top">{item.who ? L(item.who) : ''}</TableCell>
-                    <TableCell className="align-top">
-                      {canAccessPath(role.id, path) && (
-                        <Button asChild variant="outline" size="sm">
-                          <Link to={item.target}>
-                            {L(INBOX_COPY.open)}
-                            <span className="sr-only"> · {L(item.text)}</span>
-                          </Link>
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                )
-              })}
-            </TableBody>
-          </Table>
+                      </TableCell>
+                      <TableCell>{item.who ? L(item.who) : ''}</TableCell>
+                      <TableCell className="text-end">
+                        {canAccessPath(role.id, path) && (
+                          <Button asChild variant="outline" size="sm">
+                            <Link to={item.target}>
+                              {L(INBOX_COPY.open)}
+                              <span className="sr-only"> · {L(item.text)}</span>
+                            </Link>
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          </div>
         )}
-        <div className="flex flex-col gap-1 text-sm text-muted-foreground">
+        <div className="t-body-s flex flex-col gap-1">
           <p>{L(INBOX_COPY.footer(rules.approveDays, rules.verifyDays))}</p>
           <p>
             {t(

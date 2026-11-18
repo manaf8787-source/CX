@@ -37,7 +37,7 @@ function CustomersHome() {
   const { L } = useI18n()
   const [params] = useSearchParams()
   return (
-    <div className="flex flex-col gap-6">
+    <div data-density="dense" data-fluid-page className="flex flex-col gap-6">
       <PageHeader term="Omnichannel" title={L(CUSTOMERS_LIST_COPY.pageTitle)} description={L(CUSTOMERS_LIST_COPY.pageDescription)} />
       <CustomersTabs />
       {/* Keyed on the search so a new `?q=` from Home starts a new filter. */}
@@ -76,7 +76,7 @@ function CustomerDetail({ personId }: { personId: string }) {
 
   if (!person) {
     return (
-      <div className="flex flex-col gap-6">
+      <div data-density="comfortable" className="flex flex-col gap-8">
         <CustomersTabs />
         {back}
         {personsLoading ? <LoadingState rows={6} /> : <EmptyState title={t('No such record.', 'لا يوجد سجل كهذا.')} />}
@@ -87,7 +87,7 @@ function CustomerDetail({ personId }: { personId: string }) {
   const next = journeyNext({ drifting: facts.drifting.has(person.id), problems: effort?.problemsFound ?? totalProblems })
 
   return (
-    <div className="flex flex-col gap-6">
+    <div data-density="comfortable" className="flex flex-col gap-8">
       <div className="flex flex-col gap-2">
         {back}
         <PageHeader title={personLabel(person, role.id)} description={t('One record, every channel, newest first.', 'سجل واحد، كل القنوات، الأحدث أولاً.')} />
@@ -101,27 +101,34 @@ function CustomerDetail({ personId }: { personId: string }) {
 
       <ConsentRow person={person} />
 
-      <section aria-label={t('Effort', 'الجهد')} className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-        <KpiTile label={t('Interactions', 'التفاعلات')} value={effort?.interactions ?? '—'} accent="var(--chart-1)" icon={<MessagesSquare />} loading={effortLoading} />
-        <KpiTile label={t('Contacts in 90 days', 'تواصل خلال 90 يوماً')} value={effort?.contactsLast90Days ?? '—'} accent="var(--chart-4)" icon={<Radio />} loading={effortLoading} />
-        <KpiTile label={t('Problems found', 'مشاكل مكتشفة')} value={effort?.problemsFound ?? '—'} accent="var(--destructive)" icon={<AlertTriangle />} loading={effortLoading} />
-        <KpiTile label={t('Days since last contact', 'أيام منذ آخر تواصل')} value={effort?.daysSinceLastContact ?? '—'} accent="var(--warning)" icon={<CalendarClock />} loading={effortLoading} />
+      <section aria-label={t('Effort', 'الجهد')} className="grid grid-cols-2 gap-(--grid-gap) xl:grid-cols-4">
+        <KpiTile label={t('Interactions', 'التفاعلات')} value={effort?.interactions ?? '—'} icon={<MessagesSquare />} loading={effortLoading} />
+        <KpiTile label={t('Contacts in 90 days', 'تواصل خلال 90 يوماً')} value={effort?.contactsLast90Days ?? '—'} icon={<Radio />} loading={effortLoading} />
+        {/* the one tile whose colour means something: a red dot when the rules found problems */}
+        <KpiTile
+          label={t('Problems found', 'مشاكل مكتشفة')}
+          value={effort?.problemsFound ?? '—'}
+          accent={effort && effort.problemsFound > 0 ? 'var(--destructive)' : undefined}
+          icon={<AlertTriangle />}
+          loading={effortLoading}
+        />
+        <KpiTile label={t('Days since last contact', 'أيام منذ آخر تواصل')} value={effort?.daysSinceLastContact ?? '—'} icon={<CalendarClock />} loading={effortLoading} />
       </section>
 
       {reading && <AiReadingCard reading={reading} interactions={interactions ?? []} />}
 
       <Timeline interactions={interactions ?? []} />
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Folded title={t('Problems found', 'المشاكل المكتشفة')} count={totalProblems} icon={<AlertTriangle aria-hidden className="size-4 text-danger-text" />}>
+      <div className="grid grid-cols-1 items-start gap-(--grid-gap) lg:grid-cols-2">
+        <Folded title={t('Problems found', 'المشاكل المكتشفة')} count={totalProblems} icon={<AlertTriangle />}>
           {problemCounts.length ? (
-            <ul className="flex flex-col divide-y">
+            <ul className="flex flex-col">
               {problemCounts.map(([flag, count]) => {
                 const rule = JOURNEY_RULES.find((r) => r.id === flag)
                 return (
-                  <li key={flag} className="flex items-center justify-between gap-2 py-2 text-sm first:pt-0 last:pb-0">
+                  <li key={flag} className="flex items-center justify-between gap-2 py-2.5 text-sm first:pt-0 last:pb-0">
                     <span>{rule ? L(rule.label) : flag}</span>
-                    <span className="font-medium tabular-nums">{count}</span>
+                    <span className="tabular font-medium text-foreground">{count}</span>
                   </li>
                 )
               })}
@@ -131,7 +138,7 @@ function CustomerDetail({ personId }: { personId: string }) {
           )}
         </Folded>
 
-        <Folded title={t('Channels used', 'القنوات المستخدمة')} count={channelsUsed.length} icon={<Layers aria-hidden className="size-4 text-primary" />}>
+        <Folded title={t('Channels used', 'القنوات المستخدمة')} count={channelsUsed.length} icon={<Layers />}>
           {channelsUsed.length ? (
             <div className="flex flex-wrap gap-1.5">
               {channelsUsed.map((c) => (
@@ -147,19 +154,29 @@ function CustomerDetail({ personId }: { personId: string }) {
   )
 }
 
+/**
+ * A closed-by-default card: the title row (a 30px light icon circle, the title, the count as a light pill, a round chevron on the spring)
+ * is the trigger; opened, the content sits in a well. Card -> well -> text.
+ */
 function Folded({ title, count, icon, children }: { title: string; count: number; icon: React.ReactNode; children: React.ReactNode }) {
   return (
     <Card className="gap-0 py-0">
       <Collapsible>
-        <CollapsibleTrigger className="group flex min-h-12 w-full cursor-pointer items-center justify-between gap-2 rounded-xl px-5 py-3 text-start outline-none transition-colors duration-150 hover:bg-muted/50 focus-visible:ring-[3px] focus-visible:ring-ring/50">
-          <span className="inline-flex items-center gap-2 text-base font-semibold">
-            {icon}
+        <CollapsibleTrigger className="group flex min-h-16 w-full cursor-pointer items-center justify-between gap-3 rounded-card px-(--card-pad) py-4 text-start outline-none">
+          <span className="t-h4 inline-flex items-center gap-2.5">
+            <span aria-hidden className="material-light inline-grid size-[30px] shrink-0 place-items-center rounded-full [&_svg]:size-4">
+              {icon}
+            </span>
             {title}
-            <span className="rounded-full bg-muted px-2 text-xs font-medium text-muted-foreground tabular-nums">{count}</span>
+            <span className="pill pill-light tabular">{count}</span>
           </span>
-          <ChevronDown aria-hidden className="size-4 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180" />
+          <span aria-hidden className="material-light inline-grid size-[26px] shrink-0 place-items-center rounded-full">
+            <ChevronDown className="size-3.5 transition-transform duration-400 ease-spring group-data-[state=open]:rotate-180 motion-reduce:transition-none" />
+          </span>
         </CollapsibleTrigger>
-        <CollapsibleContent className="px-5 pb-4">{children}</CollapsibleContent>
+        <CollapsibleContent className="px-(--card-pad) pb-(--card-pad)">
+          <div className="well">{children}</div>
+        </CollapsibleContent>
       </Collapsible>
     </Card>
   )

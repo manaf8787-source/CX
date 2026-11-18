@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import type { ColumnDef } from '@tanstack/react-table'
 import { toast } from 'sonner'
-import { Bot, ClockAlert, PhoneMissed, Phone, Plus, TrendingUp, X } from 'lucide-react'
+import { Bot, PhoneMissed, Phone, Plus, TrendingUp, X } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { useRole } from '@/auth/RoleContext'
 import { canRecordCallAttempt } from '@/auth/permissions'
@@ -161,8 +161,8 @@ export default function CloseTheLoop() {
       accessorFn: (i) => personName(i.personId),
       header: ({ column }) => <SortableHeader column={column}>{t('Person', 'الشخص')}</SortableHeader>,
       cell: ({ row, getValue }) => (
-        <span className="inline-flex flex-col leading-tight">
-          <span className="font-medium">{getValue<string>()}</span>
+        <span className="inline-flex flex-col gap-0.5 leading-tight">
+          <span className="font-medium text-foreground">{getValue<string>()}</span>
           <span className="text-xs text-muted-foreground">{L(envNameFromShort(row.original.environment))}</span>
         </span>
       ),
@@ -173,12 +173,12 @@ export default function CloseTheLoop() {
       header: t('Channel', 'القناة'),
       cell: ({ row }) =>
         row.original.channel === 'ai_campaign' ? (
-          <span className="inline-flex items-center gap-1.5">
+          <span className="inline-flex items-center gap-1.5 text-foreground">
             <Bot aria-hidden className="size-4 text-muted-foreground" />
             {t('AI campaign', 'حملة ذكاء اصطناعي')}
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1.5">
+          <span className="inline-flex items-center gap-1.5 text-foreground">
             <Phone aria-hidden className="size-4 text-muted-foreground" />
             {t('Human', 'بشري')}
           </span>
@@ -201,7 +201,7 @@ export default function CloseTheLoop() {
       accessorFn: (i) => (i.reasonCode ? L(REASON_CODE_LABEL[i.reasonCode]) : ''),
       header: t('Reason', 'السبب'),
       cell: ({ row }) =>
-        row.original.reasonCode ? L(REASON_CODE_LABEL[row.original.reasonCode]) : <span className="text-muted-foreground">—</span>,
+        row.original.reasonCode ? <span className="text-foreground">{L(REASON_CODE_LABEL[row.original.reasonCode])}</span> : <span className="text-muted-foreground">—</span>,
     },
     {
       id: 'due',
@@ -211,8 +211,8 @@ export default function CloseTheLoop() {
         const i = row.original
         const line = attemptLine(i, callRules)
         return (
-          <span className="inline-flex flex-col leading-tight">
-            {i.dueOn ? <bdi dir="ltr" className="tabular-nums">{fmtDay(i.dueOn)}</bdi> : <span className="text-muted-foreground">–</span>}
+          <span className="inline-flex flex-col gap-0.5 leading-tight">
+            {i.dueOn ? <bdi dir="ltr" className="tabular text-foreground">{fmtDay(i.dueOn)}</bdi> : <span className="text-muted-foreground">–</span>}
             {line && (
               <span className="text-xs text-muted-foreground">
                 {L(CALL_COPY.rowSuffix(line.attempt, line.of, line.next ? fmtDay(line.next) : undefined))}
@@ -228,14 +228,14 @@ export default function CloseTheLoop() {
       header: t('Status', 'الحالة'),
       cell: ({ row }) => {
         const i = row.original
-        if (i.status === 'done' || i.outcome) return i.outcome ? L(INTERVIEW_OUTCOME_LABEL[i.outcome]) : <span className="text-muted-foreground">—</span>
+        if (i.status === 'done' || i.outcome) return i.outcome ? <span className="text-foreground">{L(INTERVIEW_OUTCOME_LABEL[i.outcome])}</span> : <span className="text-muted-foreground">—</span>
         if (i.status === 'needs_human')
           return (
-            <span className="inline-flex flex-col gap-0.5">
+            <span className="inline-flex flex-col items-start gap-1">
               <StatusBadge tone="danger" dot>
                 {L(CALL_COPY.needsHuman)}
               </StatusBadge>
-              <span className="text-xs text-muted-foreground">
+              <span className="block max-w-52 text-xs whitespace-normal text-muted-foreground">
                 {i.channel === 'ai_campaign' ? L(CALL_COPY.handedOverNote) : t('WhatsApp sent after the last attempt', 'أُرسل واتساب بعد آخر محاولة')}
               </span>
             </span>
@@ -266,7 +266,7 @@ export default function CloseTheLoop() {
           const delta = i.secondScore - i.firstScore
           return (
             <StatusBadge tone={delta > 0 ? 'success' : 'neutral'} icon={delta > 0 ? <TrendingUp aria-hidden /> : undefined}>
-              <bdi dir="ltr" className="tabular-nums">
+              <bdi dir="ltr" className="tabular">
                 {i.firstScore} → {i.secondScore} ({delta > 0 ? '+' : ''}
                 {delta})
               </bdi>
@@ -286,11 +286,11 @@ export default function CloseTheLoop() {
               placeholder={`${min}–${max}`}
               dir="ltr"
               aria-label={t(`Second score (${min} to ${max})`, `النتيجة الثانية (${min} إلى ${max})`)}
-              className="h-9 w-16"
+              className="tabular h-8 w-[4.5rem] px-2.5 text-sm"
               value={resurveyDraft[i.id] ?? ''}
               onChange={(e) => setResurveyDraft((d) => ({ ...d, [i.id]: e.target.value }))}
             />
-            <Button variant="outline" size="sm" className="h-9" onClick={() => saveResurvey(i)}>
+            <Button variant="outline" size="xs" onClick={() => saveResurvey(i)}>
               {t('Save', 'حفظ')}
             </Button>
           </div>
@@ -307,11 +307,11 @@ export default function CloseTheLoop() {
         const label =
           r.status === 'recovered' ? t('Recovered', 'تعافى') : r.status === 'not_recovered' ? t('Not recovered', 'لم يتعافَ') : t('Too early', 'مبكر')
         return (
-          <span className="inline-flex flex-col gap-0.5">
+          <span className="inline-flex flex-col items-start gap-1">
             <StatusBadge tone={tone} dot>
               {label}
             </StatusBadge>
-            <span className="text-xs text-muted-foreground">
+            <span className="block max-w-44 text-xs whitespace-normal text-muted-foreground">
               {r.status === 'too_early'
                 ? r.provisional === 'recovered'
                   ? t('So far: a recovery event', 'حتى الآن: حدث تعافٍ')
@@ -334,12 +334,12 @@ export default function CloseTheLoop() {
     return (
       <span className="inline-flex items-center justify-end gap-1.5">
         {canNoAnswer && (
-          <Button variant="outline" size="sm" className="h-9" onClick={() => noAnswer(item)} disabled={recordNoAnswer.isPending}>
+          <Button variant="outline" size="xs" onClick={() => noAnswer(item)} disabled={recordNoAnswer.isPending}>
             <PhoneMissed aria-hidden />
             {L(CALL_COPY.noAnswerButton)}
           </Button>
         )}
-        <Button size="sm" className="h-9" onClick={() => setInterviewing(item)}>
+        <Button size="xs" onClick={() => setInterviewing(item)}>
           <Phone aria-hidden />
           {t('Call', 'اتصال')}
         </Button>
@@ -352,7 +352,7 @@ export default function CloseTheLoop() {
   const focusItem = focusId ? sorted.find((i) => i.id === focusId) : undefined
 
   return (
-    <div className="flex flex-col gap-6">
+    <div data-density="dense" className="flex flex-col gap-6">
       <PageHeader
         title={t('Close the loop', 'إغلاق الحلقة')}
         term="Close the loop"
@@ -365,28 +365,29 @@ export default function CloseTheLoop() {
         title={t('Monthly capacity', 'السعة الشهرية')}
         description={t('Critical detractors are always called; the rest are sampled to fit the team’s hours.', 'المنتقدون الحرجون يُتصل بهم دائماً؛ ويُختار الباقون بالعينة بما يتسع له وقت الفريق.')}
       >
-        <div className="flex flex-col gap-4">
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div className="flex flex-col gap-5">
+          <div className="grid grid-cols-2 items-end gap-4 sm:grid-cols-4">
             <NumberField id="ctl-people" label={t('CX people', 'عدد موظفي تجربة العملاء')} value={people} min={1} onChange={setPeople} />
             <NumberField id="ctl-hours" label={t('Hours/day', 'ساعات/يوم')} value={hoursPerDay} min={1} max={12} onChange={setHoursPerDay} />
             <NumberField id="ctl-days" label={t('Working days', 'أيام العمل')} value={workingDays} min={1} max={31} onChange={setWorkingDays} />
-            <div className="flex flex-col justify-end gap-1 rounded-lg bg-primary/5 px-3 py-2">
+            {/* the result sits in a well; the number is ink (colour is never a value) */}
+            <div className="well col-span-2 flex items-center justify-between gap-3 px-4 py-2.5 sm:col-span-1">
               <span className="text-xs text-muted-foreground">{t('= capacity (4 calls/hour)', '= السعة (4 مكالمات/ساعة)')}</span>
-              <span className="text-2xl font-semibold text-primary tabular-nums" aria-live="polite">
+              <span className="t-kpi" aria-live="polite">
                 {capacity}
               </span>
             </div>
           </div>
-          <Progress value={usedPct} aria-label={t('Share of detractors called', 'نسبة المنتقدين الذين سيُتصل بهم')} className="h-2 bg-muted" />
+          <Progress value={usedPct} aria-label={t('Share of detractors called', 'نسبة المنتقدين الذين سيُتصل بهم')} />
           <p className="text-sm text-muted-foreground">
-            <bdi dir="ltr" className="font-medium text-foreground tabular-nums">
+            <bdi dir="ltr" className="tabular font-medium text-foreground">
               {selected.length} / {sorted.length}
             </bdi>{' '}
             {t('detractors called this month', 'منتقد سيُتصل بهم هذا الشهر')}
             {excluded.length > 0 && (
               <>
                 {' '}
-                — <span className="tabular-nums">{excluded.length}</span>{' '}
+                — <span className="tabular">{excluded.length}</span>{' '}
                 {t('sampled out (critical always called at 100%, the rest spread across products/environments)', 'مستبعدون من العينة (الحرج دائماً 100%، والباقي موزَّع على المنتجات والبيئات)')}
               </>
             )}
@@ -402,55 +403,59 @@ export default function CloseTheLoop() {
           'التعافي: خلال 60 يوماً تقييم CSAT أو CES بـ 4 أو 5، أو مروّج أو محايد في NPS، أو معاملة أو تجديد أو عميل محتمل جديد، أو تواصل دون شكوى. عدم التعافي: الصمت، أو منتقد مجدداً، أو الإلغاء، أو الهروب. قبل 60 يوماً: مبكر.',
         )}
       >
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <div className="flex flex-col gap-1 rounded-lg bg-success/10 px-3 py-2">
-            <span className="text-xs text-muted-foreground">{t('Recovered', 'تعافى')}</span>
-            <span className="text-2xl font-semibold tabular-nums">
-              {rate.pct === null ? '–' : `${rate.pct}%`}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <div className="well col-span-2 flex flex-col gap-2 sm:col-span-1">
+            <span className="t-small-strong text-muted-foreground">{t('Recovered', 'تعافى')}</span>
+            <span className="flex items-baseline gap-1">
+              <span className="t-kpi">{rate.pct === null ? '–' : rate.pct}</span>
+              {rate.pct !== null && <span className="t-unit">%</span>}
             </span>
             <span className="text-xs text-muted-foreground">
-              <bdi dir="ltr" className="tabular-nums">
+              <bdi dir="ltr" className="tabular">
                 {rate.recovered} / {rate.decided}
               </bdi>{' '}
               {t('whose 60 days are over', 'ممن انقضت أيامهم الستون')}
             </span>
           </div>
-          <div className="flex flex-col gap-1 rounded-lg bg-muted/50 px-3 py-2">
-            <span className="text-xs text-muted-foreground">{t('Not recovered', 'لم يتعافَ')}</span>
-            <span className="text-2xl font-semibold tabular-nums">{rate.decided - rate.recovered}</span>
+          <div className="well flex flex-col gap-2">
+            <span className="t-small-strong text-muted-foreground">{t('Not recovered', 'لم يتعافَ')}</span>
+            <span className="t-kpi">{rate.decided - rate.recovered}</span>
           </div>
-          <div className="flex flex-col gap-1 rounded-lg bg-muted/50 px-3 py-2">
-            <span className="text-xs text-muted-foreground">{t('Too early', 'مبكر')}</span>
-            <span className="text-2xl font-semibold tabular-nums">{rate.tooEarly}</span>
+          <div className="well flex flex-col gap-2">
+            <span className="t-small-strong text-muted-foreground">{t('Too early', 'مبكر')}</span>
+            <span className="t-kpi">{rate.tooEarly}</span>
           </div>
         </div>
       </SectionCard>
 
       <SectionCard
         title={t("This month's call list", 'قائمة الاتصال لهذا الشهر')}
-        actions={<span className="text-sm text-muted-foreground tabular-nums">{selected.length}</span>}
+        actions={<span className="tabular text-sm text-muted-foreground">{selected.length}</span>}
         contentClassName="flex flex-col gap-4"
       >
         {/* The calling rules (F27): hours, attempts, next attempt, WhatsApp, "needs a human". Configuration, from Settings → Rules. */}
-        <div className="flex flex-col gap-1 rounded-lg border bg-muted/40 px-3 py-2.5 text-sm" data-testid="calling-rules">
-          <p className="flex items-start gap-2">
-            <ClockAlert aria-hidden className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+        <div className="well flex flex-col gap-1 px-4 py-3.5 text-sm" data-testid="calling-rules">
+          <p className="flex items-start gap-2.5 text-foreground">
+            <span aria-hidden className="dot dot-info mt-1.5" />
             <span>{L(CALL_COPY.hint(callRules))}</span>
           </p>
-          <p className="ps-6 text-xs text-muted-foreground">
+          <p className="ps-4 text-xs text-muted-foreground">
             {L(CALL_COPY.hoursNote)} · {L(CALL_COPY.aiHandOff(rules.aiNoAnswers))} · {L(CALL_COPY.dncrNever)}
           </p>
         </div>
 
         {focusId && (
-          <div role="region" aria-label={t('From your inbox', 'من صندوقك')} className="flex flex-wrap items-center gap-3 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2.5 text-sm">
-            <span className="font-semibold">{t('From your inbox', 'من صندوقك')}</span>
+          <div role="region" aria-label={t('From your inbox', 'من صندوقك')} className="well flex flex-wrap items-center gap-3 px-4 py-3 text-sm">
+            <span className="t-small-strong flex items-center gap-2">
+              <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-foreground" />
+              {t('From your inbox', 'من صندوقك')}
+            </span>
             {focusItem ? (
               <>
                 <StatusBadge tone={SEVERITY_TONE[focusItem.severity]} dot>
                   {L(SEVERITY_LABEL[focusItem.severity])}
                 </StatusBadge>
-                <span className="font-medium">{personName(focusItem.personId)}</span>
+                <span className="font-medium text-foreground">{personName(focusItem.personId)}</span>
                 <span className="text-muted-foreground">
                   {focusItem.reasonCode ? L(REASON_CODE_LABEL[focusItem.reasonCode]) : t('Reason not coded yet', 'السبب لم يُرمَّز بعد')}
                 </span>
@@ -465,7 +470,7 @@ export default function CloseTheLoop() {
             ) : (
               <span className="text-muted-foreground">{itemsLoading ? t('Loading…', 'جارٍ التحميل…') : t('That row is not on the list in the current scope.', 'هذا السطر ليس في القائمة ضمن النطاق الحالي.')}</span>
             )}
-            <Button variant="ghost" size="sm" className="h-8" onClick={() => setParams({}, { replace: true })} aria-label={t('Close this row', 'إغلاق هذا السطر')}>
+            <Button variant="ghost" size="icon-sm" onClick={() => setParams({}, { replace: true })} aria-label={t('Close this row', 'إغلاق هذا السطر')}>
               <X aria-hidden />
             </Button>
           </div>
@@ -489,7 +494,7 @@ export default function CloseTheLoop() {
         )}
         actions={
           canCreateCampaign && (
-            <Button variant="outline" size="sm" className="h-9" onClick={() => setCreatingCampaign(true)}>
+            <Button variant="outline" size="sm" onClick={() => setCreatingCampaign(true)}>
               <Plus aria-hidden />
               {t('Create campaign', 'إنشاء حملة')}
             </Button>
@@ -505,10 +510,10 @@ export default function CloseTheLoop() {
             {campaigns.map((c) => {
               const status = CAMPAIGN_STATUS[c.status] ?? { label: { en: c.status, ar: c.status }, tone: 'neutral' as const }
               return (
-                <li key={c.id} className="flex min-w-0 flex-col gap-1.5 rounded-lg border bg-muted/30 p-4">
+                <li key={c.id} className="well flex min-w-0 flex-col gap-1.5">
                   <div className="flex items-start justify-between gap-2">
-                    <span className="inline-flex items-center gap-2 text-sm font-semibold">
-                      <Bot aria-hidden className="size-4 text-primary" />
+                    <span className="t-ui-strong inline-flex items-center gap-2">
+                      <Bot aria-hidden className="size-4 text-muted-foreground" />
                       {L(c.name)}
                     </span>
                     <StatusBadge tone={status.tone} dot>
@@ -516,7 +521,7 @@ export default function CloseTheLoop() {
                     </StatusBadge>
                   </div>
                   <span className="text-sm text-muted-foreground">
-                    {L(c.segmentDescription)} · <span className="tabular-nums">{c.memberIds.length}</span> {t('members', 'عضو')}
+                    {L(c.segmentDescription)} · <span className="tabular">{c.memberIds.length}</span> {t('members', 'عضو')}
                   </span>
                   {(() => {
                     // KB §7: results come back as the same reason codes; people the
@@ -525,9 +530,9 @@ export default function CloseTheLoop() {
                     const coded = members.filter((i) => i.reasonCode).length
                     const toHuman = members.filter((i) => i.outcome === 'callback_requested').length
                     return (
-                      <span className="text-sm">
-                        {t('Coded results', 'نتائج مرمّزة')}: <span className="font-medium tabular-nums">{coded}</span> ·{' '}
-                        {t('Handed to a human', 'حُوّلوا إلى شخص')}: <span className="font-medium tabular-nums">{toHuman}</span>
+                      <span className="text-sm text-muted-foreground">
+                        {t('Coded results', 'نتائج مرمّزة')}: <span className="tabular font-medium text-foreground">{coded}</span> ·{' '}
+                        {t('Handed to a human', 'حُوّلوا إلى شخص')}: <span className="tabular font-medium text-foreground">{toHuman}</span>
                       </span>
                     )
                   })()}
@@ -540,7 +545,7 @@ export default function CloseTheLoop() {
 
       <p className="text-sm text-muted-foreground">
         {t('Calling hours, attempts and the working week are configuration:', 'ساعات الاتصال والمحاولات وأسبوع العمل إعدادات:')}{' '}
-        <Link to="/settings/rules" className="text-primary underline underline-offset-4">
+        <Link to="/settings/rules" className="text-foreground underline underline-offset-4">
           {t('Settings → Rules as configuration', 'الإعدادات ← القواعد كإعدادات')}
         </Link>
       </p>
@@ -582,9 +587,7 @@ export default function CloseTheLoop() {
 function NumberField({ id, label, value, min, max, onChange }: { id: string; label: string; value: number; min: number; max?: number; onChange: (v: number) => void }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <Label htmlFor={id} className="text-xs text-muted-foreground">
-        {label}
-      </Label>
+      <Label htmlFor={id}>{label}</Label>
       <Input
         id={id}
         type="number"
@@ -593,7 +596,7 @@ function NumberField({ id, label, value, min, max, onChange }: { id: string; lab
         max={max}
         value={value}
         onChange={(e) => onChange(Math.max(min, Number(e.target.value) || min))}
-        className="h-9 tabular-nums"
+        className="tabular h-9"
       />
     </div>
   )

@@ -98,7 +98,7 @@ test.describe('the Trace card walks the chain both ways', () => {
     await expect(page).toHaveURL(new RegExp(`/customers/p-\\d+\\?ev=${evId}`))
     const row = page.locator(`li[data-ev="${evId}"]`)
     await expect(row).toHaveAttribute('data-highlighted', 'true', { timeout: 15_000 })
-    await expect(row.locator('xpath=.//span[contains(@class,"font-mono")]').first()).toContainText(evId)
+    await expect(row.locator('[data-slot="trace-id"]').first()).toContainText(evId)
   })
 
   test('a timeline row carries its EV tag and an SG button for each signal it produced', async ({ page }) => {
