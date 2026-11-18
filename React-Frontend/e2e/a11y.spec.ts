@@ -66,6 +66,7 @@ test.describe('axe — login and overlays', () => {
     await expectPageReady(page); await waitForAnimations(page)
     await page.getByRole('button', { name: /assistant/i }).first().click()
     await expect(page.getByRole('dialog')).toBeVisible()
+    await waitForAnimations(page)
     const violations = blocking(await scan(page))
     expect(violations, JSON.stringify(violations, null, 2)).toEqual([])
   })

@@ -70,7 +70,7 @@ export async function waitForAnimations(page: Page) {
         return iterations === Infinity || a.playState !== 'running'
       }) &&
       // motion also drives some fades from JS via inline opacity; wait for those to land.
-      [...document.querySelectorAll<HTMLElement>('main [style*="opacity"]')].every((el) => {
+      [...document.querySelectorAll<HTMLElement>('main [style*="opacity"], [role="dialog"] [style*="opacity"]')].every((el) => {
         const o = Number.parseFloat(el.style.opacity)
         return Number.isNaN(o) || o === 0 || o === 1
       }),

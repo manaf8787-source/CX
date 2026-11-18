@@ -60,7 +60,9 @@ test.describe('reduced motion', () => {
         .filter((a) => a.playState === 'running')
         .filter((a) => {
           const effect = a.effect as KeyframeEffect | null
-          return !!effect?.getKeyframes().some((k) => 'transform' in k || 'translate' in k || 'scale' in k)
+          // The reduced-motion stylesheet collapses durations to 0.01 ms; that is not motion.
+          const duration = Number(effect?.getTiming().duration ?? 0)
+          return duration > 1 && !!effect?.getKeyframes().some((k) => 'transform' in k || 'translate' in k || 'scale' in k)
         }).length,
     )
     expect(moving).toBe(0)

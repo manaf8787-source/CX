@@ -191,6 +191,7 @@ export default function CloseTheLoop() {
               min={min}
               max={max}
               placeholder={`${min}–${max}`}
+              dir="ltr"
               aria-label={t(`Second score (${min} to ${max})`, `النتيجة الثانية (${min} إلى ${max})`)}
               className="h-9 w-20"
               value={resurveyDraft[i.id] ?? ''}
