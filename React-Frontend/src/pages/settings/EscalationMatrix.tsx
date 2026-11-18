@@ -103,16 +103,19 @@ function MatrixCell({ product, row, field, canEdit }: { product: ProductId; row:
   const save = useSaveMatrixCell()
   const hours = field === 'respondH' || field === 'resolveH'
   const stored = cellText(row.cells[field], lang)
-  const [draft, setDraft] = useState<string | null>(null)
-  const shown = draft ?? stored
+  // What is typed. It stays on screen after a save until the stored value arrives (then `base` no longer matches and it falls away).
+  const [edit, setEdit] = useState<{ text: string; base: string } | null>(null)
+  const shown = edit && edit.base === stored ? edit.text : stored
   const columnLabel = MATRIX_COPY.columns[field][lang]
   const label = `${row.label[lang]} · ${columnLabel}`
 
   function commit() {
-    if (draft === null) return
-    const text = draft.trim()
-    setDraft(null)
-    if (text === stored) return
+    if (!edit || edit.base !== stored) return
+    const text = edit.text.trim()
+    if (text === stored) {
+      setEdit(null)
+      return
+    }
     let value: string | number | null
     if (hours) {
       if (text === '') value = null
@@ -140,11 +143,11 @@ function MatrixCell({ product, row, field, canEdit }: { product: ProductId; row:
           inputMode={hours ? 'numeric' : undefined}
           placeholder="–"
           value={shown}
-          onChange={(e) => setDraft(e.target.value)}
+          onChange={(e) => setEdit({ text: e.target.value, base: stored })}
           onBlur={commit}
           onKeyDown={(e) => {
             if (e.key === 'Enter') e.currentTarget.blur()
-            if (e.key === 'Escape') setDraft(null)
+            if (e.key === 'Escape') setEdit(null)
           }}
           className={cn('h-9', hours && 'w-24 tabular-nums')}
         />

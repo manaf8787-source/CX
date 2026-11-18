@@ -107,7 +107,7 @@ function BrandPanel() {
         transition={{ delay: 0.45, duration: DURATION.slow }}
         className="relative hidden text-sm text-sidebar-muted-foreground lg:block"
       >
-        {t('Prototype v38 · sample data only', 'نموذج أولي الإصدار 38 · بيانات نموذجية فقط')}
+        {t('Prototype v40 · sample data only', 'نموذج أولي الإصدار 40 · بيانات نموذجية فقط')}
       </m.p>
     </section>
   )
@@ -181,7 +181,10 @@ export default function Login() {
       >
         <input type="radio" value={r.id} className="sr-only" {...register('role')} disabled={phase !== 'idle'} />
         <span className="text-sm font-semibold">{L(r.name)}</span>
-        <span className="line-clamp-2 text-xs text-muted-foreground">{L(r.description)}</span>
+        {/* The full description is the card's tooltip and, once the card is chosen, the line under the cards; the card clamps it to four lines. */}
+        <span title={L(r.description)} className="line-clamp-4 text-xs text-muted-foreground">
+          {L(r.description)}
+        </span>
         <AnimatePresence>
           {isSelected && (
             <m.span
@@ -226,8 +229,8 @@ export default function Login() {
                   aria-busy={phase !== 'idle'}
                 >
                   <div className="flex flex-col gap-1.5">
-                    <h1 className="text-2xl font-semibold tracking-tight">{t('Sign in', 'تسجيل الدخول')}</h1>
-                    <p className="text-muted-foreground">{t('Choose a role to see the portal the way that role sees it.', 'اختر دوراً لترى البوابة كما يراها ذلك الدور.')}</p>
+                    <h1 className="text-2xl font-semibold tracking-tight">{L(SIGN_IN_COPY.title)}</h1>
+                    <p className="text-muted-foreground">{L(SIGN_IN_COPY.note)}</p>
                   </div>
 
                   <div role="note" className="flex gap-3 rounded-lg border border-info/30 bg-info/10 p-3 text-sm text-info-text">
@@ -243,10 +246,10 @@ export default function Login() {
 
                   <fieldset className="flex min-w-0 flex-col gap-3" aria-invalid={!!errors.role} aria-describedby={errors.role ? 'role-error' : undefined}>
                     <legend className="mb-3 text-sm font-medium lg:mb-2">{t('Sign in as', 'تسجيل الدخول بصفة')}</legend>
-                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">{MAIN_ROLES.map(roleCard)}</div>
+                    <div data-group="main-roles" className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">{MAIN_ROLES.map(roleCard)}</div>
                     <details className="group/other rounded-xl border bg-card px-3 py-2" open={FOLDED_ROLE_IDS.includes(selected as RoleId) || undefined}>
                       <summary className="cursor-pointer text-sm font-medium outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50">{L(SIGN_IN_COPY.otherRoles)}</summary>
-                      <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">{FOLDED_ROLES.map(roleCard)}</div>
+                      <div data-group="other-roles" className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">{FOLDED_ROLES.map(roleCard)}</div>
                     </details>
                     {errors.role && <FieldError id="role-error">{errors.role.message}</FieldError>}
                     <div aria-live="polite" className="min-h-0">
