@@ -29,6 +29,8 @@ export default defineConfig({
   },
   server: {
     port: 5174,
+    // Test runs write builds, reports and traces into the project folder; without this every such file reloads the open page.
+    watch: { ignored: ['**/dist/**', '**/dist-e2e-*/**', '**/playwright-report*/**', '**/test-results*/**', '**/coverage/**'] },
   },
   build: {
     rolldownOptions: {

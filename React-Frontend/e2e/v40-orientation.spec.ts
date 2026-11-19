@@ -255,8 +255,11 @@ test.describe('My inbox (v40 F20)', () => {
 
   test('the Internal Audit and Marketing Lead has the weekly sample on it, and no customer call', async ({ page }) => {
     await open(page, 'auditmkt', '/inbox')
-    await expect(page.locator('main tbody tr')).toHaveCount(1, { timeout: 15_000 })
+    // v42.1 (F33): the two campaign audit rows come with it ("Clear or send back" first, "Audit after the run" last)
+    await expect(page.locator('main tbody tr')).toHaveCount(3, { timeout: 15_000 })
     await expect(page.locator('main tbody tr').filter({ hasText: /Weekly sample: 35 outputs to read, 0 read/ })).toBeVisible()
+    await expect(page.locator('main tbody tr').first()).toContainText('Clear or send back: 2 campaigns waiting before they run')
+    await expect(page.locator('main tbody tr').last()).toContainText('Audit after the run: 2 finished campaigns')
     await expect(page.locator('[data-kind="call"]')).toHaveCount(0)
     expect(await blocking(page)).toEqual([])
   })
