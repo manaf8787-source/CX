@@ -21,7 +21,8 @@ import { IN_CARD, SubPageHeader } from './SubPageHeader'
  * customer receives. A product selector (six products, Real Estate first); on the left the question sets (name, when it
  * fires, how many questions), on the right the phone-style preview in the language of your choice, and below the two
  * languages side by side. Each set that is not confirmed by its product owners (PSI Club, Tour Estate, PSI Events) carries
- * [Proposed] at the set level. A product with no set (PSI Wallet) shows an empty state.
+ * [Proposed] at the set level. PSI Wallet has four sets since v42.3 (F35), one per touchpoint, decided on 19 Nov and so not
+ * [Proposed]. A product with no set shows an empty state.
  *
  * Design: comfortable. The product selector is the segmented tab track; the sets are rows (the chosen one is the dark material); the
  * phone preview is a well holding light-material bubbles with the 6px tail; the two languages are one table in a card.

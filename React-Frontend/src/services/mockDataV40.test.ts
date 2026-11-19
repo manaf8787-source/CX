@@ -282,11 +282,11 @@ describe('the sample has a VIP-related fix (v42 F30)', () => {
 })
 
 describe('survey questions (v40 F23)', () => {
-  it('has the nine sets in both languages; Wallet has none', () => {
-    expect(SURVEY_QUESTION_SETS).toHaveLength(9)
+  it('has the nine v40 sets and the four Wallet sets of v42.3 in both languages', () => {
+    expect(SURVEY_QUESTION_SETS).toHaveLength(13)
     expect(questionSetsFor('re').map((s) => s.id)).toEqual(['nps', 'tx', 'why', 're2'])
     expect(questionSetsFor('af')).toHaveLength(2)
-    expect(questionSetsFor('wl')).toEqual([])
+    expect(questionSetsFor('wl').map((s) => s.id)).toEqual(['setup', 'call', 'addp', 'nps'])
     for (const s of SURVEY_QUESTION_SETS) {
       expect(s.questions.length).toBeGreaterThan(0)
       for (const q of [s.name, s.when, ...s.questions]) expect(q.ar, `${s.product}.${s.id}`).toMatch(/[؀-ۿ]/)
@@ -294,7 +294,7 @@ describe('survey questions (v40 F23)', () => {
     expect(questionSetsFor('to')[0].questions).toHaveLength(6)
   })
 
-  it('marks the not-launched products\' wording [Proposed]', () => {
+  it('marks the wording of PSI Club, Tour Estate and PSI Events [Proposed]; the Wallet\'s was decided on 19 Nov, so it is not', () => {
     for (const s of SURVEY_QUESTION_SETS) expect(Boolean(s.proposed), `${s.product}.${s.id}`).toBe(['cl', 'to', 'ev'].includes(s.product))
   })
 })

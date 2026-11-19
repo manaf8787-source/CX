@@ -254,7 +254,7 @@ test.describe('skip, replay and roles', () => {
     await expect(ring(page)).toBeVisible()
     await next(page)
     await expect(page).toHaveURL(/\/settings\/weekly-sample$/)
-    await heading(page, 'The weekly sample')
+    await heading(page, 'Your part of the weekly sample')
     await expect(ring(page)).toBeVisible({ timeout: 10_000 })
     // v42.1 (F33): the prototype's campaign audit step comes right after it
     await next(page)

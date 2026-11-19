@@ -283,3 +283,19 @@ Where the skill and the product conflict and the product won: items 1, 4, 7 and 
 | `uppercase`, `tracking-` | only section 15 |
 | `accent=` on `KpiTile` | only where the colour means something (a count above zero, a product's own NPS) |
 | Runtime (Playwright, every route x EN/AR x light/dark x 1440/1024/390) | no element with a border width, weights only 400 and 500, Arabic `letter-spacing` 0, no page-level sideways overflow, no element past the viewport edge outside a scroller, no console error |
+
+## 18. Changes of 19 November 2026 (the owner's requests, over the skill)
+
+Full account: `UI_2026-11-19.md`. Each row is Manaf's instruction; where it contradicts the skill, the instruction wins.
+
+| # | Skill, or how it stood on 18 Nov | Since 19 Nov | Where |
+|---|---|---|---|
+| 1 | A well is flat `#f2f2f2`, no shadow | A well is **glass**: the well tone under a diagonal sheen, a white inner rim, a hairline and a soft drop (`--grad-glass`, `--shadow-glass-well`). `glass` is the same material for a block with its own box | `theme.css` `.well`, `@utility glass` |
+| 2 | Soft page margin (22px) round the frame above 1440px | The frame sits flush with the window | `Shell.tsx` |
+| 3 | One spring for state changes | The sidebar opens and closes on `--ease-smooth` (no overshoot), 680ms, words fading in sequence; the tour's frame glides on the same curve | `theme.css`, `Sidebar.tsx`, `TourHost.tsx` |
+| 4 | The system scrollbar wherever a list scrolls | The sidebar menu has no bar; the edge with more fades (`no-scrollbar`, `scroll-fade-y`) | `Sidebar.tsx` |
+| 5 | Our own text mark, a 22px dark tile with "CX" | The owner's CX logo, its orange point going round for ever; `--brand-point` (`#e0592a`) is the logo's colour and appears nowhere else | `BrandLogo.tsx`, `public/favicon.svg` |
+| 6 | Language: a pill naming the other language. Theme: an icon button with a menu | Two segmented switches (the skill's own control): the dark key is the state | `LangSwitch.tsx`, `ThemeSwitch.tsx`, `ui/segmented.tsx` (`compact`) |
+| 7 | Brand row: "PSI CX Portal" and a version line | "CX Portal", no version line | `Sidebar.tsx` |
+
+These rows replace earlier lines of this document, which are kept above as the 18 Nov record: section 4 (the `well` row: "no shadow"), section 11 (the framed variant's 22px padding; the brand row's text mark, "PSI CX Portal" and caption) and section 15 (the `text-[9px]` exception for the brand tile, which no longer exists). Deviation 2 of section 16 stands: ink is still the interface colour, and the logo's orange is not used as an accent.

@@ -174,11 +174,75 @@ describe('Survey questions (v40 F23)', () => {
     expect(within(tour).getByText('[Proposed]')).toBeInTheDocument()
   })
 
-  it('a product with no set (PSI Wallet) shows an empty state', async () => {
+  it('PSI Wallet (v42.3 F35) has four sets, one per touchpoint, decided on 19 Nov and so without [Proposed]', async () => {
     renderWithProviders(<SurveyQuestions />, { role: 'cxmgr' })
     await screen.findByRole('list', { name: 'Question sets' }, T)
     await userEvent.click(screen.getByRole('tab', { name: 'PSI Wallet' }))
-    expect(await screen.findByText('No question set for this product yet.')).toBeInTheDocument()
+    const sets = await screen.findByRole('list', { name: 'Question sets' })
+    const buttons = within(sets).getAllByRole('button')
+    const names = ['CES after the wallet is created', 'CSAT after the call with the advisor', 'CES after a property is added', 'NPS on the Dashboard, 30 days after']
+    expect(buttons).toHaveLength(4)
+    names.forEach((name, i) => expect(buttons[i]).toHaveTextContent(name))
+    expect(within(sets).queryByText('[Proposed]')).not.toBeInTheDocument()
+    expect(screen.getByText('4 sets, one per moment')).toBeInTheDocument()
+    expect(screen.queryByText('No question set for this product yet.')).not.toBeInTheDocument()
+    // the first set is chosen: when it fires, then the rating, the optional comment and the follow-up a low score opens
+    expect(buttons[0]).toHaveAttribute('aria-pressed', 'true')
+    expect(buttons[0]).toHaveTextContent('Screen 12 to 13, once. Onboarding is a seven-step task: effort matters, satisfaction tells less · 3 questions')
+    const preview = screen.getByRole('figure', { name: 'Preview of the survey on a phone' })
+    const lines = within(preview).getAllByRole('listitem').map((li) => li.textContent)
+    expect(lines).toEqual(['1.The wallet was easy to set up. (1 strongly disagree to 7 strongly agree)', '2.Optional: anything you would like to add?', '3.If 4 or less: What went wrong? (short text)'])
+    // the NPS sits on the Dashboard, never at a touchpoint: two questions, no follow-up line
+    await userEvent.click(buttons[3])
+    expect(buttons[3]).toHaveTextContent('only if it holds at least one property, then yearly. Never at a touchpoint; shares the 90-day cap with the Real Estate NPS · 2 questions')
+    expect(within(preview).getAllByRole('listitem')).toHaveLength(2)
+    expect(within(preview).getByText(/How likely are you to recommend the PSI Wallet to another investor\? \(0 to 10\)/)).toBeInTheDocument()
+  })
+
+  it('the Wallet call set: CSAT 1 to 5 fired by the advisor\'s "call done" in the CRM, a low score notifies the advisor team; both languages', async () => {
+    renderWithProviders(<SurveyQuestions />, { role: 'cxmgr' })
+    await screen.findByRole('list', { name: 'Question sets' }, T)
+    await userEvent.click(screen.getByRole('tab', { name: 'PSI Wallet' }))
+    const sets = await screen.findByRole('list', { name: 'Question sets' })
+    const call = within(sets).getByRole('button', { name: /CSAT after the call with the advisor/ })
+    await userEvent.click(call)
+    expect(call).toHaveTextContent("Fires when the advisor marks the call done in the CRM (not on the app's Request a call button), within 2 hours.")
+    const preview = screen.getByRole('figure', { name: 'Preview of the survey on a phone' })
+    expect(within(preview).getByText(/How satisfied were you with your call with your advisor\? \(1 to 5\)/)).toBeInTheDocument()
+    expect(within(preview).getByText(/If 3 or less: What went wrong\? \(short text\), and the advisor team is notified/)).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'العربية' }))
+    expect(preview).toHaveAttribute('dir', 'rtl')
+    expect(within(preview).getByText(/ما مدى رضاك عن مكالمتك مع مستشارك؟ \(1 إلى 5\)/)).toBeInTheDocument()
+    const table = screen.getByRole('table')
+    expect(within(table).getAllByRole('row')).toHaveLength(4)
+    expect(within(table).getByText('If 3 or less: What went wrong? (short text), and the advisor team is notified')).toBeInTheDocument()
+    expect(within(table).getByText('إذا كانت 3 أو أقل: ما الذي حدث؟ (نص قصير)، ويُبلَّغ فريق المستشارين')).toBeInTheDocument()
+  })
+
+  it('the Wallet sets in Arabic', async () => {
+    renderWithProviders(<SurveyQuestions />, { role: 'cxmgr', lang: 'ar' })
+    await screen.findByRole('list', { name: 'مجموعات الأسئلة' }, T)
+    await userEvent.click(screen.getByRole('tab', { name: 'محفظة بي إس آي' }))
+    const sets = await screen.findByRole('list', { name: 'مجموعات الأسئلة' })
+    const buttons = within(sets).getAllByRole('button')
+    const names = ['CES بعد إنشاء المحفظة', 'CSAT بعد المكالمة مع المستشار', 'CES بعد إضافة عقار', 'NPS على لوحة المعلومات بعد 30 يوماً']
+    names.forEach((name, i) => expect(buttons[i]).toHaveTextContent(name))
+    expect(buttons[2]).toHaveTextContent('الشاشة 51 (ما التالي)، مرة لكل إضافة؛ تُوسم الإجابة فردي أو جماعي وتحمل عدد العقارات · 3 أسئلة')
+    expect(within(sets).queryByText('[مقترح]')).not.toBeInTheDocument()
+  })
+
+  it('a product with no set shows an empty state', async () => {
+    // since v42.3 every product has a set: take the Wallet's out of the sample for this test, then put them back
+    const wallet = mock.MOCK_QUESTION_SETS.filter((s) => s.product === 'wl')
+    mock.MOCK_QUESTION_SETS.splice(0, mock.MOCK_QUESTION_SETS.length, ...mock.MOCK_QUESTION_SETS.filter((s) => s.product !== 'wl'))
+    try {
+      renderWithProviders(<SurveyQuestions />, { role: 'cxmgr' })
+      await screen.findByRole('list', { name: 'Question sets' }, T)
+      await userEvent.click(screen.getByRole('tab', { name: 'PSI Wallet' }))
+      expect(await screen.findByText('No question set for this product yet.')).toBeInTheDocument()
+    } finally {
+      mock.MOCK_QUESTION_SETS.push(...wallet)
+    }
   })
 
   it('After-Sales (live) carries the note that the re-survey rule applies to it too', async () => {

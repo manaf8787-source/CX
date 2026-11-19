@@ -87,7 +87,7 @@ describe('tour data', () => {
 
   it('the Internal Audit and Marketing Lead’s tour has the Campaign audit step right after the weekly sample, from the prototype (v42.1 F33)', () => {
     const steps = tourStepsFor('auditmkt')
-    expect(steps.map((s) => s.title.en)).toEqual(['Your daily brief', 'Data feeds', 'The weekly sample', 'Campaign audit', 'That is the whole portal'])
+    expect(steps.map((s) => s.title.en)).toEqual(['Your daily brief', 'Data feeds', 'Your part of the weekly sample', 'Campaign audit', 'That is the whole portal'])
     const step = steps[3]
     expect(step).toMatchObject({ route: '/settings/campaign-audit', target: '[data-tour="campaign-audit"]' })
     expect(step.title).toEqual({ en: 'Campaign audit', ar: 'تدقيق الحملات' })

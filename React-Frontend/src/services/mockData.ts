@@ -807,7 +807,8 @@ function buildProductSurveyMoments(): ProductSurveyMoments[] {
     { product: 'cl', hasNps: true, momentsSummary: { en: 'Club leads ride the Real Estate journey with a VIP tag; members get a member NPS at the end of a nomination cycle.', ar: 'يسير عملاء النادي المحتملون ضمن رحلة العقارية بعلامة كبار الشخصيات؛ ويحصل الأعضاء على مؤشر NPS خاص بالعضوية في نهاية دورة الترشيح.' } },
     { product: 'to', hasNps: true, momentsSummary: { en: 'End-of-tour survey only, after a completed tour (driver, guide, ride, car, cleanliness, then NPS). The stop survey goes to the commercial team, not the portal.', ar: 'استبيان نهاية الجولة فقط، بعد جولة مكتملة (السائق، المرشد، الرحلة، السيارة، النظافة، ثم NPS). استبيان التوقف يذهب للفريق التجاري، وليس للبوابة.' } },
     { product: 'ev', hasNps: false, momentsSummary: { en: 'No NPS: an external QR rating at the booth and an internal staff evaluation.', ar: 'لا يوجد مؤشر NPS: تقييم خارجي عبر رمز QR عند الجناح وتقييم داخلي للموظفين.' } },
-    { product: 'wl', hasNps: false, momentsSummary: { en: 'Pilot: CES after a failed or completed upload, plus a draft investor survey.', ar: 'تجريبي: CES بعد رفع ملف فاشل أو ناجح، بالإضافة إلى استبيان مستثمرين مسودة.' } },
+    // v42.3 (F35): the Wallet review of 19 Nov replaced the pilot line; the sentence is the Modules KB's, the Arabic is put together from the prototype's own wording (docs/V42_WALLET.md).
+    { product: 'wl', hasNps: true, momentsSummary: { en: 'One question per touchpoint: CES after the wallet is created, CSAT after the call with the advisor, CES after a property is added. NPS only on the Dashboard about 30 days after, then yearly.', ar: 'سؤال واحد لكل نقطة تماس: CES بعد إنشاء المحفظة، CSAT بعد المكالمة مع المستشار، CES بعد إضافة عقار. NPS فقط على لوحة المعلومات بعد نحو 30 يوماً من إنشاء المحفظة ثم سنوياً.' } },
   ]
 }
 

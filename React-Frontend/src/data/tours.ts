@@ -234,8 +234,12 @@ const auditFeeds: TourStep = {
 const auditSample: TourStep = {
   route: '/settings/weekly-sample',
   target: '[data-tour="sample"]',
-  title: bi('The weekly sample', 'العينة الأسبوعية'),
-  text: bi('Fifty outputs, right or wrong. A wrong becomes a test for the supervisor.', 'خمسون مخرجاً، صح أو خطأ. الخطأ يصبح اختباراً للسوبرفايزر.'),
+  // v42.1: the prototype's wording since the sample was split by reader (it said "Fifty outputs, right or wrong").
+  title: bi('Your part of the weekly sample', 'جزؤك من العينة الأسبوعية'),
+  text: bi(
+    'You do not approve fixes. You check that the AI followed the rules: routing by the matrix, classification against the evidence, access, targeting. Right or wrong; a wrong becomes a test for the supervisor.',
+    'أنت لا تعتمد الحلول. تتحقق أن الذكاء اتّبع القواعد: التوجيه بالمصفوفة، التصنيف مقابل الدليل، الصلاحيات، الاستهداف. صح أو خطأ؛ الخطأ يصبح اختباراً للسوبرفايزر.',
+  ),
 }
 
 /** v42.1 (F33): the prototype's fourth step for the Internal Audit and Marketing Lead, after the weekly sample (its `.main .card table` is the checks card here). */

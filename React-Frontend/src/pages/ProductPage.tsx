@@ -5,9 +5,11 @@ import { useI18n } from '@/i18n'
 import { useRole } from '@/auth/RoleContext'
 import { useLeadFunnel, useProducts, useVocRows } from '@/services/queries'
 import { useProductSurveyRules } from '@/services/referenceQueries'
-import { CES_SAMPLE, PRODUCT_COVERAGE, WALLET_COMPLAINT_TYPES } from '@/data/v38Reference'
+import { CES_SAMPLE, PRODUCT_COVERAGE, WALLET_COMPLAINT_TYPES, WALLET_SIGNALS_NO_SURVEY } from '@/data/v38Reference'
 import type { ProductId, VocRow } from '@/types'
 import { Button } from '@/components/ui/button'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { IN_CARD } from '@/pages/settings/SubPageHeader'
 import { PageHeader } from '@/components/common/PageHeader'
 import { KpiTile } from '@/components/common/KpiTile'
 import { SectionCard } from '@/components/common/SectionCard'
@@ -171,6 +173,28 @@ export default function ProductPage() {
             ))}
           </dl>
           <p className="t-body-s mt-4">{L(rule.sources)}</p>
+        </SectionCard>
+      )}
+
+      {/* v42.4 (F35): the Wallet's moments that become a signal with nothing asked of the investor. Wallet page only. */}
+      {product.id === 'wl' && (
+        <SectionCard title={L(WALLET_SIGNALS_NO_SURVEY.title)} description={L(WALLET_SIGNALS_NO_SURVEY.hint)} contentClassName={IN_CARD}>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{L(WALLET_SIGNALS_NO_SURVEY.moment)}</TableHead>
+                <TableHead>{L(WALLET_SIGNALS_NO_SURVEY.signal)}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {WALLET_SIGNALS_NO_SURVEY.rows.map((r) => (
+                <TableRow key={r.moment.en}>
+                  <TableCell className="align-top font-medium whitespace-normal text-foreground">{L(r.moment)}</TableCell>
+                  <TableCell className="align-top whitespace-normal">{L(r.signal)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </SectionCard>
       )}
     </div>

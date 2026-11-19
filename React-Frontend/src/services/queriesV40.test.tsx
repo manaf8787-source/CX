@@ -335,12 +335,22 @@ describe('registers: mapping, matrix, questions, sample, mentions, no answer', (
     await expect(result.current.save.mutateAsync({ product: 're', kind: 'vip' as never, field: 'respondH', value: 1 })).rejects.toThrow('Matrix row not found')
   })
 
-  it('lists question sets per product, empty for a product with none', async () => {
+  it('lists question sets per product (the Wallet has four since v42.3), empty for a product with none', async () => {
     const { result } = renderHookWithProviders(() => ({ re: useQuestionSets('re'), wl: useQuestionSets('wl'), all: useQuestionSets() }))
     await waitFor(() => ready(result.current.all))
     expect(result.current.re.data).toHaveLength(4)
-    expect(result.current.all.data).toHaveLength(9)
-    await waitFor(() => expect(result.current.wl.data).toEqual([]))
+    expect(result.current.all.data).toHaveLength(13)
+    await waitFor(() => expect(result.current.wl.data?.map((s) => s.id)).toEqual(['setup', 'call', 'addp', 'nps']))
+    // every product has a set now: empty the Wallet's in the sample to keep the empty answer covered, then put them back
+    const wallet = mock.MOCK_QUESTION_SETS.filter((s) => s.product === 'wl')
+    const others = mock.MOCK_QUESTION_SETS.filter((s) => s.product !== 'wl')
+    mock.MOCK_QUESTION_SETS.splice(0, mock.MOCK_QUESTION_SETS.length, ...others)
+    try {
+      await act(() => result.current.wl.refetch())
+      await waitFor(() => expect(result.current.wl.data).toEqual([]))
+    } finally {
+      mock.MOCK_QUESTION_SETS.push(...wallet)
+    }
   })
 
   it('judges the weekly sample: a verdict counts as read, wrong counts as a test, accuracy follows', async () => {
