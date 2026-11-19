@@ -73,9 +73,10 @@
   --grad-muted-fill: linear-gradient(180deg, #ececec, #767676); /* non-hero chart bars, used at 62% opacity */
   --grad-shine: linear-gradient(180deg, rgba(255, 255, 255, 0.28), transparent);
   /* glass (owner's request, 19 Nov): the fill of a well. A sheet of frosted glass over the well tone: bright at the top lip, clearer below. */
-  --grad-glass: linear-gradient(180deg, rgba(255, 255, 255, 0.86) 0%, rgba(255, 255, 255, 0.42) 46%, rgba(255, 255, 255, 0.2) 100%);
-  --glass-rim: rgba(255, 255, 255, 0.9); /* the inner 1px rim of the glass */
-  --glass-drop: rgba(0, 0, 0, 0.07); /* the soft shadow the glass throws */
+  --grad-glass: linear-gradient(145deg, rgba(255, 255, 255, 0.94) 0%, rgba(255, 255, 255, 0.55) 36%, rgba(255, 255, 255, 0.06) 100%); /* light falls from the top corner */
+  --glass-rim: rgba(255, 255, 255, 0.8); /* the inner 1px rim of the glass */
+  --glass-edge: rgba(0, 0, 0, 0.055); /* its outer hairline, a touch firmer than a card's */
+  --glass-drop: rgba(0, 0, 0, 0.16); /* the soft shadow the glass throws */
   --fill-gloss: linear-gradient(180deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0)); /* overlay on a flat fill colour (progress), derived */
 
   /* -- shadow colours: every shadow stack in @theme is built from these, so .dark re-colours all of them (derived for dark) -- */
@@ -301,9 +302,10 @@
   --grad-badge-light: linear-gradient(180deg, #1f1f1f, #141414);
   --grad-muted-fill: linear-gradient(180deg, #2a2a2a, #8f8f8f);
   --grad-shine: linear-gradient(180deg, rgba(255, 255, 255, 0.16), transparent);
-  --grad-glass: linear-gradient(180deg, rgba(255, 255, 255, 0.075) 0%, rgba(255, 255, 255, 0.03) 46%, rgba(255, 255, 255, 0.01) 100%);
-  --glass-rim: rgba(255, 255, 255, 0.07);
-  --glass-drop: rgba(0, 0, 0, 0.4);
+  --grad-glass: linear-gradient(145deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.04) 36%, rgba(255, 255, 255, 0) 100%);
+  --glass-rim: rgba(255, 255, 255, 0.06);
+  --glass-edge: rgba(255, 255, 255, 0.07);
+  --glass-drop: rgba(0, 0, 0, 0.55);
   --fill-gloss: linear-gradient(180deg, rgba(255, 255, 255, 0), rgba(0, 0, 0, 0.18));
 
   --sh-hi: rgba(255, 255, 255, 0.08);
@@ -399,8 +401,8 @@
   --shadow-popover: 0 0 0 1px var(--sh-edge), 0 3px 4px var(--sh-drop), 0 7px 9px var(--sh-drop), 0 12px 16px var(--sh-drop), 0 18px 24px var(--sh-drop), 0 30px 48px var(--sh-drop);
   --shadow-floating: inset 0 1px 1px var(--sh-hi), inset 0 -1px 1px var(--sh-inner), 0 0 0 1px var(--sh-edge), 0 2px 4px var(--sh-drop), 0 8px 16px var(--sh-drop), 0 18px 32px var(--sh-d-drop);
   --shadow-toast: inset 0 1px 1px var(--sh-hi), 0 0 0 1px var(--sh-edge), 0 3px 4px var(--sh-drop), 0 12px 16px var(--sh-drop), 0 30px 48px var(--sh-drop-lg);
-  --shadow-glass-well: inset 0 1px 0 var(--sh-hi), inset 0 0 0 1px var(--glass-rim), 0 0 0 1px var(--sh-edge), 0 1px 1px var(--sh-drop), 0 2px 4px var(--sh-drop), 0 10px 20px -10px var(--glass-drop);
-  --shadow-glass-well-hover: inset 0 1px 0 var(--sh-hi), inset 0 0 0 1px var(--glass-rim), 0 0 0 1px var(--sh-edge), 0 2px 3px var(--sh-drop), 0 6px 10px var(--sh-drop), 0 18px 30px -12px var(--glass-drop);
+  --shadow-glass-well: inset 0 1px 0 var(--sh-hi), inset 0 0 0 1px var(--glass-rim), 0 0 0 1px var(--glass-edge), 0 1px 2px var(--sh-drop), 0 4px 8px -2px var(--sh-drop), 0 14px 24px -12px var(--glass-drop);
+  --shadow-glass-well-hover: inset 0 1px 0 var(--sh-hi), inset 0 0 0 1px var(--glass-rim), 0 0 0 1px var(--glass-edge), 0 2px 3px var(--sh-drop), 0 8px 14px -2px var(--sh-drop), 0 22px 34px -14px var(--glass-drop);
   --shadow-inset-well: inset 0 1px 2px var(--sh-well), inset 0 2px 5px -2px var(--sh-well), 0 1px 0 var(--sh-lip);
   --shadow-inset-track: inset 0 1px 2px var(--sh-track), inset 0 2px 5px -2px var(--sh-well), 0 1px 0 var(--sh-lip);
   /* form fields: the recess plus the documented 1px accessibility ring (still a shadow, not a CSS border) */
@@ -634,6 +636,13 @@
     -webkit-mask-image: linear-gradient(to left, transparent, #000 28px, #000 calc(100% - 28px), transparent);
     mask-image: linear-gradient(to left, transparent, #000 28px, #000 calc(100% - 28px), transparent);
   }
+}
+
+/* The glass material alone (see `.well`): for a block that sets its own padding and radius (the step tiles on Home, a timeline row, a note). */
+@utility glass {
+  background-color: var(--surface-well);
+  background-image: var(--grad-glass);
+  @apply shadow-glass-well;
 }
 
 /* The same for a list that scrolls up and down (the sidebar menu on a short screen): the top or bottom edge fades while more lies beyond it. */
@@ -893,11 +902,9 @@
      frosted sheet, a white inner rim, the hairline and a soft drop, so a box reads as a pane lifted off its card instead of a grey patch. No
      backdrop blur: a well sits on a plain card, so a blur would cost paint time and show nothing. */
   .well {
-    background-color: var(--surface-well);
-    background-image: var(--grad-glass);
+    @apply glass;
     border-radius: var(--well-radius);
     padding: var(--well-pad);
-    @apply shadow-glass-well;
     /* small grey text on a well is --ink-secondary (4.55:1), never --ink-tertiary (4.06:1) */
     --ink-tertiary: var(--ink-secondary);
   }

@@ -73,8 +73,8 @@ const ITEM =
  * the widening column reveals it, while the words fade in one after the other (`--nav-i`). Closing: the words fade, the column narrows, and
  * only then does the rail layout take over (`CLOSE_MS`), where its own two buttons fade in. See `.nav-fade` and `.rail-fade` in theme.css.
  */
-const OPEN_MS = 1000
-const CLOSE_MS = 380
+const OPEN_MS = 1100
+const CLOSE_MS = 440
 const SETTLE_MS = 300
 type Phase = 'opening' | 'closing' | 'settling'
 /** The place of a row in the opening sequence: brand 0, then each label and item, the bottom card last. */
@@ -166,20 +166,19 @@ export function SidebarNavItem({
   )
 }
 
-/** The brand row: the CX logo (its point going round) and the name. A link home; in the rail the logo stands alone and the words stay as screen-reader text, so the name always equals the visible text. */
+/**
+ * The brand row: the CX logo (its point going round), large, and the name beside it. The owner's wording, 19 Nov: no "PSI" and no version
+ * line here. A link home; in the rail the logo stands alone and the name stays as screen-reader text.
+ */
 function Brand({ onNavigate }: { onNavigate?: () => void }) {
-  const { t } = useI18n()
   return (
     <NavLink
       to="/home"
       onClick={onNavigate}
-      className="flex min-w-0 items-center gap-2.5 rounded-md px-2 py-1 outline-hidden group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
+      className="flex min-h-9 min-w-0 items-center gap-2.5 rounded-md px-2 py-1 outline-hidden group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
     >
-      <BrandLogo decorative className="h-[18px] group-data-[collapsible=icon]:h-4" />
-      <span className="nav-fade flex min-w-0 flex-col leading-tight group-data-[collapsible=icon]:sr-only">
-        <span className="t-h4 truncate">PSI CX Portal</span>
-        <span className="truncate text-xs text-muted-foreground">{t('v42 · prototype', 'الإصدار 42 · نموذج أولي')}</span>
-      </span>
+      <BrandLogo decorative className="h-[26px] group-data-[collapsible=icon]:h-[17px]" />
+      <span className="nav-fade t-h4 min-w-0 truncate group-data-[collapsible=icon]:sr-only">CX Portal</span>
     </NavLink>
   )
 }
@@ -294,7 +293,8 @@ function NavBody({ variant, groups, toggle, onClose, onNavigate, onReplay }: Nav
         {groups.map((group, g) => (
           <SidebarGroup key={group.key} className="static p-0">
             {/* a short screen (a laptop at 125%): less air above each label, so the whole menu fits more often */}
-            <SidebarGroupLabel style={step(starts[g])} className="nav-fade [@media(max-height:719px)]:pt-2">
+            {/* (the rail keeps its own spacing: its hidden labels pull the icons together by a fixed amount) */}
+            <SidebarGroupLabel style={step(starts[g])} className="nav-fade [@media(max-height:719px)]:pt-2 group-data-[collapsible=icon]:[@media(max-height:719px)]:pt-3.5">
               {group.label}
             </SidebarGroupLabel>
             <SidebarGroupContent>

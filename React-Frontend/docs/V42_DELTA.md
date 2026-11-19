@@ -39,3 +39,7 @@ Replaces the table as the default view (keep the table behind "See all as a list
 - One question per kind (exact texts in KB section 13) and three answers: Yes, I would do the same / No, that is wrong / Not sure, skip for now; CX roles also get "Open the fix" or "Open the signal".
 - Counter "n / N checked this week · k marked wrong · due Thursday"; an "All done" card at the end.
 - Reader split (F32) unchanged. Prototype reference `v32.js` (`wsEvidence`, `wsQuestion`).
+
+## F35 · PSI Wallet survey moments (19 Nov, first-release review)
+
+Survey questions → PSI Wallet now has four sets: `setup` (CES 1–7 after the wallet is created, screens 12→13), `call` (CSAT 1–5 after the advisor call, screen 48), `addp` (CES 1–7 after a property is added, screen 51, answer tagged single|bulk), `nps` (Dashboard, screen 13, ~30 days after creation, then yearly). One rating + one optional comment per touchpoint, never two questions. Follow-up by score: CES ≤ 4 or CSAT ≤ 3 opens a short "What went wrong?"; a low call score also raises a notification to the advisor team (route as a service signal to the Account manager lead per the matrix). High scores: thank-you only. The Wallet product page "When this product asks" reads from the same data. Prototype reference `v33.js`.

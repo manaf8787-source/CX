@@ -115,7 +115,7 @@ function Segmented<T extends string>({
                 ? "aria-pressed:text-primary-foreground aria-pressed:hover:text-primary-foreground group-data-[indicator=off]/segmented:aria-pressed:material-dark"
                 : "aria-checked:text-primary-foreground aria-checked:hover:text-primary-foreground group-data-[indicator=off]/segmented:aria-checked:material-dark",
               size === "page" ? "min-h-10 px-4 pt-1.5 pb-2 text-base" : "min-h-[29px] px-[13px] pt-[5px] pb-[7px] leading-[17px]",
-              compact && "min-w-[34px] px-[9px] [&_svg]:size-4"
+              compact && "min-w-[30px] px-2 [&_svg]:size-4"
             )}
           >
             {option.label}

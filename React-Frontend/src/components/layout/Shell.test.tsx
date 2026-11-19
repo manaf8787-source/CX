@@ -82,22 +82,54 @@ describe('Shell landmarks and skip link', () => {
   })
 })
 
+describe('Sidebar brand and menu (owner\'s requests, 19 Nov)', () => {
+  it('shows the CX logo and the name "CX Portal": no "PSI" and no version line', () => {
+    renderShell()
+    const nav = screen.getByRole('navigation', { name: 'Main navigation' })
+    const brand = within(nav).getByRole('link', { name: 'CX Portal' })
+    expect(brand).toHaveAttribute('href', '/home')
+    expect(brand.querySelector('[data-slot="brand-logo"]')).toHaveAttribute('data-animated', 'true')
+    expect(nav).not.toHaveTextContent('PSI CX Portal')
+    expect(nav).not.toHaveTextContent(/v\d+ · prototype/)
+  })
+
+  it('the menu scrolls without the system scrollbar and fades the edge that has more', () => {
+    renderShell()
+    const scroller = document.querySelector('[data-slot="sidebar-content"]')!
+    expect(scroller).toHaveClass('no-scrollbar', 'scroll-fade-y')
+  })
+
+  it('the words of the menu carry their place in the opening sequence, top to bottom', () => {
+    renderShell()
+    const nav = screen.getByRole('navigation', { name: 'Main navigation' })
+    const order = [...nav.querySelectorAll<HTMLElement>('.nav-fade')].map((el) => el.style.getPropertyValue('--nav-i')).filter((v) => v !== '')
+    expect(order.length).toBeGreaterThan(6)
+    expect(order.map(Number)).toEqual([...order.map(Number)].sort((a, b) => a - b))
+  })
+})
+
 describe('Sidebar rail', () => {
   it('collapses to the 56px rail, remembers it, and restores it on the next visit', async () => {
     const { unmount } = renderShell()
     const nav = () => screen.getByRole('navigation', { name: 'Main navigation' })
     expect(nav()).toHaveAttribute('data-collapsible', '')
     await userEvent.click(screen.getByRole('button', { name: 'Collapse sidebar' }))
-    expect(nav()).toHaveAttribute('data-collapsible', 'icon')
+    // the state is immediate; the rail LAYOUT follows once the words have faded (the sidebar closes gradually)
+    expect(nav()).toHaveAttribute('data-state', 'collapsed')
+    expect(nav()).toHaveAttribute('data-phase', 'closing')
     expect(screen.getByRole('button', { name: 'Expand sidebar' })).toHaveAttribute('aria-expanded', 'false')
     expect(localStorage.getItem('psicx.sidebar')).toBe('collapsed')
+    await waitFor(() => expect(nav()).toHaveAttribute('data-collapsible', 'icon'))
+    await waitFor(() => expect(nav()).not.toHaveAttribute('data-phase'))
     // the rail keeps every item reachable by name (tooltips carry the label visually)
     expect(within(nav()).getByRole('link', { name: '1 · Customers' })).toBeInTheDocument()
     unmount()
     renderShell()
     expect(screen.getByRole('navigation', { name: 'Main navigation' })).toHaveAttribute('data-collapsible', 'icon')
     await userEvent.click(screen.getByRole('button', { name: 'Expand sidebar' }))
+    // opening: the expanded layout at once, revealed by the widening column while the words fade in
     expect(screen.getByRole('navigation', { name: 'Main navigation' })).toHaveAttribute('data-collapsible', '')
+    expect(screen.getByRole('navigation', { name: 'Main navigation' })).toHaveAttribute('data-phase', 'opening')
     expect(localStorage.getItem('psicx.sidebar')).toBe('expanded')
   })
 
@@ -107,7 +139,7 @@ describe('Sidebar rail', () => {
       throw new Error('blocked')
     })
     await userEvent.click(screen.getByRole('button', { name: 'Collapse sidebar' }))
-    expect(screen.getByRole('navigation', { name: 'Main navigation' })).toHaveAttribute('data-collapsible', 'icon')
+    await waitFor(() => expect(screen.getByRole('navigation', { name: 'Main navigation' })).toHaveAttribute('data-collapsible', 'icon'))
   })
 })
 
@@ -223,6 +255,7 @@ describe('"How do I use this?" replays the guided tour (v41 F28)', () => {
   it('is an icon with a name in the collapsed rail', async () => {
     renderTourShell()
     await userEvent.click(screen.getByRole('button', { name: 'Collapse sidebar' }))
+    await waitFor(() => expect(screen.getByRole('navigation', { name: 'Main navigation' })).toHaveAttribute('data-collapsible', 'icon'))
     const button = replay()
     expect(button).toHaveTextContent('')
     expect(button.querySelector('svg')).toBeInTheDocument()

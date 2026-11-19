@@ -44,7 +44,8 @@ describe('sample sign-in', () => {
   it('shows the six main roles first and folds the rest under "Other roles used in the demo" (v40 F28)', () => {
     renderWithProviders(<Login />, { route: '/login', path: '/login' })
     const folded = document.querySelector('details')!
-    expect(screen.getAllByRole('radio')).toHaveLength(12)
+    // the twelve roles (the language and theme switches above the card are radio groups of their own)
+    expect(document.querySelectorAll('input[type="radio"]')).toHaveLength(12)
     expect(folded).not.toHaveAttribute('open')
     for (const name of MAIN) expect(folded.contains(radioStartingWith(name)), `${name} is a main role`).toBe(false)
     for (const name of FOLDED) expect(folded.contains(radioStartingWith(name)), `${name} is folded`).toBe(true)

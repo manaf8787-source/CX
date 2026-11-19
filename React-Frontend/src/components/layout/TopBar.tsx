@@ -30,8 +30,8 @@ function HeaderSearch() {
   return (
     <form
       role="search"
-      // phone: second row, beside the tools; from 640px it sits in the bar and takes a share of its width (min 170, max 280)
-      className="relative order-3 min-w-0 flex-1 @min-[640px]/bar:order-none @min-[640px]/bar:ms-auto @min-[640px]/bar:w-[clamp(170px,24cqw,280px)] @min-[640px]/bar:flex-none"
+      // phone: second row, beside the tools; from 640px it sits in the bar and takes a share of its width (min 170, max 240)
+      className="relative order-3 min-w-0 flex-1 @min-[640px]/bar:order-none @min-[640px]/bar:ms-auto @min-[640px]/bar:w-[clamp(170px,22cqw,240px)] @min-[640px]/bar:flex-none"
       onSubmit={(e) => {
         e.preventDefault()
         search(query)

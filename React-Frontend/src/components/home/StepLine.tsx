@@ -39,11 +39,11 @@ export function StepLine({ className }: { className?: string }) {
               )}
             </>
           )
-          const cls = 'flex h-full min-w-0 flex-col gap-0.5 rounded-xl bg-well px-3.5 py-3 text-start outline-hidden transition-colors duration-200'
+          const cls = 'glass flex h-full min-w-0 flex-col gap-0.5 rounded-xl px-3.5 py-3 text-start outline-hidden transition-[background-color,box-shadow] duration-200'
           return (
             <li key={step.id} className="min-w-0">
               {open ? (
-                <Link to={`${step.to}${step.hash ?? ''}`} title={L(step.title)} data-step={step.id} className={cn(cls, 'hover:bg-well-hover')}>
+                <Link to={`${step.to}${step.hash ?? ''}`} title={L(step.title)} data-step={step.id} className={cn(cls, 'hover:bg-well-hover hover:shadow-glass-well-hover')}>
                   {body}
                 </Link>
               ) : (

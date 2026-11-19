@@ -159,7 +159,7 @@ export default function Login() {
         className={cn(
           'group relative flex min-h-14 cursor-pointer flex-col justify-center gap-0.5 rounded-xl px-3.5 py-3 pe-11 text-start transition-[background-color,color] duration-200 ease-out lg:min-h-12 lg:py-2.5',
           'ring-within',
-          isSelected ? 'material-dark' : 'bg-well hover:bg-well-hover',
+          isSelected ? 'material-dark' : 'glass hover:bg-well-hover',
         )}
       >
         <input type="radio" value={r.id} className="sr-only" {...register('role')} disabled={phase !== 'idle'} />

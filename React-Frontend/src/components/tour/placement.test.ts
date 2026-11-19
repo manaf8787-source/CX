@@ -16,8 +16,34 @@ describe('placeCard', () => {
     expect(p.top).toBe(760 - card.height - GAP)
   })
 
-  it('sits on the side with more room, kept on screen, when the element is taller than the screen', () => {
-    const p = placeCard({ target: { top: 40, left: 300, width: 600, height: 1400 }, viewport, card, rtl: false })
+  it('stands beside the element, level with its top, when it fits neither below nor above (a tall card on a short screen)', () => {
+    // the owner's case, 19 Nov: a 283px card of indicators in a 580px window, centred, with a 189px tour card
+    const short = { width: 1265, height: 580 }
+    const tall = { width: 380, height: 189 }
+    const target = { top: 148, left: 200, width: 440, height: 283 }
+    const p = placeCard({ target, viewport: short, card: tall, rtl: false })
+    expect(p).toEqual({ placement: 'side', left: 200 + 440 + GAP, top: 148 })
+    // never on top of what it points at
+    expect(p.left).toBeGreaterThanOrEqual(target.left + target.width)
+  })
+
+  it('beside it: the reading-order end first (left in Arabic), the other side when that one has no room', () => {
+    const short = { width: 1265, height: 580 }
+    const tall = { width: 380, height: 189 }
+    const middle = { top: 148, left: 430, width: 400, height: 283 }
+    expect(placeCard({ target: middle, viewport: short, card: tall, rtl: false }).left).toBe(430 + 400 + GAP)
+    expect(placeCard({ target: middle, viewport: short, card: tall, rtl: true }).left).toBe(430 - GAP - 380)
+    // hard against the right edge: no room after it in English, so it goes before it
+    const atRight = { top: 148, left: 800, width: 440, height: 283 }
+    const p = placeCard({ target: atRight, viewport: short, card: tall, rtl: false })
+    expect(p).toMatchObject({ placement: 'side', left: 800 - GAP - 380 })
+    // a long element scrolled past the top: the card stays on screen
+    const scrolled = placeCard({ target: { top: -300, left: 200, width: 440, height: 1200 }, viewport: short, card: tall, rtl: false })
+    expect(scrolled).toMatchObject({ placement: 'side', top: 8 })
+  })
+
+  it('sits on the element, kept on screen, only when it is as wide and as tall as the screen', () => {
+    const p = placeCard({ target: { top: 40, left: 0, width: 1440, height: 1400 }, viewport, card, rtl: false })
     expect(p.placement).toBe('over')
     expect(p.top).toBeGreaterThanOrEqual(8)
     expect(p.top + card.height).toBeLessThanOrEqual(viewport.height - 8)

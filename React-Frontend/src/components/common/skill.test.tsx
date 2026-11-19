@@ -241,22 +241,45 @@ describe('TermHelp', () => {
 })
 
 describe('ThemeSwitch and LangSwitch', () => {
-  it('ThemeSwitch: choosing Dark puts the dark class on the page', async () => {
+  it('ThemeSwitch: three keys, the one in use checked; one click picks another (19 Nov: it was a menu)', async () => {
     renderWithProviders(<ThemeSwitch />)
-    await userEvent.click(screen.getByRole('button', { name: 'Theme' }))
-    await userEvent.click(await screen.findByRole('menuitemradio', { name: 'Dark' }))
+    const group = screen.getByRole('radiogroup', { name: 'Theme' })
+    expect(within(group).getAllByRole('radio').map((r) => r.getAttribute('aria-label'))).toEqual(['Light', 'Dark', 'Match device'])
+    await userEvent.click(within(group).getByRole('radio', { name: 'Dark' }))
     expect(document.documentElement).toHaveClass('dark')
-    await userEvent.click(screen.getByRole('button', { name: 'Theme' }))
-    await userEvent.click(await screen.findByRole('menuitemradio', { name: 'Light' }))
+    expect(within(group).getByRole('radio', { name: 'Dark' })).toBeChecked()
+    expect(within(group).getByRole('radio', { name: 'Light' })).not.toBeChecked()
+    await userEvent.click(within(group).getByRole('radio', { name: 'Light' }))
     expect(document.documentElement).not.toHaveClass('dark')
+    expect(localStorage.getItem('psicx.theme')).toBe('light')
   })
 
-  it('LangSwitch: names the language you switch TO and switches', async () => {
+  it('ThemeSwitch: arrow keys move between the modes, and the narrow-bar button steps to the next one and names it', async () => {
+    renderWithProviders(<ThemeSwitch />)
+    await userEvent.click(screen.getByRole('radio', { name: 'Light' }))
+    await userEvent.keyboard('{ArrowRight}')
+    expect(screen.getByRole('radio', { name: 'Dark' })).toBeChecked()
+    expect(document.documentElement).toHaveClass('dark')
+    await userEvent.click(screen.getByRole('button', { name: 'Theme: Dark. Switch to Match device' }))
+    expect(screen.getByRole('radio', { name: 'Match device' })).toBeChecked()
+    expect(screen.getByRole('button', { name: 'Theme: Match device. Switch to Light' })).toBeInTheDocument()
+  })
+
+  it('LangSwitch: both languages show, the one in use checked, and choosing the other switches (19 Nov: it was one button naming the other language)', async () => {
     renderWithProviders(<LangSwitch />)
-    const button = screen.getByRole('button', { name: /Switch to Arabic/ })
-    await userEvent.click(button)
+    const group = screen.getByRole('radiogroup', { name: 'Language' })
+    const english = within(group).getByRole('radio', { name: 'English' })
+    const arabic = within(group).getByRole('radio', { name: 'العربية' })
+    expect(english).toBeChecked()
+    expect(english).toHaveTextContent('EN')
+    expect(arabic).toHaveAttribute('lang', 'ar')
+    await userEvent.click(arabic)
     expect(document.documentElement.lang).toBe('ar')
-    expect(screen.getByRole('button', { name: /English/ })).toBeInTheDocument()
+    expect(document.documentElement.dir).toBe('rtl')
+    expect(screen.getByRole('radiogroup', { name: 'اللغة' })).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: 'العربية' })).toBeChecked()
+    await userEvent.click(screen.getByRole('radio', { name: 'English' }))
+    expect(document.documentElement.lang).toBe('en')
   })
 })
 

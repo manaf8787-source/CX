@@ -52,7 +52,7 @@ const INTERACTIVE = 'cursor-pointer outline-hidden'
  */
 export function KpiTile({ label, value, sub, accent, icon, unit, delta, to, onClick, loading, className, children, term, variant = 'card' }: KpiTileProps) {
   const interactive = Boolean(to || onClick)
-  const base = cn('group relative flex min-w-0 flex-col gap-3 text-start', BASE[variant], interactive && variant === 'well' && 'transition-colors duration-200 hover:bg-well-hover')
+  const base = cn('group relative flex min-w-0 flex-col gap-3 text-start', BASE[variant], interactive && variant === 'well' && 'transition-[background-color,box-shadow] duration-200 hover:bg-well-hover hover:shadow-glass-well-hover')
   const style = accent ? ({ '--c': accent } as CSSProperties) : undefined
   const end = delta ? (
     <bdi className="pill pill-light shrink-0">{delta}</bdi>

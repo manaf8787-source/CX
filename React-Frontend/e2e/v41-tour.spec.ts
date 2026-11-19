@@ -184,6 +184,8 @@ test.describe('skip, replay and roles', () => {
     await page.goto('/home')
     await expectPageReady(page)
     await page.getByRole('button', { name: 'Collapse sidebar' }).click()
+    // the sidebar closes gradually: the rail layout takes over once the words have faded
+    await expect(page.locator('nav[data-slot="sidebar"]')).toHaveAttribute('data-collapsible', 'icon')
     const replay = page.getByRole('button', { name: 'How do I use this?' })
     await expect(replay).toBeVisible()
     expect((await box(replay)).width).toBeLessThanOrEqual(40)

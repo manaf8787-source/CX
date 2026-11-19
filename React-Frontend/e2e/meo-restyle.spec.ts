@@ -78,7 +78,8 @@ test.describe('desktop (1440px)', () => {
 
   test('the focus ring shows on a label-wrapped radio (sign-in role rows)', async ({ page }) => {
     await page.goto('/login')
-    const first = page.getByRole('radio').first()
+    // the role rows' own inputs (the language and theme switches above the card are radio groups too)
+    const first = page.locator('input[type="radio"]').first()
     await first.focus()
     await page.keyboard.press('ArrowDown')
     const shadow = await page.locator('label:has(input:focus-visible)').first().evaluate((el) => getComputedStyle(el).boxShadow)

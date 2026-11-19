@@ -25,8 +25,12 @@ test('switching language flips direction live', async ({ page }) => {
   await signInAs(page, 'cxmgr', 'en')
   await page.goto('/home')
   await expectPageReady(page)
-  await page.getByRole('button', { name: /arabic|العربية/i }).first().click()
+  // the language is a two-key switch (19 Nov): both languages show, the one in use is checked
+  const language = page.getByRole('radiogroup', { name: 'Language' })
+  await expect(language.getByRole('radio', { name: 'English' })).toBeChecked()
+  await language.getByRole('radio', { name: 'العربية' }).click()
   await expect(page.locator('html')).toHaveAttribute('dir', 'rtl')
+  await expect(page.getByRole('radiogroup', { name: 'اللغة' }).getByRole('radio', { name: 'العربية' })).toBeChecked()
 })
 
 // On a phone every route must stay inside the viewport (a table may scroll inside its card, the page never scrolls sideways).

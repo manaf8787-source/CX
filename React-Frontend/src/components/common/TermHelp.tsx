@@ -71,7 +71,7 @@ export function TermsButton() {
         </div>
         <dl className="-mx-1 flex max-h-[55dvh] flex-col gap-2 overflow-y-auto px-1 py-1">
           {list.map((g) => (
-            <div key={g.term.en} className="flex flex-col gap-0.5 rounded-xl bg-well px-3.5 py-3">
+            <div key={g.term.en} className="glass flex flex-col gap-0.5 rounded-xl px-3.5 py-3">
               <dt className="t-ui-strong">{L(g.term)}</dt>
               <dd className="text-sm text-muted-foreground">{L(g.definition)}</dd>
             </div>

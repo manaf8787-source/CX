@@ -119,7 +119,7 @@ export function Shell() {
                     mode === 'phone'
                       ? 'grid-cols-[minmax(0,1fr)]'
                       : // the sidebar opens and closes gradually: a soft curve with no overshoot (see Sidebar.tsx)
-                      'transition-[grid-template-columns] duration-[560ms] ease-smooth ' +
+                      'transition-[grid-template-columns] duration-[680ms] ease-smooth ' +
                           (rail ? 'grid-cols-[var(--sidebar-w-icon)_minmax(0,1fr)]' : 'grid-cols-[var(--sidebar-w)_minmax(0,1fr)]'),
                   )}
                 >

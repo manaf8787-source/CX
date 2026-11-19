@@ -1,6 +1,6 @@
 # PSI CX Portal: Knowledge Base (v42, one line of six steps, guided tour, AI team replay)
 
-Prototype on sample data. Version 42.2, updated 19 Nov 2026. The illustrated version (82 screenshots) is the Word and PDF document; screenshot names are listed as [Screenshot: name].
+Prototype on sample data. Version 42.3, updated 19 Nov 2026. The illustrated version (82 screenshots) is the Word and PDF document; screenshot names are listed as [Screenshot: name].
 
 ## Contents
 
@@ -393,7 +393,7 @@ The funnel is the frame for every transactional survey. In the sample, 9,000 lea
 
 ### Per product, no group number
 
-Each product has its own NPS, CSAT and CES line and its own moments; there is no group NPS by design, because Tour Estate, PSI Club and PSI Events are separate businesses with different customers. PSI Real Estate asks after the call, the viewing, the offer and the signed deal. After-Sales asks after handover, a closed ticket and renewal. PSI Club leads ride the Real Estate journey with a VIP tag; members get a member NPS at the end of a nomination cycle. Tour Estate asks the end-of-tour survey only after a completed tour (driver, guide, ride, car, cleanliness, then NPS); the stop survey goes to the commercial team, not to the portal. PSI Events has no NPS: an external QR rating at the booth and an internal staff evaluation. PSI Wallet (pilot) asks CES after a failed or completed upload and an investor survey, draft.
+Each product has its own NPS, CSAT and CES line and its own moments; there is no group NPS by design, because Tour Estate, PSI Club and PSI Events are separate businesses with different customers. PSI Real Estate asks after the call, the viewing, the offer and the signed deal. After-Sales asks after handover, a closed ticket and renewal. PSI Club leads ride the Real Estate journey with a VIP tag; members get a member NPS at the end of a nomination cycle. Tour Estate asks the end-of-tour survey only after a completed tour (driver, guide, ride, car, cleanliness, then NPS); the stop survey goes to the commercial team, not to the portal. PSI Events has no NPS: an external QR rating at the booth and an internal staff evaluation. PSI Wallet (first release reviewed 19 November) asks one question per touchpoint and never two: CES when the wallet is created (screens 12 to 13, "The wallet was easy to set up", 1 to 7, because onboarding is a seven-step task where effort matters more than satisfaction); CSAT after the call with the advisor (screen 48, 1 to 5, a human interaction with a clear start and end); CES after a property is added (screen 51, 1 to 7, tagged single or bulk so the two flows can be compared). NPS belongs to none of these: it measures the relationship, so it sits on the Dashboard (screen 13) as a periodic prompt about 30 days after the wallet was created, then yearly. Each touchpoint is one rating plus one optional comment; CES of 4 or less and CSAT of 3 or less open a short "What went wrong?", and a low call score also notifies the advisor team; high scores get a thank-you only.
 
 ### The questions themselves
 
@@ -652,7 +652,7 @@ Six products, two live. Not-launched products stay out of the menu, the entry pa
 | PSI Club | Not launched | VIP and influencer lead nominations; leads ride the Real Estate journey with a VIP tag; its own escalation matrix handles late steps, the portal reads the breach log as signals | Member NPS at the end of a nomination cycle; leads follow the Real Estate moments |
 | Tour Estate | Not launched | Tours, guides, drivers and cars; has its own CX team | End-of-tour survey only after a completed tour (driver, guide, ride, car, cleanliness, NPS); the stop survey goes to the commercial team |
 | PSI Events | Not launched | Launches, investor evenings and VIP events | No NPS; external QR rating at the booth; internal staff evaluation |
-| PSI Wallet | Not launched (pilot) | The investor's portfolio in one place: properties across countries, documents, cash flow and AI suggestions | CES after an upload (failed or done); investor survey, draft |
+| PSI Wallet | Not launched (pilot) | The investor's portfolio in one place: properties across countries, documents, cash flow and AI suggestions | One question per touchpoint: CES after the wallet is created ("The wallet was easy to set up", 1 to 7); CSAT after the call with the advisor (1 to 5); CES after a property is added (1 to 7, tagged single or bulk). NPS only on the Dashboard about 30 days after, then yearly. Low scores open "What went wrong?"; a low call score notifies the advisor team |
 
 [Screenshot: product-re] PSI Real Estate product page, with its own indicators and the sources split between website and app.
 
@@ -734,6 +734,7 @@ What is still to decide, and how the prototype got here.
 | v41 | 18 Nov | Guided tour embedded in the portal: starts on first entry per role, highlights the real element, opens the inbox and a fix as it goes; replay from the menu |
 | v41.1 | 19 Nov | Weekly sample rows show what the agent saw, what it produced and what the supervisor checked, with a "How to judge" card; no names for Internal Audit |
 | v42 | 19 Nov | Escalation matrix cells set for all six products with the VIP, information-security and one-person rules; "Watch the AI team work" replay page with this week's counters |
+| v42.3 | 19 Nov | PSI Wallet survey moments from the first-release review: one question per touchpoint (CES setup, CSAT advisor call, CES add property), NPS on the Dashboard at 30 days, follow-up by score |
 | v42.2 | 19 Nov | Weekly sample rebuilt as one piece at a time in plain words: what the AI was given, what it decided, one question with three answers |
 | v42.1 | 19 Nov | Weekly sample split by reader (audit rows to Internal Audit, content rows to CX); Campaign audit page: five checks before a campaign runs and the result after; Internal Audit and Marketing Lead role rewritten as audit, never approval |
 | This document | 19 Nov 2026 | Knowledge base rewritten for v40; tour (v41), weekly sample (v41.1), matrix and replay (v42), campaign audit (v42.1) added |

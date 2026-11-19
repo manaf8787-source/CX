@@ -36,6 +36,16 @@ const TALL_TOP = 96
 
 const WAITING: LayerState = { status: 'waiting', rect: null, radius: 0, width: 0, height: 0 }
 
+/** The frame: where it is and how round. Held by the host, not the step, so it outlives a step and glides to the next element. */
+interface Ring {
+  rect: Box
+  radius: number
+}
+const sameRing = (a: Ring | null, b: Ring | null) =>
+  a === b || (!!a && !!b && a.radius === b.radius && a.rect.top === b.rect.top && a.rect.left === b.rect.left && a.rect.width === b.rect.width && a.rect.height === b.rect.height)
+/** How long the frame takes to glide from one element to the next (owner's request, 19 Nov: gradual and smooth). */
+const GLIDE_MS = 520
+
 /** The first visible element for the step's selector (its `highlightParent` when it names one). A bad selector finds nothing and never breaks the tour. */
 function findTarget(step: TourStep): HTMLElement | null {
   if (!step.target) return null
@@ -104,6 +114,22 @@ export function TourHost({ waitMs = WAIT_FOR_TARGET_MS }: { waitMs?: number }) {
   const step = running ? steps[index] : undefined
   const reduced = prefersReducedMotion()
 
+  // The frame glides while a step changes, then follows its element frame by frame (scrolling must not trail behind a transition).
+  const [ring, setRingState] = useState<Ring | null>(null)
+  const setRing = useCallback((next: Ring | null) => setRingState((prev) => (sameRing(prev, next) ? prev : next)), [])
+  const [glide, setGlide] = useState(false)
+  const [seenIndex, setSeenIndex] = useState(index)
+  if (seenIndex !== index) {
+    setSeenIndex(index)
+    setGlide(true)
+  }
+  if (!running && ring) setRingState(null)
+  useEffect(() => {
+    if (!glide) return
+    const id = window.setTimeout(() => setGlide(false), GLIDE_MS + 160)
+    return () => window.clearTimeout(id)
+  }, [glide, index])
+
   // Focus: remember where it was when the tour began, give it back when the tour ends (or the main area if that is gone).
   const returnTo = useRef<HTMLElement | null>(null)
   const wasRunning = useRef(false)
@@ -143,13 +169,51 @@ export function TourHost({ waitMs = WAIT_FOR_TARGET_MS }: { waitMs?: number }) {
       <p role="status" className="sr-only">
         {L(TOUR_COPY.progress(index + 1, steps.length))}
       </p>
-      <TourLayer key={index} step={step} index={index} total={steps.length} reduced={reduced} waitMs={waitMs} />
+      {ring ? (
+        <div
+          aria-hidden
+          data-testid="tour-ring"
+          className={cn(
+            DIM_RING,
+            !reduced && 'animate-[cx-fade-in_300ms_var(--ease-out)]',
+            !reduced && glide && 'transition-[top,left,width,height,border-radius] duration-[520ms] ease-smooth',
+          )}
+          style={{
+            top: ring.rect.top - RING_PAD,
+            left: ring.rect.left - RING_PAD,
+            width: ring.rect.width + 2 * RING_PAD,
+            height: ring.rect.height + 2 * RING_PAD,
+            borderRadius: Math.min(ring.radius + RING_PAD, (Math.min(ring.rect.width, ring.rect.height) + 2 * RING_PAD) / 2),
+          }}
+        />
+      ) : (
+        <div aria-hidden data-testid="tour-dim" className={DIM_ALL} />
+      )}
+      <TourLayer key={index} step={step} index={index} total={steps.length} reduced={reduced} waitMs={waitMs} onRing={setRing} />
     </div>
   )
 }
 
-/** One step: goes to its page, waits for its element, then shows the frame and the card. Mounted per step (keyed by the index), so its state starts fresh. */
-function TourLayer({ step, index, total, reduced, waitMs }: { step: TourStep; index: number; total: number; reduced: boolean; waitMs: number }) {
+/**
+ * One step: goes to its page, waits for its element, then reports where the frame goes and shows the card. Mounted per step (keyed by the
+ * index), so its state starts fresh. The frame itself belongs to the host: on the same page it stays where it was until the new element is
+ * found and then glides there; when the step changes page it is dropped first (the old place means nothing on the new page).
+ */
+function TourLayer({
+  step,
+  index,
+  total,
+  reduced,
+  waitMs,
+  onRing,
+}: {
+  step: TourStep
+  index: number
+  total: number
+  reduced: boolean
+  waitMs: number
+  onRing: (ring: Ring | null) => void
+}) {
   const { next, back, skip } = useTour()
   const { dir } = useI18n()
   const navigate = useNavigate()
@@ -164,7 +228,10 @@ function TourLayer({ step, index, total, reduced, waitMs }: { step: TourStep; in
     navigated.current = true
     if (step.route === null) return
     const want = `${step.route}${step.search ?? ''}`
-    if (`${location.pathname}${location.search}` !== want) navigate(want)
+    if (`${location.pathname}${location.search}` !== want) {
+      onRing(null)
+      navigate(want)
+    }
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -196,6 +263,12 @@ function TourLayer({ step, index, total, reduced, waitMs }: { step: TourStep; in
 
   const onSize = useCallback((width: number, height: number) => setCard((prev) => (prev.width === width && prev.height === height ? prev : { width, height })), [])
 
+  // Tell the host where the frame goes: on the element once it is found, nowhere once it is known to be missing. While still looking, say nothing.
+  useEffect(() => {
+    if (layer.status === 'ready' && layer.rect) onRing({ rect: layer.rect, radius: layer.radius })
+    else if (layer.status === 'missing') onRing(null)
+  }, [layer, onRing])
+
   const handleNext = () => {
     // "Do it and continue": the real action, unless the control already shows it done (an open "Details" toggle).
     if (step.click) {
@@ -211,22 +284,6 @@ function TourLayer({ step, index, total, reduced, waitMs }: { step: TourStep; in
 
   return (
     <>
-      {rect ? (
-        <div
-          aria-hidden
-          data-testid="tour-ring"
-          className={cn(DIM_RING, !reduced && 'animate-[cx-fade-in_300ms_var(--ease-out)]')}
-          style={{
-            top: rect.top - RING_PAD,
-            left: rect.left - RING_PAD,
-            width: rect.width + 2 * RING_PAD,
-            height: rect.height + 2 * RING_PAD,
-            borderRadius: Math.min(layer.radius + RING_PAD, (Math.min(rect.width, rect.height) + 2 * RING_PAD) / 2),
-          }}
-        />
-      ) : (
-        <div aria-hidden data-testid="tour-dim" className={DIM_ALL} />
-      )}
       {layer.status !== 'waiting' && (
         <TourCard
           step={step}
@@ -296,7 +353,7 @@ function TourCard({ step, index, total, top, left, width, placement, reduced, on
       dir={dir}
       data-testid="tour-card"
       data-placement={placement}
-      className={cn('material-light pointer-events-auto fixed flex flex-col gap-3 rounded-card p-5', !reduced && 'animate-[cx-rise_400ms_var(--ease-spring)_backwards]')}
+      className={cn('material-light pointer-events-auto fixed flex flex-col gap-3 rounded-card p-5', !reduced && 'animate-[cx-rise_520ms_var(--ease-smooth)_140ms_backwards]')}
       style={{ top, left, width }}
     >
       <p className="t-caption text-muted-foreground">

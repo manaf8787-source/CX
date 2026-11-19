@@ -35,7 +35,7 @@ export const IN_CARD = 'px-[calc(var(--card-pad)-10px)]'
  */
 export function ViewOnlyNotice({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <p role="note" className={cn('flex items-center gap-2.5 rounded-well bg-well px-4 py-3.5 text-sm text-foreground', className)}>
+    <p role="note" className={cn('glass flex items-center gap-2.5 rounded-well px-4 py-3.5 text-sm text-foreground', className)}>
       <Eye aria-hidden className="size-3.5 shrink-0 text-muted-foreground" />
       {children}
     </p>
