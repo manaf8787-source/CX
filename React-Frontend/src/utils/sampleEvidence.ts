@@ -10,14 +10,14 @@ import { invId } from './trace'
  * All wording is sample data.
  */
 
-const join = (parts: Bi[]): Bi => ({ en: parts.map((p) => p.en).join(' · '), ar: parts.map((p) => p.ar).join(' · ') })
-const bi = (en: string, ar: string): Bi => ({ en, ar })
+export const join = (parts: Bi[]): Bi => ({ en: parts.map((p) => p.en).join(' · '), ar: parts.map((p) => p.ar).join(' · ') })
+export const bi = (en: string, ar: string): Bi => ({ en, ar })
 
 /** English count with its noun: `1 problem`, `3 problems`. */
-const count = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
+export const count = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
 
 /** Date part of an ISO time, or an en dash when there is none. */
-const day = (iso: string | undefined) => (iso ? iso.slice(0, 10) : '–')
+export const day = (iso: string | undefined) => (iso ? iso.slice(0, 10) : '–')
 
 /**
  * The one-line summary Agent 2 holds for a signal of this category. The sample's signals carry no text of their own (the
@@ -36,9 +36,14 @@ export function signalSummary(category: string): Bi {
   return SIGNAL_SUMMARY[category] ?? signalCategoryLabel(category)
 }
 
+/** Where a signal came from: the channel of its first event; a public mention has no event, so its source is the public channel. */
+export function signalSource(events: readonly Pick<Interaction, 'channel'>[]): Bi {
+  return events[0] ? CHANNEL_LABEL[events[0].channel] : signalKindLabel('public_mention')
+}
+
 /** Agent 2's input: the source, the date and the signal's text. A public mention has no event, so its source is the public channel. */
 export function signalSaw(signal: Pick<Signal, 'kind' | 'category' | 'occurredAt'>, events: readonly Pick<Interaction, 'channel'>[]): Bi {
-  const source = events[0] ? CHANNEL_LABEL[events[0].channel] : signalKindLabel('public_mention')
+  const source = signalSource(events)
   const text = signalSummary(signal.category)
   return join([source, bi(day(signal.occurredAt), day(signal.occurredAt)), bi(`"${text.en}"`, `"${text.ar}"`)])
 }
@@ -61,14 +66,14 @@ export const SEVERITY_WORD: Record<Severity, Bi> = {
 }
 
 /** What the pattern says in a few words; a same-agent pattern never names the agent. */
-function patternRule(p: Pick<Pattern, 'thresholdKind' | 'category' | 'currentValue'>): Bi {
+export function patternRule(p: Pick<Pattern, 'thresholdKind' | 'category' | 'currentValue'>): Bi {
   const label = signalCategoryLabel(p.category)
   if (p.thresholdKind === 'same_agent') return bi('Same agent', 'الوكيل نفسه')
   if (p.thresholdKind === 'environment_concentration') return bi(`${p.currentValue}% in one environment: ${label.en}`, `${p.currentValue}% في بيئة واحدة: ${label.ar}`)
   return bi(`Same issue: ${label.en}`, `المشكلة نفسها: ${label.ar}`)
 }
 
-const signalsInWindow = (p: Pick<Pattern, 'signalIds' | 'windowDays'>): Bi => bi(`${count(p.signalIds.length, 'signal')} in ${p.windowDays} days`, `${p.signalIds.length} إشارة خلال ${p.windowDays} يوماً`)
+export const signalsInWindow = (p: Pick<Pattern, 'signalIds' | 'windowDays'>): Bi => bi(`${count(p.signalIds.length, 'signal')} in ${p.windowDays} days`, `${p.signalIds.length} إشارة خلال ${p.windowDays} يوماً`)
 
 /** Agent 5's input: the pattern, how many signals made it, and how often this fix recovered customers before. */
 export function fixSaw(fix: Pick<CorrectiveAction, 'fromInsight' | 'source'>, pattern: Pattern | undefined): Bi {

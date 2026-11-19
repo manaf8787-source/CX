@@ -48,6 +48,7 @@ const AiInsightsAccess = lazy(pageLoaders.aiInsightsAccess)
 const SettingsGlossary = lazy(pageLoaders.settingsGlossary)
 const AdminSettings = lazy(pageLoaders.adminSettings)
 const WatchTeam = lazy(pageLoaders.watchTeam)
+const CampaignAudit = lazy(pageLoaders.campaignAudit)
 
 function FullPageLoading() {
   return <div role="status" aria-busy="true" className="min-h-svh bg-background" />
@@ -112,6 +113,7 @@ export default function App() {
                     <Route path="survey-questions" element={<SurveyQuestions />} />
                     <Route path="watch-ai-team" element={<WatchTeam />} />
                     <Route path="weekly-sample" element={<WeeklySample />} />
+                    <Route path="campaign-audit" element={<CampaignAudit />} />
                     <Route path="public-mentions" element={<PublicMentions />} />
                     <Route path="monthly-pack" element={<MonthlyPack />} />
                     <Route path="mystery-shopper" element={<MysteryShopper />} />

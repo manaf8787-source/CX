@@ -232,7 +232,8 @@ export interface SurveyQuestionSet {
 
 // --- My inbox (F20) ----------------------------------------------------------
 
-export type InboxKind = 'approve' | 'do' | 'verify' | 'call' | 'inv' | 'sample'
+/** `caud` = "Clear or send back: N campaigns waiting", `caud2` = "Audit after the run: N finished" (v42.1 F33, the prototype's own kinds). */
+export type InboxKind = 'approve' | 'do' | 'verify' | 'call' | 'inv' | 'sample' | 'caud' | 'caud2'
 
 export interface InboxItem {
   id: string
@@ -255,10 +256,53 @@ export type DayChipState = 'overdue' | 'late' | 'today' | 'soon' | 'ok' | 'none'
 
 // --- Weekly sample (F31) -----------------------------------------------------
 
+/** Which check a sample row is (v42.1 F32). The key picks the reader, the question and the evidence on the card; `kind` is its label. */
+export type SampleCheck = 'fix' | 'classification' | 'count' | 'brief' | 'journey' | 'routing' | 'access' | 'targeting'
+
+/** Who reads a row (v42.1 F32): the CX manager and the CX team read content rows; the Internal Audit and Marketing Lead reads audit rows. */
+export type SampleReader = 'cx' | 'audit'
+
+/**
+ * One line of a sample card (v42.2 F34), built from facts. Plain text is `value`; a quoted message is `quote`, with its source and date in
+ * `meta` above it. Never a customer or agent name: a person is `personId`, resolved for the viewer. Conversation text is `restricted`.
+ */
+export interface SampleEvidenceLine {
+  /** Grey label before the value ("The pattern", "Routed to"). */
+  label?: Bi
+  value?: Bi
+  /** A fact the reader compares or judges: ink, medium weight. */
+  strong?: boolean
+  /** Grey caption above the line: "2026-10-21 · Call". */
+  meta?: Bi
+  /** A quoted message, shown in its own quote card under the value. */
+  quote?: Bi
+  /** The quote is conversation text: shown to the CX manager and the CX team only (`canViewConversationText`); dropped for everyone else. */
+  restricted?: boolean
+  /** The value follows a person: the name for roles that may see customer names, the reference (P-005) otherwise. */
+  personId?: string
+  /** A status dot before the line: something the reader should look at. */
+  attention?: boolean
+}
+
+/** What a card shows: what the AI was given (left), what it decided (right) and one line on how (v42.2 F34, the prototype's `wsEvidence`). */
+export interface SampleEvidence {
+  given: SampleEvidenceLine[]
+  decided: SampleEvidenceLine[]
+  how: Bi
+}
+
 export interface WeeklySampleItem {
   id: string
-  /** Agent number 1..10. */
+  /** Agent number 1..10. A routing or access row belongs to Agent 5, a targeting row to Agent 7 (the prototype's `agentChip`): a wrong lowers that agent's pass rate. */
   agent: number
+  /** Which check this is (v42.1): picks the reader, the card question and the evidence. */
+  check: SampleCheck
+  /** Who reads it (v42.1): `check` decides. The page, the tiles, the brief and the inbox count the reader's own rows. */
+  reader: SampleReader
+  /** The card (v42.2): what the AI was given, what it decided, how. Facts only; see `SampleEvidenceLine`. */
+  card: SampleEvidence
+  /** The supervisor column of the list, when the row's check differs from the usual six (routing, access, targeting: the supervisor ran code, the reader judges the rule). */
+  supervisor?: Bi
   kind: Bi
   /** What the agent produced, in one line (v41.1 F29). Never contains a customer name (see `personId`). */
   text: Bi
@@ -338,6 +382,11 @@ export interface BriefInputs {
   ldFixes: number
   conductNotes: number
   sample: { toRead: number; read: number }
+  /**
+   * The campaign audit (v42.1 F33), read for the Internal Audit and Marketing Lead only: campaigns waiting for its clearance and the
+   * reached-the-right-people % of every running campaign. Absent for every other role (and while the audit is loading).
+   */
+  campaigns?: { waiting: number; runningReachedPct: number[] }
 }
 
 // --- Next-step helper (F07) ---------------------------------------------------

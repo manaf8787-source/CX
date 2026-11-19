@@ -33,7 +33,7 @@ export const BRIEF_COPY = {
   noPage: b('(no page for your role)', '(لا صفحة لدورك)'),
 }
 
-export type BriefLineKind = 'nps' | 'signals' | 'fixes' | 'shopper' | 'loop' | 'drifting' | 'public' | 'ld' | 'conduct' | 'sample'
+export type BriefLineKind = 'nps' | 'signals' | 'fixes' | 'shopper' | 'loop' | 'drifting' | 'public' | 'ld' | 'conduct' | 'sample' | 'campaigns'
 
 /**
  * Lines per role, in the order shown (V40_DELTA F09 table). `[Proposed]`: the KB says "one per role" and nothing more.
@@ -50,7 +50,8 @@ export const BRIEF_LINES_BY_ROLE: Record<RoleId, readonly BriefLineKind[]> = {
   hrmgr: ['nps'],
   ld: ['nps', 'signals', 'fixes', 'ld'],
   marketing: ['nps', 'drifting', 'public'],
-  auditmkt: ['nps', 'drifting', 'public', 'sample'],
+  // v42.1 (F33): the campaign line after the NPS lines (the prototype puts it second, right after its first line) [Proposed position]
+  auditmkt: ['nps', 'campaigns', 'drifting', 'public', 'sample'],
   shopper: [],
 }
 
@@ -71,6 +72,7 @@ export const BRIEF_TARGET: Record<BriefLineKind, string> = {
   ld: '/actions/corrective',
   conduct: '/actions/corrective',
   sample: '/settings/weekly-sample',
+  campaigns: '/settings/campaign-audit',
 }
 
 export interface BriefLine {
@@ -226,6 +228,30 @@ function sampleLine(i: BriefInputs): Bi {
   )
 }
 
+const CAMPAIGN: Forms = { en: ['campaign', 'campaigns'], ar: ['حملة واحدة', 'حملتان', 'حملات', 'حملة'] }
+
+/** "71%", "71% and 78%", "71%, 78% and 86%" (Arabic: "71%، 78% و86%"). */
+const percentList = (pcts: readonly number[], lang: 'en' | 'ar'): string => {
+  const items = pcts.map((p) => `${p}%`)
+  if (items.length < 2) return items.join('')
+  const last = items[items.length - 1]
+  const head = items.slice(0, -1).join(lang === 'ar' ? '، ' : ', ')
+  return lang === 'ar' ? `${head} و${last}` : `${head} and ${last}`
+}
+
+/**
+ * Campaign audit (v42.1 F33, prototype `briefLines`): "2 campaigns wait for your clearance; 3 running, 71% and 71% and 71% reached the
+ * right people so far". Counts agree in English and Arabic, the percentages join as a list, and an empty side is said ("none running")
+ * instead of printing "0 running,". Null when nothing waits and nothing runs: no line.
+ */
+export function campaignsLine(c: NonNullable<BriefInputs['campaigns']>): Bi | null {
+  const running = c.runningReachedPct
+  if (c.waiting === 0 && running.length === 0) return null
+  const wait = c.waiting === 0 ? b('No campaign waits for your clearance', 'لا حملة تنتظر إجازتك') : b(`${count(c.waiting, CAMPAIGN).en} ${c.waiting === 1 ? 'waits' : 'wait'} for your clearance`, `تنتظر ${count(c.waiting, CAMPAIGN).ar} إجازتك`)
+  const run = running.length === 0 ? b('none running', 'لا حملة تعمل') : b(`${running.length} running, ${percentList(running, 'en')} reached the right people so far`, `${running.length} تعمل، وصلت للأشخاص الصحيحين ${percentList(running, 'ar')} حتى الآن`)
+  return b(`${wait.en}; ${run.en}`, `${wait.ar}؛ ${run.ar}`)
+}
+
 export interface BriefInput {
   role: RoleId
   /** The role's own product (After-Sales lead, Real Estate roles): only that product's NPS line shows. */
@@ -279,6 +305,11 @@ export function buildBrief({ role, product, inputs, indicators, products }: Brie
       case 'sample':
         add('sample', kind, sampleLine(inputs))
         break
+      case 'campaigns': {
+        const line = inputs.campaigns ? campaignsLine(inputs.campaigns) : null
+        if (line) add('campaigns', kind, line)
+        break
+      }
     }
   }
   return lines

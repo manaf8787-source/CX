@@ -44,6 +44,8 @@ export const pageLoaders = {
   adminSettings: () => import('../pages/settings/AdminSettings'),
   // v42 (F31): the replay page under Settings and reference.
   watchTeam: () => import('../pages/settings/WatchTeam'),
+  // v42.1 (F33): the campaign audit, right after the weekly sample in the Settings menu.
+  campaignAudit: () => import('../pages/settings/CampaignAudit'),
 } as const
 
 type LoaderKey = keyof typeof pageLoaders
@@ -63,6 +65,7 @@ const PATH_LOADERS: [prefix: string, keys: LoaderKey[]][] = [
   ['/products/', ['productPage']],
   // before '/settings', which would match it first
   ['/settings/watch-ai-team', ['settingsLayout', 'watchTeam']],
+  ['/settings/campaign-audit', ['settingsLayout', 'campaignAudit']],
   ['/settings', ['settingsLayout']],
 ]
 

@@ -10,11 +10,14 @@ import {
   canViewAgentNames,
   canViewConversationText,
   canViewPersonaAudit,
+  canEditCampaignAudit,
   canEditCrmMapping,
   canEditEscalationMatrix,
   canJudgeSample,
   canMarkMentionReplied,
   canRecordCallAttempt,
+  canRecordFixVerdict,
+  canStartCampaign,
   canViewNamesInSample,
   canViewCustomerNames,
   canViewMobiles,
@@ -141,6 +144,37 @@ describe('v40 page access per role (F35)', () => {
     for (const r of ['teamlead', 'aslead', 'ld', 'hrspec', 'hrmgr', 'shopper'] as RoleId[]) expect(canOpenPage(r, '/settings/watch-ai-team'), r).toBe(false)
   })
 
+  it('Campaign audit (v42.1 F33): CX manager, CX team, Internal Audit and Marketing Lead, Marketing manager, Executive; nobody else', () => {
+    expect(open('/settings/campaign-audit')).toEqual(sorted('cxmgr', 'cxteam', 'auditmkt', 'marketing', 'exec'))
+    for (const r of ['envmgmt', 'teamlead', 'aslead', 'ld', 'hrspec', 'hrmgr', 'shopper'] as RoleId[]) expect(canOpenPage(r, '/settings/campaign-audit'), r).toBe(false)
+  })
+
+  it('Campaign audit: the Internal Audit and Marketing Lead and the CX manager edit; the CX team, Marketing and Executive read', () => {
+    expect(allowed(canEditCampaignAudit)).toEqual(sorted('cxmgr', 'auditmkt'))
+    for (const r of open('/settings/campaign-audit').filter((x) => x !== 'cxmgr' && x !== 'auditmkt')) expect(canEditCampaignAudit(r), r).toBe(false)
+  })
+
+  it('who starts a cleared campaign (Proposed): Marketing and the CX manager a persona campaign, the CX manager and the CX team an AI campaign, never the audit role', () => {
+    expect(allowed((r) => canStartCampaign(r, 'persona'))).toEqual(sorted('cxmgr', 'marketing'))
+    expect(allowed((r) => canStartCampaign(r, 'ai'))).toEqual(sorted('cxmgr', 'cxteam'))
+    expect(canStartCampaign('auditmkt', 'persona')).toBe(false)
+    expect(canStartCampaign('auditmkt', 'ai')).toBe(false)
+  })
+
+  it('the Internal Audit and Marketing Lead audits and never approves a fix (Decision 2): no decide control, no fixes in its inbox, no Actions page', () => {
+    for (const kind of ['employee', 'service', 'training_gap', 'process', 'product', 'environment', 'legal', 'marketing']) {
+      expect(canActOnCorrectiveAction('auditmkt', kind), kind).toBe(false)
+    }
+    expect(isInformedOnly('auditmkt')).toBe(true)
+    expect(canActOnShopperCase('auditmkt')).toBe(false)
+    expect(canRecordFixVerdict('auditmkt')).toBe(false)
+    expect(canOpenPage('auditmkt', '/actions')).toBe(false)
+    expect(canOpenPage('auditmkt', '/actions/corrective')).toBe(false)
+    expect(canAccessPath('auditmkt', '/actions/corrective')).toBe(false)
+    // only the CX roles and the owners of a fix have the decide control
+    expect(allowed((r) => canActOnCorrectiveAction(r, 'process'))).toEqual(sorted('cxmgr', 'cxteam', 'envmgmt', 'teamlead', 'aslead'))
+  })
+
   it('Surveys and triggers moved to /settings/surveys: CX, Executive, Internal Audit and Marketing Lead, After-Sales lead, environment management', () => {
     expect(open('/settings/surveys')).toEqual(sorted('cxmgr', 'cxteam', 'exec', 'auditmkt', 'aslead', 'envmgmt'))
   })
@@ -224,7 +258,8 @@ describe('v40 menu and sign-in roles (F08, F28)', () => {
     const paths = SETTINGS_NAV.map((i) => i.path)
     expect(new Set(paths).size).toBe(paths.length)
     // v42 (F31): "Watch the AI team work" is listed right after the AI team page
-    expect(paths.slice(0, 4)).toEqual(['/intelligent-cx-team', '/settings/watch-ai-team', '/settings/weekly-sample', '/settings/public-mentions'])
+    // v42.1 (F33): the campaign audit is listed right after the weekly sample
+    expect(paths.slice(0, 5)).toEqual(['/intelligent-cx-team', '/settings/watch-ai-team', '/settings/weekly-sample', '/settings/campaign-audit', '/settings/public-mentions'])
     expect(paths).toContain('/settings/surveys')
     expect(paths).toContain('/settings/feeds')
     expect(paths).not.toContain('/settings/overview')
@@ -249,7 +284,27 @@ describe('v40 menu and sign-in roles (F08, F28)', () => {
       skipLanding: true,
     })
     expect(SETTINGS_LANDING).not.toContain('/settings/watch-ai-team')
-    expect(SETTINGS_LANDING).toHaveLength(SETTINGS_NAV.length - 1)
+    expect(SETTINGS_LANDING).toHaveLength(SETTINGS_NAV.length - 2)
+  })
+
+  it('the Campaign audit (v42.1 F33) is listed after the weekly sample and is not a landing page, so no role lands anywhere new', () => {
+    expect(SETTINGS_NAV.find((i) => i.path === '/settings/campaign-audit')).toEqual({
+      path: '/settings/campaign-audit',
+      label: { en: 'Campaign audit', ar: 'تدقيق الحملات' },
+      skipLanding: true,
+    })
+    expect(SETTINGS_LANDING).not.toContain('/settings/campaign-audit')
+    // listed first for Marketing it would have become its landing page; the landing of every role is what it was before the page existed
+    const landing: Partial<Record<RoleId, string | undefined>> = {
+      cxmgr: '/settings/weekly-sample',
+      cxteam: '/settings/weekly-sample',
+      auditmkt: '/settings/weekly-sample',
+      exec: '/settings/weekly-sample',
+      marketing: '/settings/public-mentions',
+      envmgmt: '/settings/surveys',
+      aslead: '/settings/surveys',
+    }
+    for (const [role, to] of Object.entries(landing)) expect(firstAllowedUnder(role as RoleId, '/settings', SETTINGS_LANDING), role).toBe(to)
   })
 
   it('old URLs redirect: /surveys and /settings/overview (children and the rest of the path are kept)', () => {

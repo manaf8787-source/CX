@@ -5,6 +5,7 @@ import { useI18n } from '@/i18n'
 import { useNow } from '@/hooks/useNow'
 import { useRole } from '@/auth/RoleContext'
 import { useCorrectiveActions, useSignals } from '@/services/queries'
+import { useRules } from '@/services/queriesV40'
 import { ownerTitle } from '@/data/ownerTitles'
 import { evaluateEffectiveness, EFFECTIVENESS_LABEL } from '@/utils/effectiveness'
 import { downloadCsv } from '@/utils/csv'
@@ -32,6 +33,7 @@ export default function MonthlyPack() {
   const { t, L, lang } = useI18n()
   const { role } = useRole()
   const now = useNow()
+  const rules = useRules()
   const { data: signals, isLoading: signalsLoading } = useSignals()
   const { data: actions, isLoading: actionsLoading } = useCorrectiveActions()
   const [releasedAt, setReleasedAt] = useState<string | null>(null)
@@ -141,7 +143,7 @@ export default function MonthlyPack() {
             </TableHeader>
             <TableBody>
               {withSeries.map((a) => {
-                const res = evaluateEffectiveness(a.monthlySignalSeries!, a.startedMonthIndex!)
+                const res = evaluateEffectiveness(a.monthlySignalSeries!, a.startedMonthIndex!, rules.effectiveDropPct)
                 return (
                   <TableRow key={a.id}>
                     <TableCell className="font-medium whitespace-normal text-foreground">{L(a.title)}</TableCell>

@@ -59,10 +59,38 @@ describe('My inbox page (v40 F20)', () => {
   it('gives the Internal Audit and Marketing Lead the weekly sample row, linked to the sample page, and no next-step box', async () => {
     renderWithProviders(<Inbox />, { role: 'auditmkt' })
     const rows = bodyRows(await table())
-    expect(rows).toHaveLength(1)
-    expect(rows[0].textContent).toMatch(/Weekly sample: 50 outputs to read, 0 read/)
-    expect(within(rows[0]).getByRole('link', { name: /Open/ })).toHaveAttribute('href', '/settings/weekly-sample')
+    // v42.1 (F33): the two campaign audit rows come with it, "Clear or send back" first (urgent) and "Audit after the run" last
+    expect(rows).toHaveLength(3)
+    const sample = rows.find((r) => /Weekly sample: \d+ outputs to read, 0 read/.test(r.textContent ?? ''))!
+    expect(sample).toBeDefined()
+    expect(within(sample).getByRole('link', { name: /Open/ })).toHaveAttribute('href', '/settings/weekly-sample')
     expect(screen.queryByRole('region', { name: 'Next step' })).not.toBeInTheDocument()
+  })
+
+  it('gives the Internal Audit and Marketing Lead "Clear or send back" (urgent, two working days) and "Audit after the run", both opening the Campaign audit', async () => {
+    renderWithProviders(<Inbox />, { role: 'auditmkt' })
+    const rows = bodyRows(await table())
+    expect(rows.map((r) => r.getAttribute('data-kind'))).toEqual(['caud', 'sample', 'caud2'])
+    const [clear, , after] = rows
+    expect(clear).toHaveAttribute('data-priority', '2')
+    expect(clear.textContent).toMatch(/Clear or send back: 2 campaigns waiting before they run/)
+    expect(clear.textContent).toMatch(/Most urgent/)
+    expect(clear.textContent).toMatch(/2 working days left/)
+    expect(clear.textContent).toMatch(/Marketing manager/)
+    expect(within(clear).getByRole('link', { name: /Open/ })).toHaveAttribute('href', '/settings/campaign-audit')
+    expect(after).toHaveAttribute('data-priority', '0')
+    expect(after.textContent).toMatch(/Audit after the run: 2 finished campaigns/)
+    expect(after.textContent).toMatch(/5 working days left/)
+    expect(within(after).getByRole('link', { name: /Open/ })).toHaveAttribute('href', '/settings/campaign-audit')
+    // both rows are in the table
+    expect(document.querySelectorAll('[data-kind="caud"], [data-kind="caud2"]')).toHaveLength(2)
+  })
+
+  it('shows the campaign rows in Arabic with their agreement in number', async () => {
+    renderWithProviders(<Inbox />, { role: 'auditmkt', lang: 'ar' })
+    const rows = bodyRows(await table())
+    expect(rows[0].textContent).toMatch(/إجازة أو إعادة: حملتان تنتظران قبل التشغيل/)
+    expect(rows[2].textContent).toMatch(/تدقيق بعد التشغيل: حملتان انتهتا/)
   })
 
   it('shows "Nothing on you today." for a role with nothing on it', async () => {

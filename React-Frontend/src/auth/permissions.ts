@@ -105,6 +105,15 @@ export function canOpenSampleRecord(role: RoleId): boolean {
 }
 
 /**
+ * v42.1 (F32): the weekly sample is split by reader. The Internal Audit and Marketing Lead reads the audit rows (routing, classification, counts,
+ * access, targeting); every other role that opens the page reads the content rows (proposed fixes, interview briefs, journey readings): the
+ * CX manager and the CX team judge them, the Executive only reads. This is the prototype's `wsReader`, keyed by role.
+ */
+export function sampleReaderOf(role: RoleId): 'cx' | 'audit' {
+  return role === 'auditmkt' ? 'audit' : 'cx'
+}
+
+/**
  * Customer names (decided 18 Nov: "no customer names to Internal Audit"): every role that works with people may see them,
  * except the Internal Audit and Marketing Lead, who sees aggregates and the reference (`P-005`) instead. The Customers list,
  * Who is leaving, the weekly sample and the exports all follow this one rule (`personLabel` in `utils/peopleExport.ts`).
@@ -133,6 +142,24 @@ export function canMarkMentionReplied(role: RoleId): boolean {
 /** v40 (F27): recording a call attempt ("No answer") is a CX action. */
 export function canRecordCallAttempt(role: RoleId): boolean {
   return role === 'cxmgr' || role === 'cxteam'
+}
+
+/**
+ * v42.1 (F33, Decision 4): the Internal Audit and Marketing Lead and the CX manager mark the five checks and clear a campaign or send it
+ * back; everyone else who can open the page (the CX team, the Marketing manager, Executive) reads the marks and the verdict.
+ * The audit role audits and never approves a fix (Decision 2): `canActOnCorrectiveAction` stays false for it.
+ */
+export function canEditCampaignAudit(role: RoleId): boolean {
+  return role === 'cxmgr' || role === 'auditmkt'
+}
+
+/**
+ * v42.1 (F33) [Proposed]: who starts a cleared campaign (and marks it finished). Neither flow had a start action before: an AI interview
+ * campaign is created by the CX manager and the CX team (Close the loop), a persona campaign is Marketing's ("Marketing runs it"), with the
+ * CX manager as backup. The audit role never starts one: it audits what others run.
+ */
+export function canStartCampaign(role: RoleId, kind: 'persona' | 'ai'): boolean {
+  return kind === 'ai' ? role === 'cxmgr' || role === 'cxteam' : role === 'marketing' || role === 'cxmgr'
 }
 
 export interface AgentDisplay {

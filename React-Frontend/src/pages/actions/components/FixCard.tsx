@@ -81,7 +81,7 @@ export function FixCard({ fix: a, pattern, selected, now, onDecide, open, onOpen
     if (selected) headingRef.current?.focus({ preventScroll: true })
   }, [selected])
 
-  const eff = a.monthlySignalSeries && a.startedMonthIndex !== undefined ? evaluateEffectiveness(a.monthlySignalSeries, a.startedMonthIndex) : null
+  const eff = a.monthlySignalSeries && a.startedMonthIndex !== undefined ? evaluateEffectiveness(a.monthlySignalSeries, a.startedMonthIndex, rules.effectiveDropPct) : null
   const showEff = eff && (a.status === 'verification' || a.status === 'effective' || a.status === 'partial' || a.status === 'failed')
   const product = PRODUCTS.find((p) => p.id === a.product)
   const next = fixNextStep(a, rules)

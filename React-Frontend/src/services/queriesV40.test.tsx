@@ -218,10 +218,10 @@ describe('my inbox, indicators and the brief (v40 F03, F09, F20)', () => {
     for (let i = 1; i < result.current.data!.length; i++) expect(result.current.data![i - 1].priority).toBeGreaterThanOrEqual(result.current.data![i].priority)
   })
 
-  it('the Internal Audit and Marketing Lead has the weekly sample; HR manager has an empty inbox', async () => {
+  it('the Internal Audit and Marketing Lead has the weekly sample and the campaign audit rows; HR manager has an empty inbox', async () => {
     const audit = renderHookWithProviders(() => useInbox(), { role: 'auditmkt' })
     await waitFor(() => ready(audit.result.current))
-    expect(audit.result.current.data!.map((i) => i.kind)).toEqual(['sample'])
+    expect(audit.result.current.data!.map((i) => i.kind)).toEqual(['caud', 'sample', 'caud2'])
     const hr = renderHookWithProviders(() => useInbox(), { role: 'hrmgr' })
     await waitFor(() => ready(hr.result.current))
     expect(hr.result.current.data).toEqual([])
@@ -245,7 +245,7 @@ describe('my inbox, indicators and the brief (v40 F03, F09, F20)', () => {
     expect(b.fixes.proposed).toBe(mock.MOCK_CORRECTIVE_ACTIONS.filter((f) => f.status === 'proposed').length)
     expect(b.loop.open).toBe(mock.MOCK_DETRACTOR_CALL_ITEMS.filter((l) => l.status !== 'done').length)
     expect(b.publicMentions).toMatchObject({ last30: 16, target: 48 })
-    expect(b.sample).toEqual({ toRead: 50, read: 0 })
+    expect(b.sample).toEqual({ toRead: 26, read: 0 }) // the CX manager's own part of the sample (v42.1), not the original fifty
   })
 })
 
@@ -346,7 +346,8 @@ describe('registers: mapping, matrix, questions, sample, mentions, no answer', (
   it('judges the weekly sample: a verdict counts as read, wrong counts as a test, accuracy follows', async () => {
     const { result } = renderHookWithProviders(() => ({ sample: useWeeklySample(), judge: useJudgeSample() }))
     await waitFor(() => ready(result.current.sample))
-    expect(result.current.sample.data).toMatchObject({ size: 50, read: 0, wrong: 0, accuracyPct: null })
+    // the CX manager reads the content rows (v42.1): 4 fixes, 12 briefs and 10 readings, not the original fifty
+    expect(result.current.sample.data).toMatchObject({ size: 26, reader: 'cx', read: 0, wrong: 0, accuracyPct: null })
     expect(new Date(result.current.sample.data!.due + 'T00:00:00').getDay()).toBe(4) // every Thursday
     const [a, b, c] = result.current.sample.data!.items
     await act(() => result.current.judge.mutateAsync({ id: a.id, right: true }))
@@ -632,7 +633,8 @@ describe('the weekly sample\'s effect on the supervisor and the agents page (dec
   it('a wrong lowers the agent\'s pass rate and becomes a supervisor test; judging it right again gives both back', async () => {
     const { useAgentPassRates, useSupervisorTests } = await import('./queriesV40')
     const { useAgentJobDescriptions } = await import('./referenceQueries')
-    const { result } = renderHookWithProviders(() => ({ sample: useWeeklySample(), judge: useJudgeSample(), rates: useAgentPassRates(), tests: useSupervisorTests(), jds: useAgentJobDescriptions() }))
+    // Agent 2's classifications are audit rows (v42.1): the Internal Audit and Marketing Lead reads and judges them
+    const { result } = renderHookWithProviders(() => ({ sample: useWeeklySample(), judge: useJudgeSample(), rates: useAgentPassRates(), tests: useSupervisorTests(), jds: useAgentJobDescriptions() }), { role: 'auditmkt' })
     await waitFor(() => ready(result.current.sample))
     await waitFor(() => ready(result.current.rates))
     const item = result.current.sample.data!.items.find((i) => i.agent === 2 && i.verdict === null)!
@@ -652,6 +654,65 @@ describe('the weekly sample\'s effect on the supervisor and the agents page (dec
     await waitFor(() => expect(result.current.tests.data?.some((t) => t.fromSampleId === item.id)).toBe(false))
     expect(jd2.approvalPct).toBe(base)
     expect(jd2).toMatchObject({ wrongThisWeek: 0, supervisorTests: 0 })
+  })
+})
+
+describe('the weekly sample is split by reader (v42.1 F32): every consumer counts the reader\'s own rows', () => {
+  const own = (reader: 'cx' | 'audit') => mock.MOCK_WEEKLY_SAMPLE.filter((i) => i.reader === reader)
+  const readOf = (reader: 'cx' | 'audit') => own(reader).filter((i) => i.verdict !== null).length
+
+  it('useWeeklySample returns the signed-in role\'s own part: audit rows for the Internal Audit and Marketing Lead, content rows for the CX manager, the CX team and the Executive', async () => {
+    for (const [role, reader, size] of [['cxmgr', 'cx', 26], ['cxteam', 'cx', 26], ['exec', 'cx', 26], ['auditmkt', 'audit', 35]] as const) {
+      const { result, unmount } = renderHookWithProviders(() => useWeeklySample(), { role })
+      await waitFor(() => ready(result.current))
+      expect(result.current.data, role).toMatchObject({ reader, size })
+      expect(result.current.data!.items.every((i) => i.reader === reader), role).toBe(true)
+      expect(result.current.data!.items.map((i) => i.id), role).toEqual(own(reader).map((i) => i.id))
+      expect(result.current.data!.read, role).toBe(readOf(reader))
+      unmount()
+    }
+  })
+
+  it('the daily brief and the inbox say the same number as the page: 35 for audit, 26 for the CX manager\'s brief; nothing new on the CX inbox', async () => {
+    const audit = renderHookWithProviders(() => ({ brief: useBriefInputs(), inbox: useInbox() }), { role: 'auditmkt' })
+    await waitFor(() => ready(audit.result.current.brief))
+    await waitFor(() => ready(audit.result.current.inbox))
+    expect(audit.result.current.brief.data!.sample).toEqual({ toRead: 35, read: readOf('audit') })
+    expect(audit.result.current.inbox.data!.find((i) => i.kind === 'sample')?.text.en).toBe(`Weekly sample: 35 outputs to read, ${readOf('audit')} read`)
+    audit.unmount()
+    const cx = renderHookWithProviders(() => ({ brief: useBriefInputs(), inbox: useInbox() }), { role: 'cxmgr' })
+    await waitFor(() => ready(cx.result.current.brief))
+    await waitFor(() => ready(cx.result.current.inbox))
+    expect(cx.result.current.brief.data!.sample).toEqual({ toRead: 26, read: readOf('cx') })
+    expect(cx.result.current.inbox.data!.some((i) => i.kind === 'sample')).toBe(false)
+    cx.unmount()
+  })
+
+  it('a wrong on a routing row (audit\'s) lowers Agent 5 for everyone and adds a supervisor test, but does not touch the CX tiles; judging it right gives both back', async () => {
+    const { useAgentPassRates, useSupervisorTests } = await import('./queriesV40')
+    const audit = renderHookWithProviders(() => ({ sample: useWeeklySample(), judge: useJudgeSample(), rates: useAgentPassRates(), tests: useSupervisorTests() }), { role: 'auditmkt' })
+    await waitFor(() => ready(audit.result.current.sample))
+    await waitFor(() => ready(audit.result.current.rates))
+    const cxReadBefore = readOf('cx')
+    const routing = audit.result.current.sample.data!.items.find((i) => i.check === 'routing' && i.verdict === null)!
+    const wrongBefore = audit.result.current.rates.data!.find((r) => r.agent === 5)!.wrong
+    await act(() => audit.result.current.judge.mutateAsync({ id: routing.id, right: false }))
+    await waitFor(() => expect(audit.result.current.tests.data?.some((t) => t.fromSampleId === routing.id && t.agent === 5)).toBe(true))
+    await waitFor(() => expect(audit.result.current.rates.data!.find((r) => r.agent === 5)!.wrong).toBe(wrongBefore + 1))
+    const rate = audit.result.current.rates.data!.find((r) => r.agent === 5)!
+    expect(rate.current).toBeLessThan(rate.base as number)
+    await waitFor(() => expect(audit.result.current.sample.data?.wrong).toBe(own('audit').filter((i) => i.verdict === false).length))
+
+    const cx = renderHookWithProviders(() => ({ sample: useWeeklySample(), rates: useAgentPassRates() }), { role: 'cxteam' })
+    await waitFor(() => ready(cx.result.current.sample))
+    await waitFor(() => ready(cx.result.current.rates))
+    expect(cx.result.current.sample.data!.read).toBe(cxReadBefore) // the other reader's verdict is not in the CX tile
+    expect(cx.result.current.rates.data!.find((r) => r.agent === 5)!.wrong).toBe(wrongBefore + 1) // but the agent's rate is one figure
+    cx.unmount()
+
+    await act(() => audit.result.current.judge.mutateAsync({ id: routing.id, right: true }))
+    await waitFor(() => expect(audit.result.current.tests.data?.some((t) => t.fromSampleId === routing.id)).toBe(false))
+    audit.unmount()
   })
 })
 

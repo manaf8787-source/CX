@@ -40,6 +40,12 @@ const REGISTER_PAGES = [
  */
 const WATCH_PAGE = '/settings/watch-ai-team'
 
+/**
+ * v42.1 (F33): the campaign audit is open to the Internal Audit and Marketing Lead and the CX manager (who mark the checks and decide, see
+ * `canEditCampaignAudit`), the CX team (which creates the AI interview campaigns it gates, and reads), the Marketing manager and Executive (read).
+ */
+const CAMPAIGN_AUDIT_PAGE = '/settings/campaign-audit'
+
 export const ROLE_PATHS: Record<RoleId, string[] | null> = {
   cxmgr: null,
   cxteam: null,
@@ -49,7 +55,7 @@ export const ROLE_PATHS: Record<RoleId, string[] | null> = {
   ld: ['/actions', '/settings/standards', '/settings/ld'],
   hrspec: ['/actions', '/settings/hr-team'],
   hrmgr: ['/settings/hr-team'],
-  marketing: ['/home', '/customers', '/runaway', '/personas', '/inbox', '/settings/public-mentions', WATCH_PAGE],
+  marketing: ['/home', '/customers', '/runaway', '/personas', '/inbox', '/settings/public-mentions', WATCH_PAGE, CAMPAIGN_AUDIT_PAGE],
   auditmkt: [
     '/overview',
     '/customers',
@@ -62,9 +68,10 @@ export const ROLE_PATHS: Record<RoleId, string[] | null> = {
     '/settings/rules',
     '/settings/surveys',
     WATCH_PAGE,
+    CAMPAIGN_AUDIT_PAGE,
     ...REGISTER_PAGES,
   ],
-  exec: ['/home', '/customers', '/runaway', '/actions', '/personas', '/overview', '/settings/monthly-pack', '/inbox', '/settings/surveys', WATCH_PAGE, ...REGISTER_PAGES],
+  exec: ['/home', '/customers', '/runaway', '/actions', '/personas', '/overview', '/settings/monthly-pack', '/inbox', '/settings/surveys', WATCH_PAGE, CAMPAIGN_AUDIT_PAGE, ...REGISTER_PAGES],
   shopper: ['/settings/mystery-shopper'],
 }
 

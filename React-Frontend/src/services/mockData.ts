@@ -55,7 +55,7 @@ import { GLOSSARY_TERMS } from '../data/glossary'
 import { ENVIRONMENTS as ENVIRONMENT_LIST, environmentById } from '../data/environments'
 import { RULE_IDS } from '../utils/ruleValues'
 import { MON_FRI } from '../utils/workingDays'
-import { WEEKLY_SAMPLE_SIZE, buildWeeklySample, seedAuditLog, seedCallAttempts } from './mockDataV40'
+import { MOCK_MATRIX, WEEKLY_SAMPLE_SIZE, buildWeeklySample, seedAuditLog, seedCallAttempts } from './mockDataV40'
 
 export * from './mockDataV40'
 
@@ -324,7 +324,8 @@ function buildCorrectiveActions(patterns: Pattern[], signals: Signal[]): Correct
       return base
     })
     const beforeAvg = rawSeries.slice(0, startedMonthIndex).reduce((s, v) => s + v, 0) / startedMonthIndex
-    const afterFactor = status === 'effective' || status === 'verification' ? 0.6 : status === 'partial' ? 0.82 : 1
+    // An effective fix is past the rule's 50% drop; one still in its 60-day check reads 40% so far (under half); a partial one 18%.
+    const afterFactor = status === 'effective' ? 0.45 : status === 'verification' ? 0.6 : status === 'partial' ? 0.82 : 1
     const afterMonths = rawSeries.length - startedMonthIndex
     const afterTotal = Math.round(beforeAvg * afterFactor * afterMonths)
     const monthlySignalSeries = rawSeries.map((v, m) => {
@@ -1232,6 +1233,8 @@ export const MOCK_WEEKLY_SAMPLE = buildWeeklySample({
   persons: MOCK_PERSONS,
   readings: MOCK_AI_JOURNEY_READINGS,
   interactions: MOCK_INTERACTIONS,
+  matrix: MOCK_MATRIX,
+  personas: MOCK_PERSONAS,
 })
 export const MOCK_WEEKLY_SAMPLE_SIZE = WEEKLY_SAMPLE_SIZE
 /** Tests the supervisor gained from "wrong" verdicts on the weekly sample (decided 18 Nov). Filled by `useJudgeSample`. */

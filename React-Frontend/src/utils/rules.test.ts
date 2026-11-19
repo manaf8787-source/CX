@@ -3,6 +3,7 @@ import type { DetractorCallItem, Interaction, MsChecklist, MsChecklistItem } fro
 import { CLOCK_LABEL, dueClockState, formatRemaining } from './clock'
 import { CALLS_PER_HOUR, REASON_CODE_LABEL, computeMonthlyCapacity, isRecovered, sampleToCapacity, suggestReasonCode } from './closeTheLoop'
 import { EFFECTIVENESS_LABEL, evaluateEffectiveness } from './effectiveness'
+import { MOCK_CORRECTIVE_ACTIONS } from '@/services/mockData'
 import { msSeverityFor, scoreChecklist } from './mysteryShopper'
 import { daysAgoIso, intBetween, pick, seededRandom } from './random'
 
@@ -42,17 +43,33 @@ describe('60-day effectiveness check', () => {
   it('is too early with fewer than 2 months after the start', () => {
     expect(evaluateEffectiveness([10, 10, 10, 6], 3).verdict).toBe('too_early')
   })
-  it('a drop of 25% or more is effective', () => {
-    const r = evaluateEffectiveness([10, 10, 10, 7, 8], 3)
-    expect(r.changePct).toBeCloseTo(-0.25)
+  it('a drop of half or more is effective (Decision 3: 50%)', () => {
+    const r = evaluateEffectiveness([10, 10, 10, 5, 5], 3)
+    expect(r.changePct).toBeCloseTo(-0.5)
     expect(r.verdict).toBe('effective')
+    expect(evaluateEffectiveness([10, 10, 10, 4, 3], 3).verdict).toBe('effective')
   })
-  it('a drop under 10% or a rise has failed', () => {
-    expect(evaluateEffectiveness([10, 10, 10, 10, 9.2], 3).verdict).toBe('failed')
+  it('a drop under half is partial, however small', () => {
+    expect(evaluateEffectiveness([10, 10, 10, 6, 6], 3).verdict).toBe('partial') // 40%: the old 25% line called this effective
+    expect(evaluateEffectiveness([10, 10, 10, 8, 9], 3).verdict).toBe('partial')
+    expect(evaluateEffectiveness([10, 10, 10, 10, 9.2], 3).verdict).toBe('partial')
+  })
+  it('no drop, or a rise, has failed', () => {
+    expect(evaluateEffectiveness([10, 10, 10, 10, 10], 3).verdict).toBe('failed')
     expect(evaluateEffectiveness([10, 10, 10, 12, 12], 3).verdict).toBe('failed')
   })
-  it('between 10% and 25% is partial', () => {
-    expect(evaluateEffectiveness([10, 10, 10, 8, 9], 3).verdict).toBe('partial')
+  it('follows the rule value when the configuration changes it', () => {
+    expect(evaluateEffectiveness([10, 10, 10, 6, 6], 3, 40).verdict).toBe('effective')
+    expect(evaluateEffectiveness([10, 10, 10, 5, 5], 3, 60).verdict).toBe('partial')
+  })
+  it('the sample reads as the rule says: a fix recorded effective, partial or failed shows that reading', () => {
+    for (const f of MOCK_CORRECTIVE_ACTIONS) {
+      if (!f.monthlySignalSeries || f.startedMonthIndex === undefined) continue
+      const r = evaluateEffectiveness(f.monthlySignalSeries, f.startedMonthIndex)
+      if (f.status === 'effective') expect(r.verdict, f.id).toBe('effective')
+      if (f.status === 'partial') expect(r.verdict, f.id).toBe('partial')
+      if (f.status === 'failed') expect(r.verdict, f.id).toBe('failed')
+    }
   })
   it('compares against the 3 months before the start only', () => {
     expect(evaluateEffectiveness([100, 10, 10, 10, 5, 5], 4).before).toBe(10)

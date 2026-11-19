@@ -73,6 +73,8 @@ export const SETTINGS_NAV: NavLeaf[] = [
   { path: '/intelligent-cx-team', label: { en: 'How the portal works (the AI team)', ar: 'كيف تعمل البوابة (فريق الذكاء الاصطناعي)' } },
   { path: '/settings/watch-ai-team', label: { en: 'Watch the AI team work', ar: 'شاهد فريق الذكاء يعمل' }, skipLanding: true },
   { path: '/settings/weekly-sample', label: { en: 'Weekly sample', ar: 'العينة الأسبوعية' } },
+  // v42.1 (F33): right after the weekly sample. skipLanding: listed there, it would become Marketing's landing page (its first allowed page under /settings).
+  { path: '/settings/campaign-audit', label: { en: 'Campaign audit', ar: 'تدقيق الحملات' }, skipLanding: true },
   { path: '/settings/public-mentions', label: { en: 'Public mentions', ar: 'الإشارات العامة' } },
   { path: '/settings/monthly-pack', label: { en: 'Monthly CX pack', ar: 'الحزمة الشهرية' } },
   { path: '/settings/mystery-shopper', label: { en: 'Mystery shopper', ar: 'التسوق السري' } },

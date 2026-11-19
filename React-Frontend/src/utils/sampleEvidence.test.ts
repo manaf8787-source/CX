@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Pattern } from '@/types'
-import { briefSaw, countSaw, fixSaw, journeySaw, signalSaw, signalSeverity, signalSummary } from './sampleEvidence'
+import { briefSaw, countSaw, fixSaw, journeySaw, signalSaw, signalSeverity, signalSource, signalSummary } from './sampleEvidence'
 
 const pattern = (over: Partial<Pattern> = {}): Pattern =>
   ({
@@ -31,6 +31,12 @@ describe('what the agent saw (v41.1 F29)', () => {
   it('a public mention has no event, so its source is the public mention itself', () => {
     const saw = signalSaw({ kind: 'public_mention', category: 'slow_response', occurredAt: '2026-10-22T08:00:00Z' }, [])
     expect(saw.en.startsWith('Public mention · 2026-10-22')).toBe(true)
+  })
+
+  it('the source of a signal (v42.2 card): the channel of its first event, the public channel for a mention; the card quotes the same line', () => {
+    expect(signalSource([{ channel: 'whatsapp' }, { channel: 'call' }]).en).toBe('WhatsApp')
+    expect(signalSource([]).en).toBe('Public mention')
+    expect(signalSource([{ channel: 'email' }]).ar).toMatch(/[؀-ۿ]/)
   })
 
   it('an unknown category falls back to its label, not to a blank', () => {

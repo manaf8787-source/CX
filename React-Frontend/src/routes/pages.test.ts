@@ -22,16 +22,26 @@ describe('route loaders', () => {
     expect(() => prefetchPath('/settings/watch-ai-team')).not.toThrow()
   })
 
+  it('has a loader for the v42.1 campaign audit, warmed with the Settings layout, and the lazy route is wired in App', async () => {
+    expect(pageLoaders).toHaveProperty('campaignAudit')
+    expect(typeof (await pageLoaders.campaignAudit()).default).toBe('function')
+    expect(() => prefetchPath('/settings/campaign-audit')).not.toThrow()
+    const app = (import.meta.glob('../App.tsx', { query: '?raw', import: 'default', eager: true }) as Record<string, string>)['../App.tsx']
+    expect(app).toContain('lazy(pageLoaders.campaignAudit)')
+    expect(app).toContain('<Route path="campaign-audit" element={<CampaignAudit />} />')
+  })
+
   it('every page named in the menus has a source file under pages/ (so no menu item is a dead end)', async () => {
     const files = import.meta.glob('../pages/**/*.tsx', { eager: false })
     const have = new Set(Object.keys(files).map((f) => f.replace('../pages/', '').replace('.tsx', '')))
-    for (const rel of ['inbox/Inbox', 'OverviewPage', 'settings/Feeds', 'settings/CrmMapping', 'settings/EscalationMatrix', 'settings/SurveyQuestions', 'settings/WeeklySample', 'settings/PublicMentions', 'settings/WatchTeam', 'Surveys', 'IntelligentCxTeam']) {
+    for (const rel of ['inbox/Inbox', 'OverviewPage', 'settings/Feeds', 'settings/CrmMapping', 'settings/EscalationMatrix', 'settings/SurveyQuestions', 'settings/WeeklySample', 'settings/PublicMentions', 'settings/WatchTeam', 'settings/CampaignAudit', 'Surveys', 'IntelligentCxTeam']) {
       expect(have.has(rel), rel).toBe(true)
     }
     const menu = [...PRIMARY_NAV.flatMap((g) => g.items), ...SETTINGS_NAV].map((i) => i.path)
     expect(menu).toContain('/inbox')
     expect(menu).toContain('/overview')
     expect(menu).toContain('/settings/watch-ai-team')
+    expect(menu).toContain('/settings/campaign-audit')
   })
 
   it('no foundation stub marker is left behind (every stub page was replaced by its workstream)', () => {

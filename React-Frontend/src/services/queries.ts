@@ -135,7 +135,8 @@ async function fetchAiJourneyReading(personId: string) {
 
 async function fetchAiCampaigns() {
   await latency(LATENCY_MS)
-  return mock.MOCK_AI_CAMPAIGNS
+  // copies: a campaign's status changes in the register (it starts, it finishes), and the cache must see a different object to re-render
+  return mock.MOCK_AI_CAMPAIGNS.map((c) => ({ ...c }))
 }
 
 async function fetchPersonas() {
@@ -772,7 +773,8 @@ export function useCreateAiCampaign() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: createAiCampaign,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['ai-campaigns'] }),
+    // the new campaign is a draft and waits for the Internal Audit and Marketing Lead's clearance (campaign audit, v42.1 F33)
+    onSuccess: () => Promise.all([qc.invalidateQueries({ queryKey: ['ai-campaigns'] }), qc.invalidateQueries({ queryKey: ['campaign-audit'] })]),
   })
 }
 

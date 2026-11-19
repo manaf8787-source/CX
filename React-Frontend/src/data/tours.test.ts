@@ -64,7 +64,8 @@ describe('tour data', () => {
       // the prototype has 7: its "All the numbers" step needs the Overview, which Marketing cannot open here
       marketing: 6,
       ld: 3,
-      auditmkt: 4,
+      // brief, data feeds, weekly sample, campaign audit (v42.1 F33), closing card
+      auditmkt: 5,
       exec: 4,
       // no Home for the HR roles: only the closing card is left
       hrspec: 1,
@@ -82,6 +83,21 @@ describe('tour data', () => {
     for (const r of ROLE_DEFS) {
       for (const s of tourStepsFor(r.id)) if (s.route !== null) expect(canOpenPage(r.id, s.route), `${r.id} ${s.route}`).toBe(true)
     }
+  })
+
+  it('the Internal Audit and Marketing Lead’s tour has the Campaign audit step right after the weekly sample, from the prototype (v42.1 F33)', () => {
+    const steps = tourStepsFor('auditmkt')
+    expect(steps.map((s) => s.title.en)).toEqual(['Your daily brief', 'Data feeds', 'The weekly sample', 'Campaign audit', 'That is the whole portal'])
+    const step = steps[3]
+    expect(step).toMatchObject({ route: '/settings/campaign-audit', target: '[data-tour="campaign-audit"]' })
+    expect(step.title).toEqual({ en: 'Campaign audit', ar: 'تدقيق الحملات' })
+    expect(step.text.en).toBe('Every campaign before it runs and after: the right people, projects and developers, channel and message, and the money. Five checks, then clear it or send it back.')
+    expect(step.text.ar).toBe('كل حملة قبل تشغيلها وبعده: الأشخاص والمشاريع والمطورون والقناة والرسالة والمال. خمسة فحوصات، ثم إجازة أو إعادة.')
+    // no other role's tour changed: only the audit lead is sent to the page (the CX manager's is the 13 steps it was)
+    for (const [role, list] of Object.entries(tours)) {
+      expect((list ?? []).some((s) => s.route === '/settings/campaign-audit'), role).toBe(role === 'auditmkt')
+    }
+    expect(tourStepsFor('cxmgr')).toHaveLength(13)
   })
 
   it('drops the Overview step for Marketing and keeps the closing card last and alone for the HR roles', () => {
@@ -136,6 +152,7 @@ describe('the data-tour inventory', () => {
     expect([...names].sort()).toEqual(
       [
         'brief',
+        'campaign-audit',
         'customers-search',
         'feeds',
         'fix-card',

@@ -1,9 +1,15 @@
-/** Ported from `frontend/src/lib/effectiveness.ts` (effCalc): splits a
- * monthly series at the action's start month, compares the 3-months-before
- * average to the from-start-onward average. A drop of 25%+ is working, a
- * rise or a drop under 10% is not working, otherwise unclear; under 2
- * months since start is too early to call. A signal, not proof — feeds
- * CorrectiveAction.verificationResult (FR-4.1's 60-day check). */
+/**
+ * The automatic readout beside the 60-day check: splits a monthly series at the fix's start month and compares the
+ * 3-months-before average with the from-start-onward average. It follows the rule (Rules and Definitions, Decision 3,
+ * `rule_effective_drop`): a drop of 50% or more reads effective; a smaller drop reads partial ("dropped under half");
+ * no drop, or a rise, reads failed ("no drop: back to root cause"); under 2 months since the start is too early to call.
+ * [Proposed] the line between partial and failed is "any drop": the rules define only the 50% line.
+ * Evidence, not the verdict: a person records the verdict on the fix (v40.1), and "did not return for 90 days" is theirs to judge.
+ */
+
+/** Decision 3: effective when the same signals drop by this share or more. The rules configuration can change it. */
+export const EFFECTIVE_DROP_PCT = 50
+
 export type EffectivenessVerdict = 'too_early' | 'effective' | 'failed' | 'partial'
 
 export interface EffectivenessResult {
@@ -13,7 +19,7 @@ export interface EffectivenessResult {
   verdict: EffectivenessVerdict
 }
 
-export function evaluateEffectiveness(series: number[], startedMonthIndex: number): EffectivenessResult {
+export function evaluateEffectiveness(series: number[], startedMonthIndex: number, dropPct: number = EFFECTIVE_DROP_PCT): EffectivenessResult {
   const before = avg(series.slice(Math.max(0, startedMonthIndex - 3), startedMonthIndex))
   const after = avg(series.slice(startedMonthIndex))
   const changePct = before ? (after - before) / before : 0
@@ -21,9 +27,9 @@ export function evaluateEffectiveness(series: number[], startedMonthIndex: numbe
 
   let verdict: EffectivenessVerdict
   if (monthsAfter < 2) verdict = 'too_early'
-  else if (changePct <= -0.25) verdict = 'effective'
-  else if (changePct > -0.1) verdict = 'failed'
-  else verdict = 'partial'
+  else if (changePct <= -dropPct / 100) verdict = 'effective'
+  else if (changePct < 0) verdict = 'partial'
+  else verdict = 'failed'
 
   return { before, after, changePct, verdict }
 }

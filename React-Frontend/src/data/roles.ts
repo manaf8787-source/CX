@@ -70,7 +70,11 @@ export const ROLE_DEFS: RoleDef[] = [
   {
     id: 'auditmkt',
     name: { en: 'Internal Audit and Marketing Lead', ar: 'مسؤول التدقيق الداخلي والتسويق' },
-    description: { en: 'Aggregates and audit views only: feed trust, standards compliance, persona/campaign criteria. No cases, no conversation text, no agent names.', ar: 'عرض إجمالي ورقابي فقط: موثوقية البيانات، الامتثال للمعايير، معايير الشخصيات والحملات. دون حالات أو نص محادثات أو أسماء وكلاء.' },
+    // v42.1 (F33, Decision 2): the prototype's `ROLES.ia.d`, word for word: audits, never approves fixes; audits every campaign before and after it runs.
+    description: {
+      en: 'Audits, never approves fixes: marks data feeds and standards as trusted; reads the audit part of the weekly sample (routing, classification, access, targeting); audits every campaign before it runs (right people, right projects and developers, right channel and message, the money) and after it ran. Sees aggregates and audit views; no cases, no conversation text, no agent names.',
+      ar: 'يدقّق ولا يعتمد الحلول: يوسم تغذيات البيانات والمعايير موثوقة؛ يقرأ الجزء التدقيقي من العينة الأسبوعية (التوجيه، التصنيف، الصلاحيات، الاستهداف)؛ يدقّق كل حملة قبل تشغيلها (الأشخاص الصحيحون، المشاريع والمطورون الصحيحون، القناة والرسالة الصحيحتان، المال) وبعد تشغيلها. يرى المجاميع وصفحات التدقيق؛ لا حالات ولا نص محادثات ولا أسماء موظفين.',
+    },
     // v40 (F35): the Internal Audit and Marketing Lead lands on the Overview, now "6 · CX indicators" at /overview.
     home: '/overview',
   },

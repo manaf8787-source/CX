@@ -18,6 +18,8 @@ import { InlineNote } from '@/components/common/InlineNote'
 import { DataTable } from '@/components/common/DataTable'
 import { EmptyState } from '@/components/common/EmptyState'
 import { LoadingState } from '@/components/common/LoadingState'
+import { CampaignGate } from '@/components/campaigns/CampaignGate'
+import { CAMPAIGN_AUDIT_COPY } from '@/data/campaignAudit'
 import { DecisionDialog } from './actions/components/DecisionDialog'
 
 type Recommendation = NonNullable<ReturnType<typeof useCampaignRecommendations>['data']>[number]
@@ -64,6 +66,18 @@ export default function Personas() {
         accessorFn: (r) => L(r.summary),
         header: t('Who', 'لمن'),
         cell: ({ getValue }) => <span className="block min-w-48 whitespace-normal">{getValue<string>()}</span>,
+      },
+      {
+        // v42.1 (F33): the campaign audit's clearance, and the gated "Start campaign" for the roles that run a persona campaign
+        id: 'gate',
+        header: L(CAMPAIGN_AUDIT_COPY.gate.column),
+        meta: { cellClassName: 'min-w-52 whitespace-normal' },
+        cell: ({ row }) => (
+          // a click or Enter on the row jumps to its persona: the controls of the gate must not
+          <div onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+            <CampaignGate sourceId={row.original.personaId} kind="persona" compact />
+          </div>
+        ),
       },
     ]
   }, [t, L, personas])
@@ -116,7 +130,7 @@ export default function Personas() {
           getRowId={(r) => r.id}
           pageSize={0}
           // a phone: the campaign and its persona on two lines, the rank and "Who" behind "Details"
-          phone={{ title: 'campaign', meta: ['persona'], detail: ['rank', 'who'] }}
+          phone={{ title: 'campaign', meta: ['persona', 'gate'], detail: ['rank', 'who'] }}
           emptyTitle={t('No ranked campaigns yet.', 'لا توجد حملات مرتبة بعد.')}
           onRowClick={(r) => {
             const el = document.getElementById(`persona-${r.personaId}`)

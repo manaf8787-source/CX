@@ -238,6 +238,17 @@ const auditSample: TourStep = {
   text: bi('Fifty outputs, right or wrong. A wrong becomes a test for the supervisor.', 'خمسون مخرجاً، صح أو خطأ. الخطأ يصبح اختباراً للسوبرفايزر.'),
 }
 
+/** v42.1 (F33): the prototype's fourth step for the Internal Audit and Marketing Lead, after the weekly sample (its `.main .card table` is the checks card here). */
+const auditCampaigns: TourStep = {
+  route: '/settings/campaign-audit',
+  target: '[data-tour="campaign-audit"]',
+  title: bi('Campaign audit', 'تدقيق الحملات'),
+  text: bi(
+    'Every campaign before it runs and after: the right people, projects and developers, channel and message, and the money. Five checks, then clear it or send it back.',
+    'كل حملة قبل تشغيلها وبعده: الأشخاص والمشاريع والمطورون والقناة والرسالة والمال. خمسة فحوصات، ثم إجازة أو إعادة.',
+  ),
+}
+
 // --- One path per role -----------------------------------------------------------------------------------------------------------
 
 const cxPath = [...home, ...work, ...fix, ...loop, ...people, ...nums, end]
@@ -256,7 +267,7 @@ export const tours: Partial<Record<RoleId, readonly TourStep[]>> = {
   aslead: leadPath,
   marketing: [...home, personas, ...people, ...nums, end],
   ld: [ldBrief, ldFix, end],
-  auditmkt: [auditBrief, auditFeeds, auditSample, end],
+  auditmkt: [auditBrief, auditFeeds, auditSample, auditCampaigns, end],
   // HR specialist, HR manager and executive: Home and the end card
   hrspec: [...home, end],
   hrmgr: [...home, end],

@@ -13,6 +13,7 @@ import type {
 import { canAccessPath, canOpenPage } from '../auth/access'
 import { DEFAULT_RULES_BAG, calendarFromRules, type RulesBag } from './ruleValues'
 import { ownerTitle } from '../data/ownerTitles'
+import { campaignAuditInboxItems } from './campaignAudit'
 import { caId, invId } from './trace'
 import { calendarDaysLeft, nextWeekday, startOfDay, toDayKey, workingDaysBetween } from './workingDays'
 
@@ -121,6 +122,8 @@ export interface InboxInput {
   sampleSize?: number
   /** Thursday of the sample, 'YYYY-MM-DD'; computed from `today` when absent. */
   sampleDue?: string
+  /** Campaign audit (v42.1 F33), for the Internal Audit and Marketing Lead: campaigns waiting for its clearance and finished ones to audit. */
+  campaignAudit?: { waiting: number; finished: number }
 }
 
 /**
@@ -255,6 +258,9 @@ export function buildInbox(input: InboxInput): InboxItem[] {
       target: '/settings/weekly-sample',
     })
   }
+
+  // Campaign audit: "Clear or send back" (urgent, 2 working days) and "Audit after the run", Internal Audit only (v42.1 F33).
+  items.push(...campaignAuditInboxItems(role, input.campaignAudit))
 
   return items.sort((a, b) => b.priority - a.priority || (a.daysLeft ?? Number.POSITIVE_INFINITY) - (b.daysLeft ?? Number.POSITIVE_INFINITY) || a.id.localeCompare(b.id))
 }

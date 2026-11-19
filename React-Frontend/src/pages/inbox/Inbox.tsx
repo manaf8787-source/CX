@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { ClipboardCheck, CircleCheck, FileSearch, PhoneCall, ScanSearch, Wrench, type LucideIcon } from 'lucide-react'
+import { ClipboardCheck, CircleCheck, FileCheck, FileSearch, Megaphone, PhoneCall, ScanSearch, Wrench, type LucideIcon } from 'lucide-react'
 import { useI18n, type Lang } from '@/i18n'
 import { useRole } from '@/auth/RoleContext'
 import { canAccessPath } from '@/auth/access'
@@ -29,6 +29,8 @@ const KIND_ICON: Record<InboxKind, LucideIcon> = {
   call: PhoneCall,
   inv: FileSearch,
   sample: ClipboardCheck,
+  caud: Megaphone,
+  caud2: FileCheck,
 }
 
 /** The date an item falls due, from its day counter: working days on the configured week, or calendar days. Null for an item with no date. */

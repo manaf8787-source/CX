@@ -243,9 +243,9 @@ test.describe('skip, replay and roles', () => {
     await expect(page.locator('li[data-fix]')).toHaveCount(1)
   })
 
-  test('the Internal Audit and Marketing Lead is taken to its feeds and the weekly sample', async ({ page }) => {
+  test('the Internal Audit and Marketing Lead is taken to its feeds, the weekly sample and the campaign audit', async ({ page }) => {
     await enter(page, 'auditmkt', '/overview')
-    expect(await counter(page)).toBe('Tour 1 / 4')
+    expect(await counter(page)).toBe('Tour 1 / 5')
     await next(page)
     await expect(page).toHaveURL(/\/settings\/feeds$/)
     await heading(page, 'Data feeds')
@@ -254,6 +254,13 @@ test.describe('skip, replay and roles', () => {
     await expect(page).toHaveURL(/\/settings\/weekly-sample$/)
     await heading(page, 'The weekly sample')
     await expect(ring(page)).toBeVisible({ timeout: 10_000 })
+    // v42.1 (F33): the prototype's campaign audit step comes right after it
+    await next(page)
+    await expect(page).toHaveURL(/\/settings\/campaign-audit$/)
+    await heading(page, 'Campaign audit')
+    expect(await counter(page)).toBe('Tour 4 / 5')
+    await expect(ring(page)).toBeVisible({ timeout: 10_000 })
+    await expect(page.locator('[data-tour="campaign-audit"]')).toBeVisible()
   })
 })
 

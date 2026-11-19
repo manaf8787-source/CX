@@ -104,12 +104,12 @@ export default function Corrective() {
         <InlineNote tone="neutral">{t('Showing the actions classified as training gap — the ones L&D receives.', 'عرض الإجراءات المصنفة كفجوة تدريبية — التي يستلمها التعلم والتطوير.')}</InlineNote>
       )}
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <label htmlFor="corrective-status" className="t-body-s">
             {t('Status', 'الحالة')}
           </label>
           <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
-            <SelectTrigger id="corrective-status" className="h-9 w-60 max-w-[calc(100vw-6rem)]">
+            <SelectTrigger id="corrective-status" className="h-9 w-60 max-w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

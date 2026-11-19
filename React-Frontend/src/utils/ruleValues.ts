@@ -10,6 +10,8 @@ export const RULE_IDS = {
   window: 'rule_pattern_window',
   minSample: 'rule_pattern_min_sample',
   verifyDays: 'rule_verification_days',
+  /** Decision 3: a fix is effective when the same signals drop by this share (50%). */
+  effectiveDrop: 'rule_effective_drop',
   approveDays: 'rule_approval_days',
   publicReply: 'rule_public_reply',
   /** Decided 18 Nov: Monday to Friday. JS weekdays that count (0 = Sunday); still a setting. */
@@ -34,6 +36,8 @@ export interface RulesBag {
   patterns: PatternRules
   approveDays: number
   verifyDays: number
+  /** Share (0 to 100) the signals must drop by for a fix to read effective at the 60-day check. */
+  effectiveDropPct: number
   publicReplyHours: number
   workingDays: number[]
   /** Working day, hour of day: 9 and 18. */
@@ -52,6 +56,7 @@ export const DEFAULT_RULES_BAG: RulesBag = {
   patterns: { ...PATTERN_RULES },
   approveDays: 5,
   verifyDays: 60,
+  effectiveDropPct: 50,
   publicReplyHours: 48,
   workingDays: [...MON_FRI],
   workStart: 9,
@@ -79,6 +84,7 @@ export function rulesFromConfig(items: readonly RuleConfigItem[]): RulesBag {
     },
     approveDays: num(RULE_IDS.approveDays, d.approveDays),
     verifyDays: num(RULE_IDS.verifyDays, d.verifyDays),
+    effectiveDropPct: num(RULE_IDS.effectiveDrop, d.effectiveDropPct),
     publicReplyHours: num(RULE_IDS.publicReply, d.publicReplyHours),
     workingDays: days && days.length ? [...days] : [...d.workingDays],
     workStart: num(RULE_IDS.workStart, d.workStart),
@@ -94,7 +100,7 @@ export function rulesFromConfig(items: readonly RuleConfigItem[]): RulesBag {
 /** A short string that changes whenever any rule value changes (used in query keys and memo keys). */
 export function rulesSignature(bag: RulesBag): string {
   const p = bag.patterns
-  return [p.sameIssueMin, p.sameAgentMin, p.environmentConcentrationPct, p.minimumSample, p.windowDays, bag.approveDays, bag.verifyDays, bag.publicReplyHours, bag.workingDays.join(''), bag.workStart, bag.workEnd, bag.fixFallbackDays, bag.callFrom, bag.callTo, bag.callTries, bag.aiNoAnswers].join('.')
+  return [p.sameIssueMin, p.sameAgentMin, p.environmentConcentrationPct, p.minimumSample, p.windowDays, bag.approveDays, bag.verifyDays, bag.effectiveDropPct, bag.publicReplyHours, bag.workingDays.join(''), bag.workStart, bag.workEnd, bag.fixFallbackDays, bag.callFrom, bag.callTo, bag.callTries, bag.aiNoAnswers].join('.')
 }
 
 export function calendarFromRules(bag: RulesBag): WorkCalendar {

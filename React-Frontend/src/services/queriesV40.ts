@@ -24,11 +24,13 @@ import {
 import { useNpsTrend, usePublicMentions } from './referenceQueries'
 import { useEnvScope } from './envScope'
 import { useRole } from '../auth/RoleContext'
+import { sampleReaderOf } from '../auth/permissions'
 import { canAccessPath } from '../auth/access'
 import { useNow } from '../hooks/useNow'
 import { AGENT_JDS, CES_SAMPLE } from '../data/v38Reference'
 import { publicReplyBreaches } from '../data/publicMentions'
 import { applyApprovalClock, applyDoneClock } from './fixClockStore'
+import { useCampaignAuditSummary } from './campaignAuditQueries'
 import { fixDue } from '../utils/fixClock'
 import { dueHours, patternHasVip } from '../utils/vipClock'
 import { agentPassRates, syncSampleEffects } from '../utils/passRate'
@@ -65,6 +67,7 @@ import type {
   MatrixRuleRow,
   ProductId,
   RoleId,
+  SampleReader,
   SupervisorTest,
   SurveyQuestionSet,
   TraceChain,
@@ -273,11 +276,16 @@ export function useBriefInputs(): { data: BriefInputs | undefined; isLoading: bo
   const { data: effort, isLoading: l8 } = useEffortSummaries()
   const { data: mentions, isLoading: l9, dataUpdatedAt: t9 } = usePublicMentions()
   const { data: sample, isLoading: l10 } = useWeeklySample()
+  // Campaign audit line (v42.1 F33): read for the Internal Audit and Marketing Lead only, so no other role waits for it.
+  const { role } = useRole()
+  const auditLead = role.id === 'auditmkt'
+  const { data: campaignAudit, isLoading: l11 } = useCampaignAuditSummary({ enabled: auditLead })
   // The registers are edited in place, so their identity does not change after an edit: these stamps do.
   const stamp = [t1, t2, t3, t4, t5, t9].join('.')
 
   const data = useMemo<BriefInputs | undefined>(() => {
     if (!signals || !patterns || !fixes || !cases || !loop || !persons || !allPersons || !interactions || !effort || !mentions || !sample) return undefined
+    if (auditLead && !campaignAudit) return undefined
     const windowDays = rules.patterns.windowDays
     const closed = (s: CorrectiveActionStatus) => s === 'effective' || s === 'partial' || s === 'failed'
     const patternIdsWithFix = new Set(fixes.map((f) => f.patternId).filter(Boolean))
@@ -322,11 +330,12 @@ export function useBriefInputs(): { data: BriefInputs | undefined; isLoading: bo
       ldFixes: fixes.filter((f) => f.kind === 'training_gap' && !closed(f.status)).length,
       conductNotes: fixes.filter((f) => f.kind === 'employee').length,
       sample: { toRead: sample.size, read: sample.read },
+      ...(auditLead && campaignAudit ? { campaigns: { waiting: campaignAudit.waiting, runningReachedPct: campaignAudit.runningReachedPct } } : {}),
     }
     // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, [signals, patterns, fixes, cases, loop, persons, allPersons, interactions, effort, mentions, sample, rules, now, stamp])
+  }, [signals, patterns, fixes, cases, loop, persons, allPersons, interactions, effort, mentions, sample, rules, now, stamp, auditLead, campaignAudit])
 
-  return { data, isLoading: l1 || l2 || l3 || l4 || l5 || l6 || l7 || l8 || l9 || l10 }
+  return { data, isLoading: l1 || l2 || l3 || l4 || l5 || l6 || l7 || l8 || l9 || l10 || l11 }
 }
 
 // --- My inbox (F20) --------------------------------------------------------------------------------------------
@@ -343,10 +352,14 @@ export function useInbox(): { data: InboxItem[] | undefined; isLoading: boolean;
   const { data: campaigns, isLoading: l5, dataUpdatedAt: t5 } = useAiCampaigns()
   const { data: persons, isLoading: l6 } = usePersonsAll()
   const { data: sample, isLoading: l7 } = useWeeklySample()
+  // Campaign audit rows (v42.1 F33): the Internal Audit and Marketing Lead only, so no other role waits for the audit.
+  const auditLead = role.id === 'auditmkt'
+  const { data: campaignAudit, isLoading: l8 } = useCampaignAuditSummary({ enabled: auditLead })
   // The registers are edited in place, so their identity does not change after an edit: these stamps do.
   const stamp = [t1, t3, t4, t5].join('.')
   const data = useMemo(() => {
     if (!fixes || !patterns || !loop || !investigations || !campaigns || !persons || !sample) return undefined
+    if (auditLead && !campaignAudit) return undefined
     return buildInbox({
       role: role.id,
       today: new Date(now),
@@ -361,11 +374,12 @@ export function useInbox(): { data: InboxItem[] | undefined; isLoading: boolean;
       sampleRead: sample.read,
       sampleSize: sample.size,
       sampleDue: sample.due,
+      campaignAudit: auditLead && campaignAudit ? { waiting: campaignAudit.waiting, finished: campaignAudit.finished } : undefined,
     })
     // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, [role.id, role.environment, now, rules, fixes, patterns, loop, investigations, campaigns, persons, sample, stamp])
+  }, [role.id, role.environment, now, rules, fixes, patterns, loop, investigations, campaigns, persons, sample, stamp, auditLead, campaignAudit])
   const stats = useMemo(() => workTodayStats(data ?? []), [data])
-  return { data, isLoading: l1 || l2 || l3 || l4 || l5 || l6 || l7, stats }
+  return { data, isLoading: l1 || l2 || l3 || l4 || l5 || l6 || l7 || l8, stats }
 }
 
 // --- Trace (F10, F11) -------------------------------------------------------------------------------------------
@@ -516,7 +530,10 @@ export function useInvestigationEvidence(): { data: Record<string, Investigation
 // --- Weekly sample (F31) -------------------------------------------------------------------------------------------
 
 export interface WeeklySample {
+  /** The reader's own rows (v42.1), in the sample's order. */
   items: WeeklySampleItem[]
+  reader: SampleReader
+  /** How many rows the reader has: `items.length`. */
   size: number
   read: number
   /** Each wrong verdict becomes a new test for the supervisor. */
@@ -527,17 +544,26 @@ export interface WeeklySample {
   due: string
 }
 
-export const useWeeklySample = () =>
-  useQuery({
-    queryKey: ['weekly-sample'],
+/**
+ * The signed-in role's own part of the weekly sample (v42.1 F32, split by reader): the Internal Audit and Marketing Lead reads the audit rows,
+ * every other role the content rows (`sampleReaderOf`). `size`, `read`, `wrong` and `accuracyPct` count those rows only, so the page, the
+ * daily brief and the inbox all say the same number; the agents' pass rates are not per reader (`useAgentPassRates` reads every row).
+ * The original composition is still fifty rows (`MOCK_WEEKLY_SAMPLE_SIZE`); the audit rows come on top of it, so a reader's total is not fifty.
+ */
+export function useWeeklySample() {
+  const { role } = useRole()
+  const reader = sampleReaderOf(role.id)
+  return useQuery({
+    queryKey: ['weekly-sample', reader],
     queryFn: async (): Promise<WeeklySample> => {
       await latency(LATENCY_MS)
-      const items = mock.MOCK_WEEKLY_SAMPLE.map((i) => ({ ...i }))
+      const items = mock.MOCK_WEEKLY_SAMPLE.filter((i) => i.reader === reader).map((i) => ({ ...i }))
       const read = items.filter((i) => i.verdict !== null).length
       const wrong = items.filter((i) => i.verdict === false).length
-      return { items, size: mock.MOCK_WEEKLY_SAMPLE_SIZE, read, wrong, accuracyPct: read ? Math.round(((read - wrong) / read) * 100) : null, due: nextWeekday(new Date(), 4) }
+      return { items, reader, size: items.length, read, wrong, accuracyPct: read ? Math.round(((read - wrong) / read) * 100) : null, due: nextWeekday(new Date(), 4) }
     },
   })
+}
 
 /** Right or wrong on one output. [Proposed] CX manager, CX team and Internal Audit and Marketing Lead may judge (`canJudgeSample`). */
 export function useJudgeSample() {

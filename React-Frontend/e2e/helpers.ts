@@ -97,6 +97,7 @@ export const ROUTES = [
   '/settings/escalation-matrix',
   '/settings/survey-questions',
   '/settings/weekly-sample',
+  '/settings/campaign-audit',
   '/settings/public-mentions',
   '/settings/monthly-pack',
   '/settings/mystery-shopper',

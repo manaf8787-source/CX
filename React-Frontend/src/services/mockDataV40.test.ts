@@ -9,6 +9,8 @@ import { MATRIX_KEY_BY_FIX_KIND, MATRIX_KINDS, buildMatrix } from '@/data/escala
 import { SURVEY_QUESTION_SETS, questionSetsFor } from '@/data/surveyQuestions'
 import { DNCR_PEOPLE_IN_SAMPLE, PUBLIC_MENTIONS, SURVEY_DELIVERY_LAST_MONTH, AGENT_JDS } from '@/data/v38Reference'
 import { PRODUCTS } from '@/data/products'
+import { ownerTitle } from '@/data/ownerTitles'
+import { patternHasVip } from '@/utils/vipClock'
 import { ACTION_KIND } from '@/lib/actionKinds'
 import type { CorrectiveActionKind } from '@/types'
 
@@ -318,52 +320,93 @@ describe('public mentions and skipped surveys (v40 F25, F30)', () => {
   })
 })
 
-describe('weekly sample (v40 F31)', () => {
-  it('is fifty outputs, none read yet, across the prototype\'s agents, with no customer name in any text', () => {
-    const items = mock.MOCK_WEEKLY_SAMPLE
-    expect(items).toHaveLength(50)
-    expect(new Set(items.map((i) => i.id)).size).toBe(50)
+const CONTENT_CHECKS = ['fix', 'brief', 'journey']
+const ORIGINAL_CHECKS = ['fix', 'classification', 'brief', 'journey', 'count']
+
+describe('weekly sample (v40 F31, split by reader in v42.1)', () => {
+  const items = mock.MOCK_WEEKLY_SAMPLE
+  const checks = (list: typeof items) => list.map((i) => i.check)
+  const count = (check: string) => items.filter((i) => i.check === check).length
+
+  it('keeps the original fifty (ids ws-1 to ws-50) and appends the audit rows after them, none read yet', () => {
+    expect(items).toHaveLength(61)
+    expect(items.map((i) => i.id)).toEqual(Array.from({ length: 61 }, (_, k) => `ws-${k + 1}`))
     expect(items.every((i) => i.verdict === null)).toBe(true)
+    expect(items.slice(0, 50).every((i) => ORIGINAL_CHECKS.includes(i.check))).toBe(true)
+    expect(checks(items.slice(50))).toEqual(['routing', 'routing', 'routing', 'routing', 'access', 'access', 'access', 'targeting', 'targeting', 'targeting', 'targeting'])
     expect(new Set(items.map((i) => i.agent))).toEqual(new Set([2, 3, 5, 7, 8]))
+    expect(mock.MOCK_WEEKLY_SAMPLE_SIZE).toBe(50) // the cap of the original composition, not the total
+  })
+
+  it('has no customer name in any text, in any card, and an Arabic form of every line', () => {
     const names = mock.MOCK_PERSONS.map((p) => p.name)
     for (const i of items) {
-      for (const n of names) expect(`${i.text.en} ${i.text.ar} ${i.saw.en} ${i.saw.ar} ${i.ref}`, i.id).not.toContain(n)
+      const all = `${i.text.en} ${i.text.ar} ${i.saw.en} ${i.saw.ar} ${i.ref} ${JSON.stringify(i.card)} ${JSON.stringify(i.supervisor ?? '')}`
+      for (const n of names) expect(all, i.id).not.toContain(n)
       expect(i.text.ar).toMatch(/[؀-ۿ]/)
       expect(i.saw.ar).toMatch(/[؀-ۿ]/)
       expect(i.kind.ar).toMatch(/[؀-ۿ]/)
+      expect(i.card.how.ar).toMatch(/[؀-ۿ]/)
+      for (const line of [...i.card.given, ...i.card.decided]) for (const b of [line.value, line.label, line.meta, line.quote]) if (b && line.quote !== b) expect(b.ar.trim().length, i.id).toBeGreaterThan(0)
     }
-    for (const i of items.filter((x) => x.agent === 7 || x.agent === 8)) expect(i.personId).toBeDefined()
-    expect(mock.MOCK_WEEKLY_SAMPLE_SIZE).toBe(50)
+    for (const i of items.filter((x) => x.check === 'journey' || x.check === 'brief')) expect(i.personId).toBeDefined()
   })
 
-  it('takes every fix first, then 18 signals, up to 12 loop items and 10 people, and pads with signal counts', () => {
-    const count = (agent: number) => mock.MOCK_WEEKLY_SAMPLE.filter((i) => i.agent === agent).length
-    expect(count(5)).toBe(mock.MOCK_CORRECTIVE_ACTIONS.length)
-    expect(count(2)).toBe(18)
-    expect(count(8)).toBe(12)
-    expect(count(7)).toBe(10)
-    expect(count(3)).toBe(50 - mock.MOCK_CORRECTIVE_ACTIONS.length - 18 - 12 - 10)
+  it('the original composition: every fix first, then 18 signals, up to 12 loop items and 10 people, padded with counts', () => {
+    const original = items.slice(0, 50)
+    const n = (check: string) => original.filter((i) => i.check === check).length
+    expect(n('fix')).toBe(mock.MOCK_CORRECTIVE_ACTIONS.length)
+    expect(n('classification')).toBe(18)
+    expect(n('brief')).toBe(12)
+    expect(n('journey')).toBe(10)
+    expect(n('count')).toBe(50 - mock.MOCK_CORRECTIVE_ACTIONS.length - 18 - 12 - 10)
   })
 
-  it('stops at fifty even with more material', () => {
-    const many = buildWeeklySample({ fixes: mock.MOCK_CORRECTIVE_ACTIONS, signals: mock.MOCK_SIGNALS, patterns: mock.MOCK_PATTERNS, loopItems: mock.MOCK_DETRACTOR_CALL_ITEMS, persons: mock.MOCK_PERSONS, readings: mock.MOCK_AI_JOURNEY_READINGS, interactions: mock.MOCK_INTERACTIONS })
-    expect(many.length).toBeLessThanOrEqual(50)
+  it('says which agent each kind belongs to: routing and access are Agent 5, targeting Agent 7', () => {
+    const agentOf = (check: string) => [...new Set(items.filter((i) => i.check === check).map((i) => i.agent))]
+    expect(agentOf('fix')).toEqual([5])
+    expect(agentOf('routing')).toEqual([5])
+    expect(agentOf('access')).toEqual([5])
+    expect(agentOf('classification')).toEqual([2])
+    expect(agentOf('count')).toEqual([3])
+    expect(agentOf('brief')).toEqual([8])
+    expect(agentOf('journey')).toEqual([7])
+    expect(agentOf('targeting')).toEqual([7])
+  })
+
+  it('splits by reader: fixes, briefs and readings are the CX team\'s (26), the rest is audit\'s (35)', () => {
+    for (const i of items) expect(i.reader, `${i.id} ${i.check}`).toBe(CONTENT_CHECKS.includes(i.check) ? 'cx' : 'audit')
+    expect(items.filter((i) => i.reader === 'cx')).toHaveLength(count('fix') + count('brief') + count('journey'))
+    expect(items.filter((i) => i.reader === 'cx')).toHaveLength(26)
+    expect(items.filter((i) => i.reader === 'audit')).toHaveLength(35)
+  })
+
+  it('stops the original composition at fifty even with more material; the audit rows come on top', () => {
+    const many = buildWeeklySample({ fixes: mock.MOCK_CORRECTIVE_ACTIONS, signals: mock.MOCK_SIGNALS, patterns: mock.MOCK_PATTERNS, loopItems: mock.MOCK_DETRACTOR_CALL_ITEMS, persons: mock.MOCK_PERSONS, readings: mock.MOCK_AI_JOURNEY_READINGS, interactions: mock.MOCK_INTERACTIONS, matrix: mock.MOCK_MATRIX, personas: mock.MOCK_PERSONAS })
+    expect(many.filter((i) => ORIGINAL_CHECKS.includes(i.check)).length).toBeLessThanOrEqual(50)
+    expect(many.filter((i) => !ORIGINAL_CHECKS.includes(i.check))).toHaveLength(11)
+  })
+
+  it('is deterministic: building it again gives the same rows', () => {
+    const again = buildWeeklySample({ fixes: mock.MOCK_CORRECTIVE_ACTIONS, signals: mock.MOCK_SIGNALS, patterns: mock.MOCK_PATTERNS, loopItems: mock.MOCK_DETRACTOR_CALL_ITEMS, persons: mock.MOCK_PERSONS, readings: mock.MOCK_AI_JOURNEY_READINGS, interactions: mock.MOCK_INTERACTIONS, matrix: mock.MOCK_MATRIX, personas: mock.MOCK_PERSONAS })
+    expect(JSON.stringify(again)).toBe(JSON.stringify(mock.MOCK_WEEKLY_SAMPLE.map((i) => ({ ...i, verdict: null, judgedAt: undefined }))))
   })
 })
 
 describe('weekly sample rows carry their evidence (v41.1 F29)', () => {
-  const rows = (agent: number) => mock.MOCK_WEEKLY_SAMPLE.filter((i) => i.agent === agent)
+  const rows = (check: string) => mock.MOCK_WEEKLY_SAMPLE.filter((i) => i.check === check)
 
-  it('every row says what the agent saw, in both languages, and names what Open opens', () => {
+  it('every row says what the agent saw, in both languages, and names what Open opens (a targeting row has no record to open)', () => {
     for (const i of mock.MOCK_WEEKLY_SAMPLE) {
       expect(i.saw.en.trim().length, i.id).toBeGreaterThan(5)
       expect(i.saw.ar.trim().length, i.id).toBeGreaterThan(5)
-      expect(i.open, i.id).toBeDefined()
+      if (i.check === 'targeting') expect(i.open, i.id).toBeUndefined()
+      else expect(i.open, i.id).toBeDefined()
     }
   })
 
   it('a proposed fix shows the pattern, the signal count and the recovery figure, and the output names the owner title', () => {
-    for (const i of rows(5)) {
+    for (const i of rows('fix')) {
       expect(i.saw.en, i.id).toMatch(/\d+ signals? in \d+ days|AI Insights suggestion|Returned investigation|No pattern/)
       if (/signals? in/.test(i.saw.en)) expect(i.saw.en, i.id).toMatch(/recovered in \d+, \d+ of \d+ is \d+%/)
       expect(i.text.en, i.id).toContain(' → ')
@@ -372,7 +415,7 @@ describe('weekly sample rows carry their evidence (v41.1 F29)', () => {
   })
 
   it('a classification shows the source, the date and the signal text, and the output gives the category and severity', () => {
-    for (const i of rows(2)) {
+    for (const i of rows('classification')) {
       expect(i.saw.en, i.id).toMatch(/ · \d{4}-\d{2}-\d{2} · ".+"$/)
       expect(i.text.en, i.id).toMatch(/ · (critical|medium|low) severity$/)
       expect(i.open, i.id).toEqual({ traceKind: 'signal', id: i.ref })
@@ -380,7 +423,7 @@ describe('weekly sample rows carry their evidence (v41.1 F29)', () => {
   })
 
   it('an interview brief shows the first score, the events and the problems; the output gives a suggested reason', () => {
-    for (const i of rows(8)) {
+    for (const i of rows('brief')) {
       expect(i.saw.en, i.id).toMatch(/^(NPS|CSAT|CES) \d+ · \d+ events? on the timeline · \d+ problems? found$/)
       expect(i.text.en, i.id).toMatch(/^Reason suggested: /)
       expect(i.open, i.id).toEqual({ to: `/close-the-loop?item=${i.ref}` })
@@ -388,12 +431,119 @@ describe('weekly sample rows carry their evidence (v41.1 F29)', () => {
   })
 
   it('a journey reading shows events, problems and the last contact date', () => {
-    for (const i of rows(7)) {
+    for (const i of rows('journey')) {
       expect(i.saw.en, i.id).toMatch(/^\d+ events? · \d+ problems? · last contact (\d{4}-\d{2}-\d{2}|–)$/)
       expect(i.open, i.id).toEqual({ to: `/customers/${i.personId}` })
     }
   })
 })
+
+describe('weekly sample: the audit rows (v42.1 F32)', () => {
+  const rows = (check: string) => mock.MOCK_WEEKLY_SAMPLE.filter((i) => i.check === check)
+  const routing = rows('routing')
+  const routingOf = (fixRef: string) => routing.find((i) => i.ref === fixRef)!
+
+  it('a routing row for every fix: its kind, its product and what the matrix says, against the title it was routed to', () => {
+    expect(routing).toHaveLength(mock.MOCK_CORRECTIVE_ACTIONS.length)
+    for (const f of mock.MOCK_CORRECTIVE_ACTIONS) {
+      const row = routingOf(`CA-${200 + Number(f.id.replace('ca-', ''))}`)
+      const cells = (mock.MOCK_MATRIX[f.product ?? 're'].find((r) => r.kind === MATRIX_KEY_BY_FIX_KIND[f.kind]) as { cells: { receiver: { en: string } } }).cells
+      expect(row.saw.en, row.id).toContain(`Kind: ${ACTION_KIND[f.kind].label.en}`)
+      expect(row.saw.en, row.id).toContain(`product ${PRODUCTS.find((p) => p.id === (f.product ?? 're'))!.name.en}`)
+      expect(row.saw.en, row.id).toContain(`matrix says: ${cells.receiver.en} (respond`)
+      expect(row.saw.en, row.id).toMatch(/respond [\d½.]+ h · resolve [\d½.–]+( h)?/)
+      expect(row.text.en, row.id).toContain(`${f.title.en} → `)
+      expect(row.card.decided[0].value?.en, row.id).toBe(ownerEn(f.owner))
+      expect(row.card.decided[1].value?.en, row.id).toBe(cells.receiver.en)
+      expect(row.supervisor?.en, row.id).toMatch(/^Supervisor: schema and recompute only/)
+      expect(row.reader).toBe('audit')
+    }
+  })
+
+  it('"repeat contact → Legal" (CA-201) is the routing error: its row shows the mismatch, and no other fix is flagged', () => {
+    const ca201 = routingOf('CA-201')
+    expect(ca201.text.en).toBe('Address repeat contact in PSI Assets team → Legal · kind check: no legal, privacy or safety signal in this pattern')
+    expect(ca201.card.decided.find((l) => l.attention)?.value?.en).toMatch(/Legal and privacy is for legal, privacy or safety signals; none of this pattern's signals is one \(it is about repeat contact\)/)
+    for (const other of routing.filter((i) => i.ref !== 'CA-201')) expect(other.card.decided.some((l) => l.attention), other.id).toBe(false)
+    // the fix really is a repeat-contact pattern with no legal signal behind it
+    const fix = mock.MOCK_CORRECTIVE_ACTIONS[0]
+    const pattern = mock.MOCK_PATTERNS.find((p) => p.id === fix.patternId)!
+    expect(fix.kind).toBe('legal_privacy')
+    expect(pattern.category).toBe('repeat_contact')
+    expect(pattern.signalIds.map((id) => mock.MOCK_SIGNALS.find((s) => s.id === id)!.kind)).not.toContain('legal_privacy_safety')
+  })
+
+  it('the VIP rule halves the clocks of every fix whose pattern holds a VIP (CA-201, and CA-203 whose pattern shares the person), and of no other', () => {
+    expect(routingOf('CA-201').saw.en).toMatch(/respond ½ h · resolve 4\.5 h · VIP · clocks halved/)
+    expect(routingOf('CA-201').saw.ar).toContain('VIP · المهل مُنصَّفة')
+    for (const f of mock.MOCK_CORRECTIVE_ACTIONS) {
+      const pattern = mock.MOCK_PATTERNS.find((p) => p.id === f.patternId)
+      const row = routingOf(`CA-${200 + Number(f.id.replace('ca-', ''))}`)
+      expect(row.saw.en.includes('VIP · clocks halved'), row.id).toBe(patternHasVip(pattern, mock.MOCK_SIGNALS, mock.MOCK_PERSONS))
+    }
+  })
+
+  it('an access row for the first three fixes: what the receiver got, with no conversation text and no customer name', () => {
+    const access = rows('access')
+    expect(access.map((i) => i.ref)).toEqual(['CA-201', 'CA-202', 'CA-203'])
+    for (const i of access) {
+      expect(i.saw.en).toBe('Fix text, "How the AI found this", the trace, as sent to the receiver')
+      expect(i.text.en).toMatch(/no conversation text, no customer name$/)
+      expect(i.supervisor?.en).toBe('Access check passed by code; you confirm by eye')
+      expect(i.personId).toBeUndefined()
+      const decided = JSON.stringify(i.card.decided)
+      expect(decided).toContain('conversation text: none')
+      expect(decided).toMatch(/PT-\d+ · CA-20\d/)
+    }
+    // CA-203 is an employee fix: the agent's id may appear inside the direct-manager line only, and the row says so
+    expect(access[2].text.en).toContain('agent id only inside the direct-manager line')
+    expect(JSON.stringify(access[2].card.decided)).toContain('agent id, inside the direct-manager line only')
+    expect(JSON.stringify(access[0].card.decided)).toContain('"en":"none · conversation text: none"')
+  })
+
+  it('a targeting row for the first four personas: persona, size and channels, against the campaign\'s who and channel', () => {
+    const targeting = rows('targeting')
+    expect(targeting).toHaveLength(4)
+    targeting.forEach((i, k) => {
+      const p = mock.MOCK_PERSONAS[k]
+      expect(i.ref).toBe(`MC-${101 + k}`)
+      expect(i.saw.en).toContain(`Persona: ${p.name.en} · ${p.segmentSize} people on record · channels they use:`)
+      expect(i.text.en).toBe(`Who: ${p.recommendation.targetWho.en} · channel: ${p.recommendation.channelAndWhen.en}`)
+      expect(i.supervisor?.en).toBe('Supervisor: counts recomputed; whether these are the right people is what you judge')
+      expect(i.agent).toBe(7)
+      expect(i.card.given[0].value).toEqual(p.name)
+    })
+  })
+
+  it('no audit row holds a customer name, an agent name, a conversation text or a person: audit reads ids and titles only', () => {
+    const audit = mock.MOCK_WEEKLY_SAMPLE.filter((i) => i.reader === 'audit')
+    const text = JSON.stringify(audit)
+    for (const p of mock.MOCK_PERSONS) expect(text).not.toContain(p.name)
+    for (const a of mock.MOCK_AGENT_DIRECTORY) expect(text).not.toContain(a.displayName)
+    for (const e of mock.MOCK_INTERACTIONS.filter((x) => x.text)) expect(text).not.toContain(e.text as string)
+    expect(text).not.toContain('"restricted"')
+    for (const i of audit) {
+      expect(i.personId, i.id).toBeUndefined()
+      for (const line of [...i.card.given, ...i.card.decided]) {
+        expect(line.personId, i.id).toBeUndefined()
+        expect(line.restricted, i.id).toBeUndefined()
+      }
+    }
+  })
+
+  it('the CX rows keep conversation text behind the `restricted` flag, and a person behind `personId`', () => {
+    const brief = rows('brief')
+    const quoted = brief.flatMap((i) => i.card.given.filter((l) => l.quote))
+    expect(quoted.length).toBeGreaterThan(0)
+    for (const l of quoted) expect(l.restricted).toBe(true)
+    for (const i of brief) expect(i.card.given[0].personId).toBe(i.personId)
+    for (const i of rows('journey')) expect(i.card.given[0].personId).toBe(i.personId)
+  })
+})
+
+function ownerEn(owner: string): string {
+  return ownerTitle(owner).en
+}
 
 describe('rules configuration carries the v40 keys', () => {
   it('lists the working week, the working day, the fix fallback and the calling rules as decided items with Arabic labels', () => {

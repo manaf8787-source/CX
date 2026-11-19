@@ -48,6 +48,8 @@ import { EmptyState } from '@/components/common/EmptyState'
 import { LoadingState } from '@/components/common/LoadingState'
 import { InterviewDialog } from '@/components/closeTheLoop/InterviewDialog'
 import { CampaignDialog } from '@/components/closeTheLoop/CampaignDialog'
+import { CampaignGate } from '@/components/campaigns/CampaignGate'
+import { CAMPAIGN_AUDIT_COPY } from '@/data/campaignAudit'
 
 const SEVERITY_LABEL = {
   critical: { en: 'Critical', ar: 'حرجة' },
@@ -539,6 +541,8 @@ export default function CloseTheLoop() {
                       </span>
                     )
                   })()}
+                  {/* v42.1 (F33): nothing starts before the Internal Audit and Marketing Lead has cleared it */}
+                  <CampaignGate sourceId={c.id} kind="ai" showStage={false} className="mt-1.5" />
                 </li>
               )
             })}
@@ -579,7 +583,7 @@ export default function CloseTheLoop() {
               memberIds: v.memberIds,
             })
             setCreatingCampaign(false)
-            toast.success(t('Campaign created', 'تم إنشاء الحملة'))
+            toast.success(t('Campaign created', 'تم إنشاء الحملة'), { description: L(CAMPAIGN_AUDIT_COPY.gate.created) })
           }}
         />
       )}

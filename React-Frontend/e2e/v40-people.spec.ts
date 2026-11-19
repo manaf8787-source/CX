@@ -358,46 +358,51 @@ test.describe('Public mentions (F30)', () => {
   })
 })
 
-test.describe('Weekly sample (F31)', () => {
-  test('fifty outputs, the four tiles and Thursday; judging one wrong adds a test and lowers the pass rate', async ({ page }) => {
-    await open(page, 'cxteam', '/settings/weekly-sample')
-    await expect(page.getByText('0 / 50')).toBeVisible({ timeout: 15_000 })
-    await expect(page.getByRole('button', { name: '✓ Right' })).toHaveCount(50)
+test.describe('Weekly sample (F31): the list behind "See all as a list"', () => {
+  /** The card flow is the default (v42.2); the list is one button away. */
+  async function openList(page: Page, role: RoleId) {
+    await open(page, role, '/settings/weekly-sample')
+    await page.getByRole('button', { name: 'See all as a list' }).click({ timeout: 15_000 })
     await expect(page.getByText('Due (every Thursday)')).toBeVisible()
+  }
+
+  test('the reader\'s 26 rows, the four tiles and Thursday; judging one wrong adds a test and lowers the pass rate', async ({ page }) => {
+    await openList(page, 'cxteam')
+    await expect(page.getByText('0 / 26')).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByRole('button', { name: '✓ Right' })).toHaveCount(26)
     await expect(page.getByText(/^Thu\b/)).toBeVisible()
     await page.getByRole('button', { name: '✗ Wrong' }).first().click()
-    await expect(page.getByText('1 / 50')).toBeVisible()
+    await expect(page.getByText('1 / 26')).toBeVisible()
     await expect(page.getByText('Wrong → new test')).toBeVisible()
     await expect(page.getByText(/New supervisor tests \(1\)/)).toBeVisible()
     await expect(page.locator('main').getByText(/\d+% → \d+%/)).toBeVisible()
   })
 
-  test('the Internal Audit and Marketing Lead judges and sees no customer names', async ({ page }) => {
-    await open(page, 'auditmkt', '/settings/weekly-sample')
-    await expect(page.getByRole('button', { name: '✓ Right' })).toHaveCount(50, { timeout: 15_000 })
-    await expect(page.getByText(/· P-\d{3}$/).first()).toBeVisible()
-    await expect(page.getByText(/No customer names are shown to this role/)).toBeVisible()
+  test('the Internal Audit and Marketing Lead judges its 35 rows and sees no customer names', async ({ page }) => {
+    await openList(page, 'auditmkt')
+    await expect(page.getByRole('button', { name: '✓ Right' })).toHaveCount(35, { timeout: 15_000 })
     for (const name of ['Sara Khoury', 'Rana Farouk', 'Zaid Saleh', 'Khaled Hamad']) await expect(page.locator('main')).not.toContainText(name)
     await page.getByRole('button', { name: '✓ Right' }).first().click()
-    await expect(page.getByText('1 / 50')).toBeVisible()
+    await expect(page.getByText('1 / 35')).toBeVisible()
   })
 
-  test('the CX team sees the names; the Executive can only read', async ({ browser }) => {
+  test('the CX team sees the names; the Executive can only read, as a list', async ({ browser }) => {
     const cx = await browser.newPage()
-    await open(cx, 'cxteam', '/settings/weekly-sample')
+    await openList(cx, 'cxteam')
     await expect(cx.getByText(/· Sara Khoury$/).first()).toBeVisible({ timeout: 15_000 })
     await cx.close()
     const exec = await browser.newPage()
     await open(exec, 'exec', '/settings/weekly-sample')
-    await expect(exec.getByText('0 / 50')).toBeVisible({ timeout: 15_000 })
+    await expect(exec.getByText('0 / 26')).toBeVisible({ timeout: 15_000 })
     await expect(exec.getByRole('button', { name: '✓ Right' })).toHaveCount(0)
+    await expect(exec.getByRole('button', { name: 'See all as a list' })).toHaveCount(0)
     await expect(exec.getByText(/You can read the sample/)).toBeVisible()
     await exec.close()
   })
 
-  test('a row can be judged from itself: what it saw, what it produced, the supervisor, and a "How to judge" card (v41.1 F29)', async ({ page }) => {
-    await open(page, 'cxteam', '/settings/weekly-sample')
-    await expect(page.getByRole('button', { name: '✓ Right' })).toHaveCount(50, { timeout: 15_000 })
+  test('a CX row can be judged from itself: what it saw, what it produced, the supervisor, and a "How to judge" card (v41.1 F29)', async ({ page }) => {
+    await openList(page, 'cxteam')
+    await expect(page.getByRole('button', { name: '✓ Right' })).toHaveCount(26, { timeout: 15_000 })
     const table = page.locator('main table').last()
     await expect(table.getByRole('columnheader')).toHaveText(['#', 'Agent and kind', 'What it saw', 'What it produced', 'Supervisor', 'Verdict'])
     await expect(page.getByText('How to judge', { exact: true })).toBeVisible()
@@ -408,35 +413,45 @@ test.describe('Weekly sample (F31)', () => {
     await expect(fix).toContainText(/recovered in \d+, \d+ of \d+ is \d+%/)
     await expect(fix).toContainText(' → ')
     await expect(fix).toContainText('Schema, recompute, access, evidence, bilingual, risk gate: 6 of 6 passed')
-    // a classification: the source, the date and the signal text; the output gives the category and the severity
-    const sig = table.locator('tbody tr', { hasText: 'Classification' }).first()
-    await expect(sig).toContainText(/\d{4}-\d{2}-\d{2} · ".+"/)
-    await expect(sig).toContainText(/ · (critical|medium|low) severity/)
     // an interview brief and a journey reading
     await expect(table.locator('tbody tr', { hasText: 'Interview brief' }).first()).toContainText(/(NPS|CSAT|CES) \d+ · \d+ events? on the timeline · \d+ problems? found/)
     await expect(table.locator('tbody tr', { hasText: 'Journey reading' }).first()).toContainText(/\d+ events? · \d+ problems? · last contact/)
   })
 
-  test('Open takes a CX role to the record: a fix, a signal, a customer, a call', async ({ page }) => {
-    await open(page, 'cxmgr', '/settings/weekly-sample')
-    await expect(page.getByRole('button', { name: '✓ Right' })).toHaveCount(50, { timeout: 15_000 })
-    await expect(page.getByRole('button', { name: /^Open / })).toHaveCount(50)
+  test('an audit row can be judged from itself too: a classification quotes the source, the date and the text; routing shows the matrix line (v42.1)', async ({ page }) => {
+    await openList(page, 'auditmkt')
+    await expect(page.getByRole('button', { name: '✓ Right' })).toHaveCount(35, { timeout: 15_000 })
+    const table = page.locator('main table').last()
+    const sig = table.locator('tbody tr', { hasText: 'Classification' }).first()
+    await expect(sig).toContainText(/\d{4}-\d{2}-\d{2} · ".+"/)
+    await expect(sig).toContainText(/ · (critical|medium|low) severity/)
+    const routing = table.locator('tbody tr', { hasText: 'Routing by the matrix' }).first()
+    await expect(routing).toContainText('matrix says: Legal (respond ½ h · resolve 4.5 h · VIP · clocks halved)')
+    await expect(routing).toContainText('Address repeat contact in PSI Assets team → Legal · kind check')
+    await expect(routing).toContainText('Supervisor: schema and recompute only')
+  })
+
+  test('Open takes a CX role to the record: a fix, a call, a customer', async ({ page }) => {
+    await openList(page, 'cxmgr')
+    await expect(page.getByRole('button', { name: '✓ Right' })).toHaveCount(26, { timeout: 15_000 })
+    await expect(page.getByRole('button', { name: /^Open / })).toHaveCount(26)
     await page.getByRole('button', { name: 'Open CA-201' }).click()
     await expect(page).toHaveURL(/\/actions\/corrective\?fix=CA-201/)
     await expectPageReady(page)
     await page.goBack()
-    await expect(page.getByRole('button', { name: '✓ Right' })).toHaveCount(50, { timeout: 15_000 })
-    const sigRow = page.locator('main table').last().locator('tbody tr', { hasText: 'Classification' }).first()
-    await sigRow.getByRole('button', { name: /^Open (SG|PUB)-/ }).click()
-    await expect(page.getByRole('dialog')).toBeVisible()
-    await page.keyboard.press('Escape')
+    await page.getByRole('button', { name: 'See all as a list' }).click({ timeout: 15_000 })
+    const table = page.locator('main table').last()
+    await table.locator('tbody tr', { hasText: 'Interview brief' }).first().getByRole('button', { name: /^Open dcl-/ }).click()
+    await expect(page).toHaveURL(/\/close-the-loop\?item=dcl-/)
+    await page.goBack()
+    await page.getByRole('button', { name: 'See all as a list' }).click({ timeout: 15_000 })
     await page.locator('main table').last().locator('tbody tr', { hasText: 'Journey reading' }).first().getByRole('button', { name: /^Open P-/ }).click()
     await expect(page).toHaveURL(/\/customers\/p-\d{3}/)
   })
 
   test('the Internal Audit and Marketing Lead reads ids and titles: no Open button, no clickable id, no names, a note says why', async ({ page }) => {
-    await open(page, 'auditmkt', '/settings/weekly-sample')
-    await expect(page.getByRole('button', { name: '✓ Right' })).toHaveCount(50, { timeout: 15_000 })
+    await openList(page, 'auditmkt')
+    await expect(page.getByRole('button', { name: '✓ Right' })).toHaveCount(35, { timeout: 15_000 })
     await expect(page.getByRole('button', { name: /^Open / })).toHaveCount(0)
     await expect(page.locator('main table').last().locator('[data-slot="trace-id"]').first()).toBeVisible()
     await expect(page.locator('main table').last().locator('button[data-slot="trace-id"]')).toHaveCount(0)
@@ -445,12 +460,12 @@ test.describe('Weekly sample (F31)', () => {
   })
 
   test('the filter shows only what is still to be read', async ({ page }) => {
-    await open(page, 'cxmgr', '/settings/weekly-sample')
-    await expect(page.getByText('0 / 50')).toBeVisible({ timeout: 15_000 })
+    await openList(page, 'cxmgr')
+    await expect(page.getByText('0 / 26')).toBeVisible({ timeout: 15_000 })
     await page.getByRole('button', { name: '✓ Right' }).first().click()
-    await expect(page.getByText('1 / 50')).toBeVisible()
+    await expect(page.getByText('1 / 26')).toBeVisible()
     await page.getByRole('button', { name: /^To read/ }).click()
-    await expect(page.getByRole('button', { name: '✓ Right' })).toHaveCount(49)
+    await expect(page.getByRole('button', { name: '✓ Right' })).toHaveCount(25)
   })
 })
 
