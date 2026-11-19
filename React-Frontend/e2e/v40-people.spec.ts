@@ -437,12 +437,15 @@ test.describe('Weekly sample (F31): the list behind "See all as a list"', () => 
     await expect(page.getByRole('button', { name: /^Open / })).toHaveCount(26)
     await page.getByRole('button', { name: 'Open CA-201' }).click()
     await expect(page).toHaveURL(/\/actions\/corrective\?fix=CA-201/)
-    await expectPageReady(page)
+    // Wait for the fix itself, not only for "a page": the app keeps the page you left on screen until the next one's code has arrived,
+    // so going Back before that returns to the SAME sample page (still a list), and the test raced it on a busy machine.
+    await expect(page.locator('#fix-CA-201')).toBeVisible({ timeout: 15_000 })
     await page.goBack()
     await page.getByRole('button', { name: 'See all as a list' }).click({ timeout: 15_000 })
     const table = page.locator('main table').last()
     await table.locator('tbody tr', { hasText: 'Interview brief' }).first().getByRole('button', { name: /^Open dcl-/ }).click()
     await expect(page).toHaveURL(/\/close-the-loop\?item=dcl-/)
+    await expect(page.getByRole('heading', { level: 1, name: 'Close the loop' })).toBeVisible({ timeout: 15_000 })
     await page.goBack()
     await page.getByRole('button', { name: 'See all as a list' }).click({ timeout: 15_000 })
     await page.locator('main table').last().locator('tbody tr', { hasText: 'Journey reading' }).first().getByRole('button', { name: /^Open P-/ }).click()

@@ -33,6 +33,12 @@ const TALL_RATIO = 0.7
 const TALL_CAP = 0.5
 /** Where the top of a tall element is put: below the 60px top bar. */
 const TALL_TOP = 96
+/** Room the card needs beside the frame: the card (about 190 to 230px tall) and its gaps. */
+const CARD_ROOM = 260
+/** A tall element's frame is never shorter than this, however short the screen. */
+const TALL_MIN = 120
+/** How much of a tall element is framed: half the screen, less on a short screen so the card still fits under the frame. */
+const tallFrame = (screenHeight: number) => Math.max(TALL_MIN, Math.min(screenHeight * TALL_CAP, screenHeight - TALL_TOP - CARD_ROOM))
 
 const WAITING: LayerState = { status: 'waiting', rect: null, radius: 0, width: 0, height: 0 }
 
@@ -74,7 +80,11 @@ function centre(el: HTMLElement) {
     const { position, top, bottom } = getComputedStyle(p)
     if (position === 'fixed' || (position === 'sticky' && (set(top) || set(bottom)))) return
   }
-  if (el.getBoundingClientRect().height > window.innerHeight * TALL_RATIO) {
+  const height = el.getBoundingClientRect().height
+  const screen = window.innerHeight
+  // Tall, or middling on a short screen: in the middle the card would fit neither above nor below, but with the element just under the
+  // top bar it fits below. So that is where it goes.
+  if (height > screen * TALL_RATIO || ((screen - height) / 2 < CARD_ROOM && screen - TALL_TOP - height >= CARD_ROOM)) {
     el.scrollIntoView?.({ block: 'start', inline: 'nearest', behavior: 'instant' })
     window.scrollBy?.({ top: -TALL_TOP, behavior: 'instant' })
     return
@@ -82,12 +92,12 @@ function centre(el: HTMLElement) {
   el.scrollIntoView?.({ block: 'center', inline: 'nearest', behavior: 'instant' })
 }
 
-/** The box to frame: the element's own, or for a tall one its first part (`TALL_CAP` of the screen). */
+/** The box to frame: the element's own, or for a tall one its first part (`tallFrame`: half the screen, less when the screen is short). */
 const boxOf = (r: DOMRect, screenHeight: number): Box => ({
   top: Math.round(r.top),
   left: Math.round(r.left),
   width: Math.round(r.width),
-  height: Math.round(r.height > screenHeight * TALL_RATIO ? screenHeight * TALL_CAP : r.height),
+  height: Math.round(r.height > screenHeight * TALL_RATIO ? tallFrame(screenHeight) : r.height),
 })
 
 function sameLayer(a: LayerState, b: LayerState) {

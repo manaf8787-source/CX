@@ -237,10 +237,6 @@ function NavBody({ variant, groups, toggle, onClose, onNavigate, onReplay }: Nav
     },
     [ref, fadeRef],
   )
-  // On a short screen the menu scrolls: the page you are on is never left out of sight.
-  useEffect(() => {
-    ref.current?.querySelector<HTMLElement>('[data-sidebar=menu-button][data-active=true]')?.scrollIntoView?.({ block: 'nearest' })
-  }, [pathname, ref])
   // Rows in order, for the opening sequence: a group's label, then its items; the bottom card comes last.
   const starts: number[] = []
   let rows = 1
@@ -248,6 +244,17 @@ function NavBody({ variant, groups, toggle, onClose, onNavigate, onReplay }: Nav
     starts.push(rows)
     rows += group.items.length + 1
   }
+  // On a short screen the menu scrolls: the page you are on is never left out of sight. Again when the list grows (the products arrive
+  // after the first paint and push the rows below them down). Only the menu scrolls: the page itself stays where it is.
+  useEffect(() => {
+    const scroller = ref.current
+    const active = scroller?.querySelector<HTMLElement>('[data-sidebar=menu-button][data-active=true]')
+    if (!scroller || !active) return
+    const top = active.offsetTop
+    const bottom = top + active.offsetHeight
+    if (top < scroller.scrollTop) scroller.scrollTop = Math.max(0, top - 8)
+    else if (bottom > scroller.scrollTop + scroller.clientHeight) scroller.scrollTop = bottom - scroller.clientHeight + 8
+  }, [pathname, ref, rows])
 
   const toggleButton = toggle && (
     <Button
