@@ -170,18 +170,18 @@ export function SidebarNavItem({
 }
 
 /**
- * The brand row: the CX logo (its point going round), large, and the name beside it. The owner's wording, 19 Nov: no "PSI" and no version
- * line here. A link home; in the rail the logo stands alone and the name stays as screen-reader text.
+ * The brand row: the CX logo alone (its point going round), large. The owner's instructions of 19 Nov, in order: no "PSI" and no version
+ * line; then no words beside the logo at all, and the logo bigger. A link home; its name stays for assistive technology ("CX Portal").
  */
 function Brand({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <NavLink
       to="/home"
       onClick={onNavigate}
-      className="flex min-h-9 min-w-0 items-center gap-2.5 rounded-md px-2 py-1 outline-hidden group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
+      className="flex min-h-11 min-w-0 items-center rounded-md px-2 py-1 outline-hidden group-data-[collapsible=icon]:min-h-9 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
     >
-      <BrandLogo decorative className="h-[26px] group-data-[collapsible=icon]:h-[17px]" />
-      <span className="nav-fade t-h4 min-w-0 truncate group-data-[collapsible=icon]:sr-only">CX Portal</span>
+      <BrandLogo decorative className="h-9 group-data-[collapsible=icon]:h-[17px]" />
+      <span className="sr-only">CX Portal</span>
     </NavLink>
   )
 }

@@ -35,13 +35,16 @@ test.describe('The frame', () => {
 })
 
 test.describe('The open sidebar', () => {
-  test('carries the CX logo and "CX Portal": no "PSI", no version line', async ({ page }) => {
+  test('carries the CX logo alone, large: no words beside it, no "PSI", no version line', async ({ page }) => {
     await open(page, 'cxmgr', '/home')
     const brand = nav(page).getByRole('link', { name: 'CX Portal', exact: true })
     await expect(brand).toBeVisible()
     const logo = brand.locator('[data-slot="brand-logo"]')
     await expect(logo).toBeVisible()
-    expect((await logo.boundingBox())!.height).toBeGreaterThanOrEqual(24)
+    expect((await logo.boundingBox())!.height).toBeGreaterThanOrEqual(36)
+    // the name is for a screen reader only: the link is no wider than the logo and its padding
+    expect((await brand.boundingBox())!.width).toBeLessThan(110)
+    expect(await brand.locator('span').evaluate((el) => el.className)).toBe('sr-only')
     await expect(nav(page)).not.toContainText('PSI CX Portal')
     await expect(nav(page)).not.toContainText(/prototype/i)
     // the orange point is the logo's own colour
@@ -107,6 +110,8 @@ test.describe('The open sidebar', () => {
     expect(Math.round((await nav(page).boundingBox())!.width)).toBe(56)
     await expect(nav(page).getByRole('link', { name: '1 · Customers' })).toBeVisible()
     await expect(nav(page).getByRole('link', { name: 'CX Portal' })).toBeVisible()
+    // the rail's logo keeps the rail's size
+    expect((await nav(page).locator('[data-slot="brand-logo"]').boundingBox())!.width).toBeLessThanOrEqual(36)
 
     await page.getByRole('button', { name: 'Expand sidebar' }).click()
     await expect(nav(page)).toHaveAttribute('data-collapsible', '')

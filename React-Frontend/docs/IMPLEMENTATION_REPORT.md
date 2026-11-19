@@ -281,7 +281,7 @@ Pass I closed the five rows of `docs/FIDELITY_REVIEW.md` still marked Partial (e
 
 ## Final status
 
-The app builds, type-checks, and lints clean (3 long-standing fast-refresh warnings). **v40 update (18 Nov): 610 unit tests in 55 files and 334 end-to-end tests pass (section 14); the figures below are the v38 close.** 107 unit tests and 125 end-to-end tests passed then, and the end-to-end tests include a zero-violation axe WCAG 2.1 AA scan of every route in both languages and both themes, plus a keyboard-only pass. A full click-through across every route, both languages/directions, both themes, and all 12 roles found zero console errors and no visual defects. It is a complete, working, mock-data prototype of the v38 PSI CX Portal IA — ready to view and demo, not yet connected to a real backend.
+The app builds, type-checks, and lints clean (3 long-standing fast-refresh warnings). **v42.4 update (19 Nov): 1,205 unit tests in 85 files and 624 end-to-end tests pass (section 16).** v40 update (18 Nov): 610 unit tests in 55 files and 334 end-to-end tests passed then (section 14); the figures below are the v38 close. 107 unit tests and 125 end-to-end tests passed then, and the end-to-end tests include a zero-violation axe WCAG 2.1 AA scan of every route in both languages and both themes, plus a keyboard-only pass. A full click-through across every route, both languages/directions, both themes, and all 12 roles found zero console errors and no visual defects. It is a complete, working, mock-data prototype of the v38 PSI CX Portal IA — ready to view and demo, not yet connected to a real backend.
 
 
 ## 14. The v39/v40 pass (18 Nov 2026): foundation, three workstreams, integration
@@ -434,3 +434,58 @@ The "about 215 KB" target for initial JS was set against the section 12.3 measur
 ### 15.6 Where the skill and the product conflict (decided here)
 
 Arabic needs another font and zero tracking (the skill's Latin type rules cannot apply); form fields need a visible edge (the skill has none; WCAG 1.4.11); the frame is capped at 1600px, not 1440; a 10-column table cannot be a table at 390px, so phones get stacked rows; ink replaces navy and gold as a **[Proposed]** swap point for the real brand. The full list with reasons is design doc section 16.
+
+## 16. The v40.1 to v42.4 pass and the owner's interface requests (19 Nov 2026)
+
+The prototype moved five times during the day (v41, v41.1, v42, v42.1 to v42.2, v42.3 to v42.4) and the owner asked for eight interface changes while looking at the running app. Sources: `V41_DELTA.md`, `V42_DELTA.md`, `DECISIONS-2026-11-19.md`, `ESCALATION-MATRIX-2026-11-19.md`, the prototype blocks `v40.1` to `v42.3`. Feature-by-feature status with code and tests: `FIDELITY_REVIEW.md`, section "v40.1 to v42.4 features". Everything is sample data.
+
+### 16.1 What was built
+
+| Piece | Version | What | Document |
+|---|---|---|---|
+| 60-day verdict and second step | v40.1 | A person closes the 60-day check (three verdicts). A partial or failed fix: ask for a second step (a new linked fix on the same pattern), investigate first (5 interviews), or accept as is | `V401_VERDICT.md` |
+| Guided tour | v41 (F28) | First entry per role: dim, a frame on the real element, a card; "Do it and continue" runs the real action; replay from the menu. Steps: CX manager and CX team 13, environment manager and the two leads 11, Marketing 6, Internal Audit and Marketing Lead 5, L&D 3, Executive 4, HR 1, mystery shopper none | `V41_TOUR.md` |
+| Weekly sample | v41.1, v42.1, v42.2 (F29, F32, F34) | Split by reader (26 content rows for the CX roles, 35 audit rows for the Internal Audit and Marketing Lead); one card at a time (what the AI was given, what it decided, one question); the evidence table behind "See all as a list" | `V42_SAMPLE.md` |
+| Escalation matrix | v42 (F30) | The cells of 19 Nov for six products, twelve rows, the VIP rule (clocks halved), three rules card. Decision 4 closed: no `[Proposed]` on the matrix | `V42_MATRIX.md` |
+| Watch the AI team work | v42 (F31) | One message replayed through nine steps, this week's counters, a card on what the page will not show | `V42_WATCH.md` |
+| Campaign audit | v42.1 (F33) | Five checks per campaign, cleared or sent back; a campaign that is not cleared cannot start (refused in the data layer too); numbers after the run; inbox rows and a brief line for the Internal Audit and Marketing Lead | `V42_CAMPAIGN_AUDIT.md` |
+| PSI Wallet survey moments | v42.3, v42.4 (F35) | Four question sets, "When this product asks", a "Signals, no survey" card on the Wallet page | `V42_WALLET.md` |
+| Interface | owner, 19 Nov | The open sidebar, a gradual open and close, no page margin round the frame, glass boxes, language and theme switches, the CX logo with its moving point, alone in the menu | `UI_2026-11-19.md` |
+
+Seven of the eight were built by sub-agents working in parallel in one tree, each on its own port; the lead built the first version of the sample evidence (F29) and the interface changes, read every agent's screenshots, and ran the final gates.
+
+### 16.2 Defects found and fixed on the way
+
+| Defect | Fix |
+|---|---|
+| The 60-day readout called a 38% drop "Effective" (25% and 10% thresholds from the old scaffold) | It follows `rule_effective_drop` (50%) |
+| The sidebar did not follow a product switched live or off until it was collapsed and expanded | `useSidebarGroups` reads `dataUpdatedAt` (the launch list is edited in place) |
+| On a short screen the menu did not bring the current page into view once the products had loaded | The scroll runs again when the list grows |
+| The tour card covered the element it pointed at on a short screen | `side` placement; a tall element's frame shrinks to leave room |
+| An AI campaign's status tag stayed "Draft" after Start | `fetchAiCampaigns` returns copies |
+| The dev server reloaded the open page for every test report file | `vite.config.ts` ignores the report and build folders |
+| A fix link whose status filter hid the fix | The filter resets to All when the `?fix=` link changes |
+| Arabic clock values ("½ h") were scrambled by the bidi algorithm in a sample card | Isolated left to right |
+| Two races in the browser tests (Back pressed before the next page had arrived; the first radio on the sign-in screen) | The tests wait for the destination's own content; they address the role inputs |
+
+### 16.3 Gates (final state, run by the lead after the last agent)
+
+| Gate | Result |
+|---|---|
+| `npm run typecheck` | clean |
+| `npm run lint` | the 3 known fast-refresh warnings only |
+| `npm test` | **1,205 tests in 85 files**, all passing (678 in 59 before this pass). One test (`CustomerList`, names by role) failed once in a full run under load and passed alone and in the next full run |
+| `npm run test:e2e` | **624 of 624 passed** in the full run (7.3 min, port 4321, 6 workers; 413 before this pass). After the last interface edit (the logo alone in the menu) the shell, sign-in, tour, route and accessibility specs were run again: 286 of 286. One earlier full run the same afternoon, on a machine still carrying five leftover dev and preview servers, took 14.7 min and timed out 16 tests; all 16 pass on their own and in the full run after the servers were stopped |
+| axe WCAG 2.1 AA | 0 serious or critical on every route (EN/AR x light/dark), the new pages, the tour open, the glass boxes |
+| Lighthouse, bundle size | **not re-measured in this pass**: the figures of section 15.4 predate seven new lazy pages and the glass shadows |
+
+### 16.4 Not done, or left for the owner
+
+| Item | Note |
+|---|---|
+| Open items | Listed in `FIDELITY_REVIEW.md` ("Open items raised by this pass") and `UI_2026-11-19.md` section 8 |
+| Arabic | Every string taken from the prototype is verbatim. New Arabic written for this pass (matrix titles, verdict and campaign texts, the theme names) is listed per document and needs a native reader |
+| The logo animation never stops | It stands still under the reduced-motion setting; there is no pause control (WCAG 2.2.2) |
+| Performance | Lighthouse and the bundle were not re-measured; mobile Signals was 66 on 18 Nov |
+| Older documents | `V40_FOUNDATION_API.md`, `V40_WS_B.md`, `V40_WS_C.md` describe the 18 Nov state in places this pass changed (matrix defaults, "no verdict buttons", nine question sets); they are kept as the record of that day |
+| Sign-in screen and tab title | Still "PSI CX Portal" (the owner asked for the logo alone in the menu) |

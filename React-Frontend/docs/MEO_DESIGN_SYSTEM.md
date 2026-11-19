@@ -296,6 +296,6 @@ Full account: `UI_2026-11-19.md`. Each row is Manaf's instruction; where it cont
 | 4 | The system scrollbar wherever a list scrolls | The sidebar menu has no bar; the edge with more fades (`no-scrollbar`, `scroll-fade-y`) | `Sidebar.tsx` |
 | 5 | Our own text mark, a 22px dark tile with "CX" | The owner's CX logo, its orange point going round for ever; `--brand-point` (`#e0592a`) is the logo's colour and appears nowhere else | `BrandLogo.tsx`, `public/favicon.svg` |
 | 6 | Language: a pill naming the other language. Theme: an icon button with a menu | Two segmented switches (the skill's own control): the dark key is the state | `LangSwitch.tsx`, `ThemeSwitch.tsx`, `ui/segmented.tsx` (`compact`) |
-| 7 | Brand row: "PSI CX Portal" and a version line | "CX Portal", no version line | `Sidebar.tsx` |
+| 7 | Brand row: a mark, "PSI CX Portal" and a version line | The logo alone, 36px high; no words (the link is named "CX Portal" for a screen reader) | `Sidebar.tsx` |
 
 These rows replace earlier lines of this document, which are kept above as the 18 Nov record: section 4 (the `well` row: "no shadow"), section 11 (the framed variant's 22px padding; the brand row's text mark, "PSI CX Portal" and caption) and section 15 (the `text-[9px]` exception for the brand tile, which no longer exists). Deviation 2 of section 16 stands: ink is still the interface colour, and the logo's orange is not used as an accent.

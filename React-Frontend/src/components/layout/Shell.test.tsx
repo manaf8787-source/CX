@@ -83,12 +83,14 @@ describe('Shell landmarks and skip link', () => {
 })
 
 describe('Sidebar brand and menu (owner\'s requests, 19 Nov)', () => {
-  it('shows the CX logo and the name "CX Portal": no "PSI" and no version line', () => {
+  it('shows the CX logo alone: no words beside it, no "PSI" and no version line; the link keeps its name for a screen reader', () => {
     renderShell()
     const nav = screen.getByRole('navigation', { name: 'Main navigation' })
     const brand = within(nav).getByRole('link', { name: 'CX Portal' })
     expect(brand).toHaveAttribute('href', '/home')
     expect(brand.querySelector('[data-slot="brand-logo"]')).toHaveAttribute('data-animated', 'true')
+    // the only text in the link is its hidden name
+    expect([...brand.querySelectorAll('span')].map((s) => s.className)).toEqual(['sr-only'])
     expect(nav).not.toHaveTextContent('PSI CX Portal')
     expect(nav).not.toHaveTextContent(/v\d+ · prototype/)
   })
