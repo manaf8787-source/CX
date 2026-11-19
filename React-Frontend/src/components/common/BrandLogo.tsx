@@ -12,7 +12,19 @@ import { cn } from '@/lib/utils'
  *
  * @example <BrandLogo className="h-5" />   <BrandLogo className="h-12" animated={false} />
  */
-export function BrandLogo({ className, animated = true, decorative = false }: { className?: string; animated?: boolean; /** Beside the product name: hide it from assistive technology. */ decorative?: boolean }) {
+export function BrandLogo({
+  className,
+  animated = true,
+  decorative = false,
+  pointScale = 1,
+}: {
+  className?: string
+  animated?: boolean
+  /** Beside the product name: hide it from assistive technology. */
+  decorative?: boolean
+  /** The orange point, enlarged about its own centre (the sign-in screen asks for a bigger point, 19 Nov). 1 = the artwork's size. */
+  pointScale?: number
+}) {
   return (
     <svg
       viewBox="0 0 680 327"
@@ -36,6 +48,7 @@ export function BrandLogo({ className, animated = true, decorative = false }: { 
         <path
           className="brand-point"
           fill="var(--brand-point)"
+          style={pointScale !== 1 ? { transform: `scale(${pointScale})`, transformOrigin: '282px 115px', transformBox: 'view-box' } : undefined}
           d="M251.43 120.574C248.441 105.839 255.863 90.9617 269.446 84.4622C283.028 77.9623 299.299 81.5029 308.939 93.0548C317.711 103.569 319.029 118.412 312.244 130.302C305.46 142.192 291.997 148.632 278.46 146.469C264.922 144.303 254.152 133.984 251.43 120.574Z"
         />
       </g>

@@ -151,25 +151,10 @@ export default function AuditLog() {
           'كل تسجيل دخول وكل صفحة فُتحت وكل تغيير إداري، لكل شخص، مع التاريخ واليوم والساعة. الأحدث أولاً. لا شيء هنا قابل للتعديل.',
         )}
         actions={
-          <>
-            <Button variant="outline" onClick={exportCsv} disabled={filtered.length === 0}>
-              <Download aria-hidden />
-              {t('Download CSV', 'تنزيل CSV')}
-            </Button>
-            {canClear && (
-              <Button
-                variant="outline"
-                disabled={entries.length === 0}
-                onClick={() => {
-                  clearAudit()
-                  toast.success(t('Log cleared (prototype only).', 'مُسح السجل (نموذج أولي فقط).'))
-                }}
-              >
-                <Trash2 aria-hidden />
-                {t('Clear (prototype)', 'مسح (نموذج أولي)')}
-              </Button>
-            )}
-          </>
+          <Button variant="outline" onClick={exportCsv} disabled={filtered.length === 0}>
+            <Download aria-hidden />
+            {t('Download CSV', 'تنزيل CSV')}
+          </Button>
         }
       />
 
@@ -267,6 +252,21 @@ export default function AuditLog() {
               </div>
             )}
           </>
+        )}
+        {canClear && entries.length > 0 && (
+          <div className="flex justify-end">
+            <Button
+              variant="ghost"
+              size="xs"
+              onClick={() => {
+                clearAudit()
+                toast.success(t('Log cleared (prototype only).', 'مُسح السجل (نموذج أولي فقط).'))
+              }}
+            >
+              <Trash2 aria-hidden />
+              {t('Clear the log (prototype only)', 'مسح السجل (نموذج أولي فقط)')}
+            </Button>
+          </div>
         )}
       </Card>
     </div>

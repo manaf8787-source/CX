@@ -91,6 +91,9 @@ export interface Actor {
 
 /** Appends one entry (newest first). Called by the sign-in, the page-view hook and the admin page. */
 export function audit(actor: Actor, kind: AuditKind, detail: Bi, path: string = typeof window !== 'undefined' ? window.location.pathname : '') {
+  // the same person, event and page within two seconds is one event (React's development double effect, a re-render, a double click)
+  const last = entries[0]
+  if (last && last.userId === actor.userId && last.kind === kind && last.path === path && last.detail.en === detail.en && Date.now() - new Date(last.at).getTime() < 2000) return
   const entry: AuditEntry = {
     id: `a-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
     at: new Date().toISOString(),

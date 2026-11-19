@@ -35,8 +35,13 @@ const brandItem = { hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0, tra
 /** The skill's dot-grid motif (the empty-state well): static, decorative, a few dots lit. */
 const MOTIF_COLUMNS = 14
 const MOTIF_LIT = new Set([16, 17, 30, 31, 32, 45])
+// the lit dots take the logo's orange (owner's request, 19 Nov); the rest stay the quiet off dots
 const MOTIF_DOTS = Array.from({ length: MOTIF_COLUMNS * 4 }, (_, i) => (
-  <span key={i} className={cn('size-2.5 rounded-full', MOTIF_LIT.has(i) ? 'bg-grad-dark shadow-raised-dark' : 'bg-line shadow-dot-off')} />
+  <span
+    key={i}
+    className={cn('size-2.5 rounded-full', MOTIF_LIT.has(i) ? 'shadow-raised-dark' : 'bg-line shadow-dot-off')}
+    style={MOTIF_LIT.has(i) ? { backgroundColor: 'var(--brand-point)' } : undefined}
+  />
 ))
 
 function BrandMotif() {
@@ -53,13 +58,14 @@ function BrandMotif() {
 function BrandPanel() {
   const { t } = useI18n()
   return (
-    <section aria-label="PSI CX Portal" className="relative isolate flex flex-col overflow-hidden bg-sidebar px-5 py-6 sm:px-8 lg:min-h-svh lg:justify-between lg:p-12">
+    <section aria-label="CX Portal" className="relative isolate flex flex-col overflow-hidden bg-sidebar px-5 py-6 sm:px-8 lg:min-h-svh lg:justify-between lg:p-12">
       <m.div variants={brandList} initial="hidden" animate="show" className="relative flex flex-col gap-5 lg:gap-12">
-        <m.div variants={brandItem} className="flex items-center gap-3">
-          <BrandLogo decorative className="h-9 lg:h-11" />
+        {/* owner's request (19 Nov): the logo larger with a larger point, the name "CX Portal" alone, the line under it "PSI Products" */}
+        <m.div variants={brandItem} className="flex items-center gap-4">
+          <BrandLogo decorative pointScale={1.35} className="h-12 lg:h-16" />
           <div className="flex min-w-0 flex-col gap-0.5">
-            <span className="t-h4 truncate lg:text-[20px]">PSI CX Portal</span>
-            <span className="truncate text-sm text-muted-foreground">{t('Customer experience · PSI Real Estate', 'تجربة العملاء · PSI العقارية')}</span>
+            <span className="t-h4 truncate lg:text-[22px]">CX Portal</span>
+            <span className="truncate text-sm text-muted-foreground">{t('Customer experience · PSI Products', 'تجربة العملاء · منتجات PSI')}</span>
           </div>
         </m.div>
 
