@@ -46,6 +46,11 @@ const WATCH_PAGE = '/settings/watch-ai-team'
  */
 const CAMPAIGN_AUDIT_PAGE = '/settings/campaign-audit'
 
+/** v43 (19 Nov): the user directory. The super admin edits it; the CX manager (every page) reads it. */
+export const USERS_PAGE = '/admin/users'
+/** v43: who opened what, when. The super admin only [Proposed]. */
+export const AUDIT_PAGE = '/admin/audit'
+
 export const ROLE_PATHS: Record<RoleId, string[] | null> = {
   cxmgr: null,
   cxteam: null,
@@ -73,6 +78,8 @@ export const ROLE_PATHS: Record<RoleId, string[] | null> = {
   ],
   exec: ['/home', '/customers', '/runaway', '/actions', '/personas', '/overview', '/settings/monthly-pack', '/inbox', '/settings/surveys', WATCH_PAGE, CAMPAIGN_AUDIT_PAGE, ...REGISTER_PAGES],
   shopper: ['/settings/mystery-shopper'],
+  // v43: the super admin runs the user directory and nothing else.
+  admin: [USERS_PAGE, AUDIT_PAGE],
 }
 
 const OPEN_TO_ALL = ['/settings/glossary']
@@ -109,4 +116,9 @@ const ASSISTANT_ROLES: ReadonlySet<RoleId> = new Set(['cxmgr', 'cxteam', 'market
 
 export function canUseAssistant(role: RoleId): boolean {
   return ASSISTANT_ROLES.has(role)
+}
+
+/** Who can invite, re-invite, change a role or deactivate: the super admin only. The CX manager sees the list [Proposed]. */
+export function canManageUsers(role: RoleId): boolean {
+  return role === 'admin'
 }

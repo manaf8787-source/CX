@@ -50,6 +50,8 @@ const SettingsGlossary = lazy(pageLoaders.settingsGlossary)
 const AdminSettings = lazy(pageLoaders.adminSettings)
 const WatchTeam = lazy(pageLoaders.watchTeam)
 const CampaignAudit = lazy(pageLoaders.campaignAudit)
+const Users = lazy(pageLoaders.users)
+const AuditLog = lazy(pageLoaders.auditLog)
 
 /** While the sign-in screen's code arrives: the logo alone in the middle of the page, its point going round. */
 function FullPageLoading() {
@@ -108,6 +110,9 @@ export default function App() {
                   <Route path="/surveys" element={<Navigate to="/settings/surveys" replace />} />
                   <Route path="/intelligent-cx-team" element={<IntelligentCxTeam />} />
                   <Route path="/products/:productId" element={<ProductPage />} />
+                  {/* v43: the super admin's user directory (the CX manager reads it). */}
+                  <Route path="/admin/users" element={<Users />} />
+                  <Route path="/admin/audit" element={<AuditLog />} />
 
                   <Route path="/settings" element={<SettingsLayout />}>
                     <Route index element={<Navigate to="weekly-sample" replace />} />

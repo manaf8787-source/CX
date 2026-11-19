@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PSI Mystery Shopper</title>
+<style>
+:root{--ink:#16212e;--mut:#5b6775;--line:#e3e7ec;--bg:#f5f7fa;--card:#fff;--navy:#12385b;--gold:#c8963e;--bad:#b42318;--ok:#1f7a4d;--warn:#b26a00;--soft:#eef2f7}
+*{box-sizing:border-box}body{margin:0;font:15px/1.5 Inter,system-ui,-apple-system,Segoe UI,Arial,sans-serif;color:var(--ink);background:var(--bg)}
+[dir=rtl]{font-family:"Noto Naskh Arabic",Tahoma,Arial,sans-serif}
+.top{background:var(--navy);color:#fff;padding:10px 20px;display:flex;align-items:center;gap:14px}.top b{font-size:17px}.top .sp{flex:1}
+.top button{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:8px;padding:6px 12px;cursor:pointer;font:inherit}
+main{max-width:640px;margin:0 auto;padding:22px 16px 60px}
+h1{font-size:22px;margin:0 0 4px}h2{font-size:16px;margin:18px 0 6px}
+.lead{color:var(--mut);margin:0 0 14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:10px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.row>.g{flex:1}
+.btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:8px 12px;cursor:pointer;font:inherit;color:var(--ink)}
+.btn.p{background:var(--navy);color:#fff;border-color:var(--navy)}.btn.on{background:var(--soft);border-color:var(--navy)}.btn.bad.on{background:#fde8e6;border-color:var(--bad);color:var(--bad)}.btn.ok.on{background:#e3f3ea;border-color:var(--ok);color:var(--ok)}
+.tag{display:inline-block;font-size:12px;padding:2px 8px;border-radius:999px;background:var(--soft);color:var(--mut)}.tag.bad{background:#fde8e6;color:var(--bad)}.tag.ok{background:#e3f3ea;color:var(--ok)}.tag.warn{background:#fff1dc;color:var(--warn)}
+.mut{color:var(--mut)}.sm{font-size:13px}
+label{display:block;font-size:13px;color:var(--mut);margin:8px 0 3px}
+input,textarea{width:100%;padding:9px;border:1px solid var(--line);border-radius:8px;font:inherit}
+.item{padding:10px 0;border-top:1px solid var(--line)}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:10px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+/* ============ PSI Mystery Shopper · the shopper's own page: sign in with the link's email and a code, see only your tasks, fill the form · sample data ============ */
+var S={lang:'en',signed:false,email:'',task:null,ans:{},note:{},ev:{},done:{},toast:''};
+function T(en,ar){return S.lang==='ar'?ar:en}function B(en,ar){return{en:en,ar:ar}}function L(o){return o?(o[S.lang]||o.en):''}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+var CHECK=[
+ {area:B('Reception and greeting','الاستقبال والترحيب'),items:[[B('Greeted within 2 minutes','الترحيب خلال دقيقتين'),0],[B('Offered a seat and water','عُرض عليك مقعد وماء'),0],[B('Agent introduced by name and role','الموظف عرّف باسمه ودوره'),0]]},
+ {area:B('Accurate information','المعلومة الصحيحة'),items:[[B('Prices and payment plans from the approved sheet only','الأسعار وخطط الدفع من الورقة المعتمدة فقط'),1],[B('Service charge quoted correctly','رسوم الخدمة ذُكرت صحيحة'),1],[B('Brochure is the current edition','الكتيّب الطبعة الحالية'),0]]},
+ {area:B('Promises and channels','الوعود والقنوات'),items:[[B('No promise outside the approved sheets','لا وعد خارج الأوراق المعتمدة'),1],[B('Contact only on official channels (no personal WhatsApp)','التواصل على القنوات الرسمية فقط (لا واتساب شخصي)'),1],[B('Callback promised with a time','وعد بمعاودة الاتصال مع وقت'),0]]}];
+var TASKS=[
+ {id:'V-3',place:B('Reem gallery','معرض الريم'),d:'2026-11-03',sc:B('Full journey, 14 days','الرحلة الكاملة، 14 يوماً'),brief:B('Enquire on the website first (2BR, budget AED 1.6M, ready to buy in 3 months). Visit the gallery on 3 Nov between 11:00 and 13:00 as a walk-in. Then let them follow up for 14 days; note every message with its time. Do not record anyone. Do not sign anything. Keep screenshots of WhatsApp messages.','استفسر عبر الموقع أولاً (شقة غرفتين، ميزانية 1.6 مليون درهم، جاهز للشراء خلال 3 أشهر). زر المعرض في 3 نوفمبر بين 11:00 و13:00 كزائر. ثم دعهم يتابعون 14 يوماً؛ دوّن كل رسالة مع وقتها. لا تسجّل أحداً. لا توقّع شيئاً. احتفظ بلقطات شاشة لرسائل واتساب.'),due:'2026-11-18',st:'open'},
+ {id:'V-1',place:B('Saadiyat gallery','معرض السعديات'),d:'2026-10-14',sc:B('Short walk-in','زيارة قصيرة'),due:'2026-10-16',st:'done',score:72}];
+function toast(m){S.toast=m;render();setTimeout(function(){S.toast='';render()},2500)}
+function vSign(){return '<h1>'+esc(T('Mystery shopper','المتسوق الخفي'))+'</h1><p class="lead">'+esc(T('Sign in with the email or mobile the task was sent to. You see only your own tasks.','سجّل الدخول بالبريد أو الجوال الذي أُرسلت إليه المهمة. ترى مهماتك فقط.'))+'</p><div class="card"><label>'+esc(T('Email or mobile','البريد أو الجوال'))+'</label><input data-f="email" value="'+esc(S.email)+'" placeholder="shopper@mail.example"><label>'+esc(T('One-time code (any code in the demo)','رمز لمرة واحدة (أي رمز في التجربة)'))+'</label><input data-f="code" placeholder="123456"><div class="row" style="margin-top:12px"><button class="btn p" data-act="sign">'+esc(T('Sign in','دخول'))+'</button></div></div>'}
+function vTasks(){var h='<h1>'+esc(T('Your tasks','مهماتك'))+'</h1><p class="lead">'+esc(S.email||'shopper@mail.example')+'</p>';
+ TASKS.forEach(function(t){var done=S.done[t.id]||t.st==='done';h+='<div class="card row"><div class="g"><b>'+esc(L(t.place))+'</b> · '+esc(L(t.sc))+'<div class="mut sm">'+esc(T('visit','الزيارة')+' '+t.d+' · '+T('submit by','التسليم حتى')+' '+t.due)+'</div></div>'+(done?'<span class="tag ok">'+esc(T('submitted','سُلّمت')+(t.score?' · '+t.score+'%':''))+'</span>':'<button class="btn p" data-open="'+t.id+'">'+esc(T('Open','افتح'))+'</button>')+'</div>'});
+ h+='<div class="card sm mut">'+esc(T('Questions about a task? Write to the CX team from the task page; the reply shows there.','سؤال عن مهمة؟ اكتب لفريق CX من صفحة المهمة؛ يظهر الرد هناك.'))+'</div>';return h}
+function vTask(){var t=TASKS.filter(function(x){return x.id===S.task})[0],n=0,tot=0;CHECK.forEach(function(c){c.items.forEach(function(it,i){tot++;if(S.ans[c.area.en+i])n++})});
+ var h='<a class="btn" data-back="1" style="display:inline-block;margin-bottom:10px">← '+esc(T('Your tasks','مهماتك'))+'</a><h1>'+esc(L(t.place))+'</h1><p class="lead">'+esc(L(t.sc)+' · '+t.d+' · '+t.id)+'</p>';
+ h+='<div class="card"><b>'+esc(T('Your brief','تعليماتك'))+'</b><div class="sm">'+esc(L(t.brief))+'</div></div>';
+ h+='<div class="card"><b>'+esc(T('What you saw','ما رأيته'))+'</b> <span class="mut sm">'+n+' / '+tot+'</span>';
+ CHECK.forEach(function(c){h+='<h2>'+esc(L(c.area))+'</h2>';c.items.forEach(function(it,i){var k=c.area.en+i,v=S.ans[k];h+='<div class="item"><div class="row"><div class="g">'+esc(L(it[0]))+(it[1]?' <span class="tag bad">'+esc(T('critical','حرج'))+'</span>':'')+'</div><button class="btn ok'+(v==='yes'?' on':'')+'" data-ans="'+esc(k)+'" data-v="yes">'+esc(T('Yes','نعم'))+'</button><button class="btn bad'+(v==='no'?' on':'')+'" data-ans="'+esc(k)+'" data-v="no">'+esc(T('No','لا'))+'</button><button class="btn'+(v==='na'?' on':'')+'" data-ans="'+esc(k)+'" data-v="na">'+esc(T('N/A','لا ينطبق'))+'</button></div>'+(v==='no'?'<input style="margin-top:6px" data-note="'+esc(k)+'" placeholder="'+esc(T('What exactly happened? (one line)','ماذا حدث بالضبط؟ (سطر واحد)'))+'" value="'+esc(S.note[k]||'')+'">'+(it[1]?'<div class="sm" style="color:var(--bad);margin-top:4px">'+esc(T('Critical: this opens a case for the CX team the same day. Attach a photo or screenshot if you have one.','حرج: يفتح هذا حالة لفريق CX في اليوم نفسه. أرفق صورة أو لقطة شاشة إن وُجدت.'))+'</div>':''):'')+'</div>'})});
+ h+='<label>'+esc(T('Anything else you noticed','أي شيء آخر لاحظته'))+'</label><textarea data-f="free">'+esc(S.free||'')+'</textarea><label>'+esc(T('Evidence (photos, screenshots): file names for the demo','الأدلة (صور، لقطات شاشة): أسماء الملفات في التجربة'))+'</label><input data-f="ev" placeholder="brochure.jpg, whatsapp-1.png">';
+ h+='<div class="row" style="margin-top:12px"><button class="btn p" data-act="submit"'+(n<tot?' disabled':'')+'>'+esc(T('Submit','أرسل'))+'</button><span class="mut sm">'+esc(n<tot?T('Answer every item first.','أجب عن كل البنود أولاً.'):T('Goes to the CX team for review.','يذهب لفريق CX للمراجعة.'))+'</span></div></div>';
+ h+='<div class="card"><b>'+esc(T('Ask the CX team','اسأل فريق CX'))+'</b><input data-f="q" placeholder="'+esc(T('Your question','سؤالك'))+'"><div class="row" style="margin-top:8px"><button class="btn" data-act="ask">'+esc(T('Send','أرسل'))+'</button></div></div>';return h}
+function vThanks(){return '<h1>'+esc(T('Thank you','شكراً'))+'</h1><div class="card">'+esc(T('Your visit is with the CX team for review. A critical item, if any, was sent on as a case the same day. You will see the result under your tasks.','زيارتك عند فريق CX للمراجعة. البند الحرج، إن وُجد، أُرسل كحالة في اليوم نفسه. سترى النتيجة تحت مهماتك.'))+'</div><button class="btn" data-back="1">← '+esc(T('Your tasks','مهماتك'))+'</button>'}
+function render(){document.documentElement.dir=S.lang==='ar'?'rtl':'ltr';var body=!S.signed?vSign():S.thanks?vThanks():S.task?vTask():vTasks();
+ document.getElementById('app').innerHTML='<div class="top"><b>PSI · '+esc(T('Mystery shopper','المتسوق الخفي'))+'</b><span class="sp"></span>'+(S.signed?'<button data-out>'+esc(T('Sign out','خروج'))+'</button>':'')+'<button data-lang>'+(S.lang==='ar'?'English':'العربية')+'</button></div><main>'+body+'<p class="mut sm" style="margin-top:30px">'+esc(T('Do not record people. Do not sign anything. Your identity is never shown to the gallery.','لا تسجّل أحداً. لا توقّع شيئاً. هويتك لا تُعرض للمعرض أبداً.'))+'</p></main>'+(S.toast?'<div class="toast">'+esc(S.toast)+'</div>':'')}
+document.addEventListener('click',function(evt){var t=evt.target.closest('[data-act],[data-open],[data-back],[data-ans],[data-lang],[data-out]');if(!t)return;
+ if(t.dataset.lang!=null){S.lang=S.lang==='ar'?'en':'ar';render();return}
+ if(t.dataset.out!=null){S.signed=false;S.task=null;render();return}
+ if(t.dataset.open){S.task=t.dataset.open;S.thanks=false;render();return}
+ if(t.dataset.back){S.task=null;S.thanks=false;render();return}
+ if(t.dataset.ans){S.ans[t.dataset.ans]=t.dataset.v;render();return}
+ var a=t.dataset.act;
+ if(a==='sign'){if(!S.email){toast(T('Enter the email or mobile the task was sent to.','أدخل البريد أو الجوال الذي أُرسلت إليه المهمة.'));return}S.signed=true;render()}
+ if(a==='submit'){S.done[S.task]=true;S.thanks=true;render()}
+ if(a==='ask'){toast(T('Sent to the CX team. The reply will show here.','أُرسل لفريق CX. يظهر الرد هنا.'))}
+});
+document.addEventListener('input',function(evt){var t=evt.target;if(t.dataset.f==='email')S.email=t.value;if(t.dataset.f==='free')S.free=t.value;if(t.dataset.note)S.note[t.dataset.note]=t.value});
+render();
+</script>
+</body>
+</html>

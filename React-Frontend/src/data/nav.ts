@@ -33,6 +33,9 @@ export const PRIMARY_NAV: NavGroup[] = [
     label: { en: 'Reference', ar: 'المرجع' },
     items: [
       { path: '/settings', label: { en: 'Settings and reference', ar: 'الإعدادات والمرجع' } },
+      // v43 (19 Nov): the user directory; shown to the super admin (edits) and the CX manager (reads).
+      { path: '/admin/users', label: { en: 'Users and access', ar: 'المستخدمون والصلاحيات' } },
+      { path: '/admin/audit', label: { en: 'Audit log', ar: 'سجل التدقيق' } },
     ],
   },
 ]
@@ -97,3 +100,18 @@ export const SETTINGS_NAV: NavLeaf[] = [
 
 /** The pages `/settings` can send a role to, in menu order: `SETTINGS_NAV` without the demo pages (`skipLanding`). */
 export const SETTINGS_LANDING: string[] = SETTINGS_NAV.filter((i) => !i.skipLanding).map((i) => i.path)
+
+/** The page behind a path, for the audit log: the longest matching menu entry (tabs before their parents), else the path itself. */
+export function pageTitleFor(pathname: string): Bi {
+  const all: NavLeaf[] = [...PRIMARY_NAV.flatMap((g) => g.items), ...CUSTOMERS_TABS, ...ACTIONS_TABS, ...SETTINGS_NAV]
+  let best: NavLeaf | undefined
+  for (const leaf of all) {
+    if (pathname === leaf.path || pathname.startsWith(`${leaf.path}/`)) {
+      if (!best || leaf.path.length > best.path.length) best = leaf
+    }
+  }
+  if (best) return best.label
+  const product = pathname.match(/^\/products\/([a-z]+)/)
+  if (product) return { en: `Product page: ${product[1]}`, ar: `صفحة المنتج: ${product[1]}` }
+  return { en: pathname, ar: pathname }
+}

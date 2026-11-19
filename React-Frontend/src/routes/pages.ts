@@ -46,6 +46,9 @@ export const pageLoaders = {
   watchTeam: () => import('../pages/settings/WatchTeam'),
   // v42.1 (F33): the campaign audit, right after the weekly sample in the Settings menu.
   campaignAudit: () => import('../pages/settings/CampaignAudit'),
+  // v43 (19 Nov): the super admin's user directory.
+  users: () => import('../pages/admin/Users'),
+  auditLog: () => import('../pages/admin/AuditLog'),
 } as const
 
 type LoaderKey = keyof typeof pageLoaders
@@ -63,6 +66,8 @@ const PATH_LOADERS: [prefix: string, keys: LoaderKey[]][] = [
   ['/surveys', ['surveys']],
   ['/intelligent-cx-team', ['intelligentCxTeam']],
   ['/products/', ['productPage']],
+  ['/admin/users', ['users']],
+  ['/admin/audit', ['auditLog']],
   // before '/settings', which would match it first
   ['/settings/watch-ai-team', ['settingsLayout', 'watchTeam']],
   ['/settings/campaign-audit', ['settingsLayout', 'campaignAudit']],

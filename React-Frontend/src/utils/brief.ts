@@ -53,6 +53,7 @@ export const BRIEF_LINES_BY_ROLE: Record<RoleId, readonly BriefLineKind[]> = {
   // v42.1 (F33): the campaign line after the NPS lines (the prototype puts it second, right after its first line) [Proposed position]
   auditmkt: ['nps', 'campaigns', 'drifting', 'public', 'sample'],
   shopper: [],
+  admin: [],
 }
 
 /**

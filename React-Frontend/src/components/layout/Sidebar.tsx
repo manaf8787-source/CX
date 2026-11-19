@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { CircleHelp, Gauge, Home, Inbox, ListChecks, PanelLeftClose, PanelLeftOpen, PhoneCall, Settings2, Users, X, type LucideIcon } from 'lucide-react'
+import { CircleHelp, Gauge, Home, Inbox, ListChecks, PanelLeftClose, PanelLeftOpen, PhoneCall, ScrollText, Settings2, UserCog, Users, X, type LucideIcon } from 'lucide-react'
 import {
   SidebarContent,
   SidebarFooter,
@@ -21,7 +21,6 @@ import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useSlidingIndicator } from '@/components/ui/use-sliding-indicator'
 import { useScrollFade } from '@/components/ui/use-scroll-fade'
-import { RoleSwitch } from '@/components/common/RoleSwitch'
 import { BrandLogo } from '@/components/common/BrandLogo'
 import { useTour } from '@/components/tour/tourContext'
 import { useI18n } from '@/i18n'
@@ -43,6 +42,8 @@ const ICONS: Record<string, LucideIcon> = {
   '/close-the-loop': PhoneCall,
   '/overview': Gauge,
   '/settings': Settings2,
+  '/admin/users': UserCog,
+  '/admin/audit': ScrollText,
 }
 
 /** One entry of the menu after labels are resolved to the active language. `children` and `count` are supported (the skill's nested items
@@ -318,14 +319,13 @@ function NavBody({ variant, groups, toggle, onClose, onNavigate, onReplay }: Nav
         ))}
       </SidebarContent>
 
-      {/* The skill's usage card (light material, radius 10, padding 10): here it holds the demo role switch and the sample-data notice. */}
+      {/* The skill's usage card (light material, radius 10, padding 10). v43 (19 Nov): the demo role switch is gone — the role comes from
+          the account the super admin invited (Users and access); the card keeps the sample-data notice only. */}
       <SidebarFooter className={cn('gap-2 p-0 pt-3 group-data-[collapsible=icon]:items-center', !hasTour && 'group-data-[collapsible=icon]:hidden')}>
         {hasTour && <ReplayTour rail={!sheet && !!toggle?.rail} onReplay={onReplay} index={rows} />}
-        {/* On a short screen the card keeps only the select (its accessible name says what it is), so the menu keeps the room. */}
-        <div style={step(rows + 1)} className="nav-fade material-light flex flex-col gap-2 rounded-lg p-2.5 group-data-[collapsible=icon]:hidden">
-          <span className="t-ui-strong [@media(max-height:719px)]:hidden">{t('Viewing as (demo)', 'العرض بصفة (تجريبي)')}</span>
-          <RoleSwitch />
-          <span className="text-sm text-muted-foreground [@media(max-height:719px)]:hidden">{t('Sample data only', 'بيانات تجريبية فقط')}</span>
+        <div style={step(rows + 1)} className="nav-fade material-light flex flex-col gap-1 rounded-lg p-2.5 group-data-[collapsible=icon]:hidden [@media(max-height:719px)]:hidden">
+          <span className="t-ui-strong">{t('Prototype', 'نموذج أولي')}</span>
+          <span className="text-sm text-muted-foreground">{t('Sample data only', 'بيانات تجريبية فقط')}</span>
         </div>
       </SidebarFooter>
     </div>

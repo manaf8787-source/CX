@@ -16,6 +16,8 @@ export type RoleId =
   | 'auditmkt'
   | 'exec'
   | 'shopper'
+  /** v43 (19 Nov): the super admin invites users and gives roles; sees the Users page only, nothing of CX. */
+  | 'admin'
 
 export type Access = 'full' | 'own' | 'view' | 'informed' | 'approve' | 'none'
 

@@ -1,20 +1,21 @@
 import { createContext, useContext } from 'react'
-import type { RoleId } from '../types'
+import type { PortalUser } from '../data/users'
 
 /**
- * Sample sign-in only. There is no backend and no password: signing in picks
- * a role so the portal shows what that role sees. The role itself stays in
- * RoleContext (so the demo role switch keeps working); the session holds only
- * the fact of being signed in plus an optional display name.
+ * Prototype sign-in (19 Nov): a person signs in with the email the super admin invited; the role comes from the user directory
+ * (`data/users.ts`), never from a picker. There is no backend: the password is not stored or checked yet. The role itself stays in
+ * RoleContext (every page reads it from there); the session holds who is signed in.
  */
 export interface Session {
+  userId: string
+  email: string
   displayName: string | null
   signedInAt: string
 }
 
 export interface AuthValue {
   session: Session | null
-  signIn: (roleId: RoleId, displayName?: string) => void
+  signIn: (user: PortalUser) => void
   signOut: () => void
 }
 
@@ -27,8 +28,14 @@ export function readSession(): Session | null {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return null
     const parsed = JSON.parse(raw) as Partial<Session>
-    if (typeof parsed.signedInAt !== 'string') return null
-    return { displayName: typeof parsed.displayName === 'string' ? parsed.displayName : null, signedInAt: parsed.signedInAt }
+    // a session from before the user directory (no userId) is dropped: the person signs in again
+    if (typeof parsed.signedInAt !== 'string' || typeof parsed.userId !== 'string' || typeof parsed.email !== 'string') return null
+    return {
+      userId: parsed.userId,
+      email: parsed.email,
+      displayName: typeof parsed.displayName === 'string' ? parsed.displayName : null,
+      signedInAt: parsed.signedInAt,
+    }
   } catch {
     return null
   }

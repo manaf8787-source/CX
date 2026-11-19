@@ -90,6 +90,13 @@ export const ROLE_DEFS: RoleDef[] = [
     description: { en: 'Sees only their own tasks, through a separate sign-in.', ar: 'يرى مهامه الخاصة فقط، من خلال تسجيل دخول منفصل.' },
     home: '/settings/mystery-shopper',
   },
+  {
+    // v43 (19 Nov): the owner's request — nobody picks a role at sign-in; a super admin invites people by email and gives each a role.
+    id: 'admin',
+    name: { en: 'Super admin', ar: 'المدير العام للنظام' },
+    description: { en: 'Invites users by email and gives each one a role. Sees the Users page only: no customers, no cases, no numbers.', ar: 'يدعو المستخدمين بالبريد ويمنح كل واحد دوراً. يرى صفحة المستخدمين فقط: لا عملاء ولا حالات ولا أرقام.' },
+    home: '/admin/users',
+  },
 ]
 
 export function roleDef(id: RoleId | null): RoleDef | undefined {

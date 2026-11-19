@@ -1,11 +1,13 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
-import { Outlet } from 'react-router-dom'
+import { Outlet, useLocation } from 'react-router-dom'
 import { LoadingState } from '../common/LoadingState'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { SidebarProvider } from '@/components/ui/sidebar'
 import { useI18n } from '@/i18n'
 import { useRole } from '@/auth/RoleContext'
 import { canUseAssistant } from '@/auth/access'
+import { useAuditActor } from '@/auth/useAuditActor'
+import { pageTitleFor } from '@/data/nav'
 import { cn } from '@/lib/utils'
 import { AssistantContext } from '../ai/AssistantContext'
 import { AccessGuard } from './AccessGuard'
@@ -40,6 +42,12 @@ export function Shell() {
   const { ref: sentinelRef, scrolled } = useScrollEdge()
   const gridRef = useRef<HTMLDivElement>(null)
   const available = canUseAssistant(role.id)
+  // v43 (19 Nov): every page a person opens goes to the audit log (the super admin's page), with the page's menu title.
+  const { pathname } = useLocation()
+  const { log } = useAuditActor()
+  useEffect(() => {
+    log('page_opened', pageTitleFor(pathname), pathname)
+  }, [pathname, log])
   const rail = mode === 'tablet' || (mode === 'desktop' && !expanded)
 
   // A menu sheet left open must not survive a resize to the desktop layout (adjust state while rendering, not in an effect).
