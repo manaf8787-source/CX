@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PSI CX Pilot</title>
+<style>
+:root{--ink:#16212e;--mut:#5b6775;--line:#e3e7ec;--bg:#f5f7fa;--card:#fff;--navy:#12385b;--gold:#c8963e;--bad:#b42318;--ok:#1f7a4d;--warn:#b26a00;--soft:#eef2f7}
+*{box-sizing:border-box}body{margin:0;font:15px/1.5 Inter,system-ui,-apple-system,Segoe UI,Arial,sans-serif;color:var(--ink);background:var(--bg)}
+[dir=rtl] body,[dir=rtl]{font-family:"Noto Naskh Arabic",Tahoma,Arial,sans-serif}
+.top{background:var(--navy);color:#fff;padding:10px 20px;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.top b{font-size:17px}.top .sp{flex:1}
+.top button{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:8px;padding:6px 12px;cursor:pointer;font:inherit}
+.top button.on{background:#fff;color:var(--navy);border-color:#fff}
+.top select{border-radius:8px;padding:6px 8px;font:inherit;width:auto}
+main{max-width:860px;margin:0 auto;padding:22px 16px 60px}
+h1{font-size:22px;margin:0 0 4px}h2{font-size:17px;margin:22px 0 8px}
+.lead{color:var(--mut);margin:0 0 14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:10px}
+.row{display:flex;gap:12px;align-items:center}.row>.g{flex:1}
+.btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:7px 12px;cursor:pointer;font:inherit;color:var(--ink)}
+.btn.p{background:var(--navy);color:#fff;border-color:var(--navy)}.btn.ok{background:var(--ok);color:#fff;border-color:var(--ok)}.btn.bad{background:#fff;color:var(--bad);border-color:var(--bad)}
+.tag{display:inline-block;font-size:12px;padding:2px 8px;border-radius:999px;background:var(--soft);color:var(--mut)}
+.tag.bad{background:#fde8e6;color:var(--bad)}.tag.ok{background:#e3f3ea;color:var(--ok)}.tag.warn{background:#fff1dc;color:var(--warn)}
+.mut{color:var(--mut)}.sm{font-size:13px}
+a.id{color:var(--navy);text-decoration:underline;cursor:pointer;font-family:ui-monospace,Menlo,monospace;font-size:13px}
+.why{font-size:13px;color:var(--navy);cursor:pointer;border:0;background:none;padding:0;text-decoration:underline}
+.whybox{background:var(--soft);border-radius:8px;padding:10px 12px;margin-top:8px;font-size:14px}
+.ev{display:grid;grid-template-columns:92px 86px 1fr;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+.ev.flag{background:#fff8ee;margin:0 -16px;padding:8px 16px}
+.ev .d{color:var(--mut);font-size:13px}.ev .c{font-size:13px}
+.big{font-size:34px;font-weight:700;line-height:1.1}
+.nums{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.num{cursor:pointer}.num:hover{border-color:var(--navy)}
+label{display:block;font-size:13px;color:var(--mut);margin:10px 0 4px}
+input,select,textarea{width:100%;padding:8px;border:1px solid var(--line);border-radius:8px;font:inherit}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:10px}
+.steps{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 14px}.steps span{font-size:12px;padding:3px 9px;border-radius:999px;background:var(--soft)}.steps span.on{background:var(--gold);color:#fff}
+@media(max-width:600px){.nums{grid-template-columns:1fr}.ev{grid-template-columns:80px 1fr}.ev .c{grid-column:2}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+/* ============ PSI CX Pilot · one environment (Abu Dhabi), two live products, CX team and CX manager · sample data, nothing is sent ============ */
+var TODAY='2026-10-27';
+var S={lang:'en',role:'cx',view:'today',sel:null,why:{},form:null,toast:'',decided:{},called:{},nsel:null};
+function T(en,ar){return S.lang==='ar'?ar:en}function B(en,ar){return{en:en,ar:ar}}function L(o){return o?(o[S.lang]||o.en):''}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+var PROD={re:B('PSI Real Estate','PSI العقارية'),af:B('After-Sales','ما بعد البيع'),cl:B('PSI Club','نادي PSI'),to:B('Tour Estate','Tour Estate'),ev:B('PSI Events','فعاليات PSI'),wl:B('PSI Wallet','محفظة PSI')};
+var LIVE={re:true,af:true};
+var ENV={auh:B('Abu Dhabi','أبوظبي'),dub:B('Dubai','دبي'),ast:B('PSI Assets (rental)','PSI للأصول (التأجير)')};
+var ENVOF={c4:'ast',c7:'ast',c10:'ast',c15:'ast',c20:'ast',c9:'dub',c14:'dub',c21:'dub',c23:'dub',c24:'dub',c27:'dub'};
+S.fp='all';S.fe='all';
+var CH={wa:B('WhatsApp','واتساب'),call:B('Call','مكالمة'),app:B('App','التطبيق'),email:B('Email','بريد'),sv:B('Survey','استبيان'),crm:B('CRM','CRM'),int:B('Interview','مقابلة'),ai:B('AI call','مكالمة ذكاء')};
+var SCRIPTS=[
+ {id:'s1',n:B('Detractor interview (the four questions)','مقابلة غير الراضي (الأسئلة الأربعة)'),q:[B('What happened?','ماذا حدث؟'),B('What did you expect?','ماذا كنت تتوقع؟'),B('What would have made it right?','ما الذي كان سيصحّح الأمر؟'),B('May we come back to you after the fix?','هل نعود إليك بعد الحل؟')]},
+ {id:'s2',n:B('App problem follow-up','متابعة مشكلة التطبيق'),q:[B('Which screen failed, and what did you see?','أي شاشة فشلت، وماذا رأيت؟'),B('Did you manage another way?','هل تدبّرت الأمر بطريقة أخرى؟'),B('Is the request now handled?','هل عولج الطلب الآن؟'),B('May we tell you when the app is fixed?','هل نخبرك عند إصلاح التطبيق؟')]},
+ {id:'s3',n:B('Handover follow-up','متابعة التسليم'),q:[B('Were you told the date moved, and how?','هل أُخبرت بتغيير الموعد، وكيف؟'),B('What did the delay cost you?','ماذا كلّفك التأخير؟'),B('Is the unit as expected?','هل الوحدة كما توقعت؟'),B('May we come back to you after the fix?','هل نعود إليك بعد الحل؟')]}];
+function script(id){return SCRIPTS.filter(function(x){return x.id===id})[0]}
+S.ai={};
+var KIND={slow:B('Slow reply','رد بطيء'),promise:B('Promise not kept','وعد لم يُنفَّذ'),info:B('Wrong information','معلومة خاطئة'),app:B('App problem','مشكلة في التطبيق'),handover:B('Handover moved without a call','تأجيل التسليم بلا اتصال'),back:B('Came back about the same thing','عاد بخصوص الأمر نفسه')};
+/* ---- 20 customers, one story ---- */
+var C=[
+ ['c1','Hamad Al Nuaimi','re',B('Lead, 2BR Saadiyat','عميل محتمل، شقة غرفتين السعديات')],
+ ['c2','Sara Khoury','re',B('Lead, viewed Reem Hills','عميلة محتملة، عاينت ريم هيلز')],
+ ['c3','Omar Nasser','af',B('Owner, handover October','مالك، تسليم أكتوبر')],
+ ['c4','Rana Farouk','af',B('Tenant, PSI Assets','مستأجرة، PSI للأصول')],
+ ['c5','Khaled Hamad','re',B('Buyer, deal signed 20 Oct','مشترٍ، صفقة موقّعة 20 أكتوبر')],
+ ['c6','Noor Saleh','re',B('Lead, went quiet','عميلة محتملة، صمتت')],
+ ['c7','Fadi Nasser','af',B('Tenant, maintenance','مستأجر، صيانة')],
+ ['c8','Lara Hamad','re',B('Lead, payment plan questions','عميلة محتملة، أسئلة خطة الدفع')],
+ ['c9','Zaid Saleh','re',B('Lead, viewed Yas Bay','عميل محتمل، عاين ياس باي')],
+ ['c10','Dana Haddad','af',B('Tenant, app payment','مستأجرة، دفع عبر التطبيق')],
+ ['c11','Mariam Ali','re',B('Buyer, deal signed 5 Oct','مشترية، صفقة موقّعة 5 أكتوبر')],
+ ['c12','Yousef Aziz','re',B('Lead, service charge question','عميل محتمل، سؤال رسوم الخدمة')],
+ ['c13','Hiba Mansour','af',B('Owner, handover on time','مالكة، تسليم في موعده')],
+ ['c14','Tariq Saeed','re',B('Lead, viewed Al Reeman','عميل محتمل، عاين الريمان')],
+ ['c15','Ahmed Rashid','af',B('Tenant, maintenance','مستأجر، صيانة')],
+ ['c16','Leen Abbas','re',B('Lead, brochure promised','عميلة محتملة، وُعدت بكتيّب')],
+ ['c17','Majed Taha','af',B('Owner, handover moved','مالك، تأجّل تسليمه')],
+ ['c18','Salma Darwish','re',B('Buyer, deal signed 15 Oct','مشترية، صفقة موقّعة 15 أكتوبر')],
+ ['c19','Bilal Younis','re',B('Lead, first call','عميل محتمل، أول مكالمة')],
+ ['c20','Reem Dagher','af',B('Tenant, renewed','مستأجرة، جدّدت')],
+ ['c21','Nadia Haik','cl',B('Club member, nomination closed','عضوة نادي، أُغلق الترشيح')],
+ ['c22','Faisal Obaid','cl',B('Club member, nomination closed','عضو نادي، أُغلق الترشيح')],
+ ['c23','Elena Petrova','to',B('Tour guest, Dubai city tour','ضيفة جولة، جولة مدينة دبي')],
+ ['c24','Marco Rossi','to',B('Tour guest, desert tour','ضيف جولة، جولة صحراء')],
+ ['c25','Huda Saleh','ev',B('Visitor, Saadiyat launch event','زائرة، فعالية إطلاق السعديات')],
+ ['c26','Sami Khalil','ev',B('Visitor, Saadiyat launch event','زائر، فعالية إطلاق السعديات')],
+ ['c27','Ibrahim Al Falasi','wl',B('Investor, wallet created','مستثمر، أنشأ محفظة')],
+ ['c28','Layla Mansour','wl',B('Investor, advisor call','مستثمرة، مكالمة مستشار')]
+].map(function(a){return{id:a[0],name:a[1],p:a[2],d:a[3],env:ENVOF[a[0]]||'auh'}});
+function cust(id){return C.filter(function(c){return c.id===id})[0]}
+/* ---- events: [customer, date, channel, text, flag?, survey?] ---- */
+var E=[];var n=0;
+function ev(c,d,ch,en,ar,flag,sv){E.push({id:'EV-'+(++n),c:c,d:d,ch:ch,t:B(en,ar),flag:flag||'',sv:sv||null})}
+ev('c1','2026-10-02','wa','Asked for the price of a 2BR in Saadiyat Lagoons.','سأل عن سعر شقة غرفتين في السعديات لاغونز.');
+ev('c1','2026-10-04','wa','First reply, 46 hours later: "Sorry for the delay, which tower?"','أول رد بعد 46 ساعة: "عذراً للتأخير، أي برج؟"','slow');
+ev('c1','2026-10-04','call','Agent call, 6 minutes. Promised a callback on Monday with the payment plan.','مكالمة 6 دقائق. وعد بمعاودة الاتصال الاثنين مع خطة الدفع.');
+ev('c1','2026-10-04','sv','After the call: "How satisfied were you with your call today?"','بعد المكالمة: "ما مدى رضاك عن مكالمتك اليوم؟"','',{ind:'CSAT',v:2});
+ev('c1','2026-10-06','crm','Monday: no call made. The callback promised on 4 Oct was not kept.','الاثنين: لم تتم المكالمة. الوعد بمعاودة الاتصال في 4 أكتوبر لم يُنفَّذ.','promise');
+ev('c1','2026-10-12','wa','"Still waiting for the payment plan you promised."','"لسه بستنى خطة الدفع اللي وعدتوني فيها."','back');
+ev('c2','2026-10-08','crm','Viewing done, Reem Hills, with the agent.','تمت المعاينة في ريم هيلز مع الموظف.');
+ev('c2','2026-10-08','sv','After the viewing: satisfaction 5, ease 5.','بعد المعاينة: الرضا 5، السهولة 5.','',{ind:'CSAT',v:5,v2:5});
+ev('c3','2026-09-28','email','Handover confirmed for 1 October.','تأكيد التسليم في 1 أكتوبر.');
+ev('c3','2026-10-01','crm','Handover date moved to 15 October in the CRM. No call to the owner.','نُقل موعد التسليم إلى 15 أكتوبر في CRM. لا اتصال بالمالك.','handover');
+ev('c3','2026-10-16','wa','"Nobody told me the date moved. I took a day off for nothing."','"ما حدا قلّي إنه الموعد اتأجل. أخذت إجازة على الفاضي."','back');
+ev('c3','2026-10-18','crm','Handover done.','تم التسليم.');
+ev('c3','2026-10-18','sv','After handover: "How likely are you to recommend PSI?" 2 of 10.','بعد التسليم: "ما مدى احتمال أن توصي بـ PSI؟" 2 من 10.','',{ind:'NPS',v:2});
+ev('c4','2026-10-05','app','Submitted a maintenance request in the app. It does not appear in My requests.','قدّمت طلب صيانة في التطبيق. لا يظهر في طلباتي.','app');
+ev('c4','2026-10-07','call','Called to ask where the request went. Re-opened by hand.','اتصلت تسأل أين ذهب الطلب. أُعيد فتحه يدوياً.');
+ev('c4','2026-10-09','wa','"Is it fixed? The app still shows nothing."','"انحلّت؟ التطبيق لسه ما بيبيّن شي."','back');
+ev('c4','2026-10-10','crm','Ticket closed.','أُغلقت التذكرة.');
+ev('c4','2026-10-10','sv','After the ticket: "How easy was it to get your request handled?" 2 of 5.','بعد التذكرة: "كم كان من السهل معالجة طلبك؟" 2 من 5.','',{ind:'CES',v:2});
+ev('c5','2026-10-03','call','First call, 9 minutes.','أول مكالمة، 9 دقائق.');
+ev('c5','2026-10-03','sv','After the call: satisfaction 4.','بعد المكالمة: الرضا 4.','',{ind:'CSAT',v:4});
+ev('c5','2026-10-10','crm','Offer made on a 1BR, Al Reeman II.','قُدّم عرض على شقة غرفة واحدة، الريمان 2.');
+ev('c5','2026-10-10','sv','After the offer: ease 4.','بعد العرض: السهولة 4.','',{ind:'CES',v:4});
+ev('c5','2026-10-20','crm','Deal signed.','وُقّعت الصفقة.');
+ev('c5','2026-10-20','sv','After the deal: "How likely are you to recommend PSI?" 9 of 10.','بعد الصفقة: "ما مدى احتمال أن توصي بـ PSI؟" 9 من 10.','',{ind:'NPS',v:9});
+ev('c6','2026-10-11','wa','Asked whether Yas Bay has a 3BR available.','سألت إن كان في ياس باي شقة ثلاث غرف متاحة.');
+ev('c6','2026-10-14','wa','First reply, 3 days later.','أول رد بعد 3 أيام.','slow');
+ev('c6','2026-10-14','crm','No answer from the customer since. 13 days of silence.','لا رد من الزبونة منذ ذلك. 13 يوماً من الصمت.');
+ev('c7','2026-10-12','crm','Maintenance ticket closed in two days.','أُغلقت تذكرة الصيانة خلال يومين.');
+ev('c7','2026-10-12','sv','After the ticket: ease 5.','بعد التذكرة: السهولة 5.','',{ind:'CES',v:5});
+ev('c8','2026-10-09','wa','Told the payment plan is 60/40. The sheet says 50/50.','قيل لها إن خطة الدفع 60/40. الورقة تقول 50/50.','info');
+ev('c8','2026-10-11','call','Call to correct the plan.','مكالمة لتصحيح الخطة.');
+ev('c8','2026-10-11','sv','After the call: satisfaction 3.','بعد المكالمة: الرضا 3.','',{ind:'CSAT',v:3});
+ev('c8','2026-10-13','wa','"So which one is right, 60/40 or 50/50?"','"طيب أيهما الصحيح، 60/40 ولا 50/50؟"','back');
+ev('c9','2026-10-15','crm','Viewing done, Yas Bay.','تمت المعاينة في ياس باي.');
+ev('c9','2026-10-15','sv','After the viewing: satisfaction 5, ease 4.','بعد المعاينة: الرضا 5، السهولة 4.','',{ind:'CSAT',v:5,v2:4});
+ev('c10','2026-10-14','app','Rent payment screen shows an error after the OTP.','شاشة دفع الإيجار تعرض خطأ بعد رمز التحقق.','app');
+ev('c10','2026-10-15','call','Paid by phone with the agent instead.','دفعت عبر الهاتف مع الموظف بدلاً من ذلك.');
+ev('c10','2026-10-17','crm','Ticket closed.','أُغلقت التذكرة.');
+ev('c10','2026-10-17','sv','After the ticket: ease 2.','بعد التذكرة: السهولة 2.','',{ind:'CES',v:2});
+ev('c11','2026-10-05','crm','Deal signed.','وُقّعت الصفقة.');
+ev('c11','2026-10-05','sv','After the deal: 8 of 10.','بعد الصفقة: 8 من 10.','',{ind:'NPS',v:8});
+ev('c12','2026-10-16','call','Told the service charge is AED 12 per sq ft. The approved sheet says 16.','قيل له إن رسوم الخدمة 12 درهماً للقدم. الورقة المعتمدة تقول 16.','info');
+ev('c12','2026-10-17','call','Second call to correct it.','مكالمة ثانية للتصحيح.');
+ev('c12','2026-10-17','sv','After the call: satisfaction 2.','بعد المكالمة: الرضا 2.','',{ind:'CSAT',v:2});
+ev('c13','2026-10-20','crm','Handover done on the confirmed date.','تم التسليم في الموعد المؤكد.');
+ev('c13','2026-10-22','sv','After handover: 9 of 10.','بعد التسليم: 9 من 10.','',{ind:'NPS',v:9});
+ev('c14','2026-10-18','wa','Asked for a viewing slot in Al Reeman.','طلب موعد معاينة في الريمان.');
+ev('c14','2026-10-21','wa','First reply, 3 days later.','أول رد بعد 3 أيام.','slow');
+ev('c14','2026-10-23','crm','Viewing done.','تمت المعاينة.');
+ev('c14','2026-10-23','sv','After the viewing: satisfaction 4, ease 3.','بعد المعاينة: الرضا 4، السهولة 3.','',{ind:'CSAT',v:4,v2:3});
+ev('c15','2026-10-19','app','Maintenance request submitted in the app, not visible in My requests.','طلب صيانة عبر التطبيق، لا يظهر في طلباتي.','app');
+ev('c15','2026-10-24','crm','Ticket closed.','أُغلقت التذكرة.');
+ev('c15','2026-10-24','sv','After the ticket: ease 3.','بعد التذكرة: السهولة 3.','',{ind:'CES',v:3});
+ev('c16','2026-10-21','call','First call, 7 minutes. Brochure promised by email the next day.','أول مكالمة، 7 دقائق. وُعدت بالكتيّب عبر البريد في اليوم التالي.');
+ev('c16','2026-10-21','sv','After the call: satisfaction 5.','بعد المكالمة: الرضا 5.','',{ind:'CSAT',v:5});
+ev('c16','2026-10-23','crm','No email sent. The brochure promised on 21 Oct was not sent.','لم يُرسل بريد. الكتيّب الموعود في 21 أكتوبر لم يُرسل.','promise');
+ev('c16','2026-10-25','wa','"Did you send the brochure? Nothing arrived."','"بعثتوا الكتيّب؟ ما وصلني شي."','back');
+ev('c17','2026-10-10','crm','Handover date moved from 10 to 24 October. No call to the owner.','نُقل موعد التسليم من 10 إلى 24 أكتوبر. لا اتصال بالمالك.','handover');
+ev('c17','2026-10-24','crm','Handover done.','تم التسليم.');
+ev('c17','2026-10-26','sv','After handover: 3 of 10.','بعد التسليم: 3 من 10.','',{ind:'NPS',v:3});
+ev('c18','2026-10-15','crm','Deal signed.','وُقّعت الصفقة.');
+ev('c18','2026-10-15','sv','After the deal: 7 of 10.','بعد الصفقة: 7 من 10.','',{ind:'NPS',v:7});
+ev('c19','2026-10-24','call','First call, 4 minutes.','أول مكالمة، 4 دقائق.');
+ev('c19','2026-10-24','sv','After the call: satisfaction 4.','بعد المكالمة: الرضا 4.','',{ind:'CSAT',v:4});
+ev('c20','2026-10-23','crm','Lease renewed.','جُدّد عقد الإيجار.');
+ev('c20','2026-10-23','sv','After the renewal: 10 of 10.','بعد التجديد: 10 من 10.','',{ind:'NPS',v:10});
+ev('c21','2026-10-20','crm','Nomination cycle closed: the nominated lead signed.','أُغلقت دورة الترشيح: وقّع العميل المرشَّح.');
+ev('c21','2026-10-20','sv','Member NPS: 8 of 10.','NPS العضو: 8 من 10.','',{ind:'NPS',v:8});
+ev('c22','2026-10-22','crm','Nomination cycle closed: the lead was lost.','أُغلقت دورة الترشيح: خُسر العميل.');
+ev('c22','2026-10-22','sv','Member NPS: 6 of 10. "No update for three weeks."','NPS العضو: 6 من 10. "لا تحديث ثلاثة أسابيع."','',{ind:'NPS',v:6});
+ev('c23','2026-10-19','crm','Tour completed, Dubai city tour.','اكتملت الجولة، جولة مدينة دبي.');
+ev('c23','2026-10-19','sv','End of tour: guide 5, driver 5, car 4; recommend 9.','نهاية الجولة: المرشد 5، السائق 5، السيارة 4؛ التوصية 9.','',{ind:'CSAT',v:5,nps:9});
+ev('c23','2026-10-19','sv','End of tour: "How likely are you to recommend?" 9.','نهاية الجولة: "ما مدى احتمال أن توصي؟" 9.','',{ind:'NPS',v:9});
+ev('c24','2026-10-25','crm','Tour completed, desert tour. Pickup 40 minutes late.','اكتملت الجولة، جولة صحراء. التحميل متأخر 40 دقيقة.','promise');
+ev('c24','2026-10-25','sv','End of tour: guide 4, driver 2, car 3.','نهاية الجولة: المرشد 4، السائق 2، السيارة 3.','',{ind:'CSAT',v:3});
+ev('c24','2026-10-25','sv','End of tour: recommend 6.','نهاية الجولة: التوصية 6.','',{ind:'NPS',v:6});
+ev('c25','2026-10-11','sv','Booth rating by QR: 4 of 5.','تقييم الجناح عبر QR: 4 من 5.','',{ind:'CSAT',v:4});
+ev('c26','2026-10-11','sv','Booth rating by QR: 2 of 5. "Nobody free to talk to us."','تقييم الجناح عبر QR: 2 من 5. "ما حدا فاضي يحكي معنا."','',{ind:'CSAT',v:2});
+ev('c27','2026-10-15','app','Wallet created, 7 steps.','أُنشئت المحفظة، 7 خطوات.');
+ev('c27','2026-10-15','sv','After set-up: "The wallet was easy to set up" 6 of 7.','بعد الإعداد: "كان إعداد المحفظة سهلاً" 6 من 7.','',{ind:'CES',v:5});
+ev('c28','2026-10-21','call','Call with the advisor about the Burj Views recommendation, 12 minutes.','مكالمة مع المستشار عن توصية برج فيوز، 12 دقيقة.');
+ev('c28','2026-10-21','sv','After the call: "How satisfied were you with your call with your advisor?" 4 of 5.','بعد المكالمة: "ما مدى رضاك عن مكالمتك مع مستشارك؟" 4 من 5.','',{ind:'CSAT',v:4});
+ev('c28','2026-10-23','app','Added 3 properties in bulk; two rejected as duplicates.','أضافت 3 عقارات دفعة واحدة؛ رُفض اثنان كمكررين.','app');
+ev('c28','2026-10-23','sv','After adding: "Adding my property was easy" 3 of 7.','بعد الإضافة: "كانت إضافة عقاري سهلة" 3 من 7.','',{ind:'CES',v:2});
+/* ---- rules (the only settings in the pilot) ---- */
+var RULE={pattern:3,window:30,callDays:2,approveDays:5};
+/* ---- fixes: one per pattern that crossed the line, plus one already done ---- */
+var FIX=[
+ {id:'F-1',kind:'slow',p:'re',t:B('WhatsApp replies within 2 working hours: the team lead sweeps unanswered chats at 09:00 and 15:00','الرد على واتساب خلال ساعتي عمل: قائد الفريق يراجع المحادثات غير المجابة 09:00 و15:00'),owner:B('Sales manager, Abu Dhabi','مدير المبيعات، أبوظبي'),st:'proposed',on:'2026-10-24',why:B('In 13 similar closed cases this fix was followed by recovery in 9.','في 13 حالة مغلقة مشابهة تبع هذا الحل تعافٍ في 9.')},
+ {id:'F-2',kind:'app',p:'af',t:B('Defect to the app team: requests not visible, payment error after OTP. In-app notice until fixed','عيب لفريق التطبيق: الطلبات لا تظهر، خطأ الدفع بعد رمز التحقق. تنبيه داخل التطبيق حتى الإصلاح'),owner:B('App product owner','مالك منتج التطبيق'),st:'approved',on:'2026-10-20',due:'2026-11-05',why:B('In 14 similar closed cases this fix was followed by recovery in 10.','في 14 حالة مغلقة مشابهة تبع هذا الحل تعافٍ في 10.')},
+ {id:'F-3',kind:'info',p:'af',t:B('Service-charge sheet corrected and reissued to all After-Sales agents','تصحيح ورقة رسوم الخدمة وإعادة إصدارها لكل موظفي ما بعد البيع'),owner:B('After-Sales team lead','قائد فريق ما بعد البيع'),st:'done',on:'2026-09-18',done:'2026-10-01',check:'2026-11-30',why:B('Wrong service-charge answers in After-Sales: 4 in September, 0 since the fix.','إجابات خاطئة عن رسوم الخدمة في ما بعد البيع: 4 في سبتمبر، 0 منذ الحل.')}];
+function fix(id){return FIX.filter(function(f){return f.id===id})[0]}
+/* ---- derived: signals and patterns ---- */
+function days(a,b){return Math.round((Date.parse(b)-Date.parse(a))/864e5)}
+function signals(){return E.filter(function(e){return e.flag&&e.flag!=='back'&&days(e.d,TODAY)<=RULE.window})}
+function patterns(){var g={};signals().forEach(function(e){var k=e.flag+'|'+cust(e.c).p;(g[k]=g[k]||{kind:e.flag,p:cust(e.c).p,evs:[]}).evs.push(e)});
+ return Object.keys(g).map(function(k){var x=g[k];x.id='P-'+k.replace('|','-');x.over=x.evs.length>=RULE.pattern;x.fix=FIX.filter(function(f){return f.kind===x.kind&&f.p===x.p&&f.st!=='done'})[0]||null;return x}).sort(function(a,b){return b.evs.length-a.evs.length})}
+function pat(id){return patterns().filter(function(x){return x.id===id})[0]}
+function lowScore(e){var s=e.sv;if(!s)return false;return s.ind==='NPS'?s.v<=6:s.v<=2||(s.v2!=null&&s.v2<=2)}
+function problems(c){return E.filter(function(e){return e.c===c.id&&(e.flag||lowScore(e))})}
+function callList(){var out=[];C.forEach(function(c){var low=E.filter(function(e){return e.c===c.id&&lowScore(e)});if(!low.length||S.called[c.id])return;var e=low[low.length-1];var crit=e.sv.ind==='NPS'&&e.sv.v<=3;out.push({c:c,e:e,crit:crit,age:days(e.d,TODAY)})});return out.sort(function(a,b){return (b.crit-a.crit)||(b.age-a.age)})}
+function fixState(f){return S.decided[f.id]||f.st}
+/* ---- numbers ---- */
+function envOK(c){return S.fe==='all'||c.env===S.fe}
+function num(p,ind){var a=E.filter(function(e){return e.sv&&cust(e.c).p===p&&envOK(cust(e.c))&&(e.sv.ind===ind||(ind==='CES'&&e.sv.v2!=null))});
+ if(!a.length)return{v:'–',n:0,a:[]};
+ if(ind==='NPS'){var pr=a.filter(function(e){return e.sv.v>=9}).length,de=a.filter(function(e){return e.sv.v<=6}).length;return{v:(Math.round(100*(pr-de)/a.length)>0?'+':'')+Math.round(100*(pr-de)/a.length),n:a.length,a:a}}
+ var val=function(e){return ind==='CES'&&e.sv.v2!=null?e.sv.v2:e.sv.v},good=a.filter(function(e){return val(e)>=4}).length;return{v:Math.round(100*good/a.length)+'%',n:a.length,a:a,val:val}}
+/* ---- ui helpers ---- */
+function go(v,sel){S.view=v;S.sel=sel||null;S.form=null;S.nsel=null;render();window.scrollTo(0,0)}
+function why(k,txt){var open=S.why[k];return '<div><button class="why" data-why="'+k+'">'+esc(open?T('Hide','إخفاء'):T('Why?','ليش؟'))+'</button>'+(open?'<div class="whybox">'+txt+'</div>':'')+'</div>'}
+function link(c){return '<a class="id" data-go="customer" data-id="'+c.id+'">'+esc(c.name)+'</a>'}
+function evLine(e,withCust){var c=cust(e.c);return '<div class="ev'+(e.flag?' flag':'')+'"><div class="d">'+esc(e.d.slice(5).replace('-','/'))+'</div><div class="c"><span class="tag">'+esc(L(CH[e.ch]))+'</span></div><div>'+(withCust?link(c)+' · ':'')+esc(L(e.t))+(e.flag?' <span class="tag '+(e.flag==='back'?'warn':'bad')+'">'+esc(L(KIND[e.flag]))+'</span>':'')+(e.sv&&lowScore(e)?' <span class="tag bad">'+esc(T('low score','درجة منخفضة'))+'</span>':'')+' <span class="mut sm">'+e.id+'</span></div></div>'}
+function toast(m){S.toast=m;render();setTimeout(function(){S.toast='';render()},2200)}
+/* ---- screens ---- */
+function vToday(){var cl=callList(),mgr=S.role==='cxm',h='';
+ h+='<h1>'+esc(T('Today','اليوم'))+'</h1><p class="lead">'+esc(T('Everything that is on you, most urgent first. Each line is one thing to do.','كل ما هو عليك، الأهم أولاً. كل سطر شيء واحد تعمله.'))+'</p>';
+ if(mgr){patterns().filter(function(x){return x.over&&x.fix&&fixState(x.fix)==='proposed'}).forEach(function(x){var f=x.fix,left=RULE.approveDays-Math.max(0,days(f.on,TODAY));
+  h+='<div class="card row"><div class="g"><b>'+esc(T('Approve or reject a fix','اعتمد حلاً أو ارفضه'))+'</b><div>'+esc(L(f.t))+'</div><div class="mut sm">'+esc(L(KIND[x.kind]))+' · '+x.evs.length+' '+esc(T('times in 30 days','مرات خلال 30 يوماً'))+' · '+esc(left>0?T(left+' working days left',left+' أيام عمل متبقية'):T('overdue','متأخر'))+'</div></div><button class="btn p" data-go="signal" data-id="'+x.id+'">'+esc(T('Open','افتح'))+'</button></div>'})}
+ cl.forEach(function(r){var q=S.ai[r.c.id];h+='<div class="card row"><div class="g"><b>'+esc((q&&q.st==='queued'?T('AI calling ','الذكاء يتصل بـ '):q&&q.handoff?T('Take over from the AI: ','استلم من الذكاء: '):T('Call ','اتصل بـ '))+r.c.name)+'</b>'+(q&&q.st==='queued'?' <span class="tag warn">'+esc(T('waiting for the result','بانتظار النتيجة'))+'</span>':'')+(r.crit?' <span class="tag bad">'+esc(T('critical','حرج'))+'</span>':'')+'<div class="mut sm">'+esc(r.e.sv.ind+' '+r.e.sv.v+' · '+L(cust(r.e.c).d)+' · '+T(r.age+' days ago','قبل '+r.age+' أيام'))+'</div></div><button class="btn p" data-go="customer" data-id="'+r.c.id+'">'+esc(T('Open','افتح'))+'</button></div>'});
+ if(!cl.length)h+='<div class="card">'+esc(T('Nobody left to call. Well done.','لا أحد متبقٍ للاتصال. أحسنت.'))+'</div>';
+ h+=why('today',esc(T('Rule: a customer who gives NPS 0 to 6, or a 1 or 2 on satisfaction or ease, is called by a person within '+RULE.callDays+' working days. Critical (NPS 3 or less) first, then the oldest. A fix waits for the manager at most '+RULE.approveDays+' working days.','القاعدة: الزبون الذي يعطي NPS من 0 إلى 6، أو 1 أو 2 في الرضا أو السهولة، يتصل به إنسان خلال '+RULE.callDays+' يومي عمل. الحرج (NPS 3 أو أقل) أولاً ثم الأقدم. الحل ينتظر المدير '+RULE.approveDays+' أيام عمل كحد أقصى.')));
+ return h}
+function vCustomers(){var h='<h1>'+esc(T('Customers','الزبائن'))+'</h1><p class="lead">'+esc(T('Everyone on record this month, every product and environment. Open anyone.','كل من في السجل هذا الشهر، كل المنتجات والبيئات. افتح أي شخص.'))+'</p>';
+ C.forEach(function(c){var pr=problems(c);h+='<div class="card row"><div class="g"><b>'+esc(c.name)+'</b> <span class="tag">'+esc(L(PROD[c.p]))+'</span> <span class="tag">'+esc(L(ENV[c.env]))+'</span><div class="mut sm">'+esc(L(c.d))+(pr.length?' · <span style="color:var(--bad)">'+pr.length+' '+esc(T('problems','مشاكل'))+'</span>':'')+'</div></div><button class="btn" data-go="customer" data-id="'+c.id+'">'+esc(T('Open','افتح'))+'</button></div>'});return h}
+function vCustomer(){var c=cust(S.sel),evs=E.filter(function(e){return e.c===c.id}).slice().reverse(),pr=problems(c),low=evs.filter(lowScore)[0];
+ var h='<a class="id" data-go="customers">← '+esc(T('Customers','الزبائن'))+'</a><h1>'+esc(c.name)+'</h1><p class="lead">'+esc(L(c.d))+' · '+esc(L(PROD[c.p]))+' · '+esc(L(ENV[c.env]))+' · '+c.id+'</p>';
+ h+='<div class="card"><b>'+esc(T('What went wrong','ما الذي حدث'))+'</b>';
+ if(!pr.length)h+='<div class="mut">'+esc(T('Nothing. Every contact was answered and every score was good.','لا شيء. كل تواصل أُجيب وكل درجة كانت جيدة.'))+'</div>';
+ pr.forEach(function(e){var x=e.flag&&e.flag!=='back'?patterns().filter(function(p){return p.evs.indexOf(e)>=0})[0]:null;h+='<div>• '+esc(e.d.slice(5).replace('-','/'))+' · '+esc(e.flag?L(KIND[e.flag]):e.sv.ind+' '+e.sv.v+' '+T('(low)','(منخفض)'))+(x?' → <a class="id" data-go="signal" data-id="'+x.id+'">'+esc(T('counted in','عُدّت في')+' '+L(KIND[x.kind])+' × '+x.evs.length)+'</a>':'')+'</div>'});
+ h+='</div>';
+ var ai=S.ai[c.id];
+ if(low&&!S.called[c.id]&&!ai)h+='<div class="card"><div class="row"><div class="g"><b>'+esc(T('This customer is waiting for a call','هذا الزبون ينتظر مكالمة'))+'</b><div class="mut sm">'+esc(low.sv.ind+' '+low.sv.v+' · '+T(days(low.d,TODAY)+' days ago','قبل '+days(low.d,TODAY)+' أيام'))+'</div></div><button class="btn p" data-act="call">'+esc(T('I call now','أتصل الآن'))+'</button><button class="btn" data-act="aiopen">'+esc(T('Send to the AI caller','أرسل لمتصل الذكاء'))+'</button></div>'+(S.form&&S.form.mode==='ai'?vAiForm(c,low):'')+'</div>';
+ if(ai&&ai.st==='queued')h+='<div class="card"><span class="tag warn">'+esc(T('AI call queued','مكالمة ذكاء في الانتظار'))+'</span> '+esc(T('Script: ','السكربت: ')+L(script(ai.script).n)+' · '+T('sent','أُرسلت')+' '+ai.sent+' · '+T('the AI calls in the customer\'s language inside calling hours; the answers come back through the call API and land here.','يتصل الذكاء بلغة الزبون داخل ساعات الاتصال؛ تعود الإجابات عبر واجهة المكالمات وتستقر هنا.'))+'<div class="row" style="margin-top:8px"><button class="btn" data-act="aidemo">'+esc(T('Show what came back (demo)','أظهر ما عاد (تجريبي)'))+'</button><button class="btn" data-act="aicancel">'+esc(T('Cancel, I will call','إلغاء، سأتصل أنا'))+'</button></div></div>';
+ if(ai&&ai.st==='done')h+='<div class="card"><span class="tag '+(ai.handoff?'bad':'ok')+'">'+esc(ai.handoff?T('AI call: needs a human','مكالمة ذكاء: تحتاج إنساناً'):T('AI call done','تمت مكالمة الذكاء'))+'</span> <span class="mut sm">'+esc(T('captured through the call API','التُقطت عبر واجهة المكالمات'))+' · '+esc(ai.dur)+'</span><div style="margin-top:8px"><b>'+esc(T('What the customer said','ما قاله الزبون'))+'</b>'+ai.ans.map(function(a){return '<div class="sm">• <span class="mut">'+esc(L(a.q))+'</span> '+esc(L(a.a))+'</div>'}).join('')+'</div><div class="sm" style="margin-top:6px">'+esc(T('Reason: ','السبب: ')+L(KIND[ai.code])+' · '+T('outcome','النتيجة')+': '+(ai.handoff?T('asked for a person; handed to you the same day','طلب شخصاً؛ أُحيل إليك اليوم نفسه'):T('reached, reason captured','تم الوصول وسُجّل السبب')))+' · <a class="id">'+esc(T('recording','التسجيل'))+' · 02:41</a></div>'+(ai.handoff?'<div class="row" style="margin-top:8px"><button class="btn p" data-act="call">'+esc(T('I call now','أتصل الآن'))+'</button></div>':'')+'</div>';
+ if(S.called[c.id])h+='<div class="card"><span class="tag ok">'+esc(T('Called','تم الاتصال'))+'</span> '+esc(T('The same question goes out again on','السؤال نفسه يُرسل مجدداً في'))+' '+esc(S.called[c.id].re)+'.</div>';
+ if(S.form&&S.form.mode!=='ai')h+=vForm(c,low);
+ h+='<h2>'+esc(T('Everything that happened','كل ما حدث'))+'</h2><div class="card">'+evs.map(function(e){return evLine(e,false)}).join('')+'</div>';
+ h+=why('cust',esc(T('Every line is one contact from the CRM, WhatsApp, the app or a survey, in date order. Highlighted lines are where a rule found a problem; "came back" means the first answer did not work. Nothing here is written by the AI; the AI only marks the problems. A call is captured the same way whichever way it was made: you type the answers after a manual call; the AI caller returns the answers, the reason, the outcome and a recording link through the call API, and they land on this timeline.','كل سطر تواصل واحد من CRM أو واتساب أو التطبيق أو استبيان، بترتيب التاريخ. السطور المظللة حيث وجدت قاعدةٌ مشكلة؛ "عاد" تعني أن الإجابة الأولى لم تنجح. لا شيء هنا كتبه الذكاء؛ الذكاء يعلّم المشاكل فقط. تُلتقط المكالمة بالطريقة نفسها أياً كانت: تكتب الإجابات بعد مكالمتك اليدوية؛ ومتصل الذكاء يعيد الإجابات والسبب والنتيجة ورابط التسجيل عبر واجهة المكالمات، وتستقر على هذا الخط الزمني.')));
+ return h}
+function vForm(c,low){var f=S.form;return '<div class="card"><b>'+esc(T('The call: four questions','المكالمة: أربعة أسئلة'))+'</b><div class="mut sm">'+esc(T('Before you dial: ','قبل الاتصال: ')+problems(c).map(function(e){return L(e.t)}).join(' · '))+'</div>'+
+ '<label>'+esc(T('1. What happened?','1. ماذا حدث؟'))+'</label><input data-f="q1" value="'+esc(f.q1||'')+'">'+
+ '<label>'+esc(T('2. What did you expect?','2. ماذا كنت تتوقع؟'))+'</label><input data-f="q2" value="'+esc(f.q2||'')+'">'+
+ '<label>'+esc(T('3. What would have made it right?','3. ما الذي كان سيصحّح الأمر؟'))+'</label><input data-f="q3" value="'+esc(f.q3||'')+'">'+
+ '<label>'+esc(T('4. May we come back to you after the fix?','4. هل نعود إليك بعد الحل؟'))+'</label><select data-f="q4"><option>'+esc(T('Yes','نعم'))+'</option><option>'+esc(T('No','لا'))+'</option></select>'+
+ '<label>'+esc(T('The reason, in one word','السبب بكلمة'))+'</label><select data-f="code">'+['slow','promise','info','app','handover'].map(function(k){return '<option value="'+k+'"'+(f.code===k?' selected':'')+'>'+esc(L(KIND[k]))+'</option>'}).join('')+'<option value="other">'+esc(T('Other','أخرى'))+'</option></select>'+
+ '<label>'+esc(T('Outcome','النتيجة'))+'</label><select data-f="out"><option value="resolved">'+esc(T('Resolved on the call','حُلّت في المكالمة'))+'</option><option value="reached">'+esc(T('Reached, needs a fix','تم الوصول، تحتاج حلاً'))+'</option><option value="noans">'+esc(T('No answer','لم يرد'))+'</option></select>'+
+ '<div class="row" style="margin-top:12px"><button class="btn p" data-act="save">'+esc(T('Save the call','احفظ المكالمة'))+'</button><button class="btn" data-act="cancel">'+esc(T('Cancel','إلغاء'))+'</button></div></div>'}
+function vAiForm(c,low){var f=S.form,sc=script(f.script||'s1');return '<div style="margin-top:12px;border-top:1px solid var(--line);padding-top:10px"><label>'+esc(T('Which script should the AI use?','أي سكربت يستخدم الذكاء؟'))+'</label><select data-f="script">'+SCRIPTS.map(function(x){return '<option value="'+x.id+'"'+(sc.id===x.id?' selected':'')+'>'+esc(L(x.n))+'</option>'}).join('')+'</select><div class="whybox" style="margin-top:8px">'+sc.q.map(function(q,i){return '<div>'+(i+1)+'. '+esc(L(q))+'</div>'}).join('')+'<div class="mut sm" style="margin-top:6px">'+esc(T('The AI opens with who it is and why it calls, asks these in order, and records the answers. It hands over to you if the customer asks for a person, says anything critical, or does not answer twice. It never promises anything.','يبدأ الذكاء بتعريف نفسه وسبب الاتصال، يسأل هذه بالترتيب، ويسجّل الإجابات. يحيل إليك إن طلب الزبون شخصاً أو قال شيئاً حرجاً أو لم يرد مرتين. لا يعد بشيء أبداً.'))+'</div></div><div class="row" style="margin-top:10px"><button class="btn p" data-act="aisend">'+esc(T('Send','أرسل'))+'</button><button class="btn" data-act="cancel">'+esc(T('Cancel','إلغاء'))+'</button></div></div>'}
+function aiResult(c){var pr=problems(c).filter(function(e){return e.flag&&e.flag!=='back'}),k=pr.length?pr[pr.length-1].flag:'other',crit=pr.some(function(e){return e.flag==='handover'});
+ var ans={slow:[B('I wrote on WhatsApp and nobody answered for two days.','كتبت على واتساب وما حدا رد يومين.'),B('A reply the same day, even just "we will check".','رد بنفس اليوم، حتى لو "رح نتأكد".'),B('One person who owns my question.','شخص واحد مسؤول عن سؤالي.'),B('Yes.','نعم.')],promise:[B('The agent promised to call back and never did.','وعد الموظف بالاتصال وما اتصل.'),B('The call he promised, when he promised it.','المكالمة اللي وعد فيها، بوقتها.'),B('Send what you promised in writing.','ابعتوا اللي وعدتوا فيه مكتوباً.'),B('Yes.','نعم.')],app:[B('The request disappeared from the app after I sent it.','الطلب اختفى من التطبيق بعد ما بعثته.'),B('Yes, I called and they opened it by hand.','نعم، اتصلت وفتحوه يدوياً.'),B('It is done, but the app still shows nothing.','خلص، بس التطبيق لسه ما بيبيّن شي.'),B('Yes.','نعم.')],handover:[B('Nobody. I found out when I arrived.','ولا حدا. عرفت لما وصلت.'),B('A day off and a wasted trip.','يوم إجازة ومشوار ضايع.'),B('The unit is fine. I want to speak to a person about this.','الوحدة تمام. بدي أحكي مع شخص عن هالموضوع.'),B('Yes.','نعم.')],info:[B('I was told one number and the paper said another.','قالولي رقم والورقة فيها رقم ثاني.'),B('The right number the first time.','الرقم الصحيح من أول مرة.'),B('Send it to me in writing.','ابعتوه لي مكتوباً.'),B('Yes.','نعم.')]}[k]||[B('–','–'),B('–','–'),B('–','–'),B('Yes.','نعم.')];
+ var sc=script(S.ai[c.id].script);return{st:'done',code:k==='other'?'slow':k,handoff:crit,dur:'2:41',ans:sc.q.map(function(q,i){return{q:q,a:ans[i]}})}}
+function vSignals(){var ps=patterns(),h='<h1>'+esc(T('Signals','الإشارات'))+'</h1><p class="lead">'+esc(T('Problems that repeated in the last 30 days. Three of the same kind become a pattern and get one proposed fix.','مشاكل تكررت خلال آخر 30 يوماً. ثلاث من النوع نفسه تصبح نمطاً وتحصل على حل واحد مقترح.'))+'</p>';
+ ps.forEach(function(x){var f=x.fix,st=f?fixState(f):'';h+='<div class="card row"><div class="g"><b>'+esc(L(KIND[x.kind]))+'</b> <span class="tag">'+esc(L(PROD[x.p]))+'</span><div class="mut sm">'+x.evs.length+' '+esc(T('times','مرات'))+' · '+(x.over?'<span class="tag bad">'+esc(T('over the line','تجاوز الحد'))+'</span> '+(f?'<span class="tag '+(st==='proposed'?'warn':st==='rejected'?'':'ok')+'">'+esc(stLabel(st))+'</span>':''):'<span class="tag">'+esc(x.evs.length+' '+T('of','من')+' '+RULE.pattern)+'</span>')+'</div></div><button class="btn" data-go="signal" data-id="'+x.id+'">'+esc(T('Open','افتح'))+'</button></div>'});
+ var done=FIX.filter(function(f){return f.st==='done'});if(done.length){h+='<h2>'+esc(T('Fixes already done','حلول منجزة'))+'</h2>';done.forEach(function(f){h+='<div class="card"><b>'+esc(L(f.t))+'</b><div class="mut sm">'+esc(L(f.owner))+' · '+esc(T('done','أُنجز'))+' '+f.done+' · '+esc(T('check on','الفحص في'))+' '+f.check+'</div><div class="sm">'+esc(L(f.why))+'</div></div>'})}
+ h+=why('sig',esc(T('A signal is one problem a rule found on one customer. Signals are counted, not worked one by one. '+RULE.pattern+' of the same kind in '+RULE.window+' days cross the line; the fix is suggested from what worked before, and only a person approves it.','الإشارة مشكلة واحدة وجدتها قاعدة عند زبون واحد. تُعدّ الإشارات ولا تُعالج واحدة واحدة. '+RULE.pattern+' من النوع نفسه خلال '+RULE.window+' يوماً تتجاوز الحد؛ الحل يُقترح مما نجح سابقاً، وإنسان فقط يعتمده.')));
+ return h}
+function stLabel(st){return {proposed:T('waiting for a yes','ينتظر موافقة'),approved:T('approved, in progress','معتمد، قيد التنفيذ'),rejected:T('rejected','مرفوض'),done:T('done','منجز')}[st]||st}
+function vSignal(){var x=pat(S.sel);if(!x)return vSignals();var f=x.fix,st=f?fixState(f):'',mgr=S.role==='cxm';
+ var h='<a class="id" data-go="signals">← '+esc(T('Signals','الإشارات'))+'</a><h1>'+esc(L(KIND[x.kind]))+' × '+x.evs.length+'</h1><p class="lead">'+esc(L(PROD[x.p]))+' · '+esc(T('Abu Dhabi, last 30 days','أبوظبي، آخر 30 يوماً'))+' · '+x.id+'</p>';
+ h+='<h2>'+esc(T('The '+x.evs.length+' times it happened','المرات الـ'+x.evs.length+' التي حدث فيها'))+'</h2><div class="card">'+x.evs.map(function(e){return evLine(e,true)}).join('')+'</div>';
+ if(!x.over){h+='<div class="card">'+esc(T('Not over the line yet: '+x.evs.length+' of '+RULE.pattern+'. One more and a fix is proposed.','لم يتجاوز الحد بعد: '+x.evs.length+' من '+RULE.pattern+'. واحدة أخرى ويُقترح حل.'))+'</div>'}
+ else if(f){h+='<h2>'+esc(T('The proposed fix','الحل المقترح'))+'</h2><div class="card"><b>'+esc(L(f.t))+'</b><div class="mut sm">'+esc(T('Owner','المالك'))+': '+esc(L(f.owner))+' · '+f.id+' · <span class="tag '+(st==='proposed'?'warn':st==='rejected'?'':'ok')+'">'+esc(stLabel(st))+'</span>'+(f.due?' · '+esc(T('due','الموعد'))+' '+f.due:'')+'</div>'+why('fix'+f.id,esc(T('Rule that fired: ','القاعدة التي انطلقت: ')+L(KIND[x.kind])+' '+x.evs.length+' ≥ '+RULE.pattern+' '+T('in','خلال')+' '+RULE.window+' '+T('days.','يوماً.'))+' '+esc(L(f.why))+' '+esc(T('It is a suggestion; nothing starts without the manager\'s yes. After it is done, the same signals are counted again at 60 days.','إنه اقتراح؛ لا يبدأ شيء بلا موافقة المدير. بعد إنجازه تُعدّ الإشارات نفسها مجدداً بعد 60 يوماً.')))+
+  (st==='proposed'?(mgr?'<div class="row" style="margin-top:12px"><button class="btn ok" data-act="approve" data-id="'+f.id+'">'+esc(T('Approve','اعتمد'))+'</button><button class="btn bad" data-act="reject" data-id="'+f.id+'">'+esc(T('Reject','ارفض'))+'</button></div>':'<div class="mut sm" style="margin-top:8px">'+esc(T('Waiting for the CX manager.','بانتظار مدير تجربة العملاء.'))+'</div>'):'')+
+  (S.decided[f.id+'r']?'<div class="mut sm" style="margin-top:8px">'+esc(T('Reason: ','السبب: ')+S.decided[f.id+'r'])+'</div>':'')+'</div>'}
+ return h}
+function chips(key,opts,cur){return '<div class="row" style="flex-wrap:wrap;gap:6px;margin-bottom:8px">'+opts.map(function(o){return '<button class="btn'+(cur===o[0]?' p':'')+'" style="padding:4px 10px;font-size:13px" data-filt="'+key+'" data-v="'+o[0]+'">'+esc(o[1])+'</button>'}).join('')+'</div>'}
+function vNumbers(){var h='<h1>'+esc(T('Numbers','الأرقام'))+'</h1><p class="lead">'+esc(T('How customers feel, per product and per environment, from the answers this month. Click a number to see the answers behind it.','كيف يشعر الزبائن، لكل منتج ولكل بيئة، من إجابات هذا الشهر. اضغط رقماً لترى الإجابات خلفه.'))+'</p>';
+ h+='<div class="card">'+chips('fp',[['all',T('All products','كل المنتجات')]].concat(Object.keys(PROD).map(function(k){return [k,L(PROD[k])]})),S.fp)+chips('fe',[['all',T('All environments','كل البيئات')]].concat(Object.keys(ENV).map(function(k){return [k,L(ENV[k])]})),S.fe)+'</div>';
+ Object.keys(PROD).filter(function(p){return S.fp==='all'||S.fp===p}).forEach(function(p){var anyN=['NPS','CSAT','CES'].some(function(k){return num(p,k).n});if(S.fp==='all'&&!anyN)return;
+  h+='<h2>'+esc(L(PROD[p]))+(LIVE[p]?'':' <span class="tag">'+esc(T('not launched · pilot data','غير مُطلق · بيانات تجريبية'))+'</span>')+'</h2><div class="nums">'+[['NPS',T('would recommend us','يوصون بنا')],['CSAT',T('happy with the last step','راضون عن آخر خطوة')],['CES',T('found it easy','وجدوه سهلاً')]].map(function(k){var r=num(p,k[0]);return '<div class="card num" data-num="'+p+'|'+k[0]+'"><div class="mut sm">'+k[0]+'</div><div class="big">'+esc(r.v)+'</div><div class="mut sm">'+esc(k[1])+' · '+r.n+' '+esc(T('answers','إجابة'))+'</div></div>'}).join('')+'</div>';
+  if(S.nsel&&S.nsel.indexOf(p+'|')===0){var r=num(p,S.nsel.split('|')[1]);h+='<div class="card"><b>'+esc(T('The answers','الإجابات'))+'</b>'+r.a.map(function(e){return '<div>'+esc(e.d.slice(5).replace('-','/'))+' · '+link(cust(e.c))+' <span class="tag">'+esc(L(ENV[cust(e.c).env]))+'</span> · '+esc(L(e.t))+'</div>'}).join('')+(r.a.length?'':'<div class="mut">–</div>')+'</div>'}});
+ var sg=signals().length,ps=patterns().filter(function(x){return x.over}).length;
+ h+='<h2>'+esc(T('And the work behind them','والعمل خلفها'))+'</h2><div class="nums"><div class="card"><div class="mut sm">'+esc(T('Signals, 30 days','إشارات، 30 يوماً'))+'</div><div class="big">'+sg+'</div></div><div class="card"><div class="mut sm">'+esc(T('Patterns over the line','أنماط تجاوزت الحد'))+'</div><div class="big">'+ps+'</div></div><div class="card"><div class="mut sm">'+esc(T('Customers still to call','زبائن لم يُتصل بهم'))+'</div><div class="big">'+callList().length+'</div></div></div>';
+ h+=why('num',esc(T('NPS: promoters (9 to 10) minus detractors (0 to 6), as a percentage of the answers; asked only after a signed deal, a handover or a renewal. CSAT: share of 4 and 5 on "how satisfied were you with your call, viewing or offer". CES: share of 4 and 5 on "how easy was it". Each product has its own numbers; nothing is averaged across products.','NPS: المروّجون (9 إلى 10) ناقص غير الراضين (0 إلى 6) كنسبة من الإجابات؛ يُسأل فقط بعد صفقة موقّعة أو تسليم أو تجديد. CSAT: نسبة 4 و5 على "ما مدى رضاك عن مكالمتك أو معاينتك أو عرضك". CES: نسبة 4 و5 على "كم كان سهلاً". لكل منتج أرقامه؛ لا يُجمع شيء بين المنتجات.')));
+ return h}
+/* ---- render ---- */
+function render(){var V={today:vToday,customers:vCustomers,customer:vCustomer,signals:vSignals,signal:vSignal,numbers:vNumbers};document.documentElement.dir=S.lang==='ar'?'rtl':'ltr';
+ var nav=[['today',T('Today','اليوم')],['customers',T('Customers','الزبائن')],['signals',T('Signals','الإشارات')],['numbers',T('Numbers','الأرقام')]].map(function(n){var on=S.view===n[0]||(S.view==='customer'&&n[0]==='customers')||(S.view==='signal'&&n[0]==='signals');return '<button class="'+(on?'on':'')+'" data-go="'+n[0]+'">'+esc(n[1])+'</button>'}).join('');
+ document.getElementById('app').innerHTML='<div class="top"><b>PSI CX Pilot</b>'+nav+'<span class="sp"></span><select data-role><option value="cx"'+(S.role==='cx'?' selected':'')+'>'+esc(T('CX team','فريق CX'))+'</option><option value="cxm"'+(S.role==='cxm'?' selected':'')+'>'+esc(T('CX manager','مدير CX'))+'</option></select><button data-lang>'+(S.lang==='ar'?'English':'العربية')+'</button></div><main>'+(V[S.view]||vToday)()+'<p class="mut sm" style="margin-top:30px">'+esc(T('Pilot with sample data: 28 customers across Abu Dhabi, Dubai and PSI Assets, October 2026. Nothing is sent to anyone.','نموذج ببيانات تجريبية: 28 زبوناً في أبوظبي ودبي وPSI للأصول، أكتوبر 2026. لا يُرسل شيء لأحد.'))+'</p></main>'+(S.toast?'<div class="toast">'+esc(S.toast)+'</div>':'')}
+document.addEventListener('click',function(evt){var t=evt.target.closest('[data-go],[data-why],[data-act],[data-num],[data-lang],[data-filt]');if(!t)return;
+ if(t.dataset.lang!=null){S.lang=S.lang==='ar'?'en':'ar';render();return}
+ if(t.dataset.go){go(t.dataset.go,t.dataset.id);return}
+ if(t.dataset.why){S.why[t.dataset.why]=!S.why[t.dataset.why];render();return}
+ if(t.dataset.filt){S[t.dataset.filt]=t.dataset.v;S.nsel=null;render();return}
+ if(t.dataset.num){S.nsel=S.nsel===t.dataset.num?null:t.dataset.num;render();return}
+ var a=t.dataset.act;
+ if(a==='call'){S.form={mode:'manual',code:'slow',out:'resolved'};render()}
+ if(a==='aiopen'){S.form={mode:'ai',script:'s1'};render()}
+ if(a==='aisend'){S.ai[S.sel]={st:'queued',script:S.form.script||'s1',sent:TODAY};S.form=null;toast(T('Sent to the AI caller. It calls inside calling hours; the answers land on this page.','أُرسلت لمتصل الذكاء. يتصل داخل ساعات الاتصال؛ الإجابات تستقر في هذه الصفحة.'))}
+ if(a==='aicancel'){delete S.ai[S.sel];render()}
+ if(a==='aidemo'){var cc=cust(S.sel),r=aiResult(cc);S.ai[cc.id]=Object.assign(S.ai[cc.id],r);ev(cc.id,TODAY,'ai',T('AI call: ','مكالمة ذكاء: ')+L(r.ans[0].a)+' · '+T('reason','السبب')+': '+L(KIND[r.code])+(r.handoff?' · '+T('handed to a person','أُحيلت لشخص'):''),'');if(!r.handoff)S.called[cc.id]={re:new Date(Date.parse(TODAY)+7*864e5).toISOString().slice(0,10)};render()}
+ if(a==='cancel'){S.form=null;render()}
+ if(a==='save'){var c=cust(S.sel),f=S.form,re=new Date(Date.parse(TODAY)+7*864e5).toISOString().slice(0,10);ev(c.id,TODAY,'int',T('Interview: ','مقابلة: ')+(f.q1||'–')+' · '+T('reason','السبب')+': '+L(KIND[f.code]||{en:f.code})+' · '+(f.out==='resolved'?T('resolved on the call','حُلّت في المكالمة'):f.out==='reached'?T('reached, needs a fix','تم الوصول، تحتاج حلاً'):T('no answer','لم يرد')),'');if(f.out!=='noans')S.called[c.id]={re:re};S.form=null;toast(T('Saved. The same question goes out again on '+re+'.','حُفظت. السؤال نفسه يُرسل مجدداً في '+re+'.'))}
+ if(a==='approve'){S.decided[t.dataset.id]='approved';toast(T('Approved. The owner is notified; due in 5 working days.','اعتُمد. أُبلغ المالك؛ الموعد خلال 5 أيام عمل.'))}
+ if(a==='reject'){var r=prompt(T('Why? (one line)','لماذا؟ (سطر واحد)'));if(r==null)return;S.decided[t.dataset.id]='rejected';S.decided[t.dataset.id+'r']=r;toast(T('Rejected with a reason. The pattern stays open.','رُفض مع السبب. يبقى النمط مفتوحاً.'))}
+});
+document.addEventListener('input',function(ev){var t=ev.target;if(t.dataset.f&&S.form)S.form[t.dataset.f]=t.value});
+document.addEventListener('change',function(ev){var t=ev.target;if(t.dataset.role!=null){S.role=t.value;go('today')}if(t.dataset.f&&S.form)S.form[t.dataset.f]=t.value});
+render();
+</script>
+</body>
+</html>
