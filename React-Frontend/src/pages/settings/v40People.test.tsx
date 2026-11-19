@@ -678,7 +678,7 @@ describe('the card flow\'s "Open" buttons are for the CX team only (v41.1 F29)',
   })
 
   it('a quoted conversation text is dropped for a viewer who may not read it, and shown to one who may', async () => {
-    const brief = mock.MOCK_WEEKLY_SAMPLE.find((i) => i.check === 'brief' && i.card.given.some((l) => l.restricted))!
+    const brief = mock.MOCK_WEEKLY_SAMPLE.find((i) => i.check === 'brief' && i.card.given.some((l) => l.conversation))!
     const flow = (canReadText: boolean) =>
       renderWithProviders(<SampleCardFlow items={[brief]} canOpen={false} personName={(id) => `Name of ${id}`} canReadText={canReadText} onAnswer={() => {}} onList={() => {}} />, { role: 'cxmgr' })
     const cannot = flow(false)

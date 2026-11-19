@@ -249,11 +249,11 @@ describe('the guided tour', () => {
     // /overview: the brief is there
     await next()
     // /settings/feeds is not in the fake app: no `feeds` element
-    await waitFor(async () => expect(await counter()).toBe('Tour 2 / 4'))
+    await waitFor(async () => expect(await counter()).toBe('Tour 2 / 5'))
     await waitFor(() => expect(screen.getByTestId('tour-card')).toHaveAttribute('data-placement', 'centre'))
     expect(screen.queryByTestId('tour-ring')).not.toBeInTheDocument()
     await next()
-    await waitFor(async () => expect(await counter()).toBe('Tour 3 / 4'))
+    await waitFor(async () => expect(await counter()).toBe('Tour 3 / 5'))
   })
 
   it('lights the element: a frame round its box, 6px outside it, and the card below it', async () => {

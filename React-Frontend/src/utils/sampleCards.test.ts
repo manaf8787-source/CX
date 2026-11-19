@@ -101,7 +101,7 @@ describe('small helpers', () => {
     const line = signalLine(signal(7, { category: 'promise_not_kept' }), [{ channel: 'call' }])
     expect(line.meta?.en).toBe('Call · 2026-11-07')
     expect(line.quote?.en).toBe('A promised callback did not happen')
-    expect(line.restricted).toBeUndefined()
+    expect(line.conversation).toBeUndefined()
     expect(signalLine(signal(7), []).meta?.en).toBe('Public mention · 2026-11-07')
   })
 })
@@ -267,7 +267,7 @@ describe('the card of a targeting row: persona and size against the campaign\'s 
   })
 })
 
-describe('the cards of a brief and a reading: the customer by reference, the last events, conversation text restricted', () => {
+describe('the cards of a brief and a reading: the customer by reference, the last events, conversation text only where the event carries one', () => {
   const events = [
     event(1, { channel: 'call', text: 'never shown for a call' }),
     event(2, { text: 'Where is my document?', problemFlags: ['slow_reply'] }),
@@ -275,14 +275,14 @@ describe('the cards of a brief and a reading: the customer by reference, the las
     event(4, { problemFlags: ['hand_off', 'promise_not_kept'] }),
   ]
 
-  it('a brief: the person and the first score, the LAST three events oldest first, the quote flagged restricted, the reason and "critical"', () => {
+  it('a brief: the person and the first score, the LAST three events oldest first, the conversation text on the events that carry one, the reason and "critical"', () => {
     const c = briefCard({ personId: 'p-001', instrument: 'csat', firstScore: 2, severity: 'critical' }, events, bi('Slow or no reply', 'رد بطيء'))
     expect(c.given[0]).toEqual({ personId: 'p-001', value: { en: 'CSAT 2', ar: 'CSAT 2' } })
     const lines = c.given.slice(1)
     expect(lines.map((l) => l.meta?.en)).toEqual(['2026-11-02 · WhatsApp', '2026-11-03 · Email', '2026-11-04 · WhatsApp'])
-    expect(lines[0]).toMatchObject({ quote: { en: 'Where is my document?' }, restricted: true, value: { en: 'Slow reply' } })
+    expect(lines[0]).toMatchObject({ conversation: 'Where is my document?', value: { en: 'Slow reply' } })
     expect(lines[1]).toMatchObject({ value: { en: 'No problem flagged' } })
-    expect(lines[1].quote).toBeUndefined()
+    expect(lines[1].conversation).toBeUndefined()
     expect(lines[2].value?.en).toBe('Hand-off · Promise not kept')
     expect(c.decided[0].value?.en).toBe('reason suggested: Slow or no reply · critical')
     expect(c.how.en).toBe('The brief is written from the timeline only. The caller reads it before dialling.')
@@ -290,7 +290,7 @@ describe('the cards of a brief and a reading: the customer by reference, the las
 
   it('a call never carries a text, even when the record holds one', () => {
     const c = briefCard({ personId: 'p-001', firstScore: 4, severity: 'medium' }, [events[0]], bi('Other'))
-    expect(c.given[1].quote).toBeUndefined()
+    expect(c.given[1].conversation).toBeUndefined()
     expect(JSON.stringify(c)).not.toContain('never shown for a call')
     expect(c.given[0].value?.en).toBe('NPS 4')
     expect(c.decided[0].value?.en).toBe('reason suggested: Other')

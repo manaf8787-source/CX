@@ -22,7 +22,7 @@ import { useOpenSampleRecord } from './useOpenSampleRecord'
  * - Keyboard: every answer is a real button; after an answer or a skip the focus moves to the new card's heading; a polite live region
  *   says "n of N checked". Reduced motion collapses the card's entrance (theme.css).
  * - Names and conversation text follow the viewer: the person line is `personName` (the reference for the Internal Audit and Marketing Lead,
- *   which never reads a customer name) and a `restricted` quote is dropped unless `canReadText`.
+ *   which never reads a customer name) and `conversation` text is shown only when `canReadText`.
  */
 
 interface Props {
@@ -49,7 +49,7 @@ function openLabel(item: WeeklySampleItem) {
 
 function Line({ line, personName, canReadText }: { line: SampleEvidenceLine; personName: Props['personName']; canReadText: boolean }) {
   const { L } = useI18n()
-  const quote = line.quote && (!line.restricted || canReadText) ? L(line.quote) : null
+  const quote = line.conversation && canReadText ? line.conversation : line.quote ? L(line.quote) : null
   const who = line.personId ? personName(line.personId) : null
   const label = line.label ? L(line.label) : null
   const value = line.value ? L(line.value) : null
@@ -164,7 +164,7 @@ export function SampleCardFlow({ items, canOpen, personName, canReadText, onAnsw
   )
 
   const live = (
-    <p role="status" aria-live="polite" aria-atomic="true" data-testid="sample-live" className="sr-only">
+    <p aria-live="polite" aria-atomic="true" data-testid="sample-live" className="sr-only">
       {announce}
     </p>
   )

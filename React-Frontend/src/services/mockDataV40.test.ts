@@ -521,21 +521,21 @@ describe('weekly sample: the audit rows (v42.1 F32)', () => {
     for (const p of mock.MOCK_PERSONS) expect(text).not.toContain(p.name)
     for (const a of mock.MOCK_AGENT_DIRECTORY) expect(text).not.toContain(a.displayName)
     for (const e of mock.MOCK_INTERACTIONS.filter((x) => x.text)) expect(text).not.toContain(e.text as string)
-    expect(text).not.toContain('"restricted"')
+    expect(text).not.toContain('"conversation"')
     for (const i of audit) {
       expect(i.personId, i.id).toBeUndefined()
       for (const line of [...i.card.given, ...i.card.decided]) {
         expect(line.personId, i.id).toBeUndefined()
-        expect(line.restricted, i.id).toBeUndefined()
+        expect(line.conversation, i.id).toBeUndefined()
       }
     }
   })
 
-  it('the CX rows keep conversation text behind the `restricted` flag, and a person behind `personId`', () => {
+  it('the CX rows keep conversation text in its own `conversation` field, verbatim, and a person behind `personId`', () => {
     const brief = rows('brief')
-    const quoted = brief.flatMap((i) => i.card.given.filter((l) => l.quote))
+    const quoted = brief.flatMap((i) => i.card.given.filter((l) => l.conversation))
     expect(quoted.length).toBeGreaterThan(0)
-    for (const l of quoted) expect(l.restricted).toBe(true)
+    for (const l of quoted) expect(l.conversation).toMatch(/^Sample conversation note/)
     for (const i of brief) expect(i.card.given[0].personId).toBe(i.personId)
     for (const i of rows('journey')) expect(i.card.given[0].personId).toBe(i.personId)
   })

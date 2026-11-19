@@ -115,7 +115,7 @@ export default function WeeklySample() {
           ) : undefined
         }
       />
-      <p role="status" aria-live="polite" className="sr-only">
+      <p aria-live="polite" aria-atomic="true" data-testid="sample-view-live" className="sr-only">
         {announce}
       </p>
 

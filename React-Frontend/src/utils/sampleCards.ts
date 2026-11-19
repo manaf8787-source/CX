@@ -14,8 +14,8 @@ import { ACTION_KIND } from '../lib/actionKinds'
 /**
  * The card of one weekly-sample row (v42.2 F34, the prototype's `wsEvidence`): what the AI was given, what it decided, and one line on how.
  * Built from structured facts, one builder per kind of work. Nothing here holds a customer or agent name or a conversation text the viewer may
- * not read: a person is a `personId` (resolved for the viewer by the page), a quoted message is the per-category sample sentence or a
- * `restricted` event text (dropped for every role but the CX manager and the CX team). All wording is sample data.
+ * not read: a person is a `personId` (resolved for the viewer by the page), a quoted message is the per-category sample sentence or an
+ * event's `conversation` text (shown to the CX manager and the CX team only, verbatim). All wording is sample data.
  */
 
 /** Who reads each kind of row (v42.1 F32, the prototype's `wsReader`): the audit rows go to the Internal Audit and Marketing Lead, the content rows to the CX team. */
@@ -262,7 +262,7 @@ function eventLines(events: readonly Interaction[]): SampleEvidenceLine[] {
     .map((e): SampleEvidenceLine => {
       const flags = e.problemFlags.length ? join(e.problemFlags.map(flagLabel)) : C.noProblemFlagged
       const meta = join([bi(day(e.occurredAt), day(e.occurredAt)), CHANNEL_LABEL[e.channel]])
-      return e.text && e.channel !== 'call' ? { meta, value: flags, quote: text(e.text), restricted: true } : { meta, value: flags }
+      return e.text && e.channel !== 'call' ? { meta, value: flags, conversation: e.text } : { meta, value: flags }
     })
 }
 

@@ -264,7 +264,7 @@ export type SampleReader = 'cx' | 'audit'
 
 /**
  * One line of a sample card (v42.2 F34), built from facts. Plain text is `value`; a quoted message is `quote`, with its source and date in
- * `meta` above it. Never a customer or agent name: a person is `personId`, resolved for the viewer. Conversation text is `restricted`.
+ * `meta` above it. Never a customer or agent name: a person is `personId`, resolved for the viewer. Conversation text is its own field, `conversation`.
  */
 export interface SampleEvidenceLine {
   /** Grey label before the value ("The pattern", "Routed to"). */
@@ -274,10 +274,13 @@ export interface SampleEvidenceLine {
   strong?: boolean
   /** Grey caption above the line: "2026-10-21 · Call". */
   meta?: Bi
-  /** A quoted message, shown in its own quote card under the value. */
+  /** A quoted message, shown in its own quote card under the value: the per-category sample sentence (a signal carries no text of its own), in both languages. */
   quote?: Bi
-  /** The quote is conversation text: shown to the CX manager and the CX team only (`canViewConversationText`); dropped for everyone else. */
-  restricted?: boolean
+  /**
+   * Conversation text, verbatim from the record (one language, never translated), shown in the quote card. CX manager and CX team only
+   * (`canViewConversationText`): every other role gets the line without it. Never set on an audit row.
+   */
+  conversation?: string
   /** The value follows a person: the name for roles that may see customer names, the reference (P-005) otherwise. */
   personId?: string
   /** A status dot before the line: something the reader should look at. */
