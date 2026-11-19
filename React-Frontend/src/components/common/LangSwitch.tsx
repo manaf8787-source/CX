@@ -1,22 +1,26 @@
-import { Languages } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Segmented } from '@/components/ui/segmented'
 import { useI18n } from '@/i18n'
 
+type Lang = 'en' | 'ar'
+
 /**
- * Shows the language you will switch TO, written in that language: a light pill (the skill's secondary button). Below `lg` the visible
- * label collapses and the pill becomes a 36px round icon button; the accessible name stays the full text either way.
+ * The language, as a two-key switch (owner's request, 19 Nov; it was one button that named the language you would switch TO). Both
+ * languages show, each written in its own script, and the dark key is the one in use: you read the state and pick the other in one click.
+ * A radio group: arrow keys move between the two. The short labels (EN, ع) carry the full names for assistive technology.
  */
-export function LangSwitch() {
-  const { lang, toggleLang } = useI18n()
-  const target = lang === 'en' ? { code: 'ar', label: 'العربية', hint: 'Switch to Arabic' } : { code: 'en', label: 'English', hint: 'التبديل إلى الإنجليزية' }
-  // No aria-label: the accessible name is the visible language name plus a hidden hint (WCAG 2.5.3).
+export function LangSwitch({ className }: { className?: string }) {
+  const { lang, setLang, t } = useI18n()
   return (
-    <Button variant="outline" size="sm" className="max-lg:size-9 max-lg:p-0 lg:gap-1.5" onClick={toggleLang}>
-      <Languages aria-hidden />
-      <span lang={target.code} className="sr-only lg:not-sr-only">
-        {target.label}
-      </span>
-      <span className="sr-only">{` — ${target.hint}`}</span>
-    </Button>
+    <Segmented<Lang>
+      compact
+      label={t('Language', 'اللغة')}
+      className={className}
+      value={lang}
+      onValueChange={setLang}
+      options={[
+        { value: 'en', label: 'EN', ariaLabel: 'English', title: 'English', lang: 'en' },
+        { value: 'ar', label: 'ع', ariaLabel: 'العربية', title: 'العربية', lang: 'ar' },
+      ]}
+    />
   )
 }

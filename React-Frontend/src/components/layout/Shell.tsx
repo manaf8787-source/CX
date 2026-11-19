@@ -107,17 +107,19 @@ export function Shell() {
             {t('Skip to content', 'انتقل إلى المحتوى')}
           </a>
 
-          {/* Page. Above 1440px: soft page, frame card (radius 26, padding 10, window shadow), inner surface (radius 18, hairline). */}
-          <div className="min-h-svh min-w-0 flex-1 bg-background min-[1441px]:bg-soft min-[1441px]:p-[22px]">
+          {/* Page. Above 1440px: soft page, frame card (radius 26, padding 10, window shadow), inner surface (radius 18, hairline). The frame
+              sits flush with the window: the 22px page margin around it was removed at the owner's request (19 Nov). */}
+          <div className="min-h-svh min-w-0 flex-1 bg-background min-[1441px]:bg-soft">
             <div className="mx-auto min-[1441px]:max-w-[1600px] min-[1441px]:rounded-frame min-[1441px]:bg-card min-[1441px]:p-2.5 min-[1441px]:shadow-window">
               <div className="min-[1441px]:overflow-clip min-[1441px]:rounded-inner min-[1441px]:bg-background min-[1441px]:shadow-hairline">
                 <div
                   ref={gridRef}
                   className={cn(
-                    'grid min-h-svh min-[1441px]:min-h-[calc(100svh-64px)]',
+                    'grid min-h-svh min-[1441px]:min-h-[calc(100svh-20px)]',
                     mode === 'phone'
                       ? 'grid-cols-[minmax(0,1fr)]'
-                      : 'transition-[grid-template-columns] duration-400 ease-spring ' +
+                      : // the sidebar opens and closes gradually: a soft curve with no overshoot (see Sidebar.tsx)
+                      'transition-[grid-template-columns] duration-[560ms] ease-smooth ' +
                           (rail ? 'grid-cols-[var(--sidebar-w-icon)_minmax(0,1fr)]' : 'grid-cols-[var(--sidebar-w)_minmax(0,1fr)]'),
                   )}
                 >

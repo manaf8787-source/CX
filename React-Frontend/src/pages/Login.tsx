@@ -14,6 +14,7 @@ import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Field, FieldDescription, FieldError, FieldLabel } from '@/components/ui/field'
 import { InlineNote } from '@/components/common/InlineNote'
+import { BrandLogo } from '@/components/common/BrandLogo'
 import { LangSwitch } from '@/components/common/LangSwitch'
 import { ThemeSwitch } from '@/components/common/ThemeSwitch'
 import { dirSign, DURATION, EASE_OUT, EXIT } from '@/lib/motion'
@@ -34,16 +35,6 @@ const MAIN_ROLES = mainRoleDefs()
 const FOLDED_ROLES = foldedRoleDefs()
 
 const brandItem = { hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0, transition: { duration: DURATION.slow, ease: EASE_OUT } } }
-
-/** Placeholder brand mark. [Proposed]: the real PSI logo has not been confirmed. The dark material, our own two letters. */
-function BrandMark({ className }: { className?: string }) {
-  const { t } = useI18n()
-  return (
-    <span title={t('Placeholder logo [Proposed]', 'شعار مؤقت [مقترح]')} className={cn('material-dark flex shrink-0 items-center justify-center rounded-xl font-medium', className)}>
-      CX
-    </span>
-  )
-}
 
 /** The skill's dot-grid motif (the empty-state well): static, decorative, a few dots lit. Replaces the old drifting line pattern. */
 const MOTIF_COLUMNS = 14
@@ -69,7 +60,8 @@ function BrandPanel() {
     <section aria-label="PSI CX Portal" className="relative isolate flex flex-col overflow-hidden bg-sidebar px-5 py-6 sm:px-8 lg:min-h-svh lg:justify-between lg:p-12">
       <m.div variants={brandList} initial="hidden" animate="show" className="relative flex flex-col gap-5 lg:gap-12">
         <m.div variants={brandItem} className="flex items-center gap-3">
-          <BrandMark className="size-10 text-sm lg:size-12 lg:text-lg" />
+          {/* the owner's CX logo (19 Nov): the letters in ink, the point going round */}
+          <BrandLogo decorative className="h-9 lg:h-11" />
           <div className="flex min-w-0 flex-col gap-0.5">
             <span className="t-h4 truncate lg:text-[20px]">PSI CX Portal</span>
             <span className="truncate text-sm text-muted-foreground">{t('Customer experience · PSI Real Estate', 'تجربة العملاء · PSI العقارية')}</span>

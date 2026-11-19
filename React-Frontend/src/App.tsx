@@ -7,6 +7,7 @@ import { AuthProvider, RequireAuth } from './auth/AuthContext'
 import { Shell } from './components/layout/Shell'
 import { EnvScopeProvider } from './components/layout/EnvScopeProvider'
 import { UiProviders } from './components/layout/UiProviders'
+import { BrandLogo } from './components/common/BrandLogo'
 import { pageLoaders } from './routes/pages'
 
 const Login = lazy(pageLoaders.login)
@@ -50,8 +51,13 @@ const AdminSettings = lazy(pageLoaders.adminSettings)
 const WatchTeam = lazy(pageLoaders.watchTeam)
 const CampaignAudit = lazy(pageLoaders.campaignAudit)
 
+/** While the sign-in screen's code arrives: the logo alone in the middle of the page, its point going round. */
 function FullPageLoading() {
-  return <div role="status" aria-busy="true" className="min-h-svh bg-background" />
+  return (
+    <div role="status" aria-busy="true" aria-label="PSI CX Portal" className="grid min-h-svh place-items-center bg-background text-foreground">
+      <BrandLogo decorative className="h-10" />
+    </div>
+  )
 }
 
 export default function App() {

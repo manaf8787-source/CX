@@ -11,6 +11,12 @@ export interface SegmentedOption<T extends string> {
   /** A count shown after the label ("Running 9"). */
   count?: number
   disabled?: boolean
+  /** The accessible name when the label is an icon or an abbreviation ("EN" named "English"). It must contain the visible text (WCAG 2.5.3). */
+  ariaLabel?: string
+  /** A native tooltip, for an icon-only option. */
+  title?: string
+  /** The language of the label when it differs from the page ("العربية" on an English page). */
+  lang?: string
 }
 
 /**
@@ -30,6 +36,7 @@ function Segmented<T extends string>({
   className,
   size = "default",
   variant = "radio",
+  compact = false,
 }: {
   options: SegmentedOption<T>[]
   value: T
@@ -39,6 +46,8 @@ function Segmented<T extends string>({
   className?: string
   size?: "default" | "page"
   variant?: "radio" | "pressed"
+  /** Narrow keys for icons and two-letter labels (the language and theme switches in the top bar). */
+  compact?: boolean
 }) {
   const { dir } = useI18n()
   const pressed = variant === "pressed"
@@ -96,13 +105,17 @@ function Segmented<T extends string>({
             type="button"
             {...(pressed ? { "aria-pressed": selected } : { role: "radio", "aria-checked": selected, tabIndex: selected ? 0 : -1 })}
             disabled={option.disabled}
+            aria-label={option.ariaLabel}
+            title={option.title}
+            lang={option.lang}
             onClick={() => onValueChange(option.value)}
             className={cn(
               "relative z-10 inline-flex items-center justify-center gap-1.5 rounded-full text-sm font-medium whitespace-nowrap text-muted-foreground transition-colors duration-200 ease-out outline-hidden hover:text-foreground disabled:pointer-events-none disabled:opacity-50",
               pressed
                 ? "aria-pressed:text-primary-foreground aria-pressed:hover:text-primary-foreground group-data-[indicator=off]/segmented:aria-pressed:material-dark"
                 : "aria-checked:text-primary-foreground aria-checked:hover:text-primary-foreground group-data-[indicator=off]/segmented:aria-checked:material-dark",
-              size === "page" ? "min-h-10 px-4 pt-1.5 pb-2 text-base" : "min-h-[29px] px-[13px] pt-[5px] pb-[7px] leading-[17px]"
+              size === "page" ? "min-h-10 px-4 pt-1.5 pb-2 text-base" : "min-h-[29px] px-[13px] pt-[5px] pb-[7px] leading-[17px]",
+              compact && "min-w-[34px] px-[9px] [&_svg]:size-4"
             )}
           >
             {option.label}

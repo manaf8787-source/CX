@@ -56,6 +56,8 @@
   --status-warning-text: #9b5306;
   --status-warning-bg: #fdf1e3;
   --status-error-solid: #d93a32;
+  /* The orange point of the CX logo (owner's logo files, 19 Nov). The logo's own colour: nothing else in the interface uses it. */
+  --brand-point: #e0592a;
   --status-error-text: #b42a23;
   --status-error-bg: #fcedec;
   --status-accent-solid: #7c3aed;
@@ -1184,6 +1186,32 @@
     transform: rotate(360deg);
   }
 }
+/* The logo's point (owner's request, 19 Nov): it leaves its notch at the top of the C, goes once round the letter (anticlockwise, through
+   the body of the C and back across the opening), settles, rests, and goes again. 163 163 is the centre of the C in the 680 x 327 artwork;
+   281.6 114 the centre of the point. */
+@keyframes brand-point-orbit {
+  0%,
+  10% {
+    rotate: 0deg;
+  }
+  82%,
+  100% {
+    rotate: -360deg;
+  }
+}
+@keyframes brand-point-land {
+  0%,
+  79%,
+  100% {
+    scale: 1;
+  }
+  85% {
+    scale: 1.18;
+  }
+  91% {
+    scale: 0.96;
+  }
+}
 @keyframes cx-pulse {
   from {
     opacity: 0.6;
@@ -1248,6 +1276,16 @@
   .cx-drift {
     animation: cx-drift 40s linear infinite alternate;
   }
+  .brand-logo[data-animated] .brand-point-orbit {
+    transform-box: view-box;
+    transform-origin: 163px 163px;
+    animation: brand-point-orbit 5.6s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+  }
+  .brand-logo[data-animated] .brand-point {
+    transform-box: view-box;
+    transform-origin: 281.6px 114px;
+    animation: brand-point-land 5.6s ease-in-out infinite;
+  }
   .cx-orbit {
     animation: cx-orbit 120s linear infinite;
   }
@@ -1275,6 +1313,8 @@
   :is(.cx-stagger, .cx-page > *) > :not(.cx-page),
   .cx-drift,
   .cx-orbit,
+  .brand-logo .brand-point-orbit,
+  .brand-logo .brand-point,
   .cx-typing-dot,
   .cx-shimmer,
   .dot-live {
