@@ -1,6 +1,6 @@
 # PSI CX Portal: Knowledge Base (v41, one line of six steps, guided tour)
 
-Prototype on sample data. Version 41, updated 18 Nov 2026. The illustrated version (79 screenshots) is the Word and PDF document; screenshot names are listed as [Screenshot: name].
+Prototype on sample data. Version 41.1, updated 19 Nov 2026. The illustrated version (79 screenshots) is the Word and PDF document; screenshot names are listed as [Screenshot: name].
 
 ## Contents
 
@@ -468,9 +468,9 @@ Between every two agents there is one supervisor with six checks, the same for e
 
 [Screenshot: agents-supervisor] The supervisor card: the six checks, the pass rate per agent, and the weekly sample.
 
-**The weekly sample** is a page: fifty outputs that passed the supervisor this week (proposed fixes, classifications, interview briefs, journey readings, signal counts), each with a Right or Wrong button. Wrong lowers that agent's pass rate and becomes a new test for the supervisor. The page shows read so far, wrong, accuracy this week and the Thursday due date; the daily brief reminds the Internal Audit and Marketing Lead how many are left.
+**The weekly sample** is a page: fifty outputs that passed the supervisor this week (proposed fixes, classifications, interview briefs, journey readings, signal counts). A reader must be able to judge each row in about half a minute from the row itself, so every row carries four things: **what the agent saw** (for a proposed fix: the pattern text, the signal count and the "recovered in X of N similar closed fixes" figure; for a classification: the source, the date and the quoted text of the signal; for an interview brief: the first score, the number of events on the timeline and the problems found; for a journey reading: events, problems and the last contact date), **what it produced** in one line, **what the supervisor checked** (the six checks and the result), and an **Open** button to the record for CX roles. A "How to judge" card sits above the table: Right means a careful person given the same input would have produced the same thing; Wrong means a different category, a different fix, a wrong reason code, or a reading the timeline does not support; the reader judges the agent, not the customer. Wrong lowers that agent's pass rate and becomes a new test for the supervisor. The Internal Audit and Marketing Lead sees ids and titles, never customer or agent names. The page shows read so far, wrong, accuracy this week and the Thursday due date; the daily brief reminds the reader how many are left.
 
-[Screenshot: weekly-sample] The weekly sample: 50 outputs, right or wrong.
+[Screenshot: weekly-sample] The weekly sample as the Internal Audit and Marketing Lead sees it: what the agent saw, what it produced, the supervisor checks, right or wrong; ids, no names.
 
 > The full specification for developers is the separate document "CX Portal AI Agents: Specification".
 
@@ -696,4 +696,5 @@ What is still to decide, and how the prototype got here.
 | v39 | 18 Nov | Home rebuilt for anyone: six steps, CX indicators per product, daily brief per role, "where you are and what happens next" on every page and fix, menu in step order |
 | v40 | 18 Nov | Trace ids EV→SG→PT→CA→VR→RP with a Trace card; data feeds and the environment switch; CRM mapping; My inbox with day counts; audit trail; escalation matrix page; survey questions; consent and DNCR; investigations close with evidence; calling hours and retries; one sign-in with six roles; customers list; public mentions; weekly sample; what-if thresholds; Arabic and mobile |
 | v41 | 18 Nov | Guided tour embedded in the portal: starts on first entry per role, highlights the real element, opens the inbox and a fix as it goes; replay from the menu |
-| This document | 18 Nov 2026 | Knowledge base rewritten for v40, tour added for v41 |
+| v41.1 | 19 Nov | Weekly sample rows show what the agent saw, what it produced and what the supervisor checked, with a "How to judge" card; no names for Internal Audit |
+| This document | 19 Nov 2026 | Knowledge base rewritten for v40, tour added for v41, weekly sample for v41.1 |
