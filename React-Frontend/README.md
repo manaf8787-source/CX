@@ -1,6 +1,6 @@
 # PSI CX Portal — React rebuild
 
-A from-scratch React implementation of the PSI CX Portal prototype (v38, 17 Nov 2026; brought to v40 on 18 Nov 2026, see below), built against the requirements in [`docs/analysis/`](docs/analysis/) rather than against the live `.claude.ai` artifact. **Mock-data-only** — there is no backend yet (go-live is targeted for ~25 Jan 2027); every page reads from a typed, seeded sample dataset behind the `src/services/` layer, which is the seam a real API will plug into later.
+A from-scratch React implementation of the PSI CX Portal prototype (v38, 17 Nov 2026; brought to v40 on 18 Nov and to v42.4 on 19 Nov 2026, see below), built against the requirements in [`docs/analysis/`](docs/analysis/) rather than against the live `.claude.ai` artifact. **Mock-data-only** — there is no backend yet (go-live is targeted for ~25 Jan 2027); every page reads from a typed, seeded sample dataset behind the `src/services/` layer, which is the seam a real API will plug into later.
 
 This is a separate app from `../frontend/` (the earlier pre-omnichannel scaffold, kept read-only as reference) and from `../PSI CX Portal.html` (the static export of the claude.ai artifact, which remains the canonical interactive prototype per the repo's `CLAUDE.md`).
 
@@ -8,7 +8,7 @@ This is a separate app from `../frontend/` (the earlier pre-omnichannel scaffold
 
 ```bash
 npm install
-npm run dev        # http://localhost:5174
+npm run dev        # http://localhost:5174 (the dev server does not watch build and test-report folders)
 npm run build       # production build (tsc -b && vite build)
 npm run preview     # serve the production build locally
 npm run lint         # oxlint
@@ -26,7 +26,7 @@ React 19 + TypeScript + Vite, **Tailwind CSS v4 + shadcn/ui** (Radix primitives,
 
 The UI moved from hand-written CSS to Tailwind CSS v4 + shadcn/ui by Manaf's decision on 17 Nov 2026; the migration is complete and no legacy stylesheet remains. Every page is lazy-loaded per route. The look since 18 Nov 2026 is the Meo-inspired design (next section); [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md) still holds the RTL, motion, sign-in and how-to-add-a-component notes.
 
-## Design (Meo-inspired, 18 Nov 2026)
+## Design (Meo-inspired, 18 Nov 2026; the owner's changes of 19 Nov)
 
 Monochrome ink on white, two materials (light raised and dark raised; **selected = dark**), pill controls, large nested radii, shadow rings instead of borders (the only line is the 1px row divider), Plus Jakarta Sans at weights 400 and 500, one spring for state changes. Colour is categorical: product dots, status tags, a few chart categories. The skill is a design language only (no Meo name, logo or copy); the real PSI brand colour has one swap point, `--brand-accent*` in `src/styles/theme.css` **[Proposed]**.
 
@@ -36,6 +36,7 @@ Monochrome ink on white, two materials (light raised and dark raised; **selected
 | [`docs/MEO_DESIGN_PLAN.md`](docs/MEO_DESIGN_PLAN.md) | The plan and the decisions where the skill and the product disagree |
 | [`docs/MEO_PAGES_A.md`](docs/MEO_PAGES_A.md), [`B`](docs/MEO_PAGES_B.md), [`C`](docs/MEO_PAGES_C.md) | What each page did with the system |
 | [`docs/IMPLEMENTATION_REPORT.md`](docs/IMPLEMENTATION_REPORT.md) section 15 | Steps, counts, gates, findings |
+| [`docs/UI_2026-11-19.md`](docs/UI_2026-11-19.md) | **19 Nov, the owner's requests:** glass boxes (a well is no longer flat), the sidebar that opens and closes gradually with no system scrollbar, no page margin round the frame, the language and theme switches, the CX logo with its moving point (`logo/` holds the owner's files). `MEO_DESIGN_SYSTEM.md` section 18 lists where these replace the skill |
 
 Where the product wins over the skill: Arabic uses IBM Plex Sans Arabic with zero letter-spacing (Plus Jakarta Sans has no Arabic glyphs and tracking breaks joining), form fields keep a visible 1px edge ring (WCAG 1.4.11), the framed layout above 1440px is capped at 1600px, a dark theme is derived, and a phone shows stacked rows instead of a 10-column table. Dark theme and RTL are first-class: every change is checked light and dark, EN and AR, at 1440, 1024 and 390px.
 
@@ -60,9 +61,9 @@ The app opens on a **sample sign-in** at `/login`: choose one of the six main ro
 
 Animation uses `motion` (pinned, features lazy-loaded) plus CSS. It covers direction-aware route transitions, staggered sections, count-up KPIs, chart draw-in, hover and press feedback, skeleton shimmer, the assistant's typing indicator, and the login intro. Everything respects `prefers-reduced-motion`. See `docs/DESIGN_SYSTEM.md` §8.
 
-## Routes, menu and roles (v40)
+## Routes, menu and roles (v40; two pages and the tour added on 19 Nov)
 
-**Main menu** (CX manager and CX team see all of it; every other role sees its own pages): Home `/home`; 1 · Customers `/customers` (tabs: Find a person, Who is leaving `/runaway`, Personas and campaigns `/personas`); My inbox `/inbox`; 2–4 · Signals and fixes `/actions` (Corrective actions, Signals and patterns, AI Insights, Shopper cases, Investigations); 5 · Close the loop `/close-the-loop`; 6 · CX indicators `/overview`; live products `/products/:id`; Settings and reference `/settings` (AI team page, Data feeds, CRM mapping, Escalation matrix, Survey questions, Weekly sample, Public mentions, Surveys and triggers, Rules, Monthly pack, Mystery shopper, Standards, Voice of customer, L&D, Teams, HR team, Admin, AI Insights access, Glossary). Old URLs still work: `/surveys` goes to `/settings/surveys`, `/settings/overview` to `/overview`.
+**Main menu** (CX manager and CX team see all of it; every other role sees its own pages): Home `/home`; 1 · Customers `/customers` (tabs: Find a person, Who is leaving `/runaway`, Personas and campaigns `/personas`); My inbox `/inbox`; 2–4 · Signals and fixes `/actions` (Corrective actions, Signals and patterns, AI Insights, Shopper cases, Investigations); 5 · Close the loop `/close-the-loop`; 6 · CX indicators `/overview`; live products `/products/:id`; Settings and reference `/settings` (AI team page, Watch the AI team work `/settings/watch-ai-team`, Data feeds, CRM mapping, Escalation matrix, Survey questions, Weekly sample, Campaign audit `/settings/campaign-audit`, Public mentions, Surveys and triggers, Rules, Monthly pack, Mystery shopper, Standards, Voice of customer, L&D, Teams, HR team, Admin, AI Insights access, Glossary). Old URLs still work: `/surveys` goes to `/settings/surveys`, `/settings/overview` to `/overview`. A guided tour runs on a role's first entry and replays from "How do I use this?" at the bottom of the menu (`docs/V41_TOUR.md`).
 
 | Role (title) | Lands on | Notes |
 |---|---|---|
@@ -94,6 +95,18 @@ src/
 ```
 
 ## Requirements and analysis
+
+**v40.1 to v42.4 work (19 Nov 2026):**
+
+| Doc | What it is |
+|---|---|
+| [`docs/V41_DELTA.md`](docs/V41_DELTA.md), [`docs/V42_DELTA.md`](docs/V42_DELTA.md) | What the prototype added: F28 to F35 (written by the owner's other session) |
+| [`docs/DECISIONS-2026-11-19.md`](docs/DECISIONS-2026-11-19.md), [`docs/ESCALATION-MATRIX-2026-11-19.md`](docs/ESCALATION-MATRIX-2026-11-19.md) | The owner's decisions of the day and the matrix cells |
+| [`docs/V401_VERDICT.md`](docs/V401_VERDICT.md) | The 60-day verdict, second step, investigate first |
+| [`docs/V41_TOUR.md`](docs/V41_TOUR.md) | The guided tour |
+| [`docs/V42_MATRIX.md`](docs/V42_MATRIX.md), [`docs/V42_WATCH.md`](docs/V42_WATCH.md), [`docs/V42_SAMPLE.md`](docs/V42_SAMPLE.md), [`docs/V42_CAMPAIGN_AUDIT.md`](docs/V42_CAMPAIGN_AUDIT.md), [`docs/V42_WALLET.md`](docs/V42_WALLET.md) | The matrix cells and VIP rule, the replay page, the weekly sample (reader split and card flow), the campaign audit, the Wallet survey moments |
+| [`docs/UI_2026-11-19.md`](docs/UI_2026-11-19.md) | The interface requests |
+| [`docs/IMPLEMENTATION_REPORT.md`](docs/IMPLEMENTATION_REPORT.md) section 16, [`docs/FIDELITY_REVIEW.md`](docs/FIDELITY_REVIEW.md) "v40.1 to v42.4 features" | What was built, gates, open items |
 
 **v39/v40 work (18 Nov 2026):**
 

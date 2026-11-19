@@ -119,6 +119,19 @@ test.describe('The open sidebar', () => {
     await expect(nav(page).getByText('Viewing as (demo)')).toBeVisible()
   })
 
+  test('a product switched live appears in the menu at once, and leaves it when switched off (it used to need a reload)', async ({ page }) => {
+    await open(page, 'cxmgr', '/settings/admin')
+    await expect(nav(page).getByRole('link', { name: 'PSI Wallet' })).toHaveCount(0)
+    const launch = page.getByRole('switch', { name: 'PSI Wallet: show in the portal' })
+    await expect(launch).toHaveAttribute('aria-checked', 'false', { timeout: 15_000 })
+    await launch.click()
+    await expect(launch).toHaveAttribute('aria-checked', 'true')
+    await expect(nav(page).getByRole('link', { name: 'PSI Wallet' })).toBeVisible()
+    await launch.click()
+    await expect(launch).toHaveAttribute('aria-checked', 'false')
+    await expect(nav(page).getByRole('link', { name: 'PSI Wallet' })).toHaveCount(0)
+  })
+
   test.describe('reduced motion', () => {
     test.use({ reducedMotion: 'reduce' })
     test('it opens and closes at once, with no phase', async ({ page }) => {

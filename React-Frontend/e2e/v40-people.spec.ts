@@ -308,14 +308,16 @@ test.describe('Survey questions (F23)', () => {
     await expect(preview).toContainText('لاحظنا أنك لم تكمل')
   })
 
-  test('sets of the products not launched are [Proposed]; PSI Wallet has an empty state', async ({ page }) => {
+  test('sets of the products not launched are [Proposed]; PSI Wallet has its four decided sets (v42.3)', async ({ page }) => {
     await open(page, 'cxmgr', '/settings/survey-questions')
     await expect(page.getByRole('list', { name: 'Question sets' })).toBeVisible({ timeout: 15_000 })
     await expect(page.getByRole('list', { name: 'Question sets' }).getByText('[Proposed]')).toHaveCount(0)
     await page.getByRole('tab', { name: 'PSI Club' }).click()
     await expect(page.getByRole('list', { name: 'Question sets' }).getByText('[Proposed]')).toBeVisible()
     await page.getByRole('tab', { name: 'PSI Wallet' }).click()
-    await expect(page.getByText('No question set for this product yet.')).toBeVisible()
+    // decided after the Wallet review on 19 Nov: one question per touchpoint, so no badge on these four
+    await expect(page.getByRole('list', { name: 'Question sets' }).getByRole('listitem')).toHaveCount(4)
+    await expect(page.getByRole('list', { name: 'Question sets' }).getByText('[Proposed]')).toHaveCount(0)
   })
 
   test('the product tabs move with the arrow keys', async ({ page }) => {

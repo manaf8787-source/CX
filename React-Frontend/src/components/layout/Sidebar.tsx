@@ -88,7 +88,10 @@ function matches(pathname: string, path: string) {
 function useSidebarGroups(): SidebarNavGroup[] {
   const { L } = useI18n()
   const { role } = useRole()
-  const { data: products } = useProducts()
+  // `dataUpdatedAt` is read on purpose: the launch list is edited in place (Settings, Product launch), so the array keeps its identity and
+  // the stamp is the only change signal. Without it a product switched live did not appear here, and one switched off stayed.
+  const { data: products, dataUpdatedAt } = useProducts()
+  void dataUpdatedAt
   const productGroup: NavGroup = {
     label: { en: 'Products', ar: 'المنتجات' },
     items: (products ?? []).filter((p) => p.live).map((p) => ({ path: `/products/${p.id}`, label: p.name, dotVar: p.colorVar })),

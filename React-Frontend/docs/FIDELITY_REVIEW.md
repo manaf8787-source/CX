@@ -221,3 +221,35 @@ Integration-pass changes that touch several rows: owner titles bilingual on ever
 | Severity and source of a signal | not shown (no field in the data) | Add `Signal.severity` to show the chip |
 | Calling hours | small note "Legal to confirm the hours", no badge | Legal |
 | Role page deltas (F35) | none | Owner to confirm, in particular Customers for the Internal Audit and Marketing Lead |
+
+## v40.1 to v42.4 features (19 Nov 2026)
+
+Sources: `docs/V41_DELTA.md` (F28, F29), `docs/V42_DELTA.md` (F30 to F35), the prototype blocks `v40.1` to `v42.3` in `PSI CX Portal.html`, and the owner's decisions in `docs/DECISIONS-2026-11-19.md`. Status key as above. What each piece built, chose and left open is in its own document (last column).
+
+| F | Feature | Status | Code | Tests | Document |
+|---|---|---|---|---|---|
+| v40.1 | The 60-day check is closed by a person: three verdicts; a partial or failed fix asks for a second step, an investigation first, or is accepted as is | Done, with note: the second step is created by the CX role (no owner-side screen); "did not return for 90 days" is the person's to judge | `pages/actions/components/FixVerdict.tsx`, `services/fixVerdictQueries.ts`, `utils/fixVerdict.ts`, `lib/status.ts` | `FixVerdict.test.tsx`, `fixVerdictQueries.test.tsx`, `fixVerdict.test.ts`, `e2e/v401-verdict.spec.ts` | `V401_VERDICT.md` |
+| v40.1 | The automatic readout beside the check follows the 50% rule (`rule_effective_drop`) | Done, with note: the line between partial and failed is "any drop" `[Proposed]` | `utils/effectiveness.ts`, `utils/ruleValues.ts` | `utils/rules.test.ts` | `UI_2026-11-19.md` section 7 |
+| F28 | Guided tour on first entry per role; replay from the menu | Done, with note: Marketing has 6 steps, not 7 (it cannot open `/overview` here); the frame is white, not gold | `components/tour/*`, `data/tours.ts` | `tours.test.ts`, `TourProvider.test.tsx`, `placement.test.ts`, `tourStorage.test.ts`, `e2e/v41-tour.spec.ts` | `V41_TOUR.md` |
+| F29 | Weekly sample rows show what the agent saw, what it produced, the supervisor line; Open for CX roles | Done; now the list view behind "See all as a list" (F34) | `utils/sampleEvidence.ts`, `pages/settings/WeeklySample.tsx` | `sampleEvidence.test.ts`, `v40People.test.tsx`, `e2e/v40-people.spec.ts` | `V42_SAMPLE.md` |
+| F30 | Escalation matrix: the cells of 19 Nov for six products, a data-exposure row, the VIP rule, three rules card | Done, with note: the VIP row is read-only; an edited cell is marked "Edited" | `data/escalationDefaults.ts`, `utils/vipClock.ts`, `utils/matrixFormat.ts`, `pages/settings/EscalationMatrix.tsx`, `pages/actions/components/MatrixLine.tsx` | `escalationDefaults.test.ts` (the document cell for cell), `vipClock.test.ts`, `matrixFormat.test.ts`, `e2e/v42-matrix.spec.ts` | `V42_MATRIX.md` |
+| F31 | "Watch the AI team work": one message replayed through nine steps, this week's counters, what the page will not show | Done, with note: the two team-lead roles do not get the page (they cannot open the agents page here) `[Proposed]` | `pages/settings/WatchTeam.tsx`, `data/watchTeam.ts`, `hooks/useWatchReplay.ts`, `utils/watchCounters.ts` | `WatchTeam.test.tsx`, `watchTeam.test.ts`, `useWatchReplay.test.ts`, `e2e/v42-watch.spec.ts` | `V42_WATCH.md` |
+| F32 | Weekly sample split by reader: content rows to the CX roles (26), audit rows to the Internal Audit and Marketing Lead (35) | Done, with note: CA-201 is caught by a kind check, since its receiver matches the matrix `[Proposed]` | `utils/sampleCards.ts`, `services/weeklySampleBuild.ts`, `auth/permissions.ts` (`sampleReaderOf`) | `sampleCards.test.ts`, `passRate.test.ts`, `mockDataV40.test.ts`, `e2e/v42-sample.spec.ts` | `V42_SAMPLE.md` |
+| F33 | Campaign audit: five checks before a campaign runs, cleared or sent back, numbers after the run; nothing starts before clearance | Done, with note: clearing needs all five checks passed (the prototype lets either verdict be pressed any time) `[Proposed]`; the sample results of four campaigns are invented | `pages/settings/CampaignAudit.tsx`, `data/campaignAudit.ts`, `services/mockCampaignAudit.ts`, `components/campaigns/CampaignGate.tsx` | `CampaignAudit.test.tsx`, `mockCampaignAudit.test.ts`, `campaignAuditQueries.test.tsx`, `CampaignGate.test.tsx`, `e2e/v42-campaign-audit.spec.ts` | `V42_CAMPAIGN_AUDIT.md` |
+| F33 | The Internal Audit and Marketing Lead audits and never approves a fix (decision 2) | Done: React already matched; pinned by tests | `auth/permissions.ts`, `data/roles.ts` | `permissions.test.ts`, `e2e/v42-campaign-audit.spec.ts` | `V42_CAMPAIGN_AUDIT.md` |
+| F34 | Weekly sample as a card flow in plain words: what the AI was given, what it decided, one question, three answers | Done, with note: the Executive reads the list only | `pages/settings/SampleCardFlow.tsx`, `sampleParts.tsx` | `v40People.test.tsx`, `e2e/v42-sample.spec.ts` | `V42_SAMPLE.md` |
+| F35 | PSI Wallet: four question sets, "When this product asks", the "Signals, no survey" card | Done, with note: the Wallet's CES is 1 to 7 while every calculation stays on 1 to 5; the KB's own additions show without a badge, as in the prototype | `data/surveyQuestions.ts`, `data/v38Reference.ts`, `pages/ProductPage.tsx` | `walletSurveyMoments.test.ts`, `ProductPage.test.tsx`, `e2e/v42-wallet.spec.ts` | `V42_WALLET.md` |
+
+Interface requests of the same day (the open sidebar, the frame margin, glass, the switches, the logo): `UI_2026-11-19.md`.
+
+### Open items raised by this pass (for Manaf; none resolved here)
+
+| Item | From |
+|---|---|
+| Marketing-kind fixes list the Internal Audit and Marketing Lead as first receiver in five of six matrices, but the role has no Actions page and never approves a fix | `V42_CAMPAIGN_AUDIT.md` |
+| Is Marketing's persona campaign started in the portal, or only recorded? | `V42_CAMPAIGN_AUDIT.md` |
+| "Send back to Marketing" is the wording for an AI interview campaign too, whose owner is the CX team | `V42_CAMPAIGN_AUDIT.md` |
+| Which answers count as "easy" on the Wallet's 1 to 7 CES scale | `V42_WALLET.md` |
+| The KB's own Wallet refinements and the signals card (Claude's additions in KB section 48): confirm, or badge `[Proposed]` | `V42_WALLET.md` |
+| The daily brief line and inbox row for the sample exist for the Internal Audit and Marketing Lead only; the Modules KB says "each reader" | `V42_SAMPLE.md` |
+| The partial/failed line of the 60-day readout | `UI_2026-11-19.md` |
