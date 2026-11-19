@@ -40,7 +40,8 @@ export interface NextStepOptions {
 /**
  * The "where you are, what happens next" box on a fix (F07, S2). Step `ca` while the
  * fix is proposed, approved or in progress; step `vr` from the check onwards.
- * [Proposed] a partial verdict reads as the closing sentence ("Closed with a reason").
+ * v40.1 (prototype `caNext`): a partial verdict asks for a second step, a new fix on the same pattern that the CX manager approves
+ * within the approval window; the step is `ca` because that is where the second step lives. A rejected proposal reads `REJECTED_FIX_NEXT`.
  */
 export function fixNext(status: CorrectiveActionStatus, { approveDays = 5, verifyDays = 60 }: NextStepOptions = {}): NextStep {
   switch (status) {
@@ -63,10 +64,19 @@ export function fixNext(status: CorrectiveActionStatus, { approveDays = 5, verif
       return { step: 'vr', text: b('Nothing. It worked; it stays in the report as a fix that worked', 'لا شيء. نجح؛ يبقى في التقرير كحل نجح') }
     case 'failed':
       return { step: 'vr', text: b('The signal reopens and a new fix is proposed', 'تُفتح الإشارة من جديد ويُقترح حل آخر') }
+    case 'partial':
+      return {
+        step: 'ca',
+        text: b('The owner proposes a second step; the CX manager approves it as a new fix on the same pattern', 'المالك يقترح خطوة ثانية؛ مدير CX يعتمدها كحل جديد على النمط نفسه'),
+        due: b(`within ${approveDays} working days`, `خلال ${approveDays} أيام عمل`),
+      }
     default:
-      return { step: 'vr', text: b('Closed with a reason; nothing further', 'أُغلق بسبب؛ لا شيء بعده') }
+      return REJECTED_FIX_NEXT
   }
 }
+
+/** A rejected proposal: closed with its reason (step `ca`; it never reaches the check). */
+export const REJECTED_FIX_NEXT: NextStep = { step: 'ca', text: b('Closed with a reason; nothing further', 'أُغلق بسبب؛ لا شيء بعده') }
 
 export type ActionsTabKind = 'signals' | 'investigations' | 'other'
 

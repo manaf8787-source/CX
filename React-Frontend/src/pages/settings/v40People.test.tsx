@@ -317,3 +317,64 @@ describe('Weekly sample (v40 F31)', () => {
     expect((await screen.findAllByRole('button', { name: '✓ صح' }, T)).length).toBeGreaterThan(0)
   })
 })
+
+describe('Weekly sample shows the evidence for each verdict (v41.1 F29)', () => {
+  const firstRow = (agent: number) => mock.MOCK_WEEKLY_SAMPLE.find((i) => i.agent === agent)!
+
+  it('has the four columns, a "How to judge" well above the table and the supervisor line on every row', async () => {
+    renderWithProviders(<WeeklySample />, { role: 'cxmgr' })
+    await screen.findByText(/\/ 50$/, {}, T)
+    const table = screen.getAllByRole('table').at(-1)!
+    for (const h of ['Agent and kind', 'What it saw', 'What it produced', 'Supervisor', 'Verdict']) expect(within(table).getByRole('columnheader', { name: h })).toBeInTheDocument()
+    const well = document.querySelector('[data-slot="how-to-judge"]') as HTMLElement
+    expect(well).toHaveTextContent('How to judge')
+    expect(well).toHaveTextContent(/you are judging the agent/)
+    // above the table, not below it
+    expect(well.compareDocumentPosition(table) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(within(table).getAllByText('Schema, recompute, access, evidence, bilingual, risk gate: 6 of 6 passed')).toHaveLength(50)
+  })
+
+  it('a row reads what the agent saw and what it produced', async () => {
+    renderWithProviders(<WeeklySample />, { role: 'cxmgr' })
+    await screen.findByText(/\/ 50$/, {}, T)
+    const table = screen.getAllByRole('table').at(-1)!
+    for (const agent of [2, 5, 7, 8]) {
+      const row = firstRow(agent)
+      const tr = within(table).getAllByRole('row').find((r) => r.textContent?.includes(row.saw.en))!
+      expect(tr, `agent ${agent}`).toBeDefined()
+      expect(tr).toHaveTextContent(row.text.en.split(' → ')[0])
+    }
+  })
+
+  it('the CX manager and the CX team get an Open button per row, named with the id', async () => {
+    renderWithProviders(<WeeklySample />, { role: 'cxteam' })
+    await screen.findByText(/\/ 50$/, {}, T)
+    const fix = firstRow(5)
+    expect(screen.getByRole('button', { name: `Open ${fix.ref}` })).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: /^Open / })).toHaveLength(50)
+    expect(screen.queryByText(/The record behind a row opens for the CX manager/)).not.toBeInTheDocument()
+  })
+
+  it('the Internal Audit and Marketing Lead reads ids and titles: no Open button, no clickable id, no names', async () => {
+    renderWithProviders(<WeeklySample />, { role: 'auditmkt' })
+    await screen.findByText(/\/ 50$/, {}, T)
+    const table = screen.getAllByRole('table').at(-1)!
+    expect(within(table).queryAllByRole('button', { name: /^Open / })).toHaveLength(0)
+    const fix = firstRow(5)
+    expect(within(table).getByText(fix.ref)).toBeInTheDocument()
+    expect(within(table).queryByRole('button', { name: new RegExp(fix.ref) })).not.toBeInTheDocument()
+    expect(screen.getByText(/The record behind a row opens for the CX manager and the CX team/)).toBeInTheDocument()
+    for (const n of new Set(mock.MOCK_PERSONS.map((p) => p.name))) expect(table).not.toHaveTextContent(n)
+    // judging is still theirs
+    expect(screen.getAllByRole('button', { name: '✓ Right' }).length).toBeGreaterThan(0)
+  })
+
+  it('speaks Arabic: the columns, the well and the evidence', async () => {
+    renderWithProviders(<WeeklySample />, { role: 'cxmgr', lang: 'ar' })
+    await screen.findByText('العينة الأسبوعية', {}, T)
+    const table = (await screen.findAllByRole('table', {}, T)).at(-1)!
+    for (const h of ['الوكيل والنوع', 'ماذا رأى', 'ماذا أنتج', 'السوبرفايزر']) expect(within(table).getByRole('columnheader', { name: h })).toBeInTheDocument()
+    expect(document.querySelector('[data-slot="how-to-judge"]')).toHaveTextContent('كيف تحكم')
+    expect(within(table).getAllByText(firstRow(5).saw.ar)[0]).toBeInTheDocument()
+  })
+})

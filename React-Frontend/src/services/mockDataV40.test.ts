@@ -5,7 +5,7 @@ import { ENV_IDS, ENVIRONMENTS, envIdFromShort, envName, envNameFromShort, inEnv
 import { buildFeeds, feedsInScope, lateFeedsLabel, summariseFeeds } from '@/data/feeds'
 import { CRM_MAPPING_OPTIONS, CRM_MAPPING_ROWS, mappingCounts } from '@/data/crmMapping'
 import * as escalation from '@/data/escalationDefaults'
-import { MATRIX_KEY_BY_FIX_KIND, MATRIX_KINDS, MATRIX_DEFAULTS, buildMatrix } from '@/data/escalationDefaults'
+import { MATRIX_KEY_BY_FIX_KIND, MATRIX_KINDS, buildMatrix } from '@/data/escalationDefaults'
 import { SURVEY_QUESTION_SETS, questionSetsFor } from '@/data/surveyQuestions'
 import { DNCR_PEOPLE_IN_SAMPLE, PUBLIC_MENTIONS, SURVEY_DELIVERY_LAST_MONTH, AGENT_JDS } from '@/data/v38Reference'
 import { PRODUCTS } from '@/data/products'
@@ -210,26 +210,33 @@ describe('CRM mapping (v40 F15)', () => {
   })
 })
 
-describe('escalation matrix (v40 F22)', () => {
-  it('has ten rows per product for all six products, every cell a default, identical across products', () => {
+describe('escalation matrix (v40 F22, cells set 19 Nov in v42 F30; the cell-by-cell check against the document is data/escalationDefaults.test.ts)', () => {
+  it('has twelve rows per product for all six products, none edited, and the products differ (the cells are per product now)', () => {
     const m = buildMatrix()
     expect(Object.keys(m).sort()).toEqual(['af', 'cl', 'ev', 're', 'to', 'wl'])
     for (const rows of Object.values(m)) {
       expect(rows.map((r) => r.kind)).toEqual(MATRIX_KINDS)
-      for (const r of rows) expect(Object.values(r.isDefault).every(Boolean)).toBe(true)
+      for (const r of rows) if (r.kind !== 'vip') expect(Object.values(r.edited).some(Boolean)).toBe(false)
     }
-    expect(JSON.stringify(m.re)).toBe(JSON.stringify(m.wl))
+    expect(JSON.stringify(m.re)).not.toBe(JSON.stringify(m.wl))
   })
 
-  it('carries the v40 default cells (spot checks) with Arabic titles', () => {
-    expect(MATRIX_DEFAULTS.employee).toMatchObject({ informed: null, respondH: null, resolveH: null })
-    expect(MATRIX_DEFAULTS.employee.receiver?.en).toBe('Direct manager of the agent')
-    expect(MATRIX_DEFAULTS.service).toMatchObject({ respondH: 9, resolveH: 45 })
-    expect(MATRIX_DEFAULTS.training.resolveH).toBe(90)
-    expect(MATRIX_DEFAULTS.legal).toMatchObject({ respondH: 1, resolveH: 5 })
-    expect(MATRIX_DEFAULTS.marketing.respondH).toBe(18)
-    expect(MATRIX_DEFAULTS.shopper_critical).toMatchObject({ respondH: 9, resolveH: 45 }) // "1 day / 5 days" stored as hours
-    for (const cells of Object.values(MATRIX_DEFAULTS)) for (const v of [cells.receiver, cells.informed, cells.backup]) if (v) expect(v.ar).toMatch(/[؀-ۿ]/)
+  it('carries the 19 Nov cells (spot checks): hours as numbers, the four day cells as 9 and 45, the employee Resolve empty', () => {
+    const cells = (p: 're' | 'cl' | 'ev' | 'wl', kind: string) => {
+      const r = mock.MOCK_MATRIX[p].find((x) => x.kind === kind)
+      if (!r || r.kind === 'vip') throw new Error(kind)
+      return r.cells
+    }
+    expect(cells('re', 'employee')).toMatchObject({ informed: null, respondH: 9, resolveH: null })
+    expect(cells('re', 'employee').receiver?.en).toBe('Direct manager of the agent')
+    expect(cells('re', 'service')).toMatchObject({ respondH: 4, resolveH: 27 })
+    expect(cells('re', 'training').resolveH).toBe(90)
+    expect(cells('re', 'legal')).toMatchObject({ respondH: 1, resolveH: 9 })
+    expect(cells('re', 'shopper_critical')).toMatchObject({ respondH: 9, resolveH: 45 }) // "1 day / 5 days" stored as hours
+    expect(cells('cl', 'service')).toMatchObject({ respondH: 2, resolveH: 18 })
+    expect(cells('ev', 'service')).toMatchObject({ respondH: 1, resolveH: 9 })
+    expect(cells('wl', 'product').informed?.en).toBe('Information Security lead · IT lead')
+    for (const rows of Object.values(mock.MOCK_MATRIX)) for (const r of rows) for (const v of r.kind === 'vip' ? [r.rule.receiver, r.rule.informed, r.rule.backup] : [r.cells.receiver, r.cells.informed, r.cells.backup]) if (v) expect(v.ar).toMatch(/[؀-ۿ]/)
   })
 
   it('maps every fix kind to a matrix row', () => {
@@ -240,11 +247,35 @@ describe('escalation matrix (v40 F22)', () => {
 
   it('one table per product with a row per fix kind is the contract: the per-complaint-category template is gone (decided 18 Nov)', () => {
     expect(Object.keys(escalation).filter((k) => /TEMPLATE|CATEGORY/.test(k))).toEqual([])
-    expect(MATRIX_KINDS).toHaveLength(10) // eight fix kinds plus the two case types
+    expect(MATRIX_KINDS).toHaveLength(12) // eight fix kinds, the two case types, data exposure, and the VIP rule
     // Real Estate has one table, not one per environment.
-    expect(Object.keys(mock.MOCK_MATRIX.re)).toHaveLength(10)
+    expect(mock.MOCK_MATRIX.re).toHaveLength(12)
     expect(Array.isArray(mock.MOCK_MATRIX.re)).toBe(true)
-    expect(escalation.MATRIX_COPY.defaultCellsNote.en).toContain('Cells still at their default are proposals')
+    // the cells are decided (set 19 Nov): the "default cells are proposals" note is gone
+    expect(Object.keys(escalation.MATRIX_COPY)).not.toContain('defaultCellsNote')
+    expect(escalation.MATRIX_COPY.setNote.en).toBe('Set 19 Nov · titles adjustable until 28 Nov')
+  })
+})
+
+describe('the sample has a VIP-related fix (v42 F30)', () => {
+  it('tags one more person VIP on the first fix’s pattern, as a Club member (or lead), and leaves the rest of the seeded sample alone', () => {
+    const vips = mock.MOCK_PERSONS.filter((p) => p.vip)
+    expect(vips.map((p) => p.id)).toContain('p-005') // the seeded VIP stays
+    expect(vips).toHaveLength(2)
+    for (const p of vips) {
+      expect(p.sourceOfLead).toBe('club')
+      expect(p.segment === 'member' || p.segment === 'lead').toBe(true)
+    }
+    expect(mock.MOCK_PERSONS).toHaveLength(30)
+  })
+
+  it('two sample fixes are VIP-related: the first, and the third whose pattern overlaps it (same repeat-contact signals); the second and fourth are not', () => {
+    const vipIds = new Set(mock.MOCK_PERSONS.filter((p) => p.vip).map((p) => p.id))
+    const related = mock.MOCK_CORRECTIVE_ACTIONS.filter((f) => {
+      const pattern = mock.MOCK_PATTERNS.find((p) => p.id === f.patternId)
+      return mock.MOCK_SIGNALS.some((s) => pattern?.signalIds.includes(s.id) && s.personId && vipIds.has(s.personId))
+    })
+    expect(related.map((f) => f.id)).toEqual(['ca-1', 'ca-3'])
   })
 })
 
@@ -296,8 +327,9 @@ describe('weekly sample (v40 F31)', () => {
     expect(new Set(items.map((i) => i.agent))).toEqual(new Set([2, 3, 5, 7, 8]))
     const names = mock.MOCK_PERSONS.map((p) => p.name)
     for (const i of items) {
-      for (const n of names) expect(`${i.text.en} ${i.text.ar} ${i.ref}`, i.id).not.toContain(n)
+      for (const n of names) expect(`${i.text.en} ${i.text.ar} ${i.saw.en} ${i.saw.ar} ${i.ref}`, i.id).not.toContain(n)
       expect(i.text.ar).toMatch(/[؀-ۿ]/)
+      expect(i.saw.ar).toMatch(/[؀-ۿ]/)
       expect(i.kind.ar).toMatch(/[؀-ۿ]/)
     }
     for (const i of items.filter((x) => x.agent === 7 || x.agent === 8)) expect(i.personId).toBeDefined()
@@ -314,8 +346,52 @@ describe('weekly sample (v40 F31)', () => {
   })
 
   it('stops at fifty even with more material', () => {
-    const many = buildWeeklySample({ fixes: mock.MOCK_CORRECTIVE_ACTIONS, signals: mock.MOCK_SIGNALS, patterns: mock.MOCK_PATTERNS, loopItems: mock.MOCK_DETRACTOR_CALL_ITEMS, persons: mock.MOCK_PERSONS, readings: mock.MOCK_AI_JOURNEY_READINGS })
+    const many = buildWeeklySample({ fixes: mock.MOCK_CORRECTIVE_ACTIONS, signals: mock.MOCK_SIGNALS, patterns: mock.MOCK_PATTERNS, loopItems: mock.MOCK_DETRACTOR_CALL_ITEMS, persons: mock.MOCK_PERSONS, readings: mock.MOCK_AI_JOURNEY_READINGS, interactions: mock.MOCK_INTERACTIONS })
     expect(many.length).toBeLessThanOrEqual(50)
+  })
+})
+
+describe('weekly sample rows carry their evidence (v41.1 F29)', () => {
+  const rows = (agent: number) => mock.MOCK_WEEKLY_SAMPLE.filter((i) => i.agent === agent)
+
+  it('every row says what the agent saw, in both languages, and names what Open opens', () => {
+    for (const i of mock.MOCK_WEEKLY_SAMPLE) {
+      expect(i.saw.en.trim().length, i.id).toBeGreaterThan(5)
+      expect(i.saw.ar.trim().length, i.id).toBeGreaterThan(5)
+      expect(i.open, i.id).toBeDefined()
+    }
+  })
+
+  it('a proposed fix shows the pattern, the signal count and the recovery figure, and the output names the owner title', () => {
+    for (const i of rows(5)) {
+      expect(i.saw.en, i.id).toMatch(/\d+ signals? in \d+ days|AI Insights suggestion|Returned investigation|No pattern/)
+      if (/signals? in/.test(i.saw.en)) expect(i.saw.en, i.id).toMatch(/recovered in \d+, \d+ of \d+ is \d+%/)
+      expect(i.text.en, i.id).toContain(' → ')
+      expect(i.open, i.id).toEqual({ traceKind: 'fix', id: i.ref })
+    }
+  })
+
+  it('a classification shows the source, the date and the signal text, and the output gives the category and severity', () => {
+    for (const i of rows(2)) {
+      expect(i.saw.en, i.id).toMatch(/ · \d{4}-\d{2}-\d{2} · ".+"$/)
+      expect(i.text.en, i.id).toMatch(/ · (critical|medium|low) severity$/)
+      expect(i.open, i.id).toEqual({ traceKind: 'signal', id: i.ref })
+    }
+  })
+
+  it('an interview brief shows the first score, the events and the problems; the output gives a suggested reason', () => {
+    for (const i of rows(8)) {
+      expect(i.saw.en, i.id).toMatch(/^(NPS|CSAT|CES) \d+ · \d+ events? on the timeline · \d+ problems? found$/)
+      expect(i.text.en, i.id).toMatch(/^Reason suggested: /)
+      expect(i.open, i.id).toEqual({ to: `/close-the-loop?item=${i.ref}` })
+    }
+  })
+
+  it('a journey reading shows events, problems and the last contact date', () => {
+    for (const i of rows(7)) {
+      expect(i.saw.en, i.id).toMatch(/^\d+ events? · \d+ problems? · last contact (\d{4}-\d{2}-\d{2}|–)$/)
+      expect(i.open, i.id).toEqual({ to: `/customers/${i.personId}` })
+    }
   })
 })
 

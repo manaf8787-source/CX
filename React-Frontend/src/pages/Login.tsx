@@ -99,7 +99,7 @@ function BrandPanel() {
         className="relative hidden flex-col gap-4 lg:flex"
       >
         <BrandMotif />
-        <p className="text-sm text-muted-foreground">{t('Prototype v40 · sample data only', 'نموذج أولي الإصدار 40 · بيانات نموذجية فقط')}</p>
+        <p className="text-sm text-muted-foreground">{t('Prototype v42 · sample data only', 'نموذج أولي الإصدار 42 · بيانات نموذجية فقط')}</p>
       </m.div>
     </section>
   )

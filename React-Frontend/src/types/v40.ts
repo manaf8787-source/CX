@@ -1,5 +1,4 @@
 import type { Bi, ChannelId, EnvId, ProductId } from './common'
-import type { RoleId } from './roles'
 import type { CorrectiveActionStatus, SignalKind } from './domain'
 
 /**
@@ -144,7 +143,7 @@ export interface CrmMapping {
 
 // --- Escalation matrix (F22) -------------------------------------------------
 
-/** The ten rows of the v40 matrix: eight fix kinds and two case types. */
+/** The twelve rows of the matrix (v42, set 19 Nov): eight fix kinds, two case types, a data-exposure row, and `vip`, which is a rule and not a receiver. */
 export type MatrixKind =
   | 'employee'
   | 'service'
@@ -156,33 +155,67 @@ export type MatrixKind =
   | 'marketing'
   | 'shopper_critical'
   | 'legal_case'
+  | 'infosec'
+  | 'vip'
+
+/** The eleven rows that hold cells (everything but the `vip` rule row). */
+export type MatrixCellKind = Exclude<MatrixKind, 'vip'>
 
 export type MatrixField = 'receiver' | 'informed' | 'backup' | 'respondH' | 'resolveH'
 
-/** Titles only, never names. `null` = nobody ("–"). Hours are working hours (9 = one working day). */
+/** The two clock fields. */
+export type MatrixClockField = 'respondH' | 'resolveH'
+
+/** Titles only, never names. `null` = nobody ("–"). Hours are working hours (9 = one working day, 45 = one week). */
 export interface MatrixCells {
   receiver: Bi | null
   informed: Bi | null
   backup: Bi | null
   respondH: number | null
   resolveH: number | null
+  /** A clock the document writes in working days ("1 day", "5 days"): the value stays hours (1 day = 9 h) and only the display changes. Absent = hours. An edit clears it. */
+  asDays?: Partial<Record<MatrixClockField, true>>
 }
 
-export interface MatrixRow {
-  kind: MatrixKind
+/** One row with cells. `edited` marks a cell someone changed after the 19 Nov set (a seeded cell is false). */
+export interface MatrixCellRow {
+  kind: MatrixCellKind
   label: Bi
   cells: MatrixCells
-  /** True while the cell still holds the default; defaults are [Proposed] until the owners confirm them. */
-  isDefault: Record<MatrixField, boolean>
-  /** A default cell an owner confirmed as it stands ("Confirm default"): the badge is gone and the stamp says who and when (by role title). */
-  confirmed?: Partial<Record<MatrixField, { at: string; byRole: RoleId }>>
+  edited: Record<MatrixField, boolean>
 }
+
+/**
+ * The VIP rule (a person tagged VIP in the CRM: Club member, investor, portfolio owner): both clocks are multiplied by `factor`, the
+ * head of the environment is added to "informed" at once, the CX manager becomes the backup. A rule, not a receiver and not a number of hours.
+ */
+export interface VipRule {
+  factor: number
+  /** Shown in the table: "Same receiver, clocks halved". */
+  receiver: Bi
+  /** Shown in the table: "Head of the environment at once". */
+  informed: Bi
+  /** The title added to "informed": "Head of the environment". */
+  informedTitle: Bi
+  /** The backup title: "CX manager". */
+  backup: Bi
+}
+
+export interface MatrixRuleRow {
+  kind: 'vip'
+  label: Bi
+  rule: VipRule
+}
+
+export type MatrixRow = MatrixCellRow | MatrixRuleRow
 
 /** Where the fix's matrix line comes from (F22): the fix's product, else its first signal's product, else Real Estate. */
 export interface FixMatrixLine {
   product: ProductId
-  kind: MatrixKind
-  row: MatrixRow
+  kind: MatrixCellKind
+  row: MatrixCellRow
+  /** The product's VIP rule (the `vip` row). */
+  rule: VipRule
 }
 
 // --- Survey questions (F23) --------------------------------------------------
@@ -227,10 +260,14 @@ export interface WeeklySampleItem {
   /** Agent number 1..10. */
   agent: number
   kind: Bi
-  /** The output text. Never contains a customer name (see `personId`). */
+  /** What the agent produced, in one line (v41.1 F29). Never contains a customer name (see `personId`). */
   text: Bi
+  /** What the agent saw: the input it worked from, in one line (v41.1 F29). Built from structured facts; never a customer or agent name and never conversation text. */
+  saw: Bi
   /** Trace id of the record the output is about (SG-, CA-, EV-, or a person id). */
   ref: string
+  /** Where the "Open" button goes, for CX roles only: a trace record the trace host opens, or a route. Absent when there is nothing to open. */
+  open?: { traceKind: TraceKind; id: string } | { to: string }
   /** Set when the output is about a person; resolve the name only for roles allowed to see names. */
   personId?: string
   /** true = right, false = wrong (a wrong verdict becomes a test), null = not read yet. */

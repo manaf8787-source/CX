@@ -22,6 +22,12 @@ import { HandoffsBlock } from './components/HandoffsBlock'
 import { InlineNote } from '@/components/common/InlineNote'
 
 const STATUS_FILTERS = ['all', 'proposed', 'approved', 'in_progress', 'verification', 'effective', 'partial', 'failed'] as const
+type StatusFilter = (typeof STATUS_FILTERS)[number]
+
+/** `?status=proposed` opens the register on one status (the guided tour uses it for "waiting for a yes"); anything else is no filter. */
+function statusFromParam(value: string | null): StatusFilter | null {
+  return STATUS_FILTERS.find((s) => s === value) ?? null
+}
 
 export default function Corrective() {
   const { t, L } = useI18n()
@@ -34,7 +40,21 @@ export default function Corrective() {
   const now = useNow()
   const [params] = useSearchParams()
   const selectedFix = params.get('fix')
-  const [statusFilter, setStatusFilter] = useState<(typeof STATUS_FILTERS)[number]>('all')
+  const urlStatus = statusFromParam(params.get('status'))
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>(urlStatus ?? 'all')
+  // A new `?status=` (or its removal) moves the filter; picking one in the Select afterwards is the person's own.
+  const [seenUrlStatus, setSeenUrlStatus] = useState(urlStatus)
+  if (urlStatus !== seenUrlStatus) {
+    setSeenUrlStatus(urlStatus)
+    setStatusFilter(urlStatus ?? 'all')
+  }
+  // A link that names a fix (a Trace id, the inbox, the second step just requested) has to be able to show it: a filter picked earlier that
+  // would hide it is dropped when the named fix changes (v40.1: the new fix is proposed, and the filter may well be "Partial").
+  const [seenSelectedFix, setSeenSelectedFix] = useState(selectedFix)
+  if (selectedFix !== seenSelectedFix) {
+    setSeenSelectedFix(selectedFix)
+    if (selectedFix && !urlStatus) setStatusFilter('all')
+  }
   const [decidingId, setDecidingId] = useState<string | null>(null)
 
   // KB §15: L&D sees only actions classified as training gap; KB §2: environment management sees only its own environment.
@@ -88,8 +108,8 @@ export default function Corrective() {
           <label htmlFor="corrective-status" className="t-body-s">
             {t('Status', 'الحالة')}
           </label>
-          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
-            <SelectTrigger id="corrective-status" className="h-9 w-48">
+          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
+            <SelectTrigger id="corrective-status" className="h-9 w-60 max-w-[calc(100vw-6rem)]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

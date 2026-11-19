@@ -25,7 +25,7 @@ export function StepLine({ className }: { className?: string }) {
   const loading = !counts
 
   return (
-    <nav aria-label={t('The six steps, with live counts', 'الخطوات الست، مع أعدادها الحية')} className={className}>
+    <nav aria-label={t('The six steps, with live counts', 'الخطوات الست، مع أعدادها الحية')} data-tour="steps" className={className}>
       <ol className="grid grid-cols-2 gap-2.5 min-[560px]:grid-cols-3 lg:grid-cols-6">
         {STEPS.map((step) => {
           const open = canAccessPath(role.id, step.to)

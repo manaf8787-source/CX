@@ -328,7 +328,7 @@ function ProposeDialog({
               <FieldLabel htmlFor="pi-owner">{t('Receiver (title)', 'المستلم (المسمى الوظيفي)')}</FieldLabel>
               <Input id="pi-owner" aria-invalid={!!errors.owner} aria-describedby="pi-owner-help" {...register('owner')} />
               <FieldDescription id="pi-owner-help">
-                {t('A title, not a name. The exact title per product comes from the escalation matrix, still awaiting the product owners.', 'مسمى وظيفي لا اسم. المسمى الدقيق لكل منتج يأتي من مصفوفة التصعيد التي ما زالت بانتظار مالكي المنتجات.')}
+                {t('A title, not a name. The exact title per product comes from the escalation matrix (set 19 Nov).', 'مسمى وظيفي لا اسم. المسمى الدقيق لكل منتج يأتي من مصفوفة التصعيد (حُدّدت في 19 نوفمبر).')}
               </FieldDescription>
               {errors.owner?.message === 'top' ? (
                 <FieldError>{t('The receiver is the person who can fix it, never top management.', 'المستلم هو من يستطيع الإصلاح، وليس الإدارة العليا أبداً.')}</FieldError>

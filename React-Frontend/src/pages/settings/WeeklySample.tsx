@@ -1,9 +1,11 @@
 import { useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { useI18n } from '@/i18n'
 import { useRole } from '@/auth/RoleContext'
-import { canJudgeSample, canViewNamesInSample } from '@/auth/permissions'
-import { useAgentPassRates, useJudgeSample, useSupervisorTests, useWeeklySample } from '@/services/queriesV40'
+import { canJudgeSample, canOpenSampleRecord, canViewNamesInSample } from '@/auth/permissions'
+import { useAgentPassRates, useJudgeSample, useSupervisorTests, useTraceNav, useWeeklySample } from '@/services/queriesV40'
+import type { WeeklySampleItem } from '@/types'
 import { usePersonsAll } from '@/services/queries'
 import { WEEKLY_SAMPLE_COPY as COPY } from '@/data/weeklySample'
 import { personLabel } from '@/utils/peopleExport'
@@ -27,12 +29,35 @@ type Filter = 'all' | 'unread' | 'wrong'
 /** One half of the Right / Wrong pair: a 29px pill key (the light one is Right, the dark one Wrong). */
 const VERDICT_KEY = 'inline-flex min-h-[29px] cursor-pointer items-center justify-center rounded-full px-3.5 pt-[3px] pb-[5px] text-sm font-medium whitespace-nowrap outline-hidden transition-opacity duration-200 hover:opacity-85'
 
+/** The "Open" button of a row (v41.1 F29): a trace record through the trace host, or a page. The caller shows it to CX roles only. */
+function OpenRecord({ item }: { item: WeeklySampleItem }) {
+  const { t, L } = useI18n()
+  const trace = useTraceNav()
+  const navigate = useNavigate()
+  const target = item.open
+  if (!target) return null
+  return (
+    <Button
+      size="xs"
+      variant="outline"
+      aria-label={t(`Open ${item.ref}`, `افتح ${item.ref}`)}
+      onClick={() => ('to' in target ? navigate(target.to) : trace.open(target.traceKind, target.id))}
+    >
+      {L(COPY.open)}
+    </Button>
+  )
+}
+
 /**
  * Weekly sample (v40 F31): fifty outputs that passed the supervisor this week, read by eye. Each one is Right or Wrong; a
  * "Wrong" becomes a new test for the supervisor and lowers that agent's pass rate (decided 18 Nov, so no page-level badge;
  * the pass-rate formula is still [Proposed], badged where the rates are). It is due every Thursday. The CX manager, the CX
  * team and the Internal Audit and Marketing Lead judge; others read. A sample text never holds a customer name: an item
  * about a person shows `personLabel`, so the Internal Audit and Marketing Lead sees `P-005`, not a name.
+ *
+ * v41.1 (F29): a row asks for a verdict, so it carries the evidence for it: what the agent saw, what it produced, what the supervisor
+ * checked, and (CX roles) an Open button to the record. A "How to judge" well sits above the table. A row can be judged in about half
+ * a minute from itself; opening the record is for doubt. The ids are plain tags: the Open button is the one way in.
  *
  * Design: a register, so dense. Right and Wrong are a light/dark segmented pair on a well track (the skill's segmented control read as
  * two answers); a judged row shows its verdict as a tag and a small "Change". A role that may only read sees plain text, not buttons.
@@ -46,6 +71,7 @@ export default function WeeklySample() {
   const { data: tests } = useSupervisorTests()
   const judge = useJudgeSample()
   const canJudge = canJudgeSample(role.id)
+  const canOpen = canOpenSampleRecord(role.id)
   const [filter, setFilter] = useState<Filter>('all')
   const c = COPY.columns
 
@@ -158,6 +184,11 @@ export default function WeeklySample() {
             )}
           </SectionCard>
 
+          <div data-slot="how-to-judge" className="well flex flex-col gap-1.5">
+            <p className="t-small-strong">{L(COPY.howToJudge.title)}</p>
+            <p className="max-w-[88ch] text-sm text-muted-foreground">{L(COPY.howToJudge.text)}</p>
+          </div>
+
           <Segmented
             variant="pressed"
             label={t('Filter the sample', 'تصفية العينة')}
@@ -170,10 +201,10 @@ export default function WeeklySample() {
             <EmptyState title={t('Nothing in this view.', 'لا شيء في هذا العرض.')} />
           ) : (
             <SectionCard contentClassName={IN_CARD}>
-              <Table>
+              <Table data-tour="sample">
                 <TableHeader>
                   <TableRow>
-                    {[c.n, c.agent, c.kind, c.output, c.verdict].map((h) => (
+                    {[c.n, c.agent, c.saw, c.output, c.supervisor, c.verdict].map((h) => (
                       <TableHead key={h.en}>{L(h)}</TableHead>
                     ))}
                   </TableRow>
@@ -185,17 +216,26 @@ export default function WeeklySample() {
                     return (
                       <TableRow key={item.id}>
                         <TableCell className="tabular">{n}</TableCell>
-                        <TableCell>
-                          <AgentChip agent={item.agent} />
-                        </TableCell>
-                        <TableCell>{L(item.kind)}</TableCell>
-                        <TableCell className="min-w-56 whitespace-normal text-foreground">
-                          <span className="flex flex-wrap items-center gap-2">
-                            {L(item.text)}
-                            {traceKind ? <TraceId kind={traceKind} id={item.ref} /> : <bdi dir="ltr" className="text-sm text-muted-foreground tabular">{item.ref}</bdi>}
-                            {who && <span className="text-muted-foreground">· {who}</span>}
+                        <TableCell className="whitespace-normal">
+                          <span className="flex flex-col items-start gap-1">
+                            <AgentChip agent={item.agent} short />
+                            <span className="text-sm text-muted-foreground">{L(item.kind)}</span>
                           </span>
                         </TableCell>
+                        <TableCell className="min-w-44 whitespace-normal text-foreground">{L(item.saw)}</TableCell>
+                        <TableCell className="min-w-44 whitespace-normal text-foreground">
+                          <span className="flex flex-col items-start gap-1.5">
+                            <span>
+                              {L(item.text)}
+                              {who && <span className="text-muted-foreground"> · {who}</span>}
+                            </span>
+                            <span className="flex flex-wrap items-center gap-2">
+                              {traceKind ? <TraceId kind={traceKind} id={item.ref} plain /> : <bdi dir="ltr" className="text-sm text-muted-foreground tabular">{item.ref}</bdi>}
+                              {canOpen && <OpenRecord item={item} />}
+                            </span>
+                          </span>
+                        </TableCell>
+                        <TableCell className="w-36 min-w-32 whitespace-normal text-xs text-muted-foreground">{L(COPY.supervisorLine)}</TableCell>
                         <TableCell>
                           {item.verdict !== null ? (
                             <span className="flex flex-wrap items-center gap-2">
@@ -226,6 +266,8 @@ export default function WeeklySample() {
               </Table>
             </SectionCard>
           )}
+
+          {!canOpen && <p className="max-w-[72ch] text-sm text-muted-foreground">{L(COPY.openNote)}</p>}
 
           {sample.items.some((i) => i.personId) && !canViewNamesInSample(role.id) && (
             <p className="max-w-[72ch] text-sm text-muted-foreground">{t('No customer names are shown to this role: an output about a person carries the reference (for example P-005).', 'لا تظهر أسماء الزبائن لهذا الدور: المخرج عن شخص يحمل المرجع (مثل P-005).')}</p>

@@ -47,6 +47,7 @@ const Rules = lazy(pageLoaders.rules)
 const AiInsightsAccess = lazy(pageLoaders.aiInsightsAccess)
 const SettingsGlossary = lazy(pageLoaders.settingsGlossary)
 const AdminSettings = lazy(pageLoaders.adminSettings)
+const WatchTeam = lazy(pageLoaders.watchTeam)
 
 function FullPageLoading() {
   return <div role="status" aria-busy="true" className="min-h-svh bg-background" />
@@ -109,6 +110,7 @@ export default function App() {
                     <Route path="crm-mapping" element={<CrmMapping />} />
                     <Route path="escalation-matrix" element={<EscalationMatrix />} />
                     <Route path="survey-questions" element={<SurveyQuestions />} />
+                    <Route path="watch-ai-team" element={<WatchTeam />} />
                     <Route path="weekly-sample" element={<WeeklySample />} />
                     <Route path="public-mentions" element={<PublicMentions />} />
                     <Route path="monthly-pack" element={<MonthlyPack />} />

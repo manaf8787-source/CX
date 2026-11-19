@@ -1,6 +1,6 @@
 import type { Bi } from '../types'
 import { DEFAULT_OWNER_BY_KIND } from './insightSuggestions'
-import { MATRIX_DEFAULTS } from './escalationDefaults'
+import { matrixTitles } from './escalationDefaults'
 import { envNameFromShort } from './environments'
 import { ROLE_DEFS } from './roles'
 
@@ -34,11 +34,8 @@ function buildTable(): Map<string, Bi> {
     if (b && !map.has(norm(b.en))) map.set(norm(b.en), b)
   }
   for (const r of ROLE_DEFS) add(r.name)
-  for (const cells of Object.values(MATRIX_DEFAULTS)) {
-    add(cells.receiver)
-    add(cells.informed)
-    add(cells.backup)
-  }
+  // The roles come first, so a title that is also a role keeps the role's Arabic form; the matrix titles reuse those forms (tested).
+  for (const b of matrixTitles()) add(b)
   for (const b of Object.values(DEFAULT_OWNER_BY_KIND)) add(b)
   for (const b of EXTRA) add(b)
   return map

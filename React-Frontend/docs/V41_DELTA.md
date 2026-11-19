@@ -6,7 +6,7 @@ One item on top of V40_DELTA. Status `[Proposed]` until Manaf confirms.
 
 **What the user sees.** First sign-in under a role: the screen dims, the real element is highlighted with a gold frame, a card (title, two or three sentences, Next / Back / Skip, "n / total") sits below or above it. Some steps have "Do it and continue": the real action runs (open My inbox, open fix CA-204 from the "waiting for a yes" tab) and the next card appears on the page that opened. Ends with a toast. Replay from "How do I use this?" at the bottom of the menu. Bilingual, RTL in Arabic.
 
-**Data.** `tours[role] = [{ view, tab?, registerFilter?, clearSelection?, target (CSS selector), highlightParent? (closest selector), title{en,ar}, text{en,ar}, click? }]`. Paths per role are in the Knowledge Base section 4 (CX manager/CX team 13 steps; environment managers and leads 10; Marketing 7; L&D 3; Internal audit 4; others 4).
+**Data.** `tours[role] = [{ view, tab?, registerFilter?, clearSelection?, target (CSS selector), highlightParent? (closest selector), title{en,ar}, text{en,ar}, click? }]`. Paths per role are in the Knowledge Base section 4 (CX manager/CX team 13 steps; environment managers and leads 11; Marketing 7; L&D 3; Internal audit 4; others 4).
 
 **Behaviour.** Navigate to `view` (and tab/filter) before positioning; position from `getBoundingClientRect` after render; scroll target into view (centre); card goes above the target when there is no room below; reposition on resize; a target that is missing shows the card centred with no highlight (never blocks). Completion stored per user per role (`tour_done[role]`); role switch resets the running tour. Overlay must not intercept clicks except on the card.
 

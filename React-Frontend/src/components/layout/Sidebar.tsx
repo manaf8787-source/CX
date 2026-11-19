@@ -1,6 +1,6 @@
-import type { ReactNode } from 'react'
+import { useRef, type ReactNode } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { Gauge, Home, Inbox, ListChecks, PanelLeftClose, PanelLeftOpen, PhoneCall, Settings2, Users, X, type LucideIcon } from 'lucide-react'
+import { CircleHelp, Gauge, Home, Inbox, ListChecks, PanelLeftClose, PanelLeftOpen, PhoneCall, Settings2, Users, X, type LucideIcon } from 'lucide-react'
 import {
   SidebarContent,
   SidebarFooter,
@@ -18,10 +18,13 @@ import {
 } from '@/components/ui/sidebar'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useSlidingIndicator } from '@/components/ui/use-sliding-indicator'
 import { RoleSwitch } from '@/components/common/RoleSwitch'
+import { useTour } from '@/components/tour/tourContext'
 import { useI18n } from '@/i18n'
 import { PRIMARY_NAV, SETTINGS_NAV, type NavGroup } from '@/data/nav'
+import { TOUR_COPY } from '@/data/tours'
 import { useRole } from '@/auth/RoleContext'
 import { canAccessPath, canOpenPage } from '@/auth/access'
 import { useProducts } from '@/services/queries'
@@ -95,7 +98,13 @@ export function SidebarNavItem({ node, pathname, tooltip, tall, onNavigate }: { 
   return (
     <SidebarMenuItem className="static">
       <SidebarMenuButton asChild isActive={active} tooltip={tooltip ? node.label : undefined} className={cn(ITEM, tall && 'h-11 text-base')}>
-        <NavLink to={node.path} onClick={onNavigate} onPointerEnter={() => prefetchPath(node.path)} onFocus={() => prefetchPath(node.path)}>
+        <NavLink
+          to={node.path}
+          data-tour={`nav${node.path.replaceAll('/', '-')}`}
+          onClick={onNavigate}
+          onPointerEnter={() => prefetchPath(node.path)}
+          onFocus={() => prefetchPath(node.path)}
+        >
           {node.dotVar ? (
             <span aria-hidden className="grid size-4 shrink-0 place-items-center">
               <span className="size-2 rounded-full" style={{ backgroundColor: `var(${node.dotVar})` }} />
@@ -138,7 +147,7 @@ function Brand({ onNavigate }: { onNavigate?: () => void }) {
       </span>
       <span className="flex min-w-0 flex-col leading-tight group-data-[collapsible=icon]:sr-only">
         <span className="t-h4 truncate">PSI CX Portal</span>
-        <span className="truncate text-xs text-muted-foreground">{t('v40 · prototype', 'الإصدار 40 · نموذج أولي')}</span>
+        <span className="truncate text-xs text-muted-foreground">{t('v42 · prototype', 'الإصدار 42 · نموذج أولي')}</span>
       </span>
     </NavLink>
   )
@@ -152,12 +161,41 @@ interface NavBodyProps {
   /** Sheet only: the close button. */
   onClose?: () => void
   onNavigate?: () => void
+  /** Replay the guided tour ("How do I use this?"). The phone and tablet sheet close first, then the tour starts. */
+  onReplay: () => void
+}
+
+/** "How do I use this?" (v41 F28): a pill above the role card; in the collapsed rail an icon with a tooltip. Not shown for a role without a tour. */
+function ReplayTour({ rail, onReplay }: { rail: boolean; onReplay: () => void }) {
+  const { L } = useI18n()
+  const label = L(TOUR_COPY.replay)
+  if (rail) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button variant="outline" size="icon" onClick={onReplay} aria-label={label}>
+            <CircleHelp aria-hidden />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="right" align="center">
+          {label}
+        </TooltipContent>
+      </Tooltip>
+    )
+  }
+  return (
+    <Button variant="outline" size="sm" onClick={onReplay} className="w-full justify-start">
+      <CircleHelp aria-hidden />
+      {label}
+    </Button>
+  )
 }
 
 /** Brand row, grouped menu with the sliding pill, and the bottom card. Used by the fixed aside and by the sheet, so both look the same. */
-function NavBody({ variant, groups, toggle, onClose, onNavigate }: NavBodyProps) {
+function NavBody({ variant, groups, toggle, onClose, onNavigate, onReplay }: NavBodyProps) {
   const { t } = useI18n()
   const { pathname } = useLocation()
+  const { available: hasTour } = useTour()
   const { ref, box, ready, animate } = useSlidingIndicator<HTMLDivElement>('[data-sidebar=menu-button][data-active=true]')
   const sheet = variant === 'sheet'
 
@@ -215,8 +253,9 @@ function NavBody({ variant, groups, toggle, onClose, onNavigate }: NavBodyProps)
       </SidebarContent>
 
       {/* The skill's usage card (light material, radius 10, padding 10): here it holds the demo role switch and the sample-data notice. */}
-      <SidebarFooter className="gap-0 p-0 pt-3 group-data-[collapsible=icon]:hidden">
-        <div className="material-light flex flex-col gap-2 rounded-lg p-2.5">
+      <SidebarFooter className={cn('gap-2 p-0 pt-3 group-data-[collapsible=icon]:items-center', !hasTour && 'group-data-[collapsible=icon]:hidden')}>
+        {hasTour && <ReplayTour rail={!sheet && !!toggle?.rail} onReplay={onReplay} />}
+        <div className="material-light flex flex-col gap-2 rounded-lg p-2.5 group-data-[collapsible=icon]:hidden">
           <span className="t-ui-strong">{t('Viewing as (demo)', 'العرض بصفة (تجريبي)')}</span>
           <RoleSwitch />
           <span className="text-sm text-muted-foreground">{t('Sample data only', 'بيانات تجريبية فقط')}</span>
@@ -250,6 +289,9 @@ export function AppSidebar({ mode, expanded, onToggle, sheetOpen, onSheetOpenCha
   const groups = useSidebarGroups()
   const rail = mode === 'tablet' || (mode === 'desktop' && !expanded)
   const phone = mode === 'phone'
+  const { start: startTour } = useTour()
+  // "How do I use this?" inside the sheet: close the sheet first, start the tour once it has closed (so the sheet's focus return does not take focus from the tour card).
+  const replayAfterSheet = useRef(false)
   const toggleLabel =
     mode === 'tablet' ? t('Open navigation', 'فتح التنقل') : rail ? t('Expand sidebar', 'توسيع الشريط الجانبي') : t('Collapse sidebar', 'طيّ الشريط الجانبي')
 
@@ -262,7 +304,7 @@ export function AppSidebar({ mode, expanded, onToggle, sheetOpen, onSheetOpenCha
         data-collapsible={rail ? 'icon' : ''}
         className="group sticky top-0 flex h-svh flex-col overflow-hidden px-2.5 py-3.5 text-sidebar-foreground min-[1441px]:h-[calc(100svh-64px)]"
       >
-        <NavBody variant="aside" groups={groups} toggle={{ label: toggleLabel, expanded: !rail, rail, opensDrawer: mode === 'tablet', onClick: onToggle }} />
+        <NavBody variant="aside" groups={groups} toggle={{ label: toggleLabel, expanded: !rail, rail, opensDrawer: mode === 'tablet', onClick: onToggle }} onReplay={startTour} />
       </nav>
     </div>
   )
@@ -275,6 +317,12 @@ export function AppSidebar({ mode, expanded, onToggle, sheetOpen, onSheetOpenCha
           side="left"
           showCloseButton={false}
           aria-describedby={undefined}
+          onCloseAutoFocus={(e) => {
+            if (!replayAfterSheet.current) return
+            replayAfterSheet.current = false
+            e.preventDefault()
+            startTour()
+          }}
           className={cn(
             'gap-0 bg-sidebar p-0',
             phone ? 'inset-0! h-full! w-full! max-w-none! rounded-none!' : 'w-[calc(100%-1.25rem)] sm:max-w-[18rem]',
@@ -289,7 +337,16 @@ export function AppSidebar({ mode, expanded, onToggle, sheetOpen, onSheetOpenCha
             data-collapsible=""
             className="group h-full min-h-0 overflow-hidden px-3.5 py-3.5 text-sidebar-foreground"
           >
-            <NavBody variant="sheet" groups={groups} onClose={() => onSheetOpenChange(false)} onNavigate={() => onSheetOpenChange(false)} />
+            <NavBody
+              variant="sheet"
+              groups={groups}
+              onClose={() => onSheetOpenChange(false)}
+              onNavigate={() => onSheetOpenChange(false)}
+              onReplay={() => {
+                replayAfterSheet.current = true
+                onSheetOpenChange(false)
+              }}
+            />
           </nav>
         </SheetContent>
       </Sheet>

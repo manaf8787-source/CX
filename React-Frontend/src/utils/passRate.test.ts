@@ -7,6 +7,7 @@ const item = (id: number, agent: number, verdict: boolean | null = null): Weekly
   id: `ws-${id}`,
   agent,
   kind: { en: 'Classification', ar: 'تصنيف' },
+  saw: { en: `Input ${id}`, ar: `مدخل ${id}` },
   text: { en: `Output ${id}`, ar: `مخرج ${id}` },
   ref: `SG-${id}`,
   verdict,

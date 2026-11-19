@@ -4,6 +4,8 @@ export interface NavLeaf {
   path: string
   label: Bi
   dotVar?: string // CSS custom property for the nav-dot color
+  /** Never the page `/settings` sends a role to (`SETTINGS_LANDING`): a demo page listed in the menu, not an entry point [Proposed]. */
+  skipLanding?: boolean
 }
 
 export interface NavGroup {
@@ -69,6 +71,7 @@ export const ACTIONS_TABS: NavLeaf[] = [
  * The Overview is no longer here: it is "6 · CX indicators" at /overview. */
 export const SETTINGS_NAV: NavLeaf[] = [
   { path: '/intelligent-cx-team', label: { en: 'How the portal works (the AI team)', ar: 'كيف تعمل البوابة (فريق الذكاء الاصطناعي)' } },
+  { path: '/settings/watch-ai-team', label: { en: 'Watch the AI team work', ar: 'شاهد فريق الذكاء يعمل' }, skipLanding: true },
   { path: '/settings/weekly-sample', label: { en: 'Weekly sample', ar: 'العينة الأسبوعية' } },
   { path: '/settings/public-mentions', label: { en: 'Public mentions', ar: 'الإشارات العامة' } },
   { path: '/settings/monthly-pack', label: { en: 'Monthly CX pack', ar: 'الحزمة الشهرية' } },
@@ -89,3 +92,6 @@ export const SETTINGS_NAV: NavLeaf[] = [
   { path: '/settings/ai-insights-access', label: { en: 'AI Insights access matrix', ar: 'مصفوفة صلاحيات رؤى الذكاء الاصطناعي' } },
   { path: '/settings/glossary', label: { en: 'What the terms mean', ar: 'ماذا تعني المصطلحات' } },
 ]
+
+/** The pages `/settings` can send a role to, in menu order: `SETTINGS_NAV` without the demo pages (`skipLanding`). */
+export const SETTINGS_LANDING: string[] = SETTINGS_NAV.filter((i) => !i.skipLanding).map((i) => i.path)

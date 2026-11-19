@@ -78,7 +78,7 @@ export default function Feeds() {
         <EmptyState title={t('No feeds are configured yet.', 'لا توجد تغذيات مضبوطة بعد.')} />
       ) : (
         <SectionCard contentClassName={IN_CARD}>
-          <Table>
+          <Table data-tour="feeds">
             <TableHeader>
               <TableRow>
                 <TableHead>{L(c.feed)}</TableHead>

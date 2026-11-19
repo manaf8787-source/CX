@@ -102,7 +102,7 @@ export function TraceCardView({ chain, chip, className }: { chain: TraceChain; c
   ]
 
   return (
-    <section aria-labelledby={headingId} className={cn('well @container flex flex-col gap-4 text-card-foreground', className)} data-testid="trace-card">
+    <section aria-labelledby={headingId} className={cn('well @container flex flex-col gap-4 text-card-foreground', className)} data-testid="trace-card" data-tour="trace">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="flex min-w-0 flex-col gap-0.5">
           <h3 id={headingId} className="t-h4">

@@ -395,6 +395,55 @@ test.describe('Weekly sample (F31)', () => {
     await exec.close()
   })
 
+  test('a row can be judged from itself: what it saw, what it produced, the supervisor, and a "How to judge" card (v41.1 F29)', async ({ page }) => {
+    await open(page, 'cxteam', '/settings/weekly-sample')
+    await expect(page.getByRole('button', { name: '✓ Right' })).toHaveCount(50, { timeout: 15_000 })
+    const table = page.locator('main table').last()
+    await expect(table.getByRole('columnheader')).toHaveText(['#', 'Agent and kind', 'What it saw', 'What it produced', 'Supervisor', 'Verdict'])
+    await expect(page.getByText('How to judge', { exact: true })).toBeVisible()
+    await expect(page.getByText(/you are judging the agent/)).toBeVisible()
+    // a fix: the pattern, the signals behind it and the recovery figure; its output names the owner title
+    const fix = table.locator('tbody tr', { hasText: 'CA-201' })
+    await expect(fix).toContainText(/signals? in \d+ days/)
+    await expect(fix).toContainText(/recovered in \d+, \d+ of \d+ is \d+%/)
+    await expect(fix).toContainText(' → ')
+    await expect(fix).toContainText('Schema, recompute, access, evidence, bilingual, risk gate: 6 of 6 passed')
+    // a classification: the source, the date and the signal text; the output gives the category and the severity
+    const sig = table.locator('tbody tr', { hasText: 'Classification' }).first()
+    await expect(sig).toContainText(/\d{4}-\d{2}-\d{2} · ".+"/)
+    await expect(sig).toContainText(/ · (critical|medium|low) severity/)
+    // an interview brief and a journey reading
+    await expect(table.locator('tbody tr', { hasText: 'Interview brief' }).first()).toContainText(/(NPS|CSAT|CES) \d+ · \d+ events? on the timeline · \d+ problems? found/)
+    await expect(table.locator('tbody tr', { hasText: 'Journey reading' }).first()).toContainText(/\d+ events? · \d+ problems? · last contact/)
+  })
+
+  test('Open takes a CX role to the record: a fix, a signal, a customer, a call', async ({ page }) => {
+    await open(page, 'cxmgr', '/settings/weekly-sample')
+    await expect(page.getByRole('button', { name: '✓ Right' })).toHaveCount(50, { timeout: 15_000 })
+    await expect(page.getByRole('button', { name: /^Open / })).toHaveCount(50)
+    await page.getByRole('button', { name: 'Open CA-201' }).click()
+    await expect(page).toHaveURL(/\/actions\/corrective\?fix=CA-201/)
+    await expectPageReady(page)
+    await page.goBack()
+    await expect(page.getByRole('button', { name: '✓ Right' })).toHaveCount(50, { timeout: 15_000 })
+    const sigRow = page.locator('main table').last().locator('tbody tr', { hasText: 'Classification' }).first()
+    await sigRow.getByRole('button', { name: /^Open (SG|PUB)-/ }).click()
+    await expect(page.getByRole('dialog')).toBeVisible()
+    await page.keyboard.press('Escape')
+    await page.locator('main table').last().locator('tbody tr', { hasText: 'Journey reading' }).first().getByRole('button', { name: /^Open P-/ }).click()
+    await expect(page).toHaveURL(/\/customers\/p-\d{3}/)
+  })
+
+  test('the Internal Audit and Marketing Lead reads ids and titles: no Open button, no clickable id, no names, a note says why', async ({ page }) => {
+    await open(page, 'auditmkt', '/settings/weekly-sample')
+    await expect(page.getByRole('button', { name: '✓ Right' })).toHaveCount(50, { timeout: 15_000 })
+    await expect(page.getByRole('button', { name: /^Open / })).toHaveCount(0)
+    await expect(page.locator('main table').last().locator('[data-slot="trace-id"]').first()).toBeVisible()
+    await expect(page.locator('main table').last().locator('button[data-slot="trace-id"]')).toHaveCount(0)
+    await expect(page.getByText(/The record behind a row opens for the CX manager and the CX team/)).toBeVisible()
+    for (const name of ['Sara Khoury', 'Rana Farouk', 'Zaid Saleh', 'Khaled Hamad']) await expect(page.locator('main')).not.toContainText(name)
+  })
+
   test('the filter shows only what is still to be read', async ({ page }) => {
     await open(page, 'cxmgr', '/settings/weekly-sample')
     await expect(page.getByText('0 / 50')).toBeVisible({ timeout: 15_000 })
@@ -449,6 +498,7 @@ test.describe('Accessibility of the rebuilt pages', () => {
     { name: 'Close the loop with an inbox row', role: 'cxmgr', path: '/close-the-loop?item=dcl-3', lang: 'en' },
     { name: 'Public mentions as Marketing', role: 'marketing', path: '/settings/public-mentions', lang: 'en' },
     { name: 'Weekly sample as the Internal Audit and Marketing Lead', role: 'auditmkt', path: '/settings/weekly-sample', lang: 'ar' },
+    { name: 'Weekly sample as the CX team (Open buttons)', role: 'cxteam', path: '/settings/weekly-sample', lang: 'en' },
     { name: 'Survey questions, Arabic preview', role: 'cxmgr', path: '/settings/survey-questions', lang: 'en', act: (p) => p.getByRole('button', { name: 'العربية', exact: true }).click() },
     { name: 'CRM mapping, Activities tab', role: 'cxmgr', path: '/settings/crm-mapping', lang: 'ar', act: (p) => p.getByRole('tab', { name: /الأنشطة/ }).click() },
   ]

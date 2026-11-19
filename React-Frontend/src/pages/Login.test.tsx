@@ -30,7 +30,7 @@ describe('sample sign-in', () => {
     renderWithProviders(<Login />, { route: '/login', path: '/login' })
     expect(screen.getByRole('heading', { level: 1, name: 'Sign in' })).toBeInTheDocument()
     expect(screen.getByText(SIGN_IN_COPY.note.en)).toBeInTheDocument()
-    expect(screen.getAllByText(/Prototype v40/).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/Prototype v42/).length).toBeGreaterThan(0)
     expect(screen.queryByText(/v38/)).not.toBeInTheDocument()
   })
 
@@ -116,6 +116,6 @@ describe('sample sign-in', () => {
     expect(screen.getByText(SIGN_IN_COPY.note.ar)).toBeInTheDocument()
     expect(screen.getByText(SIGN_IN_COPY.otherRoles.ar)).toBeInTheDocument()
     expect(screen.getByRole('radio', { name: (n) => n.startsWith('مدير تجربة العملاء') })).toBeInTheDocument()
-    expect(screen.getAllByText(/الإصدار 40/).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/الإصدار 42/).length).toBeGreaterThan(0)
   })
 })

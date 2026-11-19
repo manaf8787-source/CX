@@ -27,6 +27,10 @@ describe('glossary (v40 F04)', () => {
   it('keeps the 60-day wording of the check and of recovered (not 30)', () => {
     expect(find('60-day check')!.definition.en).toMatch(/Sixty days/)
     expect(find('Recovered')!.definition.en).toMatch(/60 days/)
+    // v40.1: the three verdicts, and who records them
+    expect(find('60-day check')!.definition.en).toMatch(/partial and asks for a second step/)
+    expect(find('60-day check')!.definition.en).toMatch(/failed and reopens the signal/)
+    expect(find('60-day check')!.definition.ar).toMatch(/جزئياً/)
     for (const g of GLOSSARY_TERMS) expect(g.definition.en, g.term.en).not.toMatch(/30-day check/i)
   })
 })

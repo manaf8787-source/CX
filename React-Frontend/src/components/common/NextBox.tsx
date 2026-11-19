@@ -25,7 +25,7 @@ interface NextBoxProps {
 export function NextBox({ next, who, action, className }: NextBoxProps) {
   const { L } = useI18n()
   return (
-    <section aria-label={L(NEXT_LABEL)} className={cn('well flex flex-col gap-3.5 text-card-foreground', className)}>
+    <section aria-label={L(NEXT_LABEL)} data-tour="nextbox" className={cn('well flex flex-col gap-3.5 text-card-foreground', className)}>
       <StepStrip current={next.step} size="small" />
       <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
         <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-foreground" />

@@ -1,11 +1,18 @@
 import { beforeAll, describe, expect, it } from 'vitest'
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { useNavigate } from 'react-router-dom'
 import { preferReducedMotion, renderWithProviders } from '@/test/render'
 import * as mock from '@/services/mockData'
 import Corrective from './Corrective'
 
-beforeAll(() => preferReducedMotion())
+beforeAll(() => {
+  preferReducedMotion()
+  // Radix Select in jsdom.
+  Element.prototype.hasPointerCapture ??= () => false
+  Element.prototype.releasePointerCapture ??= () => {}
+  Element.prototype.scrollIntoView ??= () => {}
+})
 
 /** The fix card (the `li`) of one fix by its display id. */
 const card = async (ca: string) => {
@@ -83,6 +90,60 @@ describe('Corrective: the details fold so the page is not extremely long (v40 in
   })
 })
 
+/** A link to the same page without a query, to see the filter follow the URL. */
+function Jump({ to }: { to: string }) {
+  const navigate = useNavigate()
+  return <button onClick={() => navigate(to)}>jump to {to}</button>
+}
+
+describe('Corrective: ?status= opens the register on one status (the guided tour uses it)', () => {
+  const filter = () => screen.getByRole('combobox', { name: 'Status' })
+
+  it('?status=proposed lists only the fixes waiting for a yes, and the filter says so', async () => {
+    renderWithProviders(<Corrective />, { route: '/actions/corrective?status=proposed' })
+    await card('CA-202')
+    expect(document.querySelectorAll('li[data-fix]')).toHaveLength(1)
+    expect(filter()).toHaveTextContent('Proposed')
+    expect(screen.getByText('1 actions')).toBeInTheDocument()
+  })
+
+  it('no query, or one it does not know, lists every fix', async () => {
+    const { unmount } = renderWithProviders(<Corrective />, { route: '/actions/corrective' })
+    await card('CA-201')
+    expect(document.querySelectorAll('li[data-fix]')).toHaveLength(mock.MOCK_CORRECTIVE_ACTIONS.length)
+    expect(filter()).toHaveTextContent('All')
+    unmount()
+    renderWithProviders(<Corrective />, { route: '/actions/corrective?status=nonsense' })
+    await card('CA-201')
+    expect(document.querySelectorAll('li[data-fix]')).toHaveLength(mock.MOCK_CORRECTIVE_ACTIONS.length)
+    expect(filter()).toHaveTextContent('All')
+  })
+
+  it('follows the query when it changes, and the status the person picks afterwards stays theirs', async () => {
+    renderWithProviders(
+      <>
+        <Corrective />
+        <Jump to="/actions/corrective?status=proposed" />
+        <Jump to="/actions/corrective" />
+      </>,
+      { route: '/actions/corrective' },
+    )
+    await card('CA-201')
+    await userEvent.click(screen.getByRole('button', { name: 'jump to /actions/corrective?status=proposed' }))
+    await waitFor(() => expect(document.querySelectorAll('li[data-fix]')).toHaveLength(1))
+    expect(filter()).toHaveTextContent('Proposed')
+    // the query goes away: back to every fix
+    await userEvent.click(screen.getByRole('button', { name: 'jump to /actions/corrective' }))
+    await waitFor(() => expect(document.querySelectorAll('li[data-fix]')).toHaveLength(mock.MOCK_CORRECTIVE_ACTIONS.length))
+    expect(filter()).toHaveTextContent('All')
+    // picking a status by hand is not undone by a re-render
+    await userEvent.click(filter())
+    await userEvent.click(await screen.findByRole('option', { name: 'In progress' }))
+    await waitFor(() => expect(document.querySelectorAll('li[data-fix]')).toHaveLength(1))
+    expect(filter()).toHaveTextContent('In progress')
+  })
+})
+
 describe('Corrective: every fix in full (v40 F07, F11, F21, F22, F33)', () => {
   it('shows, per fix: the next-step box above it, the matrix line, the audit trail and the Trace card', async () => {
     renderWithProviders(<Corrective />, { route: '/actions/corrective' })
@@ -137,9 +198,55 @@ describe('Corrective: every fix in full (v40 F07, F11, F21, F22, F33)', () => {
     const line = await within(li).findByTestId('matrix-line')
     expect(line).toHaveTextContent('From the matrix (PSI Real Estate)')
     expect(line).toHaveTextContent('receiver Internal Audit and Marketing Lead')
+    expect(line).toHaveTextContent('informed Marketing manager')
+    expect(line).toHaveTextContent('backup CX manager')
+    expect(line).toHaveTextContent('respond 9 h')
     expect(line).toHaveTextContent('resolve 45 h')
-    expect(within(line).getByText('[Proposed]')).toBeInTheDocument()
+    // the cells are decided (set 19 Nov): a quiet tag says so, and there is no [Proposed]
+    expect(within(line).getByText('Set 19 Nov · titles adjustable until 28 Nov')).toBeInTheDocument()
+    expect(within(line).queryByText('[Proposed]')).not.toBeInTheDocument()
     expect(within(line).getByRole('link', { name: 'Matrix' })).toHaveAttribute('href', '/settings/escalation-matrix?product=re')
+    // not VIP-related: no tag, the row as it is
+    expect(line).not.toHaveAttribute('data-vip')
+    expect(within(li).queryByTestId('fix-vip-tag')).not.toBeInTheDocument()
+  })
+
+  it('a VIP-related fix (its pattern includes a person tagged VIP) shows "VIP · clocks halved" and reads the VIP version of its matrix row', async () => {
+    renderWithProviders(<Corrective />, { route: '/actions/corrective' })
+    const li = await card('CA-201')
+    // the tag sits in the header, so it shows with the card folded or open
+    expect(await within(li).findByTestId('fix-vip-tag')).toHaveTextContent('VIP · clocks halved')
+    const line = await within(li).findByTestId('matrix-line')
+    expect(line).toHaveAttribute('data-vip', 'true')
+    // Wallet, legal and privacy: Legal | Information Security lead · CX manager · Head of Investor Relations | – | 1 | 9, as the rule changes it
+    expect(line).toHaveTextContent('From the matrix (PSI Wallet)')
+    expect(line).toHaveTextContent('receiver Legal')
+    expect(line).toHaveTextContent('informed Head of the environment · Information Security lead · CX manager · Head of Investor Relations')
+    expect(line).toHaveTextContent('backup CX manager')
+    expect(line).toHaveTextContent('respond ½ h')
+    expect(line).toHaveTextContent('resolve 4.5 h')
+    expect(within(line).getByTestId('matrix-vip-note')).toHaveTextContent('VIP rule applied: both clocks halved')
+    expect(within(line).queryByText('[Proposed]')).not.toBeInTheDocument()
+  })
+
+  it('the employee fix has no resolve clock ("–"), and its respond clock is halved too when it is VIP-related', async () => {
+    renderWithProviders(<Corrective />, { route: '/actions/corrective' })
+    const li = await openCard(await card('CA-203'))
+    expect(await within(li).findByTestId('fix-vip-tag')).toBeInTheDocument()
+    const line = await within(li).findByTestId('matrix-line')
+    expect(line).toHaveTextContent('From the matrix (PSI Wallet)')
+    expect(line).toHaveTextContent('receiver Account manager lead (direct manager)')
+    expect(line).toHaveTextContent('informed Head of the environment') // "–" for an employee kind; the VIP rule adds the head at once
+    expect(line).toHaveTextContent('respond 2 h') // 4 h halved
+    expect(line).toHaveTextContent('resolve –')
+  })
+
+  it('says the VIP tag in Arabic', async () => {
+    renderWithProviders(<Corrective />, { route: '/actions/corrective', lang: 'ar' })
+    const li = await card('CA-201')
+    expect(await within(li).findByTestId('fix-vip-tag')).toHaveTextContent('VIP · المهل مُنصَّفة')
+    const line = await within(li).findByTestId('matrix-line')
+    expect(line).toHaveTextContent('رئيس البيئة · مسؤول أمن المعلومات · مدير تجربة العملاء · رئيس علاقات المستثمرين')
   })
 
   it('"How the AI found this" carries Arabic chips and the Who does what button', async () => {

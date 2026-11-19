@@ -13,6 +13,8 @@ import { AppSidebar } from './Sidebar'
 import { RouteTransition } from './RouteTransition'
 import { TopBar } from './TopBar'
 import { TraceHost } from '../trace/TraceHost'
+import { TourHost } from '../tour/TourHost'
+import { TourProvider } from '../tour/TourProvider'
 import { readSidebarExpanded, writeSidebarExpanded } from './sidebarState'
 import { useScrollEdge } from './useScrollEdge'
 import { useViewportMode } from './useViewportMode'
@@ -96,75 +98,80 @@ export function Shell() {
 
   return (
     <AssistantContext.Provider value={controls}>
-      <SidebarProvider open={!rail} onOpenChange={(open) => mode === 'desktop' && setDesktopExpanded(open)}>
-        <a
-          href="#main"
-          className="material-dark sr-only z-50 rounded-full px-4 pt-1.5 pb-2 text-sm font-medium focus:not-sr-only focus:fixed focus:start-3 focus:top-3"
-        >
-          {t('Skip to content', 'انتقل إلى المحتوى')}
-        </a>
+      <TourProvider>
+        <SidebarProvider open={!rail} onOpenChange={(open) => mode === 'desktop' && setDesktopExpanded(open)}>
+          <a
+            href="#main"
+            className="material-dark sr-only z-50 rounded-full px-4 pt-1.5 pb-2 text-sm font-medium focus:not-sr-only focus:fixed focus:start-3 focus:top-3"
+          >
+            {t('Skip to content', 'انتقل إلى المحتوى')}
+          </a>
 
-        {/* Page. Above 1440px: soft page, frame card (radius 26, padding 10, window shadow), inner surface (radius 18, hairline). */}
-        <div className="min-h-svh min-w-0 flex-1 bg-background min-[1441px]:bg-soft min-[1441px]:p-[22px]">
-          <div className="mx-auto min-[1441px]:max-w-[1600px] min-[1441px]:rounded-frame min-[1441px]:bg-card min-[1441px]:p-2.5 min-[1441px]:shadow-window">
-            <div className="min-[1441px]:overflow-clip min-[1441px]:rounded-inner min-[1441px]:bg-background min-[1441px]:shadow-hairline">
-              <div
-                ref={gridRef}
-                className={cn(
-                  'grid min-h-svh min-[1441px]:min-h-[calc(100svh-64px)]',
-                  mode === 'phone'
-                    ? 'grid-cols-[minmax(0,1fr)]'
-                    : 'transition-[grid-template-columns] duration-400 ease-spring ' +
-                        (rail ? 'grid-cols-[var(--sidebar-w-icon)_minmax(0,1fr)]' : 'grid-cols-[var(--sidebar-w)_minmax(0,1fr)]'),
-                )}
-              >
-                <AppSidebar
-                  mode={mode}
-                  expanded={expanded}
-                  onToggle={() => (mode === 'desktop' ? setDesktopExpanded(!expanded) : setNavOpen(true))}
-                  sheetOpen={navOpen}
-                  onSheetOpenChange={setNavOpen}
-                />
-                <div className="flex min-w-0 flex-col">
-                  {/* Where the top bar naturally starts: when it leaves the viewport the bar is stuck and gets its hairline. */}
-                  <div ref={sentinelRef} aria-hidden className="-mb-px h-px" />
-                  <TopBar
-                    showMenuButton={mode === 'phone'}
-                    onOpenMenu={() => setNavOpen(true)}
-                    assistantAvailable={available}
-                    onAskAssistant={() => controls.open()}
-                    scrolled={scrolled}
+          {/* Page. Above 1440px: soft page, frame card (radius 26, padding 10, window shadow), inner surface (radius 18, hairline). */}
+          <div className="min-h-svh min-w-0 flex-1 bg-background min-[1441px]:bg-soft min-[1441px]:p-[22px]">
+            <div className="mx-auto min-[1441px]:max-w-[1600px] min-[1441px]:rounded-frame min-[1441px]:bg-card min-[1441px]:p-2.5 min-[1441px]:shadow-window">
+              <div className="min-[1441px]:overflow-clip min-[1441px]:rounded-inner min-[1441px]:bg-background min-[1441px]:shadow-hairline">
+                <div
+                  ref={gridRef}
+                  className={cn(
+                    'grid min-h-svh min-[1441px]:min-h-[calc(100svh-64px)]',
+                    mode === 'phone'
+                      ? 'grid-cols-[minmax(0,1fr)]'
+                      : 'transition-[grid-template-columns] duration-400 ease-spring ' +
+                          (rail ? 'grid-cols-[var(--sidebar-w-icon)_minmax(0,1fr)]' : 'grid-cols-[var(--sidebar-w)_minmax(0,1fr)]'),
+                  )}
+                >
+                  <AppSidebar
+                    mode={mode}
+                    expanded={expanded}
+                    onToggle={() => (mode === 'desktop' ? setDesktopExpanded(!expanded) : setNavOpen(true))}
+                    sheetOpen={navOpen}
+                    onSheetOpenChange={setNavOpen}
                   />
-                  <main
-                    id="main"
-                    tabIndex={-1}
-                    className="mx-auto flex w-full max-w-[1320px] flex-1 flex-col gap-4 overflow-x-clip px-5 pt-2 pb-10 outline-hidden focus-visible:[--tw-ring-shadow:0_0_#0000] tablet:px-6 desktop:px-8 has-[[data-fluid-page]]:max-w-none"
-                  >
-                    <Suspense fallback={<LoadingState rows={6} />}>
-                      <RouteTransition>
-                        <AccessGuard>
-                          <Outlet />
-                        </AccessGuard>
-                      </RouteTransition>
-                    </Suspense>
-                  </main>
+                  <div className="flex min-w-0 flex-col">
+                    {/* Where the top bar naturally starts: when it leaves the viewport the bar is stuck and gets its hairline. */}
+                    <div ref={sentinelRef} aria-hidden className="-mb-px h-px" />
+                    <TopBar
+                      showMenuButton={mode === 'phone'}
+                      onOpenMenu={() => setNavOpen(true)}
+                      assistantAvailable={available}
+                      onAskAssistant={() => controls.open()}
+                      scrolled={scrolled}
+                    />
+                    <main
+                      id="main"
+                      tabIndex={-1}
+                      className="mx-auto flex w-full max-w-[1320px] flex-1 flex-col gap-4 overflow-x-clip px-5 pt-2 pb-10 outline-hidden focus-visible:[--tw-ring-shadow:0_0_#0000] tablet:px-6 desktop:px-8 has-[[data-fluid-page]]:max-w-none"
+                    >
+                      <Suspense fallback={<LoadingState rows={6} />}>
+                        <RouteTransition>
+                          <AccessGuard>
+                            <Outlet />
+                          </AccessGuard>
+                        </RouteTransition>
+                      </Suspense>
+                    </main>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Opens the signal detail dialog from any page, driven by the ?sg= search param (v40 F11). */}
-        <TraceHost />
+          {/* Opens the signal detail dialog from any page, driven by the ?sg= search param (v40 F11). */}
+          <TraceHost />
 
-        <Sheet open={assistantOpen && available} onOpenChange={setAssistantOpen}>
-          <SheetContent side="right" showCloseButton={false} aria-describedby={undefined} className="gap-0 overflow-hidden p-0 sm:max-w-md">
-            <Suspense fallback={<LoadingState rows={3} className="p-4" />}>
-              <AssistantPanel key={question?.key ?? 'empty'} initialQuestion={question?.text} onClose={() => setAssistantOpen(false)} />
-            </Suspense>
-          </SheetContent>
-        </Sheet>
-      </SidebarProvider>
+          {/* The guided tour (v41 F28): dim, frame and card above everything, drawn only while it runs. */}
+          <TourHost />
+
+          <Sheet open={assistantOpen && available} onOpenChange={setAssistantOpen}>
+            <SheetContent side="right" showCloseButton={false} aria-describedby={undefined} className="gap-0 overflow-hidden p-0 sm:max-w-md">
+              <Suspense fallback={<LoadingState rows={3} className="p-4" />}>
+                <AssistantPanel key={question?.key ?? 'empty'} initialQuestion={question?.text} onClose={() => setAssistantOpen(false)} />
+              </Suspense>
+            </SheetContent>
+          </Sheet>
+        </SidebarProvider>
+      </TourProvider>
     </AssistantContext.Provider>
   )
 }

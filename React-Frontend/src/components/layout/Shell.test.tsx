@@ -182,3 +182,67 @@ describe('Sidebar item', () => {
     expect(screen.queryByRole('link', { name: 'Rules' })).not.toBeInTheDocument()
   })
 })
+
+describe('"How do I use this?" replays the guided tour (v41 F28)', () => {
+  /** The shell with a Home that carries the element step 1 lights, so the card appears at once. */
+  function renderTourShell(options: Parameters<typeof renderWithProviders>[1] = {}) {
+    return renderWithProviders(
+      <Routes>
+        <Route element={<Shell />}>
+          <Route path="home" element={<h1 data-tour="steps">Page content</h1>} />
+        </Route>
+      </Routes>,
+      { route: '/home', path: '/*', ...options },
+    )
+  }
+  const replay = () => screen.getByRole('button', { name: 'How do I use this?' })
+
+  it('is a pill at the bottom of the menu, above the role card, and starts the tour from step 1', async () => {
+    renderTourShell()
+    const nav = screen.getByRole('navigation', { name: 'Main navigation' })
+    const button = within(nav).getByRole('button', { name: 'How do I use this?' })
+    expect(button).toHaveTextContent('How do I use this?')
+    // above "Viewing as (demo)"
+    expect(button.compareDocumentPosition(within(nav).getByText('Viewing as (demo)')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    await userEvent.click(button)
+    const card = await screen.findByRole('dialog', { name: 'One line, six steps' })
+    expect(within(card).getByText(/Tour/)).toHaveTextContent('Tour 1 / 13')
+  })
+
+  it('is not offered to a role without a tour (the mystery shopper)', () => {
+    renderTourShell({ role: 'shopper' })
+    expect(screen.queryByRole('button', { name: 'How do I use this?' })).not.toBeInTheDocument()
+  })
+
+  it('has no tour of its own behind it: the shell mounts the tour but it stays closed until it is asked for', async () => {
+    renderTourShell()
+    await new Promise((r) => setTimeout(r, 500))
+    expect(screen.queryByTestId('tour-host')).not.toBeInTheDocument()
+  })
+
+  it('is an icon with a name in the collapsed rail', async () => {
+    renderTourShell()
+    await userEvent.click(screen.getByRole('button', { name: 'Collapse sidebar' }))
+    const button = replay()
+    expect(button).toHaveTextContent('')
+    expect(button.querySelector('svg')).toBeInTheDocument()
+    await userEvent.click(button)
+    expect(await screen.findByRole('dialog', { name: 'One line, six steps' })).toBeInTheDocument()
+  })
+
+  it('speaks Arabic', () => {
+    renderTourShell({ lang: 'ar' })
+    expect(screen.getByRole('button', { name: 'كيف أستخدمه؟' })).toBeInTheDocument()
+  })
+
+  it('is in the phone menu too: the sheet closes, then the tour starts and takes focus', async () => {
+    setViewport('phone')
+    renderTourShell()
+    await userEvent.click(screen.getByRole('button', { name: 'Toggle navigation' }))
+    const sheet = await screen.findByRole('dialog')
+    await userEvent.click(within(sheet).getByRole('button', { name: 'How do I use this?' }))
+    const card = await screen.findByRole('dialog', { name: 'One line, six steps' })
+    await waitFor(() => expect(screen.getAllByRole('dialog')).toHaveLength(1))
+    await waitFor(() => expect(within(card).getByRole('button', { name: 'Next' })).toHaveFocus())
+  })
+})

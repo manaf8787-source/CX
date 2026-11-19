@@ -65,7 +65,7 @@ export function IndicatorCard({ set, product }: { set: IndicatorSet; product: Pr
   const canOpenProduct = canAccessPath(role.id, productPath)
   const canOpenOverview = canAccessPath(role.id, '/overview')
   return (
-    <Card data-product={product.id} style={style} className="min-w-0">
+    <Card data-product={product.id} data-tour="indicator-card" style={style} className="min-w-0">
       <CardHeader>
         <h3 className="t-card-title flex items-center gap-2.5">
           <span aria-hidden className="dot bg-(--c)" />

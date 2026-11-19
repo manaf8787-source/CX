@@ -94,7 +94,7 @@ export default function Inbox() {
               const path = item.target.split('?')[0]
               return {
                 id: item.id,
-                attrs: { 'data-kind': item.kind, 'data-priority': item.priority },
+                attrs: { 'data-kind': item.kind, 'data-priority': item.priority, 'data-tour': 'inbox-row' },
                 title: (
                   <span className="flex items-start gap-3">
                     <span aria-hidden className="material-light inline-grid size-[30px] shrink-0 place-items-center rounded-full [&_svg]:size-4">
@@ -151,7 +151,7 @@ export default function Inbox() {
                   const date = dueDate(item, today, rules)
                   const path = item.target.split('?')[0]
                   return (
-                    <TableRow key={item.id} data-kind={item.kind} data-priority={item.priority}>
+                    <TableRow key={item.id} data-kind={item.kind} data-priority={item.priority} data-tour="inbox-row">
                       <TableCell>
                         {date ? (
                           <div className="flex flex-col items-start gap-1">

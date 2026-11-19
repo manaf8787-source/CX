@@ -42,6 +42,8 @@ export const pageLoaders = {
   aiInsightsAccess: () => import('../pages/settings/AiInsightsAccess'),
   settingsGlossary: () => import('../pages/settings/Glossary'),
   adminSettings: () => import('../pages/settings/AdminSettings'),
+  // v42 (F31): the replay page under Settings and reference.
+  watchTeam: () => import('../pages/settings/WatchTeam'),
 } as const
 
 type LoaderKey = keyof typeof pageLoaders
@@ -59,6 +61,8 @@ const PATH_LOADERS: [prefix: string, keys: LoaderKey[]][] = [
   ['/surveys', ['surveys']],
   ['/intelligent-cx-team', ['intelligentCxTeam']],
   ['/products/', ['productPage']],
+  // before '/settings', which would match it first
+  ['/settings/watch-ai-team', ['settingsLayout', 'watchTeam']],
   ['/settings', ['settingsLayout']],
 ]
 

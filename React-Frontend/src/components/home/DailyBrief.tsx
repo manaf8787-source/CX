@@ -42,7 +42,7 @@ export function DailyBrief({ className, surface = 'dark' }: { className?: string
   const rowLine = dark ? 'relative after:pointer-events-none after:absolute after:inset-x-3 after:bottom-0 after:h-px after:bg-(--on-dark-tint) last:after:hidden' : 'row-divider'
 
   return (
-    <Card variant={dark ? 'dark' : 'default'} className={className}>
+    <Card variant={dark ? 'dark' : 'default'} data-tour="brief" className={className}>
       <CardHeader>
         <CardTitle className="col-span-full flex flex-wrap items-center gap-2 sm:col-span-1">
           <span className="flex flex-wrap items-center gap-2">

@@ -330,7 +330,7 @@ function CreateActionDialog({ pattern, onCancel, onCreate }: { pattern: Pattern;
   // (Agent 5's 14 days when that cell is empty). Here: what approval today would give; the mutation stamps the same date on the proposal.
   const kind = useWatch({ control, name: 'kind' })
   const product = productOfPattern(pattern, signals ?? [])
-  const due = useFixDue({ kind, product, dueDate: '', dueSource: undefined, status: 'proposed' })
+  const due = useFixDue({ kind, product, dueDate: '', dueSource: undefined, status: 'proposed', patternId: pattern.id })
 
   return (
     <Dialog open onOpenChange={(open) => !open && onCancel()}>

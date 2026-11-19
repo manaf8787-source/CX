@@ -185,7 +185,7 @@ export function CustomerList() {
         emptyTitle={q ? `${t('No match for', 'لا توجد نتيجة لـ')} “${q}”` : t('No records in scope.', 'لا توجد سجلات ضمن النطاق.')}
         toolbar={
           <>
-            <div className="relative w-full sm:w-72">
+            <div data-tour="customers-search" className="relative w-full sm:w-72">
               <Search aria-hidden className="pointer-events-none absolute start-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
               <Input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={searchLabel} aria-label={t('Search this list', 'ابحث في هذه القائمة')} className="h-9 ps-9" />
             </div>

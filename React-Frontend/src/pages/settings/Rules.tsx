@@ -139,8 +139,8 @@ export default function Rules() {
       }
       title={t('Decision 4 · The escalation matrix', 'القرار 4 · مصفوفة التصعيد')}
       description={t(
-        'One table per product, a row per kind of fix or case. The product owners fill the cells with the Internal Audit and Marketing Lead by 28 November; the matrix decides who, by title, receives each kind of action, and a fix’s due date comes from its “Resolve (h)”. It is edited on its own page.',
-        'جدول لكل منتج، وصف لكل نوع من الحلول أو الحالات. يملأ مالكو المنتجات الخلايا مع مسؤول التدقيق الداخلي والتسويق بحلول 28 نوفمبر؛ وتحدد المصفوفة من يستلم كل نوع من الإجراءات حسب المسمى، ويأتي موعد الحل من «الحل (ساعة)». تُعدَّل في صفحتها.',
+        'One table per product, a row per kind of fix or case. The cells were set on 19 November by the CX manager; product owners may adjust a title with the Internal Audit and Marketing Lead before 28 November, the clocks stay. The matrix decides who, by title, receives each kind of action, and a fix’s due date comes from its “Resolve (h)” (halved when a VIP is involved). It is edited on its own page.',
+        'جدول لكل منتج، وصف لكل نوع من الحلول أو الحالات. حُدّدت الخلايا في 19 نوفمبر من مدير تجربة العملاء؛ يمكن لمالكي المنتجات تعديل مسمّى مع مسؤول التدقيق الداخلي والتسويق قبل 28 نوفمبر، والمهل ثابتة. وتحدد المصفوفة من يستلم كل نوع من الإجراءات حسب المسمى، ويأتي موعد الحل من «الحل (ساعة)» (منصَّف عند وجود عميل VIP). تُعدَّل في صفحتها.',
       )}
     >
       <ul className="grid grid-cols-1 gap-x-8 gap-y-3 text-sm md:grid-cols-2">
@@ -151,7 +151,7 @@ export default function Rules() {
           </li>
         ))}
       </ul>
-      <p className="t-body-s">{L(MATRIX_COPY.defaultCellsNote)}</p>
+      <p className="t-body-s">{L(MATRIX_COPY.setNote)}</p>
     </SettingsSection>
   )
 

@@ -7,8 +7,10 @@ import {
   useCrmMapping,
   useFeedScope,
   useFeeds,
+  useFixDue,
   useFixMatrixLine,
   useIndicators,
+  useIsVipFix,
   useInbox,
   useInvestigationEvidence,
   useJudgeSample,
@@ -39,7 +41,9 @@ import {
 import { useEnvScope } from './envScope'
 import { usePublicMentions } from './referenceQueries'
 import { AGENT_JDS, PUBLIC_MENTIONS } from '@/data/v38Reference'
-import { RULE_IDS } from '@/utils/ruleValues'
+import { RULE_IDS, rulesFromConfig } from '@/utils/ruleValues'
+import { fixDue } from '@/utils/fixClock'
+import type { MatrixCellRow } from '@/types'
 import { MON_FRI } from '@/utils/workingDays'
 
 const ready = <T,>(q: { data: T | undefined }) => expect(q.data).toBeDefined()
@@ -292,23 +296,43 @@ describe('registers: mapping, matrix, questions, sample, mentions, no answer', (
     await act(() => result.current.save.mutateAsync({ kind: 'src', crmValue: 'Walk In', portalValue: 'branch' }))
   })
 
-  it('edits a matrix cell: the cell stops being a default, the other language keeps its default, the line on a fix reads it', async () => {
+  it('edits a matrix cell: the cell is marked edited, the other language keeps its seeded form, the line on a fix reads it', async () => {
     const { result } = renderHookWithProviders(() => ({ matrix: useMatrix('af'), save: useSaveMatrixCell(), line: useFixMatrixLine({ kind: 'service_behaviour', product: 'af' }) }))
     await waitFor(() => ready(result.current.matrix))
-    const service = () => result.current.matrix.data!.find((r) => r.kind === 'service')!
-    expect(service().isDefault.receiver).toBe(true)
+    const service = () => result.current.matrix.data!.find((r): r is MatrixCellRow => r.kind === 'service')!
+    expect(result.current.matrix.data).toHaveLength(12)
+    expect(service().edited.receiver).toBe(false)
+    expect(service().cells.receiver?.en).toBe('After-Sales team lead')
     await act(() => result.current.save.mutateAsync({ product: 'af', kind: 'service', field: 'receiver', value: 'After-Sales manager', lang: 'en' }))
-    await waitFor(() => expect(service().isDefault.receiver).toBe(false))
-    expect(service().cells.receiver).toEqual({ en: 'After-Sales manager', ar: 'مدير الفريق' })
-    expect(service().isDefault.informed).toBe(true)
+    await waitFor(() => expect(service().edited.receiver).toBe(true))
+    expect(service().cells.receiver).toEqual({ en: 'After-Sales manager', ar: 'قائد فريق ما بعد البيع' })
+    expect(service().edited.informed).toBe(false)
     await act(() => result.current.save.mutateAsync({ product: 'af', kind: 'service', field: 'respondH', value: 18 }))
     await waitFor(() => expect(service().cells.respondH).toBe(18))
     await act(() => result.current.save.mutateAsync({ product: 'af', kind: 'service', field: 'backup', value: null }))
     await waitFor(() => expect(service().cells.backup).toBeNull())
+    expect(service().edited).toMatchObject({ receiver: true, respondH: true, backup: true, informed: false, resolveH: false })
     // Real Estate is untouched: a matrix is per product.
-    expect(mock.MOCK_MATRIX.re.find((r) => r.kind === 'service')?.isDefault.receiver).toBe(true)
+    const reService = mock.MOCK_MATRIX.re.find((r) => r.kind === 'service') as MatrixCellRow
+    expect(reService.edited.receiver).toBe(false)
+    expect(reService.cells.receiver?.en).toBe('Sales manager (environment)')
     await waitFor(() => expect(result.current.line?.row.cells.receiver?.en).toBe('After-Sales manager'))
     expect(result.current.line).toMatchObject({ product: 'af', kind: 'service' })
+    expect(result.current.line?.rule.factor).toBe(0.5)
+  })
+
+  it('an edited clock written in days becomes hours again; the VIP rule row is not editable', async () => {
+    const { result } = renderHookWithProviders(() => ({ matrix: useMatrix('re'), save: useSaveMatrixCell() }))
+    await waitFor(() => ready(result.current.matrix))
+    const shopper = () => result.current.matrix.data!.find((r): r is MatrixCellRow => r.kind === 'shopper_critical')!
+    expect(shopper().cells).toMatchObject({ respondH: 9, resolveH: 45, asDays: { respondH: true, resolveH: true } })
+    await act(() => result.current.save.mutateAsync({ product: 're', kind: 'shopper_critical', field: 'respondH', value: 4 }))
+    await waitFor(() => expect(shopper().cells.respondH).toBe(4))
+    expect(shopper().cells.asDays).toEqual({ resolveH: true }) // the other clock still reads in days
+    await act(() => result.current.save.mutateAsync({ product: 're', kind: 'shopper_critical', field: 'resolveH', value: 27 }))
+    await waitFor(() => expect(shopper().cells.asDays).toBeUndefined())
+    // the VIP row is a rule: there is no cell to save
+    await expect(result.current.save.mutateAsync({ product: 're', kind: 'vip' as never, field: 'respondH', value: 1 })).rejects.toThrow('Matrix row not found')
   })
 
   it('lists question sets per product, empty for a product with none', async () => {
@@ -454,7 +478,7 @@ describe('the environment switch narrows everything (decided 18 Nov)', () => {
   })
 })
 
-describe('a fix\'s clocks (decided 18 Nov)', () => {
+describe('a fix\'s clocks (decided 18 Nov; the cells of 19 Nov, halved for a VIP in v42)', () => {
   const probe = (id: string): import('@/types').CorrectiveAction => ({
     id,
     kind: 'service_behaviour',
@@ -475,9 +499,10 @@ describe('a fix\'s clocks (decided 18 Nov)', () => {
     const { result } = renderHookWithProviders(() => ({ decide: useDecideCorrectiveAction(), status: useSetFixStatus() }), { role: 'cxmgr' })
     const before = Date.now()
     await act(() => result.current.decide.mutateAsync({ id: fix.id, decision: 'approved' }))
-    expect(fix.dueSource).toBe('matrix') // service and behaviour: 45 working hours for every product by default
+    expect(fix.dueSource).toBe('matrix') // Real Estate, service and behaviour: 27 working hours (three working days, 19 Nov set)
     const due = new Date(fix.dueDate)
-    expect(due.getTime()).toBeGreaterThan(before + 4 * 86_400_000) // 45 working hours is five working days, at least four calendar days
+    expect(Math.abs(due.getTime() - Date.parse(fixDue(before, 27, rulesFromConfig(mock.MOCK_RULES_CONFIG)).dueAt))).toBeLessThan(120_000)
+    expect(due.getTime()).toBeGreaterThan(before + 2 * 86_400_000) // 27 working hours is three working days: at least two calendar days
     expect(isWorkingDay(due)).toBe(true)
     expect(due.getHours() + due.getMinutes() / 60).toBeGreaterThanOrEqual(9)
     expect(due.getHours() + due.getMinutes() / 60).toBeLessThanOrEqual(18)
@@ -497,8 +522,36 @@ describe('a fix\'s clocks (decided 18 Nov)', () => {
       expect(fix.dueSource).toBe('fallback')
       expect(Math.abs(Date.parse(fix.dueDate) - (Date.now() + 14 * 86_400_000))).toBeLessThan(60_000)
     } finally {
-      await act(() => result.current.save.mutateAsync({ product: 're', kind: 'service', field: 'resolveH', value: 45 }))
+      await act(() => result.current.save.mutateAsync({ product: 're', kind: 'service', field: 'resolveH', value: 27 }))
     }
+  })
+
+  it('the employee row has no resolve clock (a management note): approval uses Agent 5\'s 14 days, and the preview says so', async () => {
+    const fix = { ...probe('ca-probe-employee'), kind: 'employee' as const }
+    mock.MOCK_CORRECTIVE_ACTIONS.push(fix)
+    const { result } = renderHookWithProviders(() => ({ decide: useDecideCorrectiveAction(), due: useFixDue(fix) }), { role: 'cxmgr' })
+    await waitFor(() => expect(result.current.due).toBeDefined())
+    expect(result.current.due).toMatchObject({ source: 'fallback', preview: true })
+    expect(result.current.due?.hours).toBeUndefined()
+    await act(() => result.current.decide.mutateAsync({ id: fix.id, decision: 'approved' }))
+    expect(fix.dueSource).toBe('fallback')
+    expect(Math.abs(Date.parse(fix.dueDate) - (Date.now() + 14 * 86_400_000))).toBeLessThan(60_000)
+  })
+
+  it('a VIP-related fix is due at HALF the Resolve (h): approval of a Real Estate service fix on the VIP pattern counts 13.5 working hours, not 27', async () => {
+    const vipPattern = mock.MOCK_CORRECTIVE_ACTIONS[0].patternId
+    const fix = { ...probe('ca-probe-vip'), patternId: vipPattern }
+    const plain = { ...probe('ca-probe-plain'), patternId: mock.MOCK_CORRECTIVE_ACTIONS[1].patternId }
+    mock.MOCK_CORRECTIVE_ACTIONS.push(fix, plain)
+    const rules = rulesFromConfig(mock.MOCK_RULES_CONFIG)
+    const { result } = renderHookWithProviders(() => ({ decide: useDecideCorrectiveAction() }), { role: 'cxmgr' })
+    const before = Date.now()
+    await act(() => result.current.decide.mutateAsync({ id: fix.id, decision: 'approved' }))
+    await act(() => result.current.decide.mutateAsync({ id: plain.id, decision: 'approved' }))
+    expect(fix.dueSource).toBe('matrix')
+    expect(Math.abs(Date.parse(fix.dueDate) - Date.parse(fixDue(before, 13.5, rules).dueAt))).toBeLessThan(120_000)
+    expect(Math.abs(Date.parse(plain.dueDate) - Date.parse(fixDue(before, 27, rules).dueAt))).toBeLessThan(120_000)
+    expect(Date.parse(fix.dueDate)).toBeLessThan(Date.parse(plain.dueDate))
   })
 
   it('a decision that is not an approval leaves the due date alone', async () => {
@@ -512,7 +565,6 @@ describe('a fix\'s clocks (decided 18 Nov)', () => {
   })
 
   it('useFixDue previews the due date before approval and shows the stored one after', async () => {
-    const { useFixDue } = await import('./queriesV40')
     const { result: fresh } = renderHookWithProviders(() => useFixDue({ kind: 'training_gap', product: 're', dueDate: new Date().toISOString(), dueSource: undefined, status: 'proposed' }))
     await waitFor(() => expect(fresh.current).toBeDefined())
     expect(fresh.current).toMatchObject({ source: 'matrix', preview: true, hours: 90 }) // training gap: 90 working hours
@@ -529,6 +581,34 @@ describe('a fix\'s clocks (decided 18 Nov)', () => {
     expect(waiting.current!.dueAt).not.toBe(stored)
   })
 
+  it('useIsVipFix and the due preview: the first sample fix (its pattern includes a person tagged VIP) is VIP and its preview is halved; the second is not', async () => {
+    const [vipFix, otherFix] = mock.MOCK_CORRECTIVE_ACTIONS
+    const { result } = renderHookWithProviders(() => ({
+      vip: useIsVipFix(vipFix),
+      other: useIsVipFix(otherFix),
+      none: useIsVipFix({ patternId: undefined }),
+      unknown: useIsVipFix({ patternId: 'no-such-pattern' }),
+      // the same kind and product for both, so only the VIP rule differs: training gap, Real Estate, 90 working hours
+      vipDue: useFixDue({ kind: 'training_gap', product: 're', dueDate: '', dueSource: undefined, status: 'proposed', patternId: vipFix.patternId }),
+      otherDue: useFixDue({ kind: 'training_gap', product: 're', dueDate: '', dueSource: undefined, status: 'proposed', patternId: otherFix.patternId }),
+    }))
+    await waitFor(() => expect(result.current.vip).toBe(true))
+    expect(result.current.other).toBe(false)
+    expect(result.current.none).toBe(false)
+    expect(result.current.unknown).toBe(false)
+    await waitFor(() => expect(result.current.vipDue).toMatchObject({ preview: true, source: 'matrix', hours: 45, vip: true }))
+    expect(result.current.otherDue).toMatchObject({ preview: true, source: 'matrix', hours: 90 })
+    expect(result.current.otherDue?.vip).toBeUndefined()
+    expect(Date.parse(result.current.vipDue!.dueAt)).toBeLessThan(Date.parse(result.current.otherDue!.dueAt))
+  })
+
+  it('a stored due date is shown as it is, VIP or not (the halving happened at approval)', () => {
+    const stored = '2026-12-01T10:00:00.000Z'
+    const vipFix = mock.MOCK_CORRECTIVE_ACTIONS[0]
+    const { result } = renderHookWithProviders(() => useFixDue({ kind: 'legal_privacy', product: 'wl', dueDate: stored, dueSource: 'matrix', status: 'approved', patternId: vipFix.patternId }))
+    expect(result.current).toEqual({ dueAt: stored, source: 'matrix', preview: false })
+  })
+
   it('createActionFromPattern computes the due date from the matrix itself (no caller argument)', async () => {
     const { useCreateActionFromPattern } = await import('./queries')
     const pattern = mock.MOCK_PATTERNS?.[0]
@@ -536,9 +616,12 @@ describe('a fix\'s clocks (decided 18 Nov)', () => {
     const { result } = renderHookWithProviders(() => useCreateActionFromPattern(), { role: 'cxmgr' })
     const before = mock.MOCK_CORRECTIVE_ACTIONS.length
     const created = await act(() => result.current.mutateAsync({ pattern: pattern!, kind: 'training_gap', owner: 'L&D manager' }))
-    // training gap: 90 working hours (10 working days at 9 h) from now: in the future, a working day, not the 14-day fallback unless the cell is empty
-    const days = (Date.parse(created.dueDate) - Date.now()) / 86_400_000
-    expect(days).toBeGreaterThan(9)
+    // training gap: 90 working hours for Real Estate and After-Sales, 45 for the others (19 Nov set), halved when the pattern has a VIP;
+    // the first pattern is the VIP one. In the future, not the 14-day fallback.
+    const base = created.product === 're' || created.product === 'af' ? 90 : 45
+    const rules = rulesFromConfig(mock.MOCK_RULES_CONFIG)
+    expect(Math.abs(Date.parse(created.dueDate) - Date.parse(fixDue(new Date(), base / 2, rules).dueAt))).toBeLessThan(120_000)
+    expect(Date.parse(created.dueDate)).toBeGreaterThan(Date.now())
     expect(created.dueSource).toBeUndefined()
     expect(created.status).toBe('proposed')
     mock.MOCK_CORRECTIVE_ACTIONS.length = before

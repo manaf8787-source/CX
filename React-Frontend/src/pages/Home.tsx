@@ -21,6 +21,7 @@ import { DailyBrief } from '@/components/home/DailyBrief'
 import { IndicatorCard } from '@/components/home/IndicatorCard'
 import { StartHere } from '@/components/home/StartHere'
 import { StepLine } from '@/components/home/StepLine'
+import { WatchTeamButton } from '@/components/home/WatchTeamButton'
 import { WorkToday } from '@/components/home/WorkToday'
 
 /**
@@ -63,6 +64,7 @@ export default function Home() {
               <SampleBanner>{L(HOME_COPY.tag)}</SampleBanner>
             </div>
             <StepLine />
+            <WatchTeamButton />
           </CardContent>
         </Card>
       </header>

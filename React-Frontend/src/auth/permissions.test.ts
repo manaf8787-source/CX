@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { FOLDED_ROLE_IDS, MAIN_ROLE_IDS, ROLE_DEFS, mainRoleDefs, roleDef } from '@/data/roles'
-import { CUSTOMERS_TABS, LEGACY_REDIRECTS, PRIMARY_NAV, SETTINGS_NAV, legacyRedirect } from '@/data/nav'
+import { CUSTOMERS_TABS, LEGACY_REDIRECTS, PRIMARY_NAV, SETTINGS_LANDING, SETTINGS_NAV, legacyRedirect } from '@/data/nav'
 import type { RoleId } from '@/types'
 import { ROLE_PATHS, canAccessPath, canOpenPage, canUseAssistant, firstAllowedUnder } from './access'
 import {
@@ -134,6 +134,13 @@ describe('v40 page access per role (F35)', () => {
     expect(open('/settings/public-mentions')).toEqual(sorted('cxmgr', 'cxteam', 'auditmkt', 'exec', 'marketing'))
   })
 
+  it('Watch the AI team work (v42 F31): CX manager, CX team, environment management, Marketing, Internal Audit and Marketing Lead, Executive', () => {
+    expect(open('/settings/watch-ai-team')).toEqual(sorted('cxmgr', 'cxteam', 'envmgmt', 'marketing', 'auditmkt', 'exec'))
+    // every role that can open the AI team page can open the replay (the prototype adds it for exactly those roles)
+    for (const r of open('/intelligent-cx-team')) expect(canOpenPage(r, '/settings/watch-ai-team'), r).toBe(true)
+    for (const r of ['teamlead', 'aslead', 'ld', 'hrspec', 'hrmgr', 'shopper'] as RoleId[]) expect(canOpenPage(r, '/settings/watch-ai-team'), r).toBe(false)
+  })
+
   it('Surveys and triggers moved to /settings/surveys: CX, Executive, Internal Audit and Marketing Lead, After-Sales lead, environment management', () => {
     expect(open('/settings/surveys')).toEqual(sorted('cxmgr', 'cxteam', 'exec', 'auditmkt', 'aslead', 'envmgmt'))
   })
@@ -216,7 +223,8 @@ describe('v40 menu and sign-in roles (F08, F28)', () => {
   it('the Settings and reference list is flat, in the v40 order, with no duplicates, and every page is open to the CX manager', () => {
     const paths = SETTINGS_NAV.map((i) => i.path)
     expect(new Set(paths).size).toBe(paths.length)
-    expect(paths.slice(0, 3)).toEqual(['/intelligent-cx-team', '/settings/weekly-sample', '/settings/public-mentions'])
+    // v42 (F31): "Watch the AI team work" is listed right after the AI team page
+    expect(paths.slice(0, 4)).toEqual(['/intelligent-cx-team', '/settings/watch-ai-team', '/settings/weekly-sample', '/settings/public-mentions'])
     expect(paths).toContain('/settings/surveys')
     expect(paths).toContain('/settings/feeds')
     expect(paths).not.toContain('/settings/overview')
@@ -226,9 +234,22 @@ describe('v40 menu and sign-in roles (F08, F28)', () => {
   })
 
   it('the first allowed page under Settings is found for a role with only a v40 page', () => {
-    expect(firstAllowedUnder('marketing', '/settings', SETTINGS_NAV.map((i) => i.path))).toBe('/settings/public-mentions')
-    expect(firstAllowedUnder('auditmkt', '/settings', SETTINGS_NAV.map((i) => i.path))).toBe('/settings/weekly-sample')
-    expect(firstAllowedUnder('teamlead', '/settings', SETTINGS_NAV.map((i) => i.path))).toBe('/settings/glossary') // only the glossary, which is open to all
+    // SETTINGS_LANDING is what `/settings` redirects with: the menu without the demo page (v42), so landing did not change
+    expect(firstAllowedUnder('marketing', '/settings', SETTINGS_LANDING)).toBe('/settings/public-mentions')
+    expect(firstAllowedUnder('auditmkt', '/settings', SETTINGS_LANDING)).toBe('/settings/weekly-sample')
+    expect(firstAllowedUnder('cxmgr', '/settings', SETTINGS_LANDING)).toBe('/settings/weekly-sample')
+    expect(firstAllowedUnder('envmgmt', '/settings', SETTINGS_LANDING)).toBe('/settings/surveys')
+    expect(firstAllowedUnder('teamlead', '/settings', SETTINGS_LANDING)).toBe('/settings/glossary') // only the glossary, which is open to all
+  })
+
+  it('"Watch the AI team work" (v42 F31) is a demo page: in the menu, never a landing page', () => {
+    expect(SETTINGS_NAV.find((i) => i.path === '/settings/watch-ai-team')).toEqual({
+      path: '/settings/watch-ai-team',
+      label: { en: 'Watch the AI team work', ar: 'شاهد فريق الذكاء يعمل' },
+      skipLanding: true,
+    })
+    expect(SETTINGS_LANDING).not.toContain('/settings/watch-ai-team')
+    expect(SETTINGS_LANDING).toHaveLength(SETTINGS_NAV.length - 1)
   })
 
   it('old URLs redirect: /surveys and /settings/overview (children and the rest of the path are kept)', () => {

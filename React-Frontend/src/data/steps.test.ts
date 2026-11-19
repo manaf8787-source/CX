@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { CLOSE_LOOP_NEXT, OVERVIEW_NEXT, STEPS, TRACE_COPY, TRACE_NEXT, actionsNext, fixNext, journeyNext, stepById } from './steps'
+import { CLOSE_LOOP_NEXT, OVERVIEW_NEXT, REJECTED_FIX_NEXT, STEPS, TRACE_COPY, TRACE_NEXT, actionsNext, fixNext, journeyNext, stepById } from './steps'
 import { agentChipLabel, supervisorChipLabel } from '@/lib/agents'
 
 describe('the six steps (v40 S1)', () => {
@@ -26,7 +26,18 @@ describe('"where you are, what happens next" (v40 S2)', () => {
     expect(fixNext('effective')).toMatchObject({ step: 'vr', text: { en: 'Nothing. It worked; it stays in the report as a fix that worked' } })
     expect(fixNext('effective').due).toBeUndefined()
     expect(fixNext('failed').text.en).toBe('The signal reopens and a new fix is proposed')
-    expect(fixNext('partial').text.en).toBe('Closed with a reason; nothing further')
+    // v40.1 (prototype caNext): a partial fix asks for a second step, a new fix on the same pattern, within the approval window
+    expect(fixNext('partial')).toMatchObject({
+      step: 'ca',
+      text: { en: 'The owner proposes a second step; the CX manager approves it as a new fix on the same pattern', ar: 'المالك يقترح خطوة ثانية؛ مدير CX يعتمدها كحل جديد على النمط نفسه' },
+      due: { en: 'within 5 working days', ar: 'خلال 5 أيام عمل' },
+    })
+    expect(fixNext('partial', { approveDays: 3 }).due?.en).toBe('within 3 working days')
+  })
+
+  it('a rejected proposal reads the closing sentence, on step Fix', () => {
+    expect(REJECTED_FIX_NEXT).toMatchObject({ step: 'ca', text: { en: 'Closed with a reason; nothing further', ar: 'أُغلق بسبب؛ لا شيء بعده' } })
+    expect(REJECTED_FIX_NEXT.due).toBeUndefined()
   })
 
   it('keeps 60 days, never 30 (the prototype\'s stale label), and follows the rules', () => {

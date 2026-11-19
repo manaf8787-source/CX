@@ -30,9 +30,10 @@ import { AGENT_JDS, CES_SAMPLE } from '../data/v38Reference'
 import { publicReplyBreaches } from '../data/publicMentions'
 import { applyApprovalClock, applyDoneClock } from './fixClockStore'
 import { fixDue } from '../utils/fixClock'
+import { dueHours, patternHasVip } from '../utils/vipClock'
 import { agentPassRates, syncSampleEffects } from '../utils/passRate'
 import { summariseFeeds } from '../data/feeds'
-import { MATRIX_KEY_BY_FIX_KIND } from '../data/escalationDefaults'
+import { MATRIX_KEY_BY_FIX_KIND, VIP_FACTOR } from '../data/escalationDefaults'
 import { classifyRunaway } from '../utils/runaway'
 import { recoveryRate } from '../utils/closeTheLoop'
 import { buildInbox, workTodayStats } from '../utils/inbox'
@@ -57,9 +58,11 @@ import type {
   IndicatorSet,
   InboxItem,
   MappingKind,
+  MatrixCellKind,
+  MatrixCellRow,
   MatrixField,
-  MatrixKind,
   MatrixRow,
+  MatrixRuleRow,
   ProductId,
   RoleId,
   SupervisorTest,
@@ -156,74 +159,76 @@ export function useConfirmMapping() {
 
 // --- Escalation matrix (F22) -----------------------------------------------------------------------------
 
-/** The ten rows of one product's matrix (default Real Estate), every cell with its `isDefault` flag. */
+/** A copy of a row, so a component never holds the store's own object. */
+function copyMatrixRow(r: MatrixRow): MatrixRow {
+  if (r.kind === 'vip') return { ...r, rule: { ...r.rule } }
+  return { ...r, cells: { ...r.cells, ...(r.cells.asDays ? { asDays: { ...r.cells.asDays } } : {}) }, edited: { ...r.edited } }
+}
+
+/** The twelve rows of one product's matrix (default Real Estate): eleven with cells, each with its `edited` flags, then the VIP rule. */
 export const useMatrix = (product: ProductId = 're') =>
   useQuery({
     queryKey: ['matrix', product],
     queryFn: async (): Promise<MatrixRow[]> => {
       await latency(LATENCY_MS)
-      return mock.MOCK_MATRIX[product].map((r) => ({ ...r, cells: { ...r.cells }, isDefault: { ...r.isDefault }, ...(r.confirmed ? { confirmed: { ...r.confirmed } } : {}) }))
+      return mock.MOCK_MATRIX[product].map(copyMatrixRow)
     },
   })
 
 /**
- * Edit one cell. Text cells take a string typed in the active language (the other language keeps its
- * default until someone edits it) or null for "nobody"; the clock cells take a number of working hours or null.
+ * Edit one cell of a row that holds cells (the VIP row is a rule and is not edited). Text cells take a string typed in the active
+ * language (the other language keeps its seeded form until someone edits it) or null for "nobody"; the clock cells take a number of
+ * working hours or null. The cell is marked `edited`; a clock the document wrote in days becomes hours again.
  */
 export function useSaveMatrixCell() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async (input: { product: ProductId; kind: MatrixKind; field: MatrixField; value: string | number | null; lang?: Lang }) => {
+    mutationFn: async (input: { product: ProductId; kind: MatrixCellKind; field: MatrixField; value: string | number | null; lang?: Lang }) => {
       await latency(LATENCY_MS)
       const row = mock.MOCK_MATRIX[input.product].find((r) => r.kind === input.kind)
-      if (!row) throw new Error('Matrix row not found')
+      if (!row || row.kind === 'vip') throw new Error('Matrix row not found')
       if (input.field === 'respondH' || input.field === 'resolveH') {
         row.cells[input.field] = typeof input.value === 'number' ? input.value : null
+        if (row.cells.asDays) {
+          delete row.cells.asDays[input.field]
+          if (Object.keys(row.cells.asDays).length === 0) delete row.cells.asDays
+        }
       } else {
         const text = typeof input.value === 'string' ? input.value.trim() : ''
         const current = row.cells[input.field]
         row.cells[input.field] = text ? { en: input.lang === 'ar' ? (current?.en ?? text) : text, ar: input.lang === 'ar' ? text : (current?.ar ?? text) } : null
       }
-      row.isDefault[input.field] = false
-      // An edit replaces the value, so an earlier confirmation of the default no longer applies.
-      if (row.confirmed) delete row.confirmed[input.field]
-      return { ...row, cells: { ...row.cells }, isDefault: { ...row.isDefault } }
+      row.edited[input.field] = true
+      return copyMatrixRow(row)
     },
     onSuccess: (_row, v) => qc.invalidateQueries({ queryKey: ['matrix', v.product] }),
   })
 }
 
 /**
- * "Confirm default": an owner accepts a cell that still holds its default as it stands. The cell stops being a default (its
- * `[Proposed]` badge goes) and the row records who confirmed it and when (`confirmed`, in the mock store; the page shows it).
- * Only a cell still at its default can be confirmed. The CX manager and the Internal Audit and Marketing Lead only (the page
- * enforces it with `canEditEscalationMatrix`).
+ * True when the fix's pattern includes a person tagged VIP in the CRM (v42 F30, `utils/vipClock.ts`): its clocks are halved. Reads the
+ * same patterns, signals and people as the pages. False while they load, and for a fix with no pattern.
  */
-export function useConfirmMatrixCell() {
-  const qc = useQueryClient()
-  const { role } = useRole()
-  return useMutation({
-    mutationFn: async (input: { product: ProductId; kind: MatrixKind; field: MatrixField; byRole?: RoleId }) => {
-      await latency(LATENCY_MS)
-      const row = mock.MOCK_MATRIX[input.product].find((r) => r.kind === input.kind)
-      if (!row) throw new Error('Matrix row not found')
-      if (!row.isDefault[input.field]) throw new Error('Only a cell still at its default can be confirmed')
-      row.isDefault[input.field] = false
-      row.confirmed = { ...row.confirmed, [input.field]: { at: new Date().toISOString(), byRole: input.byRole ?? role.id } }
-      return { ...row, cells: { ...row.cells }, isDefault: { ...row.isDefault }, confirmed: { ...row.confirmed } }
-    },
-    onSuccess: (_row, v) => qc.invalidateQueries({ queryKey: ['matrix', v.product] }),
-  })
+export function useIsVipFix(fix?: Partial<Pick<CorrectiveAction, 'patternId'>>): boolean {
+  const { data: patterns } = usePatternsAll()
+  const { data: signals } = useSignalsAll()
+  const { data: persons } = usePersonsAll()
+  const patternId = fix?.patternId
+  return useMemo(() => !!patternId && !!patterns && !!signals && !!persons && patternHasVip(patterns.find((p) => p.id === patternId), signals, persons), [patternId, patterns, signals, persons])
 }
 
-/** The line on a fix before the Classification card: the fix's product, its kind's row. Undefined until loaded. */
+/**
+ * The line on a fix before the Classification card: the fix's product, its kind's row, and the product's VIP rule. Undefined until
+ * loaded. The line shows the row's own cells; for a VIP-related fix (`useIsVipFix`) the caller applies the rule (`effectiveCells`).
+ */
 export function useFixMatrixLine(fix?: Pick<CorrectiveAction, 'kind' | 'product'>): FixMatrixLine | undefined {
   const product = fix?.product ?? 're'
   const { data } = useMatrix(product)
   if (!fix || !data) return undefined
   const kind = MATRIX_KEY_BY_FIX_KIND[fix.kind]
-  const row = data.find((r) => r.kind === kind)
-  return row ? { product, kind, row } : undefined
+  const row = data.find((r): r is MatrixCellRow => r.kind === kind)
+  const rule = data.find((r): r is MatrixRuleRow => r.kind === 'vip')
+  return row && rule ? { product, kind, row, rule: rule.rule } : undefined
 }
 
 // --- Survey questions (F23) -----------------------------------------------------------------------------------
@@ -582,26 +587,31 @@ export const useSupervisorTests = () =>
 // --- Fix clocks (decided 18 Nov) -------------------------------------------------------------------------------------
 
 /** A due date held on the fix: the matrix or the fallback (written by approval), or `recorded` (a sample fix that holds a date and no source). */
-export type FixDueView = Omit<FixDue, 'source'> & { source: FixDue['source'] | 'recorded'; preview: boolean }
+export type FixDueView = Omit<FixDue, 'source'> & { source: FixDue['source'] | 'recorded'; preview: boolean; /** The preview was halved because the fix is VIP-related (v42). */ vip?: boolean }
 
 /**
  * The due date of a fix. A fix that holds one returns it: approval writes it with its source (`dueSource` 'matrix' or
  * 'fallback'), and a fix past the proposal (approved, in progress, checked) keeps its stored date even when it has no source
  * (a sample fix: `source` 'recorded'). Only when there is none to show, a fix still waiting for its yes (or a form with no
  * date), the hook previews what approval now would give: the matrix "Resolve (h)" for its product and kind in working hours,
- * or Agent 5's 14 days when the cell is empty. `preview` says which. Undefined until the matrix has loaded.
+ * HALVED when the fix is VIP-related (its `patternId` includes a person tagged VIP in the CRM, v42), or Agent 5's 14 days when
+ * the cell is empty (the employee row by design: a management note has no resolve clock). `preview` says which. Undefined until
+ * the matrix has loaded.
  */
-export function useFixDue(fix?: Pick<CorrectiveAction, 'kind' | 'product' | 'dueDate' | 'dueSource'> & Partial<Pick<CorrectiveAction, 'status'>>): FixDueView | undefined {
+export function useFixDue(fix?: Pick<CorrectiveAction, 'kind' | 'product' | 'dueDate' | 'dueSource'> & Partial<Pick<CorrectiveAction, 'status' | 'patternId'>>): FixDueView | undefined {
   const rules = useRules()
   const now = useNow()
   const { data: rows } = useMatrix(fix?.product ?? 're')
+  const vip = useIsVipFix(fix)
   if (!fix) return undefined
   if (fix.dueSource) return { dueAt: fix.dueDate, source: fix.dueSource, preview: false }
   // A proposed fix's stored date is only the placeholder from when it was proposed; past the proposal the stored date is the fix's own.
   if (fix.dueDate && fix.status !== undefined && fix.status !== 'proposed') return { dueAt: fix.dueDate, source: 'recorded', preview: false }
   if (!rows) return undefined
-  const resolveH = rows.find((r) => r.kind === MATRIX_KEY_BY_FIX_KIND[fix.kind])?.cells.resolveH ?? null
-  return { ...fixDue(now, resolveH, rules), preview: true }
+  const row = rows.find((r): r is MatrixCellRow => r.kind === MATRIX_KEY_BY_FIX_KIND[fix.kind])
+  const rule = rows.find((r): r is MatrixRuleRow => r.kind === 'vip')
+  const resolveH = dueHours(row?.cells.resolveH ?? null, rule?.rule ?? { factor: VIP_FACTOR }, vip)
+  return { ...fixDue(now, resolveH, rules), preview: true, ...(vip ? { vip } : {}) }
 }
 
 // --- Public mentions (F30) -------------------------------------------------------------------------------------------

@@ -223,6 +223,10 @@ export interface CorrectiveAction {
   dueSource?: 'matrix' | 'fallback'
   /** v40: the environment of a fix that has no pattern (an AI Insights proposal). A fix with a pattern takes the environments of the pattern's signals. Absent and without a pattern = every environment. */
   envId?: EnvId
+  /** v40.1 (decision 3): the fix this one is the second step of, after a partial or failed 60-day check. Same pattern, kind, owner and product. */
+  parentFixId?: string
+  /** v40.1: the verdict on the parent when the second step was requested (kept, because the parent may be accepted as is afterwards). */
+  parentOutcome?: 'partial' | 'failed'
 }
 
 /** FR-4.2 — "How the AI found this", one per corrective action: sources,
@@ -297,6 +301,8 @@ export interface Investigation {
   proposedFixId?: string
   /** v40: environment of an investigation without a pattern. With a pattern it takes the environments of the pattern's signals. */
   envId?: EnvId
+  /** v40.1: why it was opened when it was not the standard request, e.g. "Requested from CA-201 after a partial result." */
+  note?: Bi
 }
 
 // --- Close the loop ----------------------------------------------------

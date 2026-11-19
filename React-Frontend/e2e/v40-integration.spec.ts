@@ -4,7 +4,7 @@ import { expectPageReady, signInAs, waitForAnimations, type RoleId } from './hel
 
 /**
  * The v39/v40 integration pass (docs/IMPLEMENTATION_REPORT.md section 14): the Daily brief on the landing pages of the roles that land
- * outside Home, the fix cards that fold their details, the matrix "Confirm default", the CRM mapping "Confirm", the owner titles in
+ * outside Home, the fix cards that fold their details, the matrix cells (set 19 Nov: nothing left to confirm), the CRM mapping "Confirm", the owner titles in
  * Arabic, an AI campaign row's hand-over after 2 no-answers, and the timeline anchor that takes focus.
  */
 
@@ -93,20 +93,18 @@ test.describe('the fix cards fold their details', () => {
 })
 
 test.describe('confirm what is still a default', () => {
-  test('the escalation matrix: "Confirm default" clears that cell’s [Proposed] and shows who confirmed it', async ({ page }) => {
+  test('the escalation matrix is decided (set 19 Nov): no [Proposed], no "Confirm default" button, for the CX manager and for a role that only reads', async ({ page }) => {
     await open(page, 'cxmgr', '/settings/escalation-matrix')
-    const table = page.getByRole('table')
-    await expect(table.getByText('[Proposed]')).toHaveCount(50, { timeout: 15_000 })
-    await table.getByRole('button', { name: 'Confirm default: Legal and privacy · First receiver' }).click()
-    await expect(table.getByText('[Proposed]')).toHaveCount(49)
-    await expect(table.getByTestId('matrix-confirmed')).toContainText('Confirmed')
+    await expect(page.getByRole('table').getByRole('row')).toHaveCount(13, { timeout: 15_000 })
+    await expect(page.getByText('[Proposed]')).toHaveCount(0)
+    await expect(page.getByRole('button', { name: /Confirm default/ })).toHaveCount(0)
     await expect(page.getByRole('textbox', { name: 'Legal and privacy · First receiver' })).toHaveValue('Legal')
-  })
-
-  test('the matrix: roles that only read have no "Confirm default" button', async ({ page }) => {
-    await open(page, 'cxteam', '/settings/escalation-matrix')
-    await expect(page.getByRole('table').getByText('[Proposed]')).toHaveCount(50, { timeout: 15_000 })
-    await expect(page.getByRole('button', { name: /^Confirm default/ })).toHaveCount(0)
+    await expect(page.getByTestId('matrix-set-note')).toContainText('Set 19 Nov · titles adjustable until 28 Nov')
+    const reader = await page.context().newPage()
+    await open(reader, 'cxteam', '/settings/escalation-matrix')
+    await expect(reader.getByRole('table').getByRole('row')).toHaveCount(13, { timeout: 15_000 })
+    await expect(reader.getByText('[Proposed]')).toHaveCount(0)
+    await expect(reader.getByRole('button', { name: /Confirm default/ })).toHaveCount(0)
   })
 
   test('the CRM mapping: "Confirm" clears one row’s [Proposed]', async ({ page }) => {

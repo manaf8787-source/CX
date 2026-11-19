@@ -1,13 +1,15 @@
 import { useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { CalendarClock, CheckCheck, ChevronDown, FileSearch, Gavel, Package, Play, Route, UserRound } from 'lucide-react'
+import { CalendarClock, CheckCheck, ChevronDown, FileSearch, Gavel, Package, Play, Route, Star, UserRound } from 'lucide-react'
 import { toast } from 'sonner'
 import { useI18n } from '@/i18n'
 import { useRole } from '@/auth/RoleContext'
 import { canAccessPath } from '@/auth/access'
 import { canActOnCorrectiveAction } from '@/auth/permissions'
-import { useFixDue, useRules, useSetFixStatus } from '@/services/queriesV40'
+import { useFixDue, useIsVipFix, useRules, useSetFixStatus } from '@/services/queriesV40'
 import { ACTION_KIND } from '@/lib/actionKinds'
+import { MATRIX_COPY } from '@/data/escalationDefaults'
+import { formatHours } from '@/utils/matrixFormat'
 import { PRODUCTS } from '@/data/products'
 import { ownerTitle } from '@/data/ownerTitles'
 import { CORRECTIVE_STATUS_LABEL } from '@/lib/status'
@@ -30,6 +32,7 @@ import { HowAiFoundThis } from './HowAiFoundThis'
 import { MatrixLine } from './MatrixLine'
 import { AuditTrail } from './AuditTrail'
 import { fixNextStep, isAiMadeFix } from './fixNextStep'
+import { FixLineage, FixVerdictSection } from './FixVerdict'
 
 const DECISION_LABEL = {
   modified: { en: 'Modified', ar: 'معدّل' },
@@ -67,6 +70,7 @@ export function FixCard({ fix: a, pattern, selected, now, onDecide, open, onOpen
   const { role } = useRole()
   const rules = useRules()
   const due = useFixDue(a)
+  const vip = useIsVipFix(a)
   const setStatus = useSetFixStatus()
   const itemRef = useRef<HTMLLIElement>(null)
   const headingRef = useRef<HTMLHeadingElement>(null)
@@ -93,7 +97,7 @@ export function FixCard({ fix: a, pattern, selected, now, onDecide, open, onOpen
 
   const action = canAct ? (
     a.status === 'proposed' && !a.sentToInvestigation && a.decision !== 'rejected' ? (
-      <Button size="sm" onClick={() => onDecide(a.id)}>
+      <Button size="sm" onClick={() => onDecide(a.id)} data-tour="fix-decide">
         <Gavel aria-hidden />
         {t('Decide', 'اتخاذ قرار')}
       </Button>
@@ -113,14 +117,17 @@ export function FixCard({ fix: a, pattern, selected, now, onDecide, open, onOpen
   // The date the fix is due, from the hook: the stored one when the fix holds one (approved, or a sample fix), the preview of what
   // approval now would give while it waits for its yes. `due.preview` says which.
   const dueIso = due?.dueAt ?? a.dueDate
+  // v42: a VIP-related fix has half the row's Resolve (h); a row with no resolve clock (the employee row: a management note, measured by the
+  // 60-day check) falls back to Agent 5's 14 days and says so.
+  const halved = vip ? { en: ', halved for the VIP', ar: '، منصَّفة لعميل VIP' } : { en: '', ar: '' }
   const dueHint: Bi | null = due?.preview
     ? due.source === 'matrix'
-      ? { en: `if approved today: matrix Resolve ${due.hours ?? '–'} h, in working hours`, ar: `إن اعتُمد اليوم: الحل حسب المصفوفة ${due.hours ?? '–'} ساعة عمل` }
-      : { en: 'if approved today: the matrix cell is empty, so the 14-day fallback', ar: 'إن اعتُمد اليوم: خلية المصفوفة فارغة، فالبديل 14 يوماً' }
+      ? { en: `if approved today: matrix Resolve ${formatHours(due.hours ?? 0)} h${halved.en}, in working hours`, ar: `إن اعتُمد اليوم: الحل حسب المصفوفة ${formatHours(due.hours ?? 0)} ساعة عمل${halved.ar}` }
+      : { en: `if approved today: ${MATRIX_COPY.noResolveClock.en}`, ar: `إن اعتُمد اليوم: ${MATRIX_COPY.noResolveClock.ar}` }
     : due?.source === 'matrix'
-      ? { en: 'from the matrix Resolve (h), in working hours from approval', ar: 'من حقل الحل (ساعة) في المصفوفة، بساعات العمل من الاعتماد' }
+      ? { en: `from the matrix Resolve (h)${halved.en}, in working hours from approval`, ar: `من حقل الحل (ساعة) في المصفوفة${halved.ar}، بساعات العمل من الاعتماد` }
       : due?.source === 'fallback'
-        ? { en: 'the matrix cell was empty: Agent 5’s 14-day fallback', ar: 'كانت خلية المصفوفة فارغة: البديل 14 يوماً من الوكيل 5' }
+        ? MATRIX_COPY.noResolveClock
         : null
 
   return (
@@ -130,6 +137,7 @@ export function FixCard({ fix: a, pattern, selected, now, onDecide, open, onOpen
       data-density="comfortable"
       className={cn('surface-card flex scroll-mt-24 flex-col gap-5 p-(--card-pad)', selected && 'ring-selected')}
       data-fix={caId(a.id)}
+      data-tour="fix-card"
       data-selected={selected ? 'true' : undefined}
     >
       <NextBox next={next} who={L(ownerTitle(a.owner))} action={action} />
@@ -138,8 +146,15 @@ export function FixCard({ fix: a, pattern, selected, now, onDecide, open, onOpen
         <div className="flex flex-wrap items-center gap-2">
           <TraceId kind="fix" id={a.id} plain />
           <StatusBadge tone="neutral">{L(ACTION_KIND[a.kind].label)}</StatusBadge>
-          <StatusBadge tone={a.status === 'effective' ? 'success' : a.status === 'failed' ? 'danger' : 'neutral'}>{L(CORRECTIVE_STATUS_LABEL[a.status])}</StatusBadge>
+          <StatusBadge tone={a.status === 'effective' ? 'success' : a.status === 'failed' ? 'danger' : a.status === 'partial' ? 'warning' : 'neutral'}>{L(CORRECTIVE_STATUS_LABEL[a.status])}</StatusBadge>
           {a.fromInsight && <StatusBadge tone="neutral">{t('From AI Insights', 'من رؤى الذكاء الاصطناعي')}</StatusBadge>}
+          {vip && (
+            <span data-testid="fix-vip-tag">
+              <StatusBadge tone="warning" icon={<Star aria-hidden />}>
+                {L(MATRIX_COPY.vipTag)}
+              </StatusBadge>
+            </span>
+          )}
         </div>
         <h2 ref={headingRef} tabIndex={-1} className="t-card-title outline-hidden focus-visible:[--tw-ring-shadow:0_0_#0000]">
           {L(a.title)}
@@ -155,6 +170,7 @@ export function FixCard({ fix: a, pattern, selected, now, onDecide, open, onOpen
             {a.source && <EvidenceTag investigationId={a.source.investigationId} />}
           </p>
         )}
+        <FixLineage fix={a} />
       </div>
 
       <div className="well flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
@@ -208,6 +224,9 @@ export function FixCard({ fix: a, pattern, selected, now, onDecide, open, onOpen
         </div>
       )}
 
+      {/* v40.1: the verdict buttons (60-day check) and decision 3 (partial or failed): the CX manager and the CX team only. */}
+      <FixVerdictSection fix={a} pattern={pattern} />
+
       {a.sentToInvestigation && (
         <div className="flex flex-wrap items-center gap-2 text-sm">
           <StatusBadge tone="info" icon={<FileSearch aria-hidden />}>
@@ -219,7 +238,7 @@ export function FixCard({ fix: a, pattern, selected, now, onDecide, open, onOpen
 
       <Collapsible open={open} onOpenChange={onOpenChange} className="flex flex-col gap-5">
         <CollapsibleTrigger asChild>
-          <Button variant="outline" size="sm" className="w-fit [&[data-state=open]>svg]:rotate-180">
+          <Button variant="outline" size="sm" data-tour="fix-open" className="w-fit [&[data-state=open]>svg]:rotate-180">
             {t('Details', 'التفاصيل')}
             <span className="sr-only"> {caId(a.id)}</span>
             <ChevronDown aria-hidden className="transition-transform duration-400 ease-spring motion-reduce:transition-none" />

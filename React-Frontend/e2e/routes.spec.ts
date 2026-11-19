@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { ROUTES, collectErrors, expectPageReady, signInAs } from './helpers.ts'
 
-// One test per route and language (66 short tests) instead of one test that walks all 33 routes: the walk took about 66 s on a quiet machine
+// One test per route and language (68 short tests) instead of one test that walks all 34 routes: the walk took about 66 s on a quiet machine
 // and ran past its own timeout with tracing on a busy one. Short tests also spread over the workers and name the route that failed.
 for (const lang of ['en', 'ar'] as const) {
   test.describe(`every route renders (${lang})`, () => {

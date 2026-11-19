@@ -372,6 +372,24 @@ function buildCorrectiveActions(patterns: Pattern[], signals: Signal[]): Correct
   })
 }
 
+/**
+ * v42 (F30): the sample needs a fix whose pattern includes a person tagged VIP in the CRM, so the halved clocks are visible and testable.
+ * The seeded draws give one VIP person and none on a pattern, so one more person is tagged: the lowest id among the people on the FIRST
+ * fix's pattern. No random draw, so the rest of the seeded sample is unchanged. A VIP is a Club member by definition, so the person gets
+ * what `buildPersons` gives every VIP (segment member, or lead for a lead; lead source Club).
+ */
+function tagVipOnFirstFix(persons: Person[], signals: Signal[], patterns: Pattern[], fixes: CorrectiveAction[]): void {
+  const pattern = patterns.find((p) => p.id === fixes[0]?.patternId)
+  if (!pattern) return
+  const inPattern = new Set(pattern.signalIds)
+  const ids = signals.flatMap((s) => (inPattern.has(s.id) && s.personId ? [s.personId] : [])).sort()
+  const person = persons.find((p) => p.id === ids[0])
+  if (!person || person.vip) return
+  person.vip = true
+  person.segment = person.type === 'lead' ? 'lead' : 'member'
+  person.sourceOfLead = 'club'
+}
+
 function buildCorrectiveRationales(actions: CorrectiveAction[], patterns: Pattern[]): Record<string, AgentOutputEnvelope<CorrectiveRationale>> {
   const out: Record<string, AgentOutputEnvelope<CorrectiveRationale>> = {}
   actions.forEach((a, idx) => {
@@ -1192,6 +1210,7 @@ export const MOCK_EFFORT_SUMMARIES = buildEffortSummaries(MOCK_PERSONS, MOCK_INT
 export const MOCK_SIGNALS = buildSignals(MOCK_INTERACTIONS)
 export const MOCK_PATTERNS = detectPatterns(MOCK_SIGNALS, { windowDays: PATTERN_RULES.windowDays })
 export const MOCK_CORRECTIVE_ACTIONS = buildCorrectiveActions(MOCK_PATTERNS, MOCK_SIGNALS)
+tagVipOnFirstFix(MOCK_PERSONS, MOCK_SIGNALS, MOCK_PATTERNS, MOCK_CORRECTIVE_ACTIONS)
 export const MOCK_CORRECTIVE_RATIONALES = buildCorrectiveRationales(MOCK_CORRECTIVE_ACTIONS, MOCK_PATTERNS)
 export const MOCK_SHOPPER_CASES = buildShopperCases()
 export const MOCK_AI_INSIGHTS = buildAiInsightEnvelopes(MOCK_SHOPPER_CASES)
@@ -1212,6 +1231,7 @@ export const MOCK_WEEKLY_SAMPLE = buildWeeklySample({
   loopItems: MOCK_DETRACTOR_CALL_ITEMS,
   persons: MOCK_PERSONS,
   readings: MOCK_AI_JOURNEY_READINGS,
+  interactions: MOCK_INTERACTIONS,
 })
 export const MOCK_WEEKLY_SAMPLE_SIZE = WEEKLY_SAMPLE_SIZE
 /** Tests the supervisor gained from "wrong" verdicts on the weekly sample (decided 18 Nov). Filled by `useJudgeSample`. */

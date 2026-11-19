@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { signInAs } from './helpers.ts'
+import { markToursDone, signInAs } from './helpers.ts'
 
 /** The six main roles are on the card; the others sit under "Other roles used in the demo" (v40 F28). */
 const FOLDED = ['Sales team lead', 'After-Sales team lead', 'HR specialist', 'HR manager', 'Executive', 'Mystery shopper']
@@ -11,6 +11,7 @@ const roleCard = async (page: import('@playwright/test').Page, title: string) =>
 
 test.describe('sample sign-in', () => {
   test('redirects to /login, returns to the deep link, survives reload, signs out', async ({ page }) => {
+    await markToursDone(page)
     await page.goto('/actions/signals')
     await expect(page).toHaveURL(/\/login$/)
     await expect(page.getByText(/no real authentication/i).first()).toBeVisible()
@@ -70,6 +71,7 @@ test.describe('sample sign-in', () => {
     ['Mystery shopper', '/settings/mystery-shopper'],
   ] as const) {
     test(`signing in as ${title} lands on ${home}`, async ({ page }) => {
+      await markToursDone(page)
       await page.goto('/login')
       await (await roleCard(page, title)).check({ force: true })
       await page.getByRole('button', { name: /sign in as/i }).click()

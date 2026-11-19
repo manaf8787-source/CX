@@ -102,7 +102,7 @@ export default function MonthlyPack() {
       <div className="grid grid-cols-2 gap-(--grid-gap) xl:grid-cols-4">
         <KpiTile label={t('Open actions', 'الإجراءات المفتوحة')} value={open.length} icon={<FolderOpen />} loading={actionsLoading} />
         <KpiTile label={t('Late verification', 'تحقق متأخر')} value={late.length} icon={<Clock />} accent={late.length ? 'var(--destructive)' : undefined} loading={actionsLoading} />
-        <KpiTile label={t('Awaiting 60-day check', 'بانتظار تحقق 60 يوماً')} value={awaitingCheck.length} icon={<CalendarClock />} loading={actionsLoading} />
+        <KpiTile label={t('Awaiting 60-day check', 'بانتظار فحص 60 يوماً')} value={awaitingCheck.length} icon={<CalendarClock />} loading={actionsLoading} />
         <KpiTile label={t('Closed total', 'إجمالي المغلقة')} value={closedTotal} icon={<CheckCircle2 />} loading={actionsLoading} />
       </div>
 

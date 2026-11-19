@@ -40,10 +40,19 @@ describe('fixNextStep (v40 F07, S2)', () => {
     expect(n.due?.en).toMatch(/^at 60 days, .*2027/)
   })
 
-  it('effective, failed and partial read the closing sentences', () => {
+  it('effective and failed read the closing sentences', () => {
     expect(fixNextStep(fix({ status: 'effective' }), rules).text.en).toBe('Nothing. It worked; it stays in the report as a fix that worked')
     expect(fixNextStep(fix({ status: 'failed' }), rules).text.en).toBe('The signal reopens and a new fix is proposed')
-    expect(fixNextStep(fix({ status: 'partial' }), rules).text.en).toBe('Closed with a reason; nothing further')
+  })
+
+  it('partial: the owner proposes a second step, the CX manager approves it as a new fix on the same pattern, within 5 working days (v40.1)', () => {
+    const n = fixNextStep(fix({ status: 'partial' }), rules)
+    expect(n.step).toBe('ca')
+    expect(n.text.en).toBe('The owner proposes a second step; the CX manager approves it as a new fix on the same pattern')
+    expect(n.text.ar).toBe('المالك يقترح خطوة ثانية؛ مدير CX يعتمدها كحل جديد على النمط نفسه')
+    expect(n.due?.en).toBe('within 5 working days')
+    expect(n.due?.ar).toBe('خلال 5 أيام عمل')
+    expect(fixNextStep(fix({ status: 'partial' }), { approveDays: 3, verifyDays: 60 }).due?.en).toBe('within 3 working days')
   })
 
   it('a rejected fix is closed with a reason, on step Fix; a fix sent to investigation waits for evidence', () => {
@@ -63,5 +72,9 @@ describe('isAiMadeFix', () => {
     expect(isAiMadeFix({ auditLog: [entry('cxmgr')], fromInsight: { subjectId: 'a', suggestionId: 'b', recovery: { en: 'x', ar: 'س' } } })).toBe(true)
     expect(isAiMadeFix({ auditLog: [entry('cxmgr')] })).toBe(false)
     expect(isAiMadeFix({ auditLog: [] })).toBe(false)
+  })
+
+  it('is false for a second step, even though it names who proposed it (a person decided)', () => {
+    expect(isAiMadeFix({ auditLog: [entry('cxmgr')], proposedBy: { en: 'CX manager, after a partial result', ar: 'مدير تجربة العملاء، بعد نتيجة جزئية' }, parentFixId: 'ca-1' })).toBe(false)
   })
 })

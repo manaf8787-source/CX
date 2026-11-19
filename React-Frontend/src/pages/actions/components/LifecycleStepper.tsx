@@ -6,12 +6,12 @@ const STEPS: { status: CorrectiveActionStatus; label: { en: string; ar: string }
   { status: 'proposed', label: { en: 'Proposed', ar: 'مقترح' } },
   { status: 'approved', label: { en: 'Approved', ar: 'معتمد' } },
   { status: 'in_progress', label: { en: 'In progress', ar: 'قيد التنفيذ' } },
-  { status: 'verification', label: { en: '60-day check', ar: 'تحقق 60 يوماً' } },
+  { status: 'verification', label: { en: '60-day check', ar: 'فحص 60 يوماً' } },
 ]
 
 const TERMINAL_LABEL: Record<'effective' | 'partial' | 'failed', { en: string; ar: string }> = {
   effective: { en: 'Effective', ar: 'فعّال' },
-  partial: { en: 'Partial', ar: 'جزئي' },
+  partial: { en: 'Partial: second step needed', ar: 'جزئي: خطوة ثانية مطلوبة' },
   failed: { en: 'Failed — signal reopens', ar: 'فاشل — تُعاد الإشارة' },
 }
 

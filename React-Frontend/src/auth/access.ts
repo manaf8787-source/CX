@@ -32,16 +32,24 @@ const REGISTER_PAGES = [
   '/settings/public-mentions',
 ]
 
+/**
+ * v42 (F31): "Watch the AI team work" is open to the CX manager, the CX team (everything), environment management, Marketing, the
+ * Internal Audit and Marketing Lead and Executive: the spec's list, which also holds every role that can open the agents page
+ * (`/intelligent-cx-team`). The prototype adds it for every role that sees its agents page, which there includes the team lead and the
+ * After-Sales lead; here those two cannot open the agents page, so they do not get it [Proposed].
+ */
+const WATCH_PAGE = '/settings/watch-ai-team'
+
 export const ROLE_PATHS: Record<RoleId, string[] | null> = {
   cxmgr: null,
   cxteam: null,
-  envmgmt: ['/home', '/customers', '/runaway', '/actions', '/products/re', '/inbox', '/settings/surveys'],
+  envmgmt: ['/home', '/customers', '/runaway', '/actions', '/products/re', '/inbox', '/settings/surveys', WATCH_PAGE],
   teamlead: ['/home', '/customers', '/actions', '/inbox'],
   aslead: ['/home', '/customers', '/actions', '/settings/voc', '/products/af', '/inbox', '/settings/surveys'],
   ld: ['/actions', '/settings/standards', '/settings/ld'],
   hrspec: ['/actions', '/settings/hr-team'],
   hrmgr: ['/settings/hr-team'],
-  marketing: ['/home', '/customers', '/runaway', '/personas', '/inbox', '/settings/public-mentions'],
+  marketing: ['/home', '/customers', '/runaway', '/personas', '/inbox', '/settings/public-mentions', WATCH_PAGE],
   auditmkt: [
     '/overview',
     '/customers',
@@ -53,9 +61,10 @@ export const ROLE_PATHS: Record<RoleId, string[] | null> = {
     '/settings/monthly-pack',
     '/settings/rules',
     '/settings/surveys',
+    WATCH_PAGE,
     ...REGISTER_PAGES,
   ],
-  exec: ['/home', '/customers', '/runaway', '/actions', '/personas', '/overview', '/settings/monthly-pack', '/inbox', '/settings/surveys', ...REGISTER_PAGES],
+  exec: ['/home', '/customers', '/runaway', '/actions', '/personas', '/overview', '/settings/monthly-pack', '/inbox', '/settings/surveys', WATCH_PAGE, ...REGISTER_PAGES],
   shopper: ['/settings/mystery-shopper'],
 }
 

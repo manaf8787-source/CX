@@ -1,6 +1,6 @@
-# PSI CX Portal: Knowledge Base (v41, one line of six steps, guided tour)
+# PSI CX Portal: Knowledge Base (v42, one line of six steps, guided tour, AI team replay)
 
-Prototype on sample data. Version 41.1, updated 19 Nov 2026. The illustrated version (79 screenshots) is the Word and PDF document; screenshot names are listed as [Screenshot: name].
+Prototype on sample data. Version 42.2, updated 19 Nov 2026. The illustrated version (82 screenshots) is the Word and PDF document; screenshot names are listed as [Screenshot: name].
 
 ## Contents
 
@@ -80,7 +80,7 @@ One sign-in; the role comes from the company directory. Six main roles, each see
 | HR specialist | Actions, HR team | Attitude signals; cases assigned to the HR pool | Write corrective actions on conduct; the agent's direct manager reviews them |
 | HR manager | HR team performance | Team numbers and late alerts only | Nothing on cases (informed only) |
 | Marketing manager | Home, Customers, Runaway, Personas | Personas, campaign recommendations, runaway types; no conversation text, no agent names | Receive campaign briefs |
-| Internal Audit and Marketing Lead (UAE) | Overview, Intelligent CX team, Personas, Runaway, Standards, Monthly pack, Settings | Aggregates and audit views: data feeds, standards, personas, campaign criteria, the weekly supervisor sample; no cases, no conversation text, no agent names | Mark feeds and standards as trusted, audit personas and campaign criteria, fill the escalation matrix with the product owners, read the weekly sample of agent outputs |
+| Internal Audit and Marketing Lead (UAE) | Overview, Intelligent CX team, Personas, Runaway, Standards, Monthly pack, Data feeds, Weekly sample, Campaign audit, Settings | Aggregates and audit views: data feeds, standards, personas, campaign criteria, the audit part of the weekly sample; no cases, no conversation text, no agent names | Audits, never approves fixes: marks feeds and standards as trusted; reads the audit rows of the weekly sample (routing by the matrix, classification against the evidence, access, targeting); clears or sends back every campaign before it runs (right people, right projects and developers, right channel and message, the money) and audits it after it ran |
 | Executive (read only) | Home, Customers, Runaway, Actions, Personas, Overview, Monthly pack | Everything, read only, no agent names | Nothing (informed) |
 | Mystery shopper | Own tasks only | Briefs, deadlines, forms | Fill the forms, ask questions |
 
@@ -355,6 +355,12 @@ Who our customers and leads are, built from what they did, said and scored, not 
 
 How the personas are built: first by rules on CRM fields (residence, work sector, income source, units owned, lost reason) plus the source the person actually contacts us on, counted from the timeline; later by clustering once three months of live timeline records exist. The CX manager names and approves personas; the Internal Audit and Marketing Lead audits them and the campaign criteria; a persona nobody can act on is dropped. Personal fields are shown as persona attributes and segment sizes, never exported per person.
 
+### Campaign audit: before it runs, and after
+
+Every campaign, whether Marketing built it from a persona or the CX team created an AI interview campaign, passes the Internal Audit and Marketing Lead before anything reaches a customer, and is audited again after it ran. Five checks, each answered against what the campaign itself says: **the right people** (the segment is the persona's definition, the size comes from the record, consent and DNCR applied, nobody with an open complaint); **the right projects and developers** (the projects fit what these people asked for and can afford; the developers are ones PSI may promote); **the right channel, language and timing** (the channel these people actually use, from the timeline; their language; their hours; an approved template); **the right message** (nothing the approved sheets do not allow, no discount pushes, the persona's "what not to do" line respected); **the money** (budget, cost per contact, expected responses and the expected cost per lead, against the product's limit). The verdict is Cleared to run or Send back to Marketing with the failed checks. After the run: the share of recipients who match the persona on the record (below 80% is a targeting finding and becomes a signal to Marketing), the response rate, leads or recoveries, and the cost per result. The lead's inbox and daily brief carry the campaigns waiting for clearance.
+
+[Screenshot: campaign-audit] Campaign audit: the five checks against what the campaign says, and the verdict.
+
 [Screenshot: marketing-home] The Marketing manager's portal: home, customers, runaway and personas, without conversation text or agent names.
 
 ## 11. Surveys and triggers: when we ask, the questions, and the lead funnel
@@ -468,11 +474,23 @@ Between every two agents there is one supervisor with six checks, the same for e
 
 [Screenshot: agents-supervisor] The supervisor card: the six checks, the pass rate per agent, and the weekly sample.
 
-**The weekly sample** is a page: fifty outputs that passed the supervisor this week (proposed fixes, classifications, interview briefs, journey readings, signal counts). A reader must be able to judge each row in about half a minute from the row itself, so every row carries four things: **what the agent saw** (for a proposed fix: the pattern text, the signal count and the "recovered in X of N similar closed fixes" figure; for a classification: the source, the date and the quoted text of the signal; for an interview brief: the first score, the number of events on the timeline and the problems found; for a journey reading: events, problems and the last contact date), **what it produced** in one line, **what the supervisor checked** (the six checks and the result), and an **Open** button to the record for CX roles. A "How to judge" card sits above the table: Right means a careful person given the same input would have produced the same thing; Wrong means a different category, a different fix, a wrong reason code, or a reading the timeline does not support; the reader judges the agent, not the customer. Wrong lowers that agent's pass rate and becomes a new test for the supervisor. The Internal Audit and Marketing Lead sees ids and titles, never customer or agent names. The page shows read so far, wrong, accuracy this week and the Thursday due date; the daily brief reminds the reader how many are left.
+**The weekly sample** is where a person checks the AI's work, the way a supervisor listens to a few of a new agent's calls. It is not an approval and nothing changes for the customer; a "no" teaches the supervisor what to catch next time. The page shows **one piece of work at a time**: on the left, what the AI was given (the quoted message, the pattern with its signals, the customer's last events); on the right, what it decided, and one line on how; then one plain question with three answers: "Yes, I would do the same", "No, that is wrong", "Not sure, skip for now". The question fits the kind of work: is this really a complaint of this type; is this a sensible fix for this pattern and is it going to the right person; does this summary match what happened; is this reading fair; did the fix go to the title the matrix says; is there anything here that should not have left the CX team; are these the right people for this campaign. A counter shows checked so far and the Thursday due date; "See all as a list" opens the table view.
 
-[Screenshot: weekly-sample] The weekly sample as the Internal Audit and Marketing Lead sees it: what the agent saw, what it produced, the supervisor checks, right or wrong; ids, no names.
+**Split by reader.** The CX team gets the pieces that need someone who knows the work (proposed fixes, interview briefs, journey readings). The Internal Audit and Marketing Lead gets the pieces audit can judge (classification against the evidence, routing by the matrix, access, campaign targeting), with ids and titles, never names. A "no" lowers that agent's pass rate and becomes a new test for the supervisor; the daily brief reminds each reader how many are left.
+
+[Screenshot: weekly-sample-cx] The weekly sample for the CX team: one proposed fix, what the AI was given on the left, what it decided on the right, one question.
+
+[Screenshot: weekly-sample] The same page for the Internal Audit and Marketing Lead: a classification to check against the quoted message; ids, no names.
 
 > The full specification for developers is the separate document "CX Portal AI Agents: Specification".
+
+### Watch the AI team work
+
+The agents are the part of the portal nobody can see, because on sample data their work is already done. This page shows the mechanism instead: one WhatsApp message ("still waiting for the callback you promised on Tuesday") walked step by step, with the clock, from the moment it arrives to the moment it sits in three inboxes. Agent 1 matches it on two keys; Agent 2 classifies it with the quoted evidence and the CRM activity that proves the promise; Agent 3 counts it as the fifth of its kind in 30 days and opens the pattern; Agent 5 proposes the fix that recovered 9 of 13 similar cases and routes it by the matrix; the supervisor runs its six checks; Agent 8 puts the person on the call list; Agent 10 logs why no survey goes out. Six seconds from message to inbox; the decision is a person's. Play runs it; Next step walks it; a button on Home opens it.
+
+[Screenshot: watch] Watch the AI team work: the replay after Play, every step with its agent, its output id and the supervisor check.
+
+Under the replay: **this week, by the same team**, the counters from the sample data (events read, signals counted, patterns over the line, fixes proposed, waiting for a yes, sent back by the supervisor, handed to a person, briefs written). And a card that says what the page will not show: the impact. Hours saved, signals a person would have missed, fixes that worked because they came a week earlier exist only after two weeks of Shadow on real data, where every suggestion is compared with the team's manual work; 9 in 10 agreement is the gate to Limited, a critical miss in the weekly sample blocks Live. Any impact figure shown before that would be invented.
 
 ### How it is switched on
 
@@ -504,9 +522,27 @@ The rules layer agreed on 12 to 16 November 2026. Every number below is a settin
 
 ### The escalation matrix as a page
 
-One table per product: rows are the eight kinds of fix plus the two case types (shopper critical, legal); columns are first receiver, informed, backup, respond and resolve in working hours. Titles only; the CRM supplies who holds the title. The defaults are proposals until the product owners fill the cells with the Internal Audit and Marketing Lead by 28 November. Every fix shows its line from the matrix in its classification block.
+One table per product: rows are the eight kinds of fix, the two case types (shopper critical, legal), a data-exposure row and a VIP row; columns are first receiver, informed, backup, respond and resolve in working hours. Titles only; the CRM supplies who holds the title. **The cells were set on 19 November** by the CX manager for all six products (the full tables are the separate file "Escalation matrix cells, 19 Nov 2026"); product owners may adjust a title with the Internal Audit and Marketing Lead before 28 November, the clocks stay. Every fix shows its line from the matrix in its classification block.
 
-[Screenshot: matrix] The escalation matrix for PSI Real Estate, editable by the CX manager and the Internal Audit and Marketing Lead.
+### Three rules behind the cells
+
+- **Every customer is treated as a VIP; a delay is a failure.** Respond clocks are 1 to 4 working hours for anything a customer can feel, never a day. A person tagged VIP in the CRM (Club member, investor, portfolio owner) halves both clocks, informs the head of the environment at once, and makes the CX manager the backup. The resolve clock is the plan and the first visible step (a notice, a call, a corrected sheet), not the end of the work.
+- **Information security sits beside Legal on anything that touches data.** A customer's details on a group, a document to the wrong person, a screenshot of a record, a lost device, a shared account: the Information Security lead receives or is informed within one working hour, with Legal; a data-exposure incident is its own row. The Wallet and the Club carry financial and identity data, so their product row informs Information Security by default. Conversation text and names never leave the CX team in an escalation; the receiver gets the fix and the ids.
+- **The receiver is the one who can fix it; the customer hears from one person.** Never top management as receiver; heads are informed; an employee kind goes to the direct manager only. The CX team keeps the customer side (the call, the apology, the re-survey) while the fix is made. Satisfaction is measured after the fix by the re-survey and the recovered flag; a fix that does not recover the customer is a failed fix whatever the clock said.
+
+Clocks: 1 h the same hour; 4 h the same half day; 9 h one working day; 18 h two; 27 h three; 45 h one week; 90 h two weeks. The clocks are tightest for PSI Club (members are VIP by definition), Tour Estate (a tour is happening now) and PSI Events (the event ends today); longest for training, which is a programme.
+
+| Kind | PSI Real Estate | After-Sales | PSI Club | PSI Wallet |
+|---|---|---|---|---|
+| Service and behaviour | Sales manager (env.) · 4 / 27 h | After-Sales team lead · 4 / 27 h | Club relations manager · 2 / 18 h | Account manager lead · 2 / 18 h |
+| Process | Sales operations lead · 4 / 45 h | After-Sales operations lead · 4 / 45 h | Club operations lead · 2 / 27 h | Wallet operations lead · 2 / 27 h |
+| Product and app | Web and app product owner · 4 / 45 h | App product owner · 4 / 45 h | Club app product owner · 2 / 27 h | Wallet product owner, Information Security informed · 2 / 18 h |
+| Environment | Branch or gallery manager · 4 / 27 h | Property or community manager · 4 / 18 h | Club relations manager · 2 / 18 h | Account manager lead · 4 / 27 h |
+| Legal and privacy | Legal, Information Security informed · 1 / 9 h | Legal · 1 / 9 h | Legal · 1 / 9 h | Legal · 1 / 9 h |
+| Data exposure | Information Security lead (IT) · 1 / 9 h | same | same | same |
+| VIP involved | Same receiver, clocks halved, head informed at once | same | same | same |
+
+[Screenshot: matrix] The escalation matrix page: the three rules, then one table per product with the cells set; PSI Club shown.
 
 ## 15. The AI assistant
 
@@ -697,4 +733,7 @@ What is still to decide, and how the prototype got here.
 | v40 | 18 Nov | Trace ids EV→SG→PT→CA→VR→RP with a Trace card; data feeds and the environment switch; CRM mapping; My inbox with day counts; audit trail; escalation matrix page; survey questions; consent and DNCR; investigations close with evidence; calling hours and retries; one sign-in with six roles; customers list; public mentions; weekly sample; what-if thresholds; Arabic and mobile |
 | v41 | 18 Nov | Guided tour embedded in the portal: starts on first entry per role, highlights the real element, opens the inbox and a fix as it goes; replay from the menu |
 | v41.1 | 19 Nov | Weekly sample rows show what the agent saw, what it produced and what the supervisor checked, with a "How to judge" card; no names for Internal Audit |
-| This document | 19 Nov 2026 | Knowledge base rewritten for v40, tour added for v41, weekly sample for v41.1 |
+| v42 | 19 Nov | Escalation matrix cells set for all six products with the VIP, information-security and one-person rules; "Watch the AI team work" replay page with this week's counters |
+| v42.2 | 19 Nov | Weekly sample rebuilt as one piece at a time in plain words: what the AI was given, what it decided, one question with three answers |
+| v42.1 | 19 Nov | Weekly sample split by reader (audit rows to Internal Audit, content rows to CX); Campaign audit page: five checks before a campaign runs and the result after; Internal Audit and Marketing Lead role rewritten as audit, never approval |
+| This document | 19 Nov 2026 | Knowledge base rewritten for v40; tour (v41), weekly sample (v41.1), matrix and replay (v42), campaign audit (v42.1) added |

@@ -33,9 +33,10 @@ export const CORRECTIVE_STATUS_LABEL: Record<CorrectiveActionStatus, Bi> = {
   proposed: { en: 'Proposed', ar: 'مقترح' },
   approved: { en: 'Approved', ar: 'معتمد' },
   in_progress: { en: 'In progress', ar: 'قيد التنفيذ' },
-  verification: { en: '60-day check', ar: 'تحقق 60 يوماً' },
+  verification: { en: '60-day check', ar: 'فحص 60 يوماً' },
   effective: { en: 'Effective', ar: 'فعّال' },
-  partial: { en: 'Partial', ar: 'جزئي' },
+  // v40.1 (prototype CA_ST.partial and CA_ST.verify): the status says what is wanted next.
+  partial: { en: 'Partial: second step needed', ar: 'جزئي: خطوة ثانية مطلوبة' },
   failed: { en: 'Failed', ar: 'فاشل' },
 }
 

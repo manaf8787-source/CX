@@ -168,6 +168,11 @@ function InvestigationRow({ inv, pattern, selected, onRecord }: { inv: Investiga
                 <span className="text-muted-foreground">{t('Look for', 'ما يُبحث عنه')}:</span> {L(inv.lookFor)}
               </span>
             )}
+            {inv.note && (
+              <span className="text-sm text-muted-foreground" data-testid="inv-note">
+                {L(inv.note)}
+              </span>
+            )}
           </div>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-3">

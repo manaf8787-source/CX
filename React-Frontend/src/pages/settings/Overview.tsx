@@ -59,7 +59,7 @@ export default function SettingsOverview({ hideHeader = false }: { hideHeader?: 
 
       <div className="grid grid-cols-1 gap-(--grid-gap) xl:grid-cols-2">
         <section aria-labelledby="ov-cust">
-          <Card className="h-full">
+          <Card data-tour="overview-card" className="h-full">
             <CardHeader>
               <CardTitle>
                 <h3 id="ov-cust">{t('Customers and runaways', 'العملاء والهاربون')}</h3>

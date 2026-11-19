@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useRole } from '@/auth/RoleContext'
 import { canAccessPath, firstAllowedUnder } from '@/auth/access'
-import { SETTINGS_NAV, legacyRedirect } from '@/data/nav'
+import { SETTINGS_LANDING, legacyRedirect } from '@/data/nav'
 
 /** Sends a role away from a page outside its KB §2 page set, to its own home. */
 export function AccessGuard({ children }: { children: ReactNode }) {
@@ -14,11 +14,7 @@ export function AccessGuard({ children }: { children: ReactNode }) {
   if (moved) return <Navigate to={`${moved}${search}${hash}`} replace />
 
   if (pathname === '/settings' || pathname === '/settings/') {
-    const first = firstAllowedUnder(
-      role.id,
-      '/settings',
-      SETTINGS_NAV.map((i) => i.path),
-    )
+    const first = firstAllowedUnder(role.id, '/settings', SETTINGS_LANDING)
     return <Navigate to={first ?? role.home} replace />
   }
   if (!canAccessPath(role.id, pathname)) return <Navigate to={role.home} replace />

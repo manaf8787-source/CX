@@ -38,6 +38,7 @@ export function RouteTabs({ items, label, end = true, className }: { items: NavL
             key={item.path}
             to={item.path}
             end={end}
+            data-tour={`tab${item.path.replaceAll('/', '-')}`}
             className={({ isActive }) =>
               cn(
                 'relative z-10 inline-flex min-h-10 items-center rounded-full px-4 pt-1.5 pb-2 text-base font-medium whitespace-nowrap outline-hidden transition-colors duration-200 ease-out',

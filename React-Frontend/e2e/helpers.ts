@@ -28,17 +28,32 @@ export const LEGACY_ROUTES: Record<string, string> = {
   '/settings/overview': '/overview',
 }
 
-/** Starts the page already signed in (sample session), skipping the login screen. */
-export async function signInAs(page: Page, role: RoleId, lang: 'en' | 'ar' = 'en') {
+/** Where the guided tour (v41 F28) remembers who has finished it: src/components/tour/tourStorage.ts. */
+const TOUR_KEY = 'psicx.tour'
+const ALL_ROLES: readonly RoleId[] = [...MAIN_ROLES, ...FOLDED_ROLES]
+const allToursDone = JSON.stringify({ done: Object.fromEntries(ALL_ROLES.map((r) => [r, true])) })
+
+/**
+ * The guided tour starts by itself the first time a role is used, which would sit on top of every other spec. So every spec starts with all
+ * tours marked done: `signInAs` seeds it, and a spec that signs in through the sign-in screen calls `markToursDone` instead. Only the tour's
+ * own spec (`v41-tour.spec.ts`) opts in, with `signInAs(page, role, lang, { tour: true })`.
+ */
+export async function markToursDone(page: Page) {
+  await page.addInitScript(([key, value]) => localStorage.setItem(key, value), [TOUR_KEY, allToursDone] as const)
+}
+
+/** Starts the page already signed in (sample session), skipping the login screen. Tours are marked done unless `tour` is true. */
+export async function signInAs(page: Page, role: RoleId, lang: 'en' | 'ar' = 'en', { tour = false }: { tour?: boolean } = {}) {
   await page.addInitScript(
-    ([r, l]) => {
+    ([r, l, withTour, doneKey, done]) => {
       if (sessionStorage.getItem('e2e-seeded')) return
       sessionStorage.setItem('e2e-seeded', '1')
       localStorage.setItem('psicx.session', JSON.stringify({ displayName: 'E2E', signedInAt: new Date().toISOString() }))
       localStorage.setItem('psicx.role', r)
       localStorage.setItem('psicx.lang', l)
+      if (!withTour) localStorage.setItem(doneKey, done)
     },
-    [role, lang] as const,
+    [role, lang, tour, TOUR_KEY, allToursDone] as const,
   )
 }
 
@@ -74,6 +89,7 @@ export const ROUTES = [
   '/inbox',
   '/overview',
   '/intelligent-cx-team',
+  '/settings/watch-ai-team',
   '/products/re',
   '/settings/surveys',
   '/settings/feeds',

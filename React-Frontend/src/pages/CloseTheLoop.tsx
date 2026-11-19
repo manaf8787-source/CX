@@ -340,7 +340,7 @@ export default function CloseTheLoop() {
             {L(CALL_COPY.noAnswerButton)}
           </Button>
         )}
-        <Button size="xs" onClick={() => setInterviewing(item)}>
+        <Button size="xs" onClick={() => setInterviewing(item)} data-tour="loop-call">
           <Phone aria-hidden />
           {t('Call', 'اتصال')}
         </Button>

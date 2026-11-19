@@ -55,6 +55,15 @@ export function canActOnCorrectiveAction(role: RoleId, kind: string): boolean {
   return role === 'cxmgr' || role === 'cxteam' || role === 'envmgmt' || role === 'teamlead' || role === 'aslead'
 }
 
+/**
+ * v40.1 — the 60-day check is closed by a person in CX, never by the receiver of the fix (prototype `isCX()`: the CX manager and the
+ * CX team): the verdict (effective, partial, failed) and, after a partial or failed one, decision 3 (a second step, an investigation,
+ * or accept as is). The automatic readout is only the evidence. Everyone else, the owner included, reads the result and sees no button.
+ */
+export function canRecordFixVerdict(role: RoleId): boolean {
+  return role === 'cxmgr' || role === 'cxteam'
+}
+
 /** FR-4.15 — conduct issues route through the HR pool; the agent's direct
  * manager reviews HR's actions. HR specialists write, HR managers are
  * informed-only, so they never get a decision control either. */
@@ -88,6 +97,11 @@ export function canEditEscalationMatrix(role: RoleId): boolean {
 /** v40 (F31): the weekly sample is judged by the CX manager, the CX team and the Internal Audit and Marketing Lead (the spec: "the CX team and the Internal Audit and Marketing Lead"); Executive reads. */
 export function canJudgeSample(role: RoleId): boolean {
   return role === 'cxmgr' || role === 'cxteam' || role === 'auditmkt'
+}
+
+/** v41.1 (F29): the "Open" button on a weekly-sample row takes a reader to the record (a fix, a signal, a customer): CX roles only. Everyone else reads ids and titles. */
+export function canOpenSampleRecord(role: RoleId): boolean {
+  return role === 'cxmgr' || role === 'cxteam'
 }
 
 /**

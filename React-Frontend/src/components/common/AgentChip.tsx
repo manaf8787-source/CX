@@ -8,6 +8,8 @@ interface AgentChipProps {
   agent: number | 'supervisor'
   /** Supervisor only: how many checks passed (default 6). */
   checks?: number
+  /** Just "Agent 5" / "الوكيل 5", without the agent's name: for a narrow column that names the task elsewhere (the weekly sample rows). */
+  short?: boolean
   className?: string
 }
 
@@ -19,7 +21,7 @@ interface AgentChipProps {
  *
  * @example <AgentChip agent={9} />  <AgentChip agent="supervisor" />
  */
-export function AgentChip({ agent, checks, className }: AgentChipProps) {
+export function AgentChip({ agent, checks, short, className }: AgentChipProps) {
   const { L } = useI18n()
   if (agent === 'supervisor') {
     return (
@@ -30,7 +32,7 @@ export function AgentChip({ agent, checks, className }: AgentChipProps) {
   }
   return (
     <StatusBadge tone="info" icon={<Bot aria-hidden className="text-info-text" />} className={className}>
-      {L(agentChipLabel(agent))}
+      {short ? L({ en: `Agent ${agent}`, ar: `الوكيل ${agent}` }) : L(agentChipLabel(agent))}
     </StatusBadge>
   )
 }

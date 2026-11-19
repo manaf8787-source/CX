@@ -301,12 +301,12 @@ test.describe('the fix in full', () => {
 test.describe('the escalation matrix', () => {
   test.use({ reducedMotion: 'reduce' })
 
-  test('one table per product, ten rows, six columns, every unedited cell [Proposed]', async ({ page }) => {
+  test('one table per product, twelve rows, six columns, set 19 Nov: no [Proposed] anywhere', async ({ page }) => {
     await open(page, '/settings/escalation-matrix')
     const table = page.getByRole('table')
-    await expect(table.getByRole('row')).toHaveCount(11, { timeout: 15_000 })
+    await expect(table.getByRole('row')).toHaveCount(13, { timeout: 15_000 })
     for (const c of ['Kind', 'First receiver', 'Informed', 'Backup', 'Respond (h)', 'Resolve (h)']) await expect(table.getByRole('columnheader', { name: c })).toBeVisible()
-    await expect(table.getByText('[Proposed]')).toHaveCount(50)
+    await expect(page.getByText('[Proposed]')).toHaveCount(0)
     const group = page.getByRole('group', { name: 'Product' })
     await expect(group.getByRole('button')).toHaveCount(6)
     await expect(group.getByRole('button', { name: 'PSI Real Estate' })).toHaveAttribute('aria-pressed', 'true')
@@ -315,14 +315,14 @@ test.describe('the escalation matrix', () => {
     await expect(page).toHaveURL(/product=af/)
   })
 
-  test('the CX manager edits a cell: it saves, loses its [Proposed], and the fix line of that product reads it', async ({ page }) => {
+  test('the CX manager edits a cell: it saves, is marked Edited, and the fix line of that product reads it', async ({ page }) => {
     await open(page, '/settings/escalation-matrix')
     const table = page.getByRole('table')
-    await expect(table.getByText('[Proposed]')).toHaveCount(50, { timeout: 15_000 })
+    await expect(table.getByTestId('matrix-edited')).toHaveCount(0, { timeout: 15_000 })
     const receiver = page.getByRole('textbox', { name: 'Marketing · First receiver' })
     await receiver.fill('Head of Digital Marketing')
     await receiver.press('Enter')
-    await expect(table.getByText('[Proposed]')).toHaveCount(49)
+    await expect(table.getByTestId('matrix-edited')).toHaveCount(1)
     await expect(receiver).toHaveValue('Head of Digital Marketing')
     // client-side navigation keeps the store: CA-202 is a marketing fix on Real Estate
     await page.getByRole('link', { name: '2–4 · Signals and fixes' }).click()
@@ -338,7 +338,7 @@ test.describe('the escalation matrix', () => {
     await expect(resolve).toHaveValue('45', { timeout: 15_000 })
     await resolve.fill('18')
     await resolve.press('Enter')
-    await expect(page.getByRole('table').getByText('[Proposed]')).toHaveCount(49)
+    await expect(page.getByRole('table').getByTestId('matrix-edited')).toHaveCount(1)
     await page.getByRole('link', { name: '2–4 · Signals and fixes' }).click()
     await page.getByRole('link', { name: 'Corrective actions' }).click()
     await expect(fixCard(page, 'CA-202')).toContainText('if approved today: matrix Resolve 18 h, in working hours', { timeout: 15_000 })
@@ -356,13 +356,14 @@ test.describe('the escalation matrix', () => {
     await expect(page.getByRole('note')).toContainText('View only', { timeout: 15_000 })
     await expect(page.getByRole('textbox')).toHaveCount(0)
     await expect(page.getByRole('spinbutton')).toHaveCount(0)
-    await expect(page.getByRole('table')).toContainText('Process owner (matrix)')
+    await expect(page.getByRole('table')).toContainText('Sales operations lead')
   })
 
-  test('Arabic: the columns, the product names and the badges, right to left', async ({ page }) => {
+  test('Arabic: the columns, the rules card and no badge, right to left', async ({ page }) => {
     await open(page, '/settings/escalation-matrix', 'cxmgr', 'ar')
     await expect(page.getByRole('columnheader', { name: 'المستلم الأول' })).toBeVisible({ timeout: 15_000 })
-    await expect(page.getByRole('table').getByText('[مقترح]')).toHaveCount(50)
+    await expect(page.getByRole('table').getByText('[مقترح]')).toHaveCount(0)
+    await expect(page.getByText('ثلاث قواعد خلف الخلايا')).toBeVisible()
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl')
   })
 

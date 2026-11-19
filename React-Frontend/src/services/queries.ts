@@ -299,7 +299,7 @@ async function createActionFromPattern(input: { pattern: Pattern; kind: Correcti
     patternId: input.pattern.id,
     title: { en: `Address ${input.pattern.category.replace(/_/g, ' ')} in ${input.pattern.team}`, ar: 'معالجة النمط المرصود لهذا الفريق' },
     owner: input.owner,
-    dueDate: input.dueDate ?? dueFromMatrix({ product, kind: input.kind }).dueAt,
+    dueDate: input.dueDate ?? dueFromMatrix({ product, kind: input.kind, patternId: input.pattern.id }).dueAt,
     status: 'proposed',
     verificationDueAt: new Date(Date.now() + 60 * 86_400_000).toISOString(),
     ...proposedStamp({ product, byRole: input.byRole ?? 'system' }),

@@ -6,7 +6,7 @@ This repository is **documentation, not application code**. It holds the knowled
 
 Owner: **Manaf Obeidat**, Delivery and CX Manager, PSI Real Estate. Audience: PSI management, the CX team, L&D (George), Marketing, the AI and IT teams who will build the real platform.
 
-## What PSI CX Portal is (as of 19 Nov 2026, v41.1)
+## What PSI CX Portal is (as of 19 Nov 2026, v42.2)
 
 An **omnichannel** customer experience platform: one record per person (lead or customer), every contact from every channel on one timeline, read by rules and AI. A guided tour inside the portal teaches each role on first entry (v41). One line of six steps (Listen, Signal, Pattern, Fix, Check, Report) with ids EV→SG→PT→CA→VR→RP and a Trace card on every record. Menu in step order: Home (six steps, daily brief per role, CX indicators per product, your work today, search), 1 Customers (search, everyone on record, who is leaving, personas), My inbox (day counts), 2–4 Signals and fixes (corrective actions, signals and patterns, AI insights, shopper cases, investigations), 5 Close the loop, 6 CX indicators; under Settings: data feeds (three CRM environments), CRM mapping, escalation matrix, survey questions, rules as configuration with what-if, the intelligent CX team, weekly sample, public mentions. Plus an AI assistant (voice or text, Arabic or English) and the Intelligent CX team page: ten single-task AI agents and one supervisor with six checks; people approve, read, see names and call. The earlier modules (mystery shopper, standards register, voice of customer, L&D, teams, settings) sit under "Settings and reference". Six products: PSI Real Estate and After-Sales live; PSI Club, Tour Estate, PSI Events and PSI Wallet hidden until launch.
 
