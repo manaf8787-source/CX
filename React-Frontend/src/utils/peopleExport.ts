@@ -21,6 +21,7 @@ export function peopleCsvRows(
   role: RoleId,
   lang: 'en' | 'ar',
   lastContact: (personId: string) => string | undefined = () => undefined,
+  extra: (personId: string) => Record<string, string | number> = () => ({}),
 ): Record<string, string | number>[] {
   const c = CUSTOMERS_LIST_COPY.columns
   const withMobile = canViewMobiles(role)
@@ -31,6 +32,6 @@ export function peopleCsvRows(
     row[c.environment[lang]] = p.environment
     row[c.source[lang]] = SOURCE_LABEL[p.sourceOfLead][lang]
     row[c.lastContact[lang]] = lastContact(p.id)?.slice(0, 10) ?? ''
-    return row
+    return { ...row, ...extra(p.id) }
   })
 }

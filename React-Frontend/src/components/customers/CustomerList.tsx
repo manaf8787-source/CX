@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import type { ColumnDef } from '@tanstack/react-table'
 import { toast } from 'sonner'
-import { Crown, Download, Search } from 'lucide-react'
+import { ChevronRight, Crown, Download, Search, ThumbsDown, ThumbsUp } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { useRole } from '@/auth/RoleContext'
 import { canViewCustomerNames, canViewMobiles } from '@/auth/permissions'
@@ -11,6 +11,7 @@ import { useEnvScope } from '@/services/queriesV40'
 import { CUSTOMERS_LIST_COPY as COPY, SEGMENT_LABEL, SOURCE_LABEL } from '@/data/customersList'
 import { ENVIRONMENTS, envNameFromShort } from '@/data/environments'
 import { RUNAWAY_TYPE_LABEL } from '@/utils/runaway'
+import { CHANNEL_LABEL } from './channels'
 import { personLabel, peopleCsvRows } from '@/utils/peopleExport'
 import { downloadCsv } from '@/utils/csv'
 import type { EnvId, LeadSource, Person, PersonSegment } from '@/types'
@@ -29,6 +30,8 @@ const SEGMENTS = Object.keys(SEGMENT_LABEL) as PersonSegment[]
 const SOURCES = Object.keys(SOURCE_LABEL) as LeadSource[]
 
 type Filter<T extends string> = 'all' | T
+type FeedbackFilter = 'all' | 'positive' | 'negative' | 'none'
+type DateOn = 'contact' | 'feedback'
 
 /**
  * "Everyone on record" (v40 F29): browse instead of search. Filter by environment, type and source of the lead, open a
@@ -52,6 +55,11 @@ export function CustomerList() {
   const [envFilter, setEnvFilter] = useState<Filter<EnvId>>('all')
   const [typeFilter, setTypeFilter] = useState<Filter<PersonSegment>>('all')
   const [sourceFilter, setSourceFilter] = useState<Filter<LeadSource>>('all')
+  const [feedbackFilter, setFeedbackFilter] = useState<FeedbackFilter>('all')
+  const [dateOn, setDateOn] = useState<DateOn>('contact')
+  const [from, setFrom] = useState('')
+  const [to, setTo] = useState('')
+  const navigate = useNavigate()
 
   const names = canViewCustomerNames(role.id)
   const mobiles = canViewMobiles(role.id)
@@ -62,12 +70,18 @@ export function CustomerList() {
       if (envFilter !== 'all' && p.envId !== envFilter) return false
       if (typeFilter !== 'all' && p.segment !== typeFilter) return false
       if (sourceFilter !== 'all' && p.sourceOfLead !== sourceFilter) return false
+      const fb = facts.lastFeedback.get(p.id)
+      if (feedbackFilter === 'none' ? !!fb : feedbackFilter !== 'all' && fb?.tone !== feedbackFilter) return false
+      if (from || to) {
+        const day = (dateOn === 'feedback' ? fb?.at : facts.lastContact.get(p.id))?.slice(0, 10)
+        if (!day || (from && day < from) || (to && day > to)) return false
+      }
       if (!needle) return true
       // Search only what this role may see: the Internal Audit and Marketing Lead can search the reference, never a name or a number.
       const fields = [p.id, p.identity.crmContactId, names ? p.name : undefined, mobiles ? p.identity.mobile : undefined, names ? p.identity.emiratesId : undefined]
       return fields.some((f) => f?.toLowerCase().includes(needle))
     })
-  }, [persons, q, envFilter, typeFilter, sourceFilter, names, mobiles])
+  }, [persons, q, envFilter, typeFilter, sourceFilter, feedbackFilter, dateOn, from, to, facts, names, mobiles])
 
   const fmtDate = (iso: string) => new Intl.DateTimeFormat(lang === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(iso))
 
@@ -128,32 +142,81 @@ export function CustomerList() {
       },
     },
     {
-      id: 'problems',
-      accessorFn: (p) => facts.problems.get(p.id) ?? 0,
-      header: ({ column }) => <SortableHeader column={column}>{L(COPY.columns.problems)}</SortableHeader>,
-      meta: { align: 'end' },
+      id: 'feedback',
+      accessorFn: (p) => facts.lastFeedback.get(p.id)?.score ?? -1,
+      header: ({ column }) => <SortableHeader column={column}>{L(COPY.columns.feedback)}</SortableHeader>,
       cell: ({ row }) => {
-        const n = facts.problems.get(row.original.id) ?? 0
-        if (n === 0) return <span className="tabular text-muted-foreground">0</span>
-        return <StatusBadge tone={facts.critical.has(row.original.id) ? 'danger' : 'warning'}>{n}</StatusBadge>
+        const f = facts.lastFeedback.get(row.original.id)
+        if (!f) return <span className="text-muted-foreground">–</span>
+        const Icon = f.tone === 'positive' ? ThumbsUp : ThumbsDown
+        return (
+          <Link
+            to={`/customers/${row.original.id}`}
+            onClick={(e) => e.stopPropagation()}
+            title={`${L(CHANNEL_LABEL[f.channel])} · ${fmtDate(f.at)}`}
+            className="rounded-xs outline-hidden hover:underline"
+          >
+            <StatusBadge tone={f.tone === 'positive' ? 'success' : 'danger'} icon={<Icon aria-hidden />}>
+              <span className="tabular">{f.score}/10</span>
+            </StatusBadge>
+          </Link>
+        )
       },
     },
     {
-      id: 'drifting',
+      id: 'openItems',
+      accessorFn: (p) => facts.problems.get(p.id) ?? 0,
+      header: ({ column }) => <SortableHeader column={column}>{L(COPY.columns.openItems)}</SortableHeader>,
+      cell: ({ row }) => {
+        const n = facts.problems.get(row.original.id) ?? 0
+        if (n === 0) return <span className="tabular text-muted-foreground">0</span>
+        return (
+          <Link to={`/customers/${row.original.id}`} onClick={(e) => e.stopPropagation()} className="rounded-xs outline-hidden hover:underline">
+            <StatusBadge tone={facts.critical.has(row.original.id) ? 'danger' : 'warning'}>{t(`${n} open`, `${n} مفتوح`)}</StatusBadge>
+          </Link>
+        )
+      },
+    },
+    {
+      id: 'risk',
       accessorFn: (p) => {
         const c = facts.drifting.get(p.id)
         return c ? L(RUNAWAY_TYPE_LABEL[c.type]) : ''
       },
-      header: ({ column }) => <SortableHeader column={column}>{L(COPY.columns.drifting)}</SortableHeader>,
+      header: ({ column }) => <SortableHeader column={column}>{L(COPY.columns.risk)}</SortableHeader>,
       cell: ({ row }) => {
         const c = facts.drifting.get(row.original.id)
         return c ? <StatusBadge tone="danger">{L(RUNAWAY_TYPE_LABEL[c.type])}</StatusBadge> : <span className="text-muted-foreground">–</span>
       },
     },
+    {
+      id: 'open',
+      header: () => <span className="sr-only">{L(COPY.open)}</span>,
+      enableSorting: false,
+      meta: { align: 'end' },
+      cell: ({ row }) => (
+        <Link to={`/customers/${row.original.id}`} onClick={(e) => e.stopPropagation()} className="inline-flex items-center gap-0.5 rounded-xs text-sm font-medium text-foreground outline-hidden hover:underline">
+          {L(COPY.open)}
+          <ChevronRight aria-hidden className="size-3.5 rtl:rotate-180" />
+        </Link>
+      ),
+    },
   ]
 
   function exportList() {
-    downloadCsv('psi-people.csv', peopleCsvRows(visible, role.id, lang, (id) => facts.lastContact.get(id)))
+    const fbCol = L(COPY.columns.feedback)
+    downloadCsv(
+      'psi-people.csv',
+      peopleCsvRows(visible, role.id, lang, (id) => facts.lastContact.get(id), (id) => {
+        const f = facts.lastFeedback.get(id)
+        const c = facts.drifting.get(id)
+        return {
+          [fbCol]: f ? `${f.tone === 'positive' ? L(COPY.filters.feedbackPositive) : L(COPY.filters.feedbackNegative)} ${f.score}/10 (${f.at.slice(0, 10)})` : '',
+          [L(COPY.columns.openItems)]: facts.problems.get(id) ?? 0,
+          [L(COPY.columns.risk)]: c ? L(RUNAWAY_TYPE_LABEL[c.type]) : '',
+        }
+      }),
+    )
     toast(L(COPY.exportToast))
   }
 
@@ -181,6 +244,7 @@ export function CustomerList() {
         data={visible}
         isLoading={isLoading || factsLoading}
         getRowId={(p) => p.id}
+        onRowClick={(p) => navigate(`/customers/${p.id}`)}
         pageSize={12}
         emptyTitle={q ? `${t('No match for', 'لا توجد نتيجة لـ')} “${q}”` : t('No records in scope.', 'لا توجد سجلات ضمن النطاق.')}
         toolbar={
@@ -216,9 +280,44 @@ export function CustomerList() {
                 </SelectItem>
               ))}
             </FilterSelect>
+            <FilterSelect label={L(COPY.columns.feedback)} value={feedbackFilter} onChange={(v) => setFeedbackFilter(v as FeedbackFilter)} allLabel={L(COPY.filters.feedback)}>
+              <SelectItem value="positive">{L(COPY.filters.feedbackPositive)}</SelectItem>
+              <SelectItem value="negative">{L(COPY.filters.feedbackNegative)}</SelectItem>
+              <SelectItem value="none">{L(COPY.filters.feedbackNone)}</SelectItem>
+            </FilterSelect>
+            <span className="flex flex-wrap items-center gap-2">
+              <Select value={dateOn} onValueChange={(v) => setDateOn(v as DateOn)}>
+                <SelectTrigger aria-label={L(COPY.filters.dateOn)} className="h-9 min-w-36">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="contact">{L(COPY.filters.dateContact)}</SelectItem>
+                  <SelectItem value="feedback">{L(COPY.filters.dateFeedback)}</SelectItem>
+                </SelectContent>
+              </Select>
+              <Input type="date" value={from} max={to || undefined} onChange={(e) => setFrom(e.target.value)} aria-label={L(COPY.filters.from)} className="h-9 w-40" dir="ltr" />
+              <span className="text-muted-foreground">–</span>
+              <Input type="date" value={to} min={from || undefined} onChange={(e) => setTo(e.target.value)} aria-label={L(COPY.filters.to)} className="h-9 w-40" dir="ltr" />
+            </span>
+            {(feedbackFilter !== 'all' || from || to) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setFeedbackFilter('all')
+                  setFrom('')
+                  setTo('')
+                }}
+              >
+                {L(COPY.filters.clear)}
+              </Button>
+            )}
           </>
         }
       />
+      <p className="mt-3 text-xs text-muted-foreground" aria-live="polite">
+        {L(COPY.exportNote(visible.length, !!(q || envFilter !== 'all' || typeFilter !== 'all' || sourceFilter !== 'all' || feedbackFilter !== 'all' || from || to)))}
+      </p>
       {!names && (
         <InlineNote className="mt-4">
           {t('Names and mobiles are not shown to this role: people appear by reference (for example P-005), in the list and in the file.', 'الأسماء وأرقام الجوال لا تظهر لهذا الدور: يظهر الأشخاص بمرجع (مثل P-005)، في القائمة وفي الملف.')}

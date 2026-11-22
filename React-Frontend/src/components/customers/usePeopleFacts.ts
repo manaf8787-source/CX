@@ -1,9 +1,19 @@
 import { useMemo } from 'react'
 import { useAllInteractions, useDetractorCallItems, useEffortSummaries } from '@/services/queries'
 import { classifyRunaway, type RunawayClassification } from '@/utils/runaway'
-import type { Interaction, Person } from '@/types'
+import type { ChannelId, Interaction, Person } from '@/types'
+
+/** What a person last told us in a scored answer. Prototype rule on the 0 to 10 sample scores: 7 and above is positive, 6 and below is negative. */
+export interface LastFeedback {
+  score: number
+  at: string
+  channel: ChannelId
+  tone: 'positive' | 'negative'
+}
 
 export interface PeopleFacts {
+  /** The latest scored answer per person; absent = nothing yet. */
+  lastFeedback: Map<string, LastFeedback>
   /** Latest contact per person (ISO), from the unified timeline. */
   lastContact: Map<string, string>
   /** Problems found per person (the same number as the "Problems found" tile on the journey). */
@@ -27,6 +37,7 @@ export function usePeopleFacts(persons: readonly Person[] | undefined): { facts:
 
   const facts = useMemo<PeopleFacts>(() => {
     const lastContact = new Map<string, string>()
+    const lastFeedback = new Map<string, LastFeedback>()
     const byPerson = new Map<string, Interaction[]>()
     for (const i of interactions ?? []) {
       const list = byPerson.get(i.personKey) ?? []
@@ -34,6 +45,10 @@ export function usePeopleFacts(persons: readonly Person[] | undefined): { facts:
       byPerson.set(i.personKey, list)
       const seen = lastContact.get(i.personKey)
       if (!seen || i.occurredAt > seen) lastContact.set(i.personKey, i.occurredAt)
+      if (i.score !== undefined) {
+        const f = lastFeedback.get(i.personKey)
+        if (!f || i.occurredAt > f.at) lastFeedback.set(i.personKey, { score: i.score, at: i.occurredAt, channel: i.channel, tone: i.score >= 7 ? 'positive' : 'negative' })
+      }
     }
     const problems = new Map<string, number>()
     const drifting = new Map<string, RunawayClassification>()
@@ -44,7 +59,7 @@ export function usePeopleFacts(persons: readonly Person[] | undefined): { facts:
       if (c) drifting.set(p.id, c)
     }
     const critical = new Set((loop ?? []).filter((i) => i.severity === 'critical' && i.status !== 'done').map((i) => i.personId))
-    return { lastContact, problems, critical, drifting }
+    return { lastContact, lastFeedback, problems, critical, drifting }
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [persons, interactions, effort, loop, dataUpdatedAt])
 

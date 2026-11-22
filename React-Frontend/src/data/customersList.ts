@@ -6,10 +6,12 @@ const b = (en: string, ar: string): Bi => ({ en, ar })
 export const CUSTOMERS_LIST_COPY = {
   pageTitle: b('Customers', 'العملاء'),
   pageDescription: b('One record per person, every contact on it; who is drifting away; who our customers are.', 'سجل واحد لكل شخص وكل تواصل عليه؛ من يبتعد؛ من هم زبائننا.'),
-  title: b('Everyone on record', 'كل من في السجل'),
-  hint: b('Browse instead of search. Filter, then open a person or export the list for a call round or a campaign.', 'تصفّح بدل البحث. صفِّ، ثم افتح شخصاً أو صدّر القائمة لجولة اتصال أو حملة.'),
-  filters: { environment: b('All environments', 'كل البيئات'), type: b('All types', 'كل الأنواع'), source: b('All sources', 'كل المصادر') },
+  title: b('Customers and what they told us', 'العملاء وما قالوه لنا'),
+  hint: b('Everyone we have a record of, with the last thing they told us. Click a row to open the full history. The export contains exactly what you see.', 'كل من لدينا سجل عنه، مع آخر ما قاله لنا. اضغط على الصف لفتح السجل الكامل. التصدير يحتوي بالضبط ما تراه.'),
+  filters: { feedback: b('All feedback', 'كل الآراء'), feedbackPositive: b('Positive', 'إيجابي'), feedbackNegative: b('Negative', 'سلبي'), feedbackNone: b('None yet', 'لا شيء بعد'), from: b('From', 'من'), to: b('To', 'إلى'), dateOn: b('Date of', 'تاريخ'), dateContact: b('Last contact', 'آخر تواصل'), dateFeedback: b('Last feedback', 'آخر رأي'), clear: b('Clear filters', 'مسح الفلاتر'), environment: b('All environments', 'كل البيئات'), type: b('All types', 'كل الأنواع'), source: b('All sources', 'كل المصادر') },
   count: (n: number): Bi => b(`${n} people`, `${n} شخصاً`),
+  exportNote: (n: number, filtered: boolean): Bi => b(`Exports what you see: ${n} people${filtered ? ', filters applied' : ''}.`, `يصدّر ما تراه: ${n} شخصاً${filtered ? '، مع الفلاتر' : ''}.`),
+  open: b('Open', 'فتح'),
   export: b('Export list (CSV)', 'تصدير القائمة (CSV)'),
   columns: {
     person: b('Person', 'الشخص'),
@@ -20,6 +22,9 @@ export const CUSTOMERS_LIST_COPY = {
     lastContact: b('Last contact', 'آخر تواصل'),
     problems: b('Problems', 'مشاكل'),
     drifting: b('Drifting', 'يبتعد'),
+    feedback: b('Last feedback', 'آخر رأي'),
+    openItems: b('Open', 'مفتوح'),
+    risk: b('Risk', 'الخطر'),
     mobile: b('Mobile', 'الجوال'),
   },
   /** Names and mobiles go only to roles that may see names (decided 18 Nov). */
