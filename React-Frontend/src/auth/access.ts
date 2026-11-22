@@ -27,7 +27,6 @@ const REGISTER_PAGES = [
   '/settings/feeds',
   '/settings/crm-mapping',
   '/settings/escalation-matrix',
-  '/settings/survey-questions',
   '/settings/weekly-sample',
   '/settings/public-mentions',
 ]

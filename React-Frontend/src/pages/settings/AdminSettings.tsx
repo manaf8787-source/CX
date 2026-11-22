@@ -10,6 +10,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { StatusBadge } from '@/components/common/StatusBadge'
 import { ProductTag } from '@/components/common/Chip'
 import { LoadingState } from '@/components/common/LoadingState'
+import { NoticeRecipients } from './NoticeRecipients'
+import { DigestPreview } from './DigestPreview'
 import { SettingsSection, SubPageHeader, ViewOnlyNotice } from './SubPageHeader'
 
 const DIGEST_LABEL: Record<DigestFrequency, { en: string; ar: string }> = {
@@ -151,7 +153,9 @@ export default function AdminSettings() {
                           {product && !product.live && <StatusBadge tone="neutral">{t('Not launched', 'لم يُطلق بعد')}</StatusBadge>}
                         </span>
                       </TableCell>
-                      <TableCell className="text-foreground">{L(n.informed)}</TableCell>
+                      <TableCell className="text-foreground">
+                        <NoticeRecipients productId={n.productId} productLabel={L(product?.name ?? { en: n.productId, ar: n.productId })} fallbackTitle={L(n.informed)} canEdit={canEdit} />
+                      </TableCell>
                       <TableCell>
                         {canEdit ? (
                           <Select
@@ -188,6 +192,7 @@ export default function AdminSettings() {
                           />
                           <span>{t('High priority past SLA, or a pattern', 'عالية الأولوية بعد المدة أو نمط')}</span>
                         </label>
+                        <DigestPreview productId={n.productId} productLabel={L(product?.name ?? { en: n.productId, ar: n.productId })} frequency={n.digest} />
                       </TableCell>
                     </TableRow>
                   )
@@ -196,7 +201,12 @@ export default function AdminSettings() {
                   <TableCell>
                     <ProductTag productId="wl" lang={lang} />
                   </TableCell>
-                  <TableCell colSpan={3}>{t('Who is informed for PSI Wallet is awaiting decision. [Proposed]', 'من يُبلَّغ لمحفظة PSI بانتظار القرار. [مقترح]')}</TableCell>
+                  <TableCell>
+                    <NoticeRecipients productId="wl" productLabel="PSI Wallet" canEdit={canEdit} />
+                  </TableCell>
+                  <TableCell colSpan={2} className="text-muted-foreground">
+                    {t('Digest and alert for PSI Wallet are set once it launches. [Proposed]', 'خلاصة وتنبيه محفظة PSI يُحددان عند إطلاقها. [مقترح]')}
+                  </TableCell>
                 </TableRow>
               </TableBody>
             </Table>
@@ -206,3 +216,4 @@ export default function AdminSettings() {
     </div>
   )
 }
+

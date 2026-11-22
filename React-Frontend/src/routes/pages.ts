@@ -10,7 +10,7 @@ export const pageLoaders = {
   runaway: () => import('../pages/Runaway'),
   closeTheLoop: () => import('../pages/CloseTheLoop'),
   personas: () => import('../pages/Personas'),
-  surveys: () => import('../pages/Surveys'),
+  surveys: () => import('../pages/settings/SurveysHub'),
   intelligentCxTeam: () => import('../pages/IntelligentCxTeam'),
   productPage: () => import('../pages/ProductPage'),
   actionsLayout: () => import('../pages/actions/ActionsLayout'),
@@ -27,14 +27,12 @@ export const pageLoaders = {
   feeds: () => import('../pages/settings/Feeds'),
   crmMapping: () => import('../pages/settings/CrmMapping'),
   escalationMatrix: () => import('../pages/settings/EscalationMatrix'),
-  surveyQuestions: () => import('../pages/settings/SurveyQuestions'),
   weeklySample: () => import('../pages/settings/WeeklySample'),
   publicMentions: () => import('../pages/settings/PublicMentions'),
   monthlyPack: () => import('../pages/settings/MonthlyPack'),
   mysteryShopper: () => import('../pages/settings/MysteryShopper'),
   standards: () => import('../pages/settings/StandardsRegister'),
   voc: () => import('../pages/settings/Voc'),
-  surveysReference: () => import('../pages/settings/SurveysReference'),
   ld: () => import('../pages/settings/Ld'),
   teamsStructure: () => import('../pages/settings/TeamsStructure'),
   hrTeamPerf: () => import('../pages/settings/HrTeamPerf'),
@@ -85,3 +83,4 @@ export function prefetchPath(path: string) {
     pageLoaders[key]().catch(() => started.delete(key))
   }
 }
+

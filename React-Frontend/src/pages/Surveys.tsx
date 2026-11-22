@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, ChevronRight, SlidersHorizontal } from 'lucide-react'
+import { ArrowRight, ChevronRight } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { useLeadFunnel, useProductSurveyMoments, useSurveyTriggers } from '@/services/queries'
 import { useSurveyDelivery, useSurveyInstruments } from '@/services/referenceQueries'
@@ -8,10 +8,9 @@ import { PRODUCTS } from '@/data/products'
 import type { LeadFunnelStage } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { TermHelp } from '@/components/common/TermHelp'
 import { InlineNote } from '@/components/common/InlineNote'
 import { RankedBars } from '@/components/common/charts'
-import { IN_CARD, SubPageHeader } from '@/pages/settings/SubPageHeader'
+import { IN_CARD } from '@/pages/settings/SubPageHeader'
 import { SectionCard } from '@/components/common/SectionCard'
 import { StatusBadge } from '@/components/common/StatusBadge'
 import { ProductTag } from '@/components/common/Chip'
@@ -69,7 +68,8 @@ function BarList({ items, label }: { items: { label: string; count: number }[]; 
  * notification wells with a status dot, not coloured banners. The funnel stages are wells (the chosen one is the dark material);
  * counts are bar comparisons; the delivery figures are a stat well inside the instruments card; the tables sit in cards.
  */
-export default function Surveys() {
+export default function Surveys({ section }: { section: 'results' | 'when' }) {
+  const show = (x: 'results' | 'when') => section === x
   const { t, L, lang } = useI18n()
   const { data: funnel, isLoading: funnelLoading } = useLeadFunnel()
   const { data: triggers, isLoading: triggersLoading } = useSurveyTriggers()
@@ -85,20 +85,8 @@ export default function Surveys() {
 
   return (
     <div data-density="dense" className="flex flex-col gap-6">
-      {/* v40 (F18): a page under Settings and reference, so its heading is the sub-page heading (the layout carries the one h1). */}
-      <SubPageHeader
-        title={
-          <span className="inline-flex items-center gap-1">
-            {t('Surveys and triggers', 'الاستبيانات والمحفزات')}
-            <TermHelp term="Survey trigger" />
-          </span>
-        }
-        description={t(
-          'Ask only after something meaningful, never on a public channel, never more than the caps — one line per product.',
-          'نسأل فقط بعد أمر ذي معنى، وأبداً على قناة عامة، وأبداً أكثر من الحدود المسموحة — خط واحد لكل منتج.',
-        )}
-      />
-
+      {show('results') && (
+        <>
       <InlineNote tone="warning" title={t('Group NPS: none, by design', 'مؤشر NPS الموحد: غير موجود، بالتصميم')}>
         {t(
           'Each product has its own NPS, CSAT and CES line and its own moments — Tour Estate, PSI Club and PSI Events are separate businesses with different customers, so no number ever mixes them (FR-7.4).',
@@ -248,18 +236,15 @@ export default function Surveys() {
         )}
       </SectionCard>
 
+        </>
+      )}
+
+      {show('when') && (
+        <>
       <SectionCard
         term="Survey trigger"
         title={t('When we ask, and when we never ask', 'متى نسأل، ومتى لا نسأل أبداً')}
         contentClassName={IN_CARD}
-        actions={
-          <Button variant="outline" size="sm" asChild>
-            <Link to="/settings/rules">
-              <SlidersHorizontal aria-hidden />
-              {t('Edit caps under Rules as configuration', 'تعديل الحدود ضمن القواعد كإعدادات')}
-            </Link>
-          </Button>
-        }
       >
         {triggersLoading ? (
           <LoadingState rows={4} />
@@ -314,6 +299,11 @@ export default function Surveys() {
         )}
       </InlineNote>
 
+        </>
+      )}
+
+      {show('results') && (
+        <>
       <SectionCard term="NPS" title={t('Per product, no group number', 'لكل منتج، دون رقم موحد')}>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {PRODUCTS.map((p) => {
@@ -335,6 +325,9 @@ export default function Surveys() {
           })}
         </div>
       </SectionCard>
+        </>
+      )}
     </div>
   )
 }
+

@@ -59,6 +59,9 @@ export const CUSTOMERS_TABS: NavLeaf[] = [
 export const LEGACY_REDIRECTS: Record<string, string> = {
   '/surveys': '/settings/surveys',
   '/settings/overview': '/overview',
+  // 22 Nov: three Surveys pages became one screen with tabs
+  '/settings/survey-questions': '/settings/surveys?tab=questions',
+  '/settings/surveys-reference': '/settings/surveys?tab=campaigns',
 }
 
 /** The new path for a legacy one (exact match or a child path), or undefined. */
@@ -90,9 +93,8 @@ export const SETTINGS_NAV: NavLeaf[] = [
   { path: '/settings/monthly-pack', label: { en: 'Monthly CX pack', ar: 'الحزمة الشهرية' } },
   { path: '/settings/mystery-shopper', label: { en: 'Mystery shopper', ar: 'التسوق السري' } },
   { path: '/settings/standards', label: { en: 'Standards register', ar: 'سجل المعايير' } },
-  { path: '/settings/surveys', label: { en: 'Surveys and triggers', ar: 'الاستبيانات والمحفزات' } },
+  { path: '/settings/surveys', label: { en: 'Surveys', ar: 'الاستبيانات' } },
   { path: '/settings/voc', label: { en: 'Voice of Customer', ar: 'صوت العميل' } },
-  { path: '/settings/surveys-reference', label: { en: 'Surveys (legacy reference)', ar: 'الاستبيانات (مرجع قديم)' } },
   { path: '/settings/ld', label: { en: 'L&D: training & materials', ar: 'التعلم والتطوير' } },
   { path: '/settings/team-availability', label: { en: 'Team availability (leave)', ar: 'توفّر الفريق (الإجازات)' }, skipLanding: true },
   { path: '/settings/teams-structure', label: { en: 'Teams and structure', ar: 'الفرق والهيكل' } },
@@ -100,7 +102,6 @@ export const SETTINGS_NAV: NavLeaf[] = [
   { path: '/settings/feeds', label: { en: 'Data feeds', ar: 'تغذيات البيانات' } },
   { path: '/settings/crm-mapping', label: { en: 'CRM mapping', ar: 'ربط قيم CRM' } },
   { path: '/settings/escalation-matrix', label: { en: 'Escalation matrix', ar: 'مصفوفة التصعيد' } },
-  { path: '/settings/survey-questions', label: { en: 'Survey questions', ar: 'أسئلة الاستبيانات' } },
   { path: '/settings/admin', label: { en: 'Settings: launch, HR pool, notices', ar: 'الإعدادات: الإطلاق، الموارد البشرية، الإشعارات' } },
   { path: '/settings/rules', label: { en: 'Rules as configuration', ar: 'القواعد كإعدادات' } },
   { path: '/settings/ai-insights-access', label: { en: 'AI Insights access matrix', ar: 'مصفوفة صلاحيات رؤى الذكاء الاصطناعي' } },

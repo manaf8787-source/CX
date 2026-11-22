@@ -16,7 +16,7 @@ const Customers = lazy(pageLoaders.customers)
 const Runaway = lazy(pageLoaders.runaway)
 const CloseTheLoop = lazy(pageLoaders.closeTheLoop)
 const Personas = lazy(pageLoaders.personas)
-const Surveys = lazy(pageLoaders.surveys)
+const SurveysHub = lazy(pageLoaders.surveys)
 const IntelligentCxTeam = lazy(pageLoaders.intelligentCxTeam)
 const ProductPage = lazy(pageLoaders.productPage)
 
@@ -33,14 +33,12 @@ const OverviewPage = lazy(pageLoaders.overview)
 const Feeds = lazy(pageLoaders.feeds)
 const CrmMapping = lazy(pageLoaders.crmMapping)
 const EscalationMatrix = lazy(pageLoaders.escalationMatrix)
-const SurveyQuestions = lazy(pageLoaders.surveyQuestions)
 const WeeklySample = lazy(pageLoaders.weeklySample)
 const PublicMentions = lazy(pageLoaders.publicMentions)
 const MonthlyPack = lazy(pageLoaders.monthlyPack)
 const MysteryShopper = lazy(pageLoaders.mysteryShopper)
 const Standards = lazy(pageLoaders.standards)
 const Voc = lazy(pageLoaders.voc)
-const SurveysReference = lazy(pageLoaders.surveysReference)
 const Ld = lazy(pageLoaders.ld)
 const TeamsStructure = lazy(pageLoaders.teamsStructure)
 const Performance = lazy(() => import('./pages/Performance'))
@@ -128,11 +126,11 @@ export default function App() {
                   <Route path="/settings" element={<SettingsLayout />}>
                     <Route index element={<Navigate to="weekly-sample" replace />} />
                     <Route path="overview" element={<Navigate to="/overview" replace />} />
-                    <Route path="surveys" element={<Surveys />} />
+                    <Route path="surveys" element={<SurveysHub />} />
                     <Route path="feeds" element={<Feeds />} />
                     <Route path="crm-mapping" element={<CrmMapping />} />
                     <Route path="escalation-matrix" element={<EscalationMatrix />} />
-                    <Route path="survey-questions" element={<SurveyQuestions />} />
+                    <Route path="survey-questions" element={<Navigate to="/settings/surveys?tab=questions" replace />} />
                     <Route path="watch-ai-team" element={<WatchTeam />} />
                     <Route path="weekly-sample" element={<WeeklySample />} />
                     <Route path="campaign-audit" element={<CampaignAudit />} />
@@ -141,7 +139,7 @@ export default function App() {
                     <Route path="mystery-shopper" element={<MysteryShopper />} />
                     <Route path="standards" element={<Standards />} />
                     <Route path="voc" element={<Voc />} />
-                    <Route path="surveys-reference" element={<SurveysReference />} />
+                    <Route path="surveys-reference" element={<Navigate to="/settings/surveys?tab=campaigns" replace />} />
                     <Route path="ld" element={<Ld />} />
                     <Route path="teams-structure" element={<TeamsStructure />} />
                     <Route path="team-availability" element={<TeamAvailability />} />
