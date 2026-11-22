@@ -50,13 +50,16 @@ const CAMPAIGN_AUDIT_PAGE = '/settings/campaign-audit'
 export const USERS_PAGE = '/admin/users'
 /** v43: who opened what, when. The super admin only [Proposed]. */
 export const AUDIT_PAGE = '/admin/audit'
+/** 22 Nov: the CX manager's own team report (not the CX team's), and the all-users dashboard (the Admin and Super admin's, not CX's). */
+export const TEAM_PERFORMANCE_PAGE = '/performance'
+export const USER_PERFORMANCE_PAGE = '/admin/performance'
 
 import { customAllowedPaths } from '../data/customRoles'
 
 export const ROLE_PATHS: Record<RoleId, string[] | null> = {
   cxmgr: null,
   cxteam: null,
-  envmgmt: ['/home', '/customers', '/runaway', '/actions', '/products/re', '/inbox', '/settings/surveys', WATCH_PAGE],
+  envmgmt: ['/home', '/customers', '/runaway', '/actions', '/products/re', '/inbox', '/settings/surveys', WATCH_PAGE, '/agents'],
   teamlead: ['/home', '/customers', '/actions', '/inbox'],
   aslead: ['/home', '/customers', '/actions', '/settings/voc', '/products/af', '/inbox', '/settings/surveys'],
   ld: ['/actions', '/settings/standards', '/settings/ld'],
@@ -81,9 +84,9 @@ export const ROLE_PATHS: Record<RoleId, string[] | null> = {
   exec: ['/home', '/customers', '/runaway', '/actions', '/personas', '/overview', '/settings/monthly-pack', '/inbox', '/settings/surveys', WATCH_PAGE, CAMPAIGN_AUDIT_PAGE, ...REGISTER_PAGES],
   shopper: ['/settings/mystery-shopper'],
   // v43: the super admin runs the user directory and nothing else.
-  admin: [USERS_PAGE, AUDIT_PAGE],
+  admin: [USERS_PAGE, AUDIT_PAGE, USER_PERFORMANCE_PAGE],
   // v43.2: the Admin runs the user list; the audit log stays with the super admin.
-  useradmin: [USERS_PAGE],
+  useradmin: [USERS_PAGE, USER_PERFORMANCE_PAGE],
   // v43.1: a custom role's pages come from the role the super admin built (data/customRoles.ts), read live.
   custom: [],
 }
@@ -100,8 +103,19 @@ function matches(path: string, prefix: string) {
 const NOT_FOR_CX = [CAMPAIGN_AUDIT_PAGE]
 const isCx = (role: RoleId) => role === 'cxmgr' || role === 'cxteam'
 
+/** Pages a role may not open although its page list says "every page". */
+function blocked(role: RoleId, path: string): boolean {
+  if (isCx(role) && NOT_FOR_CX.some((p) => matches(path, p))) return true
+  if (isCx(role) && matches(path, USER_PERFORMANCE_PAGE)) return true
+  // the counts-only CX reports page is for custom roles (the Reporting viewer); the other roles have the full pages
+  if (role !== 'custom' && matches(path, '/reports')) return true
+  // the agent reports are the CX manager's and the environment CEOs'; the CX team does not open them
+  if (role === 'cxteam' && matches(path, '/agents')) return true
+  return role === 'cxteam' && matches(path, TEAM_PERFORMANCE_PAGE)
+}
+
 export function canAccessPath(role: RoleId, path: string): boolean {
-  if (isCx(role) && NOT_FOR_CX.some((p) => matches(path, p))) return false
+  if (blocked(role, path)) return false
   const allowed = pathsFor(role)
   if (allowed === null) return true
   if (OPEN_TO_ALL.some((p) => matches(path, p))) return true
@@ -112,7 +126,7 @@ export function canAccessPath(role: RoleId, path: string): boolean {
 
 /** True only for an exact page or a child of one — '/settings' alone is not a page. */
 export function canOpenPage(role: RoleId, path: string): boolean {
-  if (isCx(role) && NOT_FOR_CX.some((p) => matches(path, p))) return false
+  if (blocked(role, path)) return false
   const allowed = pathsFor(role)
   if (allowed === null) return true
   if (OPEN_TO_ALL.some((p) => matches(path, p))) return true
@@ -141,3 +155,4 @@ export function canManageUsers(role: RoleId): boolean {
 export function canManageAdmins(role: RoleId): boolean {
   return role === 'admin'
 }
+

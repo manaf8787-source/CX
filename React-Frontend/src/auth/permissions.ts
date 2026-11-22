@@ -86,6 +86,17 @@ export function canViewPersonaAudit(role: RoleId): boolean {
   return role === 'auditmkt'
 }
 
+/** 22 Nov (owner): the team performance report is the CX manager's (his own team); the user performance dashboard is the Admin's and the Super admin's. Export: the Super admin and the CX manager. */
+export function canViewTeamPerformance(role: RoleId): boolean {
+  return role === 'cxmgr'
+}
+export function canViewUserPerformance(role: RoleId): boolean {
+  return role === 'admin' || role === 'useradmin'
+}
+export function canExportPerformance(role: RoleId): boolean {
+  return role === 'admin' || role === 'cxmgr'
+}
+
 /** v40 (F35): the CRM mapping and the escalation matrix are filled by the CX manager and the Internal Audit and Marketing Lead; everyone else reads. Feeds are read-only for everyone. */
 export function canEditCrmMapping(role: RoleId): boolean {
   return role === 'cxmgr' || role === 'auditmkt'

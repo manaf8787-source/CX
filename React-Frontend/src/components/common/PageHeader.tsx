@@ -31,7 +31,7 @@ export function PageHeader({ title, description, eyebrow, actions, sample = true
         </h1>
         {description && <p className="max-w-[72ch] text-sm text-muted-foreground">{description}</p>}
       </div>
-      <div className="flex shrink-0 flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 sm:max-w-[55%] sm:shrink-0 sm:justify-end">
         {sample && <SampleBanner />}
         {/* KB §14: a "What the terms mean" button on every page. */}
         <TermsButton />
@@ -40,3 +40,4 @@ export function PageHeader({ title, description, eyebrow, actions, sample = true
     </header>
   )
 }
+

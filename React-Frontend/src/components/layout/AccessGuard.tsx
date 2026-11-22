@@ -6,6 +6,8 @@ import { SETTINGS_LANDING, legacyRedirect } from '@/data/nav'
 import { customLevel } from '@/data/customRoles'
 import { useI18n } from '@/i18n'
 
+const REPORT_PAGES = ['/reports', '/agents/sales', '/agents/support']
+
 /** Sends a role away from a page outside its KB §2 page set, to its own home. */
 export function AccessGuard({ children }: { children: ReactNode }) {
   const { role } = useRole()
@@ -21,7 +23,8 @@ export function AccessGuard({ children }: { children: ReactNode }) {
   }
   if (!canAccessPath(role.id, pathname)) return <Navigate to={role.home} replace />
   // a custom role with "View only" on this screen: the page opens with every button and field switched off (a disabled fieldset does it for all of them)
-  if (role.id === 'custom' && customLevel(pathname) === 'view') return <ViewOnlyScope>{children}</ViewOnlyScope>
+  // the report pages only read (their filters and period pickers must stay usable); a view-only role just gets no export button there
+  if (role.id === 'custom' && customLevel(pathname) === 'view' && !REPORT_PAGES.some((p) => pathname === p)) return <ViewOnlyScope>{children}</ViewOnlyScope>
   return <>{children}</>
 }
 
@@ -39,3 +42,4 @@ function ViewOnlyScope({ children }: { children: ReactNode }) {
     </>
   )
 }
+

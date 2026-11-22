@@ -310,7 +310,9 @@ function buildCorrectiveActions(patterns: Pattern[], signals: Signal[]): Correct
   const eligible = patterns.filter((p) => p.hasMinimumSample)
   const signalById = new Map(signals.map((s) => [s.id, s]))
   return eligible.map((p, idx) => {
-    const status = pick(rng, ['proposed', 'approved', 'in_progress', 'verification', 'effective', 'partial', 'failed'] as const)
+    const drawnStatus = pick(rng, ['proposed', 'approved', 'in_progress', 'verification', 'effective', 'partial', 'failed'] as const)
+    // Demo (22 Nov): pin a few fixes as approved and being carried out, so the late-owner flag on the performance report always has an L&D fix and a branch (environment) manager fix to show.
+    const status = idx % 4 === 1 ? ('in_progress' as const) : idx % 4 === 3 ? ('approved' as const) : drawnStatus
     const startedMonthIndex = 3
     // Same rng draws as before (one base per month, plus the drop draw), but the
     // after-months follow the status so the 60-day verdict never contradicts it.
@@ -336,7 +338,8 @@ function buildCorrectiveActions(patterns: Pattern[], signals: Signal[]): Correct
     // A proposed action has no decision yet; a rejected one never moves on (KB §6).
     const rolled = decisionRoll > 0.75 ? 'modified' : decisionRoll > 0.65 ? 'rejected' : undefined
     const decision = status === 'proposed' ? undefined : rolled === 'rejected' ? 'modified' : rolled
-    const kind = p.thresholdKind === 'same_agent' ? pick(rng, ['employee', 'training_gap'] as const) : pick(rng, CORRECTIVE_KINDS)
+    const drawnKind = p.thresholdKind === 'same_agent' ? pick(rng, ['employee', 'training_gap'] as const) : pick(rng, CORRECTIVE_KINDS)
+    const kind = idx % 4 === 1 ? ('training_gap' as const) : idx % 4 === 3 ? ('employee' as const) : drawnKind
     const envManager = p.team.includes('team') ? `${p.team.replace(' team', '')} environment manager` : 'Environment manager'
     // The receiver follows the kind (KB §6 classification table), by title.
     const owner: Record<string, string> = {
@@ -346,7 +349,10 @@ function buildCorrectiveActions(patterns: Pattern[], signals: Signal[]): Correct
       legal_privacy: 'Legal',
       marketing: 'Internal Audit and Marketing Lead',
     }
-    const dueDate = daysAgoIso(rng, -14)
+    const drawnDue = daysAgoIso(rng, -14)
+    // Some approved fixes that are still being carried out are past their date, so the late-owner flag on the performance report has something to show (no extra random draw).
+    const lateSeed = (status === 'approved' || status === 'in_progress') && idx % 3 !== 2
+    const dueDate = lateSeed ? new Date(Date.now() - (2 + (idx % 6)) * 86_400_000).toISOString() : drawnDue
     const verificationDueAt = daysAgoIso(rng, -60)
     // v40: a proposed fix was proposed in the last few days (some are close to the 5-working-day window);
     // the others were proposed weeks ago. Deterministic from the index, no extra draws.
@@ -1273,3 +1279,4 @@ export const MOCK_AI_ACCESS_MATRIX = buildAiAccessMatrix()
 export const MOCK_LD_REQUESTS = buildLdRequests()
 export const MOCK_HR_POOL = buildHrPool()
 export const MOCK_GLOSSARY_TERMS: GlossaryTerm[] = GLOSSARY_TERMS
+

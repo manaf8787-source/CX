@@ -3,6 +3,8 @@ import { Menu, Search, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { usePersonSearch } from '@/hooks/usePersonSearch'
+import { useRole } from '@/auth/RoleContext'
+import { canOpenPage } from '@/auth/access'
 import { useI18n } from '@/i18n'
 import { LangSwitch } from '../common/LangSwitch'
 import { ThemeSwitch } from '../common/ThemeSwitch'
@@ -15,6 +17,9 @@ function HeaderSearch() {
   const search = usePersonSearch()
   const [query, setQuery] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
+  const { role } = useRole()
+  // finding a person opens their record: only for a role that may open Customers (a reporting-only role has no search)
+  const canSearch = canOpenPage(role.id, '/customers')
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -26,6 +31,8 @@ function HeaderSearch() {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [])
+
+  if (!canSearch) return null
 
   return (
     <form
@@ -110,3 +117,4 @@ export function TopBar({ showMenuButton, onOpenMenu, assistantAvailable, onAskAs
     </header>
   )
 }
+

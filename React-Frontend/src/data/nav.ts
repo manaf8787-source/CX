@@ -27,6 +27,13 @@ export const PRIMARY_NAV: NavGroup[] = [
       { path: '/actions', label: { en: '2–4 · Signals and fixes', ar: '2–4 · الإشارات والحلول' } },
       { path: '/close-the-loop', label: { en: '5 · Close the loop', ar: '5 · إغلاق الحلقة' } },
       { path: '/overview', label: { en: '6 · CX indicators', ar: '6 · مؤشرات تجربة العملاء' } },
+      // 22 Nov: the CX manager's team performance report (appraisal), exportable.
+      { path: '/performance', label: { en: 'Team performance', ar: 'أداء الفريق' } },
+      // 22 Nov: the counts-only summary for the Reporting viewer (custom roles only; no other role lists it, see `blocked`).
+      { path: '/reports', label: { en: 'CX reports', ar: 'تقارير تجربة العملاء' } },
+      // 22 Nov: the CRM agents' reports, by product (CX manager, each environment's CEO, and custom roles such as Sales support).
+      { path: '/agents/sales', label: { en: 'Sales agents', ar: 'وكلاء المبيعات' } },
+      { path: '/agents/support', label: { en: 'Support agents', ar: 'وكلاء الدعم' } },
     ],
   },
   {
@@ -36,6 +43,7 @@ export const PRIMARY_NAV: NavGroup[] = [
       // v43 (19 Nov): the user directory; shown to the super admin (edits) and the CX manager (reads).
       { path: '/admin/users', label: { en: 'Users and access', ar: 'المستخدمون والصلاحيات' } },
       { path: '/admin/audit', label: { en: 'Audit log', ar: 'سجل التدقيق' } },
+      { path: '/admin/performance', label: { en: 'User performance', ar: 'أداء المستخدمين' } },
     ],
   },
 ]
@@ -116,3 +124,4 @@ export function pageTitleFor(pathname: string): Bi {
   if (product) return { en: `Product page: ${product[1]}`, ar: `صفحة المنتج: ${product[1]}` }
   return { en: pathname, ar: pathname }
 }
+

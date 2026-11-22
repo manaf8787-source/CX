@@ -1,5 +1,6 @@
+import { environmentById } from './environments'
 import type { MainRoleId, RoleDef, RoleId } from '../types'
-import { activeCustomRole, customHome } from './customRoles'
+import { activeCustomRole, activeEnvId, customHome } from './customRoles'
 
 /** The v38 target role list — docs/analysis/USER_ROLES_AND_PERMISSIONS.md.
  * `marketing` and `auditmkt` are net-new versus the pre-omnichannel scaffold;
@@ -22,8 +23,9 @@ export const ROLE_DEFS: RoleDef[] = [
   },
   {
     id: 'envmgmt',
-    name: { en: 'Environment management', ar: 'إدارة البيئة' },
-    description: { en: 'Sales manager of one environment. Own actions for that environment only, with agent names, no conversation text.', ar: 'مدير مبيعات لبيئة واحدة. يملك إجراءات بيئته فقط، مع أسماء الوكلاء، دون نص المحادثات.' },
+    // 22 Nov (owner): named by environment, "Dubai – CEO" (see the override in `roleDef`); this is the generic form used in lists
+    name: { en: 'Environment CEO', ar: 'الرئيس التنفيذي للبيئة' },
+    description: { en: 'CEO of one environment. Own actions and agents for that environment only, with agent names, no conversation text.', ar: 'الرئيس التنفيذي لبيئة واحدة. يملك إجراءات ووكلاء بيئته فقط، مع أسماء الوكلاء، دون نص المحادثات.' },
     home: '/home',
     product: 're',
     environment: 'Dubai',
@@ -115,6 +117,11 @@ export const ROLE_DEFS: RoleDef[] = [
 export function roleDef(id: RoleId | null): RoleDef | undefined {
   const def = ROLE_DEFS.find((r) => r.id === id)
   // a custom role takes the name the super admin gave it, and lands on the first screen it may open
+  // each of the three Environment managers sees their own environment (the user's `envId`); the role's own is Dubai
+  if (def && def.id === 'envmgmt') {
+    const e = activeEnvId()
+    return e ? { ...def, name: { en: `${environmentById(e).name.en} – CEO`, ar: `${environmentById(e).name.ar} – الرئيس التنفيذي` }, envId: e, environment: environmentById(e).short } : def
+  }
   if (def && def.id === 'custom') {
     const c = activeCustomRole()
     return c ? { ...def, name: { en: c.name, ar: c.name }, home: customHome() } : def
@@ -143,3 +150,4 @@ export const SIGN_IN_COPY = {
     ar: 'أدوار أخرى تُستخدم في العرض (قادة الفرق، الموارد البشرية، التنفيذيون، فرق المنتجات، المتسوقون)',
   },
 }
+

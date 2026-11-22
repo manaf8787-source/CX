@@ -11,6 +11,7 @@ import { useAuth } from '@/auth/session'
 import { canAccessPath } from '@/auth/access'
 import { roleDef } from '@/data/roles'
 import { customRoleLabel } from '@/data/customRoles'
+import { envName } from '@/data/environments'
 import { acceptInvite, findUserByEmail, findUserByToken, listUsers, type PortalUser } from '@/data/users'
 import { audit } from '@/data/auditLog'
 import { Button } from '@/components/ui/button'
@@ -298,7 +299,7 @@ function SignInForm({ phase, badInvite, onDone }: { phase: Phase; badInvite: boo
                 className="glass ring-within flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-start transition-[background-color] duration-200 hover:bg-well-hover"
               >
                 <span className="t-ui-strong truncate">
-                  {u.roleId === 'custom' ? `${customRoleLabel(u.customRoleId)} · ${t('custom', 'مخصص')}` : u.roleId === 'cxteam' && u.name ? `${L(roleDef(u.roleId)!.name)} – ${u.name}` : L(roleDef(u.roleId)?.name ?? { en: u.roleId, ar: u.roleId })}
+                  {u.roleId === 'custom' ? `${customRoleLabel(u.customRoleId)} · ${t('custom', 'مخصص')}` : u.roleId === 'envmgmt' ? `${L(envName(u.envId ?? 'dub'))} – CEO${u.name && !u.name.endsWith('CEO') ? ` – ${u.name}` : ''}` : u.roleId === 'cxteam' && u.name ? `${L(roleDef(u.roleId)!.name)} – ${u.name}` : L(roleDef(u.roleId)?.name ?? { en: u.roleId, ar: u.roleId })}
                 </span>
                 <span className="truncate text-xs text-muted-foreground" dir="ltr">
                   {u.email}
@@ -392,3 +393,5 @@ function AcceptInviteForm({ user, phase, onDone }: { user: PortalUser; phase: Ph
     </form>
   )
 }
+
+

@@ -33,7 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       session,
       signIn: (user) => {
-        setActiveCustomRole(user.customRoleId)
+        setActiveCustomRole(user.customRoleId, user.envId)
         setRole(user.roleId)
         const next: Session = { userId: user.id, email: user.email, displayName: user.name || null, signedInAt: new Date().toISOString() }
         writeSession(next)
@@ -59,3 +59,4 @@ export function RequireAuth({ children }: { children: ReactNode }) {
   if (!session) return <Navigate to="/login" replace state={{ from: `${location.pathname}${location.search}${location.hash}` }} />
   return <>{children}</>
 }
+

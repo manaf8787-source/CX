@@ -43,6 +43,11 @@ const Voc = lazy(pageLoaders.voc)
 const SurveysReference = lazy(pageLoaders.surveysReference)
 const Ld = lazy(pageLoaders.ld)
 const TeamsStructure = lazy(pageLoaders.teamsStructure)
+const Performance = lazy(() => import('./pages/Performance'))
+const CxReports = lazy(() => import('./pages/CxReports'))
+const SalesAgents = lazy(() => import('./pages/agents/SalesAgents'))
+const SupportAgents = lazy(() => import('./pages/agents/SupportAgents'))
+const UserPerformance = lazy(() => import('./pages/admin/UserPerformance'))
 const TeamAvailability = lazy(() => import('./pages/settings/TeamAvailability'))
 const HrTeamPerf = lazy(pageLoaders.hrTeamPerf)
 const Rules = lazy(pageLoaders.rules)
@@ -114,6 +119,11 @@ export default function App() {
                   {/* v43: the super admin's user directory (the CX manager reads it). */}
                   <Route path="/admin/users" element={<Users />} />
                   <Route path="/admin/audit" element={<AuditLog />} />
+                  <Route path="/admin/performance" element={<UserPerformance />} />
+                  <Route path="/performance" element={<Performance />} />
+                  <Route path="/reports" element={<CxReports />} />
+                  <Route path="/agents/sales" element={<SalesAgents />} />
+                  <Route path="/agents/support" element={<SupportAgents />} />
 
                   <Route path="/settings" element={<SettingsLayout />}>
                     <Route index element={<Navigate to="weekly-sample" replace />} />
@@ -154,3 +164,4 @@ export default function App() {
     </I18nProvider>
   )
 }
+

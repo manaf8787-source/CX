@@ -13,7 +13,7 @@ import { useDetractorCallItems } from '@/services/queries'
 import { useAuditActor } from '@/auth/useAuditActor'
 import { ROLE_DEFS, roleDef } from '@/data/roles'
 import { SCREEN_CATALOG, customRoleLabel, deleteCustomRole, saveCustomRole, useCustomRoles, type CustomRole, type ScreenLevel } from '@/data/customRoles'
-import { envName } from '@/data/environments'
+import { ENVIRONMENTS, envName } from '@/data/environments'
 import {
   inviteLink,
   inviteUser,
@@ -45,7 +45,7 @@ import { PageHeader } from '@/components/common/PageHeader'
 import { StatusBadge } from '@/components/common/StatusBadge'
 import { InlineNote } from '@/components/common/InlineNote'
 import { ViewOnlyNotice } from '@/pages/settings/SubPageHeader'
-import type { RoleId } from '@/types'
+import type { EnvId, RoleId } from '@/types'
 
 const STATUS_LABEL: Record<UserStatus, { en: string; ar: string }> = {
   invited: { en: 'Invited', ar: 'مدعو' },
@@ -102,8 +102,9 @@ function resolveRole(choice: string, draft: Draft): { ok: true; roleId: RoleId; 
 }
 
 /** The role's name as shown for a person: a custom role by the name the admin gave it. */
-function roleLabelOf(u: Pick<PortalUser, 'roleId' | 'customRoleId'>, L: (b: { en: string; ar: string }) => string): string {
+function roleLabelOf(u: Pick<PortalUser, 'roleId' | 'customRoleId' | 'envId'>, L: (b: { en: string; ar: string }) => string): string {
   if (u.roleId === 'custom') return customRoleLabel(u.customRoleId)
+  if (u.roleId === 'envmgmt') return `${L(envName(u.envId ?? 'dub'))} – CEO`
   const r = roleDef(u.roleId)
   return r ? L(r.name) : u.roleId
 }
@@ -265,7 +266,7 @@ export default function Users() {
                   <TableCell>
                     <span className="flex flex-col">
                       <span className="text-foreground">{roleLabelOf(u, L)}</span>
-                      {r?.envId && <span className="text-xs text-muted-foreground">{L(envName(r.envId))}</span>}
+                      {r?.envId && <span className="text-xs text-muted-foreground">{L(envName(u.envId ?? r.envId))}</span>}
                     </span>
                   </TableCell>
                   <TableCell>
@@ -486,6 +487,29 @@ export default function Users() {
   )
 }
 
+/** Which of the three environments an Environment manager looks after. */
+function EnvPicker({ value, onChange }: { value: EnvId; onChange: (v: EnvId) => void }) {
+  const { t, L } = useI18n()
+  return (
+    <Field>
+      <FieldLabel htmlFor="env-pick">{t('Environment', 'البيئة')}</FieldLabel>
+      <Select value={value} onValueChange={(v) => onChange(v as EnvId)}>
+        <SelectTrigger id="env-pick" className="w-full">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent position="popper">
+          {ENVIRONMENTS.map((e) => (
+            <SelectItem key={e.id} value={e.id}>
+              {L(e.name)}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <FieldDescription>{t('They see only the people, cases and agents of this environment.', 'يرى الأشخاص والحالات والوكلاء في هذه البيئة فقط.')}</FieldDescription>
+    </Field>
+  )
+}
+
 function RoleSelect({ value, onChange, id }: { value: string; onChange: (v: string) => void; id?: string }) {
   const { t, L } = useI18n()
   const custom = useCustomRoles()
@@ -587,6 +611,7 @@ function InviteDialog({ invitedBy, onClose, onInvited }: { invitedBy?: string; o
   const { t, L } = useI18n()
   const [choice, setChoice] = useState<string>('cxteam')
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT)
+  const [env, setEnv] = useState<EnvId>('dub')
   const [error, setError] = useState<string | null>(null)
   const schema = useMemo(
     () =>
@@ -621,6 +646,7 @@ function InviteDialog({ invitedBy, onClose, onInvited }: { invitedBy?: string; o
       name: `${v.firstName} ${v.lastName}`.trim(),
       roleId: picked.roleId,
       customRoleId: picked.customRoleId,
+      envId: env,
       invitedBy,
     })
     if (!res.ok) {
@@ -676,6 +702,7 @@ function InviteDialog({ invitedBy, onClose, onInvited }: { invitedBy?: string; o
             <RoleSelect id="invite-role" value={choice} onChange={setChoice} />
             {def && <FieldDescription>{L(def.description)}</FieldDescription>}
           </Field>
+          {choice === 'envmgmt' && <EnvPicker value={env} onChange={setEnv} />}
           {choice === NEW_ROLE && <NewRoleFields draft={draft} onChange={setDraft} />}
 
           {error && (
@@ -704,6 +731,7 @@ function ChangeRoleDialog({ user, onClose, onChanged }: { user: PortalUser; onCl
   const current = user.roleId === 'custom' ? `custom:${user.customRoleId}` : user.roleId
   const [choice, setChoice] = useState<string>(current)
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT)
+  const [env, setEnv] = useState<EnvId>(user.envId ?? 'dub')
   const [error, setError] = useState<string | null>(null)
   const def = choice === NEW_ROLE || choice.startsWith('custom:') ? undefined : roleDef(choice as RoleId)
   return (
@@ -720,7 +748,8 @@ function ChangeRoleDialog({ user, onClose, onChanged }: { user: PortalUser; onCl
           <RoleSelect id="change-role" value={choice} onChange={setChoice} />
           {def && <FieldDescription>{L(def.description)}</FieldDescription>}
         </Field>
-        {choice === NEW_ROLE && <NewRoleFields draft={draft} onChange={setDraft} />}
+        {choice === 'envmgmt' && <EnvPicker value={env} onChange={setEnv} />}
+          {choice === NEW_ROLE && <NewRoleFields draft={draft} onChange={setDraft} />}
         {error && (
           <InlineNote role="status" tone="error">
             {error}
@@ -739,7 +768,7 @@ function ChangeRoleDialog({ user, onClose, onChanged }: { user: PortalUser; onCl
                 setError(L(picked.error))
                 return
               }
-              setUserRole(user.id, picked.roleId, picked.customRoleId)
+              setUserRole(user.id, picked.roleId, picked.customRoleId, env)
               onChanged(roleLabelOf(picked, L))
               toast.success(t('Role changed; it applies at their next sign-in.', 'تغيّر الدور؛ يسري عند تسجيل الدخول القادم.'))
               onClose()
@@ -868,3 +897,4 @@ function EditRoleBody({ role, onClose, onSaved }: { role: CustomRole; onClose: (
     </DialogContent>
   )
 }
+

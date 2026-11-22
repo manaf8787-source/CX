@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react'
-import type { RoleId } from '../types'
+import type { EnvId, RoleId } from '../types'
 
 /**
  * The user directory (owner's request, 19 Nov): nobody picks a role on the sign-in screen any more. A super admin invites people by
@@ -17,6 +17,8 @@ export interface PortalUser {
   roleId: RoleId
   /** Set when `roleId` is 'custom': which custom role (data/customRoles.ts). */
   customRoleId?: string
+  /** Set for an Environment manager: which of the three environments is theirs. */
+  envId?: EnvId
   status: UserStatus
   /** ISO date of the invitation. */
   invitedAt: string
@@ -32,7 +34,7 @@ const STORAGE_KEY = 'psicx.users'
 
 /** The sample directory on first run: one super admin plus one account per main role, so the demo still works end to end. */
 const SEED_DATE = '2026-11-19T07:00:00.000Z'
-const ADDED_SEED_IDS = ['u-cxteam2', 'u-cxteam3', 'u-admin2', 'u-viewer']
+const ADDED_SEED_IDS = ['u-cxteam2', 'u-cxteam3', 'u-admin2', 'u-viewer', 'u-env2', 'u-env3', 'u-salessupport']
 
 export const SEED_USERS: PortalUser[] = [
   { id: 'u-admin', email: 'admin@psi.sample', name: 'Super admin', roleId: 'admin', status: 'active', invitedAt: SEED_DATE, activatedAt: SEED_DATE },
@@ -42,7 +44,10 @@ export const SEED_USERS: PortalUser[] = [
   { id: 'u-cxteam', email: 'cx.team@psi.sample', name: 'Abeer', roleId: 'cxteam', status: 'active', invitedAt: SEED_DATE, activatedAt: SEED_DATE, invitedBy: 'u-admin' },
   { id: 'u-cxteam2', email: 'cx.team2@psi.sample', name: 'Muhannad', roleId: 'cxteam', status: 'active', invitedAt: SEED_DATE, activatedAt: SEED_DATE, invitedBy: 'u-admin' },
   { id: 'u-cxteam3', email: 'cx.team3@psi.sample', name: 'Dina', roleId: 'cxteam', status: 'active', invitedAt: SEED_DATE, activatedAt: SEED_DATE, invitedBy: 'u-admin' },
-  { id: 'u-env', email: 'env.manager@psi.sample', name: 'Environment manager', roleId: 'envmgmt', status: 'active', invitedAt: SEED_DATE, activatedAt: SEED_DATE, invitedBy: 'u-admin' },
+  { id: 'u-env', email: 'env.manager@psi.sample', name: 'Dubai CEO', roleId: 'envmgmt', envId: 'dub', status: 'active', invitedAt: SEED_DATE, activatedAt: SEED_DATE, invitedBy: 'u-admin' },
+  { id: 'u-env2', email: 'env.manager.auh@psi.sample', name: 'Firas', roleId: 'envmgmt', envId: 'auh', status: 'active', invitedAt: SEED_DATE, activatedAt: SEED_DATE, invitedBy: 'u-admin' },
+  { id: 'u-env3', email: 'env.manager.assets@psi.sample', name: 'Niveen', roleId: 'envmgmt', envId: 'ast', status: 'active', invitedAt: SEED_DATE, activatedAt: SEED_DATE, invitedBy: 'u-admin' },
+  { id: 'u-salessupport', email: 'sales.support@psi.sample', name: 'Sales support', roleId: 'custom', customRoleId: 'cr-sales-support', status: 'active', invitedAt: SEED_DATE, activatedAt: SEED_DATE, invitedBy: 'u-admin' },
   { id: 'u-mkt', email: 'marketing@psi.sample', name: 'Marketing manager', roleId: 'marketing', status: 'active', invitedAt: SEED_DATE, activatedAt: SEED_DATE, invitedBy: 'u-admin' },
   { id: 'u-ld', email: 'ld@psi.sample', name: 'L&D manager', roleId: 'ld', status: 'active', invitedAt: SEED_DATE, activatedAt: SEED_DATE, invitedBy: 'u-admin' },
   { id: 'u-audit', email: 'audit@psi.sample', name: 'Internal Audit and Marketing Lead', roleId: 'auditmkt', status: 'active', invitedAt: SEED_DATE, activatedAt: SEED_DATE, invitedBy: 'u-admin' },
@@ -62,7 +67,7 @@ function read(): PortalUser[] {
         // sample people added after a browser first stored the directory (the extra CX team members for the call assignments)
         const extra = SEED_USERS.filter((u) => ADDED_SEED_IDS.includes(u.id) && !parsed.some((x) => x.id === u.id)).map((u) => ({ ...u }))
         // the three CX team members carry names now (they were "CX team member" in an earlier version of the sample directory)
-        const NAMES: Record<string, [string, string]> = { 'u-cxteam': ['CX team member', 'Abeer'], 'u-cxteam2': ['Second CX team member', 'Muhannad'], 'u-cxteam3': ['Third CX team member', 'Dina'] }
+        const NAMES: Record<string, [string, string]> = { 'u-cxteam': ['CX team member', 'Abeer'], 'u-cxteam2': ['Second CX team member', 'Muhannad'], 'u-cxteam3': ['Third CX team member', 'Dina'], 'u-env': ['Environment manager', 'Dubai CEO'], 'u-env2': ['Abu Dhabi environment manager', 'Firas'], 'u-env3': ['PSI Assets environment manager', 'Niveen'] }
         const renamed = parsed.map((u) => (NAMES[u.id] && u.name === NAMES[u.id][0] ? { ...u, name: NAMES[u.id][1] } : u))
         return [...renamed, ...extra]
       }
@@ -119,7 +124,7 @@ function token(): string {
 export type InviteResult = { ok: true; user: PortalUser } | { ok: false; reason: 'exists' | 'invalid' }
 
 /** Creates an invited user. The email must be new. */
-export function inviteUser(input: { email: string; name: string; roleId: RoleId; customRoleId?: string; invitedBy?: string }): InviteResult {
+export function inviteUser(input: { email: string; name: string; roleId: RoleId; customRoleId?: string; envId?: EnvId; invitedBy?: string }): InviteResult {
   const email = normaliseEmail(input.email)
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { ok: false, reason: 'invalid' }
   if (users.some((u) => u.email === email)) return { ok: false, reason: 'exists' }
@@ -129,6 +134,7 @@ export function inviteUser(input: { email: string; name: string; roleId: RoleId;
     name: input.name.trim(),
     roleId: input.roleId,
     customRoleId: input.customRoleId,
+    envId: input.roleId === 'envmgmt' ? (input.envId ?? 'dub') : undefined,
     status: 'invited',
     invitedAt: new Date().toISOString(),
     inviteToken: token(),
@@ -151,8 +157,8 @@ export function reissueInvite(id: string): PortalUser | undefined {
   return out
 }
 
-export function setUserRole(id: string, roleId: RoleId, customRoleId?: string) {
-  write(users.map((u) => (u.id === id ? { ...u, roleId, customRoleId: roleId === 'custom' ? customRoleId : undefined } : u)))
+export function setUserRole(id: string, roleId: RoleId, customRoleId?: string, envId?: EnvId) {
+  write(users.map((u) => (u.id === id ? { ...u, roleId, customRoleId: roleId === 'custom' ? customRoleId : undefined, envId: roleId === 'envmgmt' ? (envId ?? u.envId ?? 'dub') : undefined } : u)))
 }
 
 export function setUserStatus(id: string, status: 'active' | 'disabled') {
@@ -191,3 +197,4 @@ export function inviteLink(user: PortalUser): string {
 export function useUsers(): PortalUser[] {
   return useSyncExternalStore(subscribe, listUsers, listUsers)
 }
+
