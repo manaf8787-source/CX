@@ -1,4 +1,5 @@
 import type { MainRoleId, RoleDef, RoleId } from '../types'
+import { activeCustomRole, customHome } from './customRoles'
 
 /** The v38 target role list — docs/analysis/USER_ROLES_AND_PERMISSIONS.md.
  * `marketing` and `auditmkt` are net-new versus the pre-omnichannel scaffold;
@@ -97,10 +98,28 @@ export const ROLE_DEFS: RoleDef[] = [
     description: { en: 'Invites users by email and gives each one a role. Sees the Users page only: no customers, no cases, no numbers.', ar: 'يدعو المستخدمين بالبريد ويمنح كل واحد دوراً. يرى صفحة المستخدمين فقط: لا عملاء ولا حالات ولا أرقام.' },
     home: '/admin/users',
   },
+  {
+    id: 'useradmin',
+    name: { en: 'Admin', ar: 'مدير المستخدمين' },
+    description: { en: 'Invites users, changes roles and deactivates people who left. Cannot create another Admin and cannot open the audit log.', ar: 'يدعو المستخدمين ويغيّر الأدوار ويوقف من غادر. لا يستطيع إنشاء مدير آخر ولا فتح سجل التدقيق.' },
+    home: '/admin/users',
+  },
+  {
+    id: 'custom',
+    name: { en: 'Custom role', ar: 'دور مخصص' },
+    description: { en: 'A role the super admin builds screen by screen: for each screen, no access, view only or can edit.', ar: 'دور يبنيه المدير العام شاشة بشاشة: لكل شاشة، لا وصول أو عرض فقط أو تعديل.' },
+    home: '/home',
+  },
 ]
 
 export function roleDef(id: RoleId | null): RoleDef | undefined {
-  return ROLE_DEFS.find((r) => r.id === id)
+  const def = ROLE_DEFS.find((r) => r.id === id)
+  // a custom role takes the name the super admin gave it, and lands on the first screen it may open
+  if (def && def.id === 'custom') {
+    const c = activeCustomRole()
+    return c ? { ...def, name: { en: c.name, ar: c.name }, home: customHome() } : def
+  }
+  return def
 }
 
 /** The six roles on the sign-in screen (v40 F28): CX manager, CX team, Environment manager, Marketing, L&D, Internal Audit and Marketing Lead. */

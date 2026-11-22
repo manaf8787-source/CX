@@ -15,6 +15,8 @@ export interface PortalUser {
   email: string
   name: string
   roleId: RoleId
+  /** Set when `roleId` is 'custom': which custom role (data/customRoles.ts). */
+  customRoleId?: string
   status: UserStatus
   /** ISO date of the invitation. */
   invitedAt: string
@@ -30,10 +32,12 @@ const STORAGE_KEY = 'psicx.users'
 
 /** The sample directory on first run: one super admin plus one account per main role, so the demo still works end to end. */
 const SEED_DATE = '2026-11-19T07:00:00.000Z'
-const ADDED_SEED_IDS = ['u-cxteam2', 'u-cxteam3']
+const ADDED_SEED_IDS = ['u-cxteam2', 'u-cxteam3', 'u-admin2', 'u-viewer']
 
 export const SEED_USERS: PortalUser[] = [
   { id: 'u-admin', email: 'admin@psi.sample', name: 'Super admin', roleId: 'admin', status: 'active', invitedAt: SEED_DATE, activatedAt: SEED_DATE },
+  { id: 'u-admin2', email: 'admin2@psi.sample', name: 'Admin', roleId: 'useradmin', status: 'active', invitedAt: SEED_DATE, activatedAt: SEED_DATE, invitedBy: 'u-admin' },
+  { id: 'u-viewer', email: 'reporting.viewer@psi.sample', name: 'Reporting viewer', roleId: 'custom', customRoleId: 'cr-reporting-viewer', status: 'active', invitedAt: SEED_DATE, activatedAt: SEED_DATE, invitedBy: 'u-admin' },
   { id: 'u-cxmgr', email: 'cx.manager@psi.sample', name: 'CX manager', roleId: 'cxmgr', status: 'active', invitedAt: SEED_DATE, activatedAt: SEED_DATE, invitedBy: 'u-admin' },
   { id: 'u-cxteam', email: 'cx.team@psi.sample', name: 'Abeer', roleId: 'cxteam', status: 'active', invitedAt: SEED_DATE, activatedAt: SEED_DATE, invitedBy: 'u-admin' },
   { id: 'u-cxteam2', email: 'cx.team2@psi.sample', name: 'Muhannad', roleId: 'cxteam', status: 'active', invitedAt: SEED_DATE, activatedAt: SEED_DATE, invitedBy: 'u-admin' },
@@ -115,7 +119,7 @@ function token(): string {
 export type InviteResult = { ok: true; user: PortalUser } | { ok: false; reason: 'exists' | 'invalid' }
 
 /** Creates an invited user. The email must be new. */
-export function inviteUser(input: { email: string; name: string; roleId: RoleId; invitedBy?: string }): InviteResult {
+export function inviteUser(input: { email: string; name: string; roleId: RoleId; customRoleId?: string; invitedBy?: string }): InviteResult {
   const email = normaliseEmail(input.email)
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { ok: false, reason: 'invalid' }
   if (users.some((u) => u.email === email)) return { ok: false, reason: 'exists' }
@@ -124,6 +128,7 @@ export function inviteUser(input: { email: string; name: string; roleId: RoleId;
     email,
     name: input.name.trim(),
     roleId: input.roleId,
+    customRoleId: input.customRoleId,
     status: 'invited',
     invitedAt: new Date().toISOString(),
     inviteToken: token(),
@@ -146,8 +151,8 @@ export function reissueInvite(id: string): PortalUser | undefined {
   return out
 }
 
-export function setUserRole(id: string, roleId: RoleId) {
-  write(users.map((u) => (u.id === id ? { ...u, roleId } : u)))
+export function setUserRole(id: string, roleId: RoleId, customRoleId?: string) {
+  write(users.map((u) => (u.id === id ? { ...u, roleId, customRoleId: roleId === 'custom' ? customRoleId : undefined } : u)))
 }
 
 export function setUserStatus(id: string, status: 'active' | 'disabled') {

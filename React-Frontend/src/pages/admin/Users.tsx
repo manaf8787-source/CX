@@ -7,9 +7,12 @@ import { Link2, MoreHorizontal, RotateCcw, UserPlus } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { useRole } from '@/auth/RoleContext'
 import { useAuth } from '@/auth/session'
-import { canManageUsers } from '@/auth/access'
+import { canManageAdmins, canManageUsers } from '@/auth/access'
+import { useCallAssignments } from '@/data/callAssignments'
+import { useDetractorCallItems } from '@/services/queries'
 import { useAuditActor } from '@/auth/useAuditActor'
 import { ROLE_DEFS, roleDef } from '@/data/roles'
+import { SCREEN_CATALOG, customRoleLabel, deleteCustomRole, saveCustomRole, useCustomRoles, type CustomRole, type ScreenLevel } from '@/data/customRoles'
 import { envName } from '@/data/environments'
 import {
   inviteLink,
@@ -50,8 +53,60 @@ const STATUS_LABEL: Record<UserStatus, { en: string; ar: string }> = {
   disabled: { en: 'Deactivated', ar: 'موقوف' },
 }
 
-/** Roles an admin can give. The super admin role itself is given here too (a second admin) [Proposed]. */
-const INVITABLE_ROLES: readonly RoleId[] = ['cxmgr', 'cxteam', 'envmgmt', 'teamlead', 'aslead', 'marketing', 'auditmkt', 'ld', 'hrspec', 'hrmgr', 'exec', 'shopper', 'admin']
+/** Roles an admin can give from the list. The super admin role is not on it (22 Nov, owner): anything else is a custom role built below. */
+const INVITABLE_ROLES: readonly RoleId[] = [
+  'cxmgr',
+  'cxteam',
+  'envmgmt',
+  'teamlead',
+  'aslead',
+  'marketing',
+  'auditmkt',
+  'ld',
+  'hrspec',
+  'hrmgr',
+  'exec',
+  'shopper',
+]
+
+const NEW_ROLE = '__new'
+type Draft = { name: string; screens: Record<string, ScreenLevel> }
+const EMPTY_DRAFT: Draft = { name: '', screens: {} }
+
+/** What a picked role means: a ready-made role id, or a custom role (an existing one, or the draft saved now). */
+function resolveRole(choice: string, draft: Draft): { ok: true; roleId: RoleId; customRoleId?: string } | { ok: false; error: { en: string; ar: string } } {
+  if (choice === NEW_ROLE) {
+    const name = draft.name.trim()
+    const screens = Object.fromEntries(Object.entries(draft.screens).filter(([, l]) => l !== 'none')) as CustomRole['screens']
+    if (name.length < 2)
+      return {
+        ok: false,
+        error: { en: 'Name the new role.', ar: 'سمِّ الدور الجديد.' },
+      }
+    if (!Object.keys(screens).length)
+      return {
+        ok: false,
+        error: {
+          en: 'Give the role at least one screen.',
+          ar: 'امنح الدور شاشة واحدة على الأقل.',
+        },
+      }
+    return {
+      ok: true,
+      roleId: 'custom',
+      customRoleId: saveCustomRole({ name, screens }).id,
+    }
+  }
+  if (choice.startsWith('custom:')) return { ok: true, roleId: 'custom', customRoleId: choice.slice(7) }
+  return { ok: true, roleId: choice as RoleId }
+}
+
+/** The role's name as shown for a person: a custom role by the name the admin gave it. */
+function roleLabelOf(u: Pick<PortalUser, 'roleId' | 'customRoleId'>, L: (b: { en: string; ar: string }) => string): string {
+  if (u.roleId === 'custom') return customRoleLabel(u.customRoleId)
+  const r = roleDef(u.roleId)
+  return r ? L(r.name) : u.roleId
+}
 
 async function copy(text: string): Promise<boolean> {
   try {
@@ -73,20 +128,36 @@ export default function Users() {
   const users = useUsers()
   const { log } = useAuditActor()
   const canEdit = canManageUsers(role.id)
+  const [leaving, setLeaving] = useState<PortalUser | null>(null)
+  const assignments = useCallAssignments()
+  const { data: callItems } = useDetractorCallItems()
+  // open cases the person holds: they stay with them until the manager moves them, so the dialog says so
+  const heldBy = (id: string) => (callItems ?? []).filter((i) => !i.outcome && i.status !== 'done' && assignments[i.id]?.userId === id).length
   const [inviteOpen, setInviteOpen] = useState(false)
   const [roleFor, setRoleFor] = useState<PortalUser | null>(null)
   const [lastInvite, setLastInvite] = useState<PortalUser | null>(null)
 
   const sorted = useMemo(
-    () => [...users].sort((a, b) => (a.status === b.status ? a.name.localeCompare(b.name) : a.status === 'invited' ? -1 : b.status === 'invited' ? 1 : a.status === 'active' ? -1 : 1)),
+    () =>
+      [...users].sort((a, b) =>
+        a.status === b.status ? a.name.localeCompare(b.name) : a.status === 'invited' ? -1 : b.status === 'invited' ? 1 : a.status === 'active' ? -1 : 1,
+      ),
     [users],
   )
   const counts = useMemo(
-    () => ({ active: users.filter((u) => u.status === 'active').length, invited: users.filter((u) => u.status === 'invited').length, disabled: users.filter((u) => u.status === 'disabled').length }),
+    () => ({
+      active: users.filter((u) => u.status === 'active').length,
+      invited: users.filter((u) => u.status === 'invited').length,
+      disabled: users.filter((u) => u.status === 'disabled').length,
+    }),
     [users],
   )
 
-  const dateFmt = new Intl.DateTimeFormat(lang === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+  const dateFmt = new Intl.DateTimeFormat(lang === 'ar' ? 'ar-AE' : 'en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  })
 
   const copyLink = async (u: PortalUser) => {
     const ok = await copy(inviteLink(u))
@@ -112,7 +183,11 @@ export default function Users() {
         }
       />
 
-      {!canEdit && <ViewOnlyNotice>{t('View only. The super admin invites users and changes roles.', 'للعرض فقط. المدير العام للنظام يدعو المستخدمين ويغيّر الأدوار.')}</ViewOnlyNotice>}
+      {!canEdit && (
+        <ViewOnlyNotice>
+          {t('View only. The super admin invites users and changes roles.', 'للعرض فقط. المدير العام للنظام يدعو المستخدمين ويغيّر الأدوار.')}
+        </ViewOnlyNotice>
+      )}
 
       <InlineNote role="note">
         <strong className="font-medium">{t('Prototype.', 'نموذج أولي.')}</strong>{' '}
@@ -125,8 +200,14 @@ export default function Users() {
       </InlineNote>
 
       {lastInvite && lastInvite.status === 'invited' && (
-        <InlineNote role="status" tone="success" title={t(`${lastInvite.name || lastInvite.email} was invited`, `تمت دعوة ${lastInvite.name || lastInvite.email}`)}>
-          <span className="text-muted-foreground">{t('Send them this link; it opens the "set up your account" step.', 'أرسل له هذا الرابط؛ يفتح خطوة "إعداد حسابك".')}</span>
+        <InlineNote
+          role="status"
+          tone="success"
+          title={t(`${lastInvite.name || lastInvite.email} was invited`, `تمت دعوة ${lastInvite.name || lastInvite.email}`)}
+        >
+          <span className="text-muted-foreground">
+            {t('Send them this link; it opens the "set up your account" step.', 'أرسل له هذا الرابط؛ يفتح خطوة "إعداد حسابك".')}
+          </span>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <code dir="ltr" className="well max-w-full truncate rounded-md px-2.5 py-1.5 text-xs">
               {inviteLink(lastInvite)}
@@ -143,9 +224,17 @@ export default function Users() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="t-h4">{t('Directory', 'الدليل')}</h2>
           <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-            <StatusBadge tone="success">{counts.active} {t('active', 'نشط')}</StatusBadge>
-            <StatusBadge tone="info">{counts.invited} {t('invited', 'مدعو')}</StatusBadge>
-            {counts.disabled > 0 && <StatusBadge tone="neutral">{counts.disabled} {t('deactivated', 'موقوف')}</StatusBadge>}
+            <StatusBadge tone="success">
+              {counts.active} {t('active', 'نشط')}
+            </StatusBadge>
+            <StatusBadge tone="info">
+              {counts.invited} {t('invited', 'مدعو')}
+            </StatusBadge>
+            {counts.disabled > 0 && (
+              <StatusBadge tone="neutral">
+                {counts.disabled} {t('deactivated', 'موقوف')}
+              </StatusBadge>
+            )}
           </div>
         </div>
 
@@ -175,7 +264,7 @@ export default function Users() {
                   </TableCell>
                   <TableCell>
                     <span className="flex flex-col">
-                      <span className="text-foreground">{r ? L(r.name) : u.roleId}</span>
+                      <span className="text-foreground">{roleLabelOf(u, L)}</span>
                       {r?.envId && <span className="text-xs text-muted-foreground">{L(envName(r.envId))}</span>}
                     </span>
                   </TableCell>
@@ -187,82 +276,105 @@ export default function Users() {
                   <TableCell className="tabular text-muted-foreground">{dateFmt.format(new Date(u.activatedAt ?? u.invitedAt))}</TableCell>
                   {canEdit && (
                     <TableCell className="text-end">
-                      <div className="flex items-center justify-end gap-1">
-                        {u.status === 'invited' && (
-                          <Button variant="outline" size="xs" onClick={() => copyLink(u)}>
-                            <Link2 aria-hidden />
-                            {t('Copy link', 'نسخ الرابط')}
-                          </Button>
-                        )}
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon-sm" aria-label={t(`More actions: ${u.email}`, `إجراءات أخرى: ${u.email}`)}>
-                              <MoreHorizontal aria-hidden />
+                      {(u.roleId === 'admin' || u.roleId === 'useradmin') && !canManageAdmins(role.id) ? (
+                        <span className="text-xs text-muted-foreground">{t('Only the super admin', 'المدير العام فقط')}</span>
+                      ) : (
+                        <div className="flex items-center justify-end gap-1">
+                          {u.status === 'active' && !me && (
+                            <Button variant="outline" size="xs" onClick={() => setLeaving(u)}>
+                              {t('Deactivate', 'إيقاف')}
                             </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-56">
-                            <DropdownMenuLabel className="truncate font-normal text-muted-foreground" dir="ltr">
-                              {u.email}
-                            </DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem disabled={me} onSelect={() => setRoleFor(u)}>
-                              {t('Change role', 'تغيير الدور')}
-                            </DropdownMenuItem>
-                            {u.status !== 'active' && (
-                              <DropdownMenuItem
-                                onSelect={() => {
-                                  const next = reissueInvite(u.id)
-                                  if (next) {
-                                    log('user_reinvited', { en: `Re-invited ${next.email}`, ar: `أعاد دعوة ${next.email}` })
-                                    setLastInvite(next)
-                                    toast.success(t('New invitation link issued; the old one no longer works.', 'صدر رابط دعوة جديد؛ القديم لم يعد يعمل.'))
-                                  }
-                                }}
-                              >
-                                {t('Re-invite (new link)', 'إعادة الدعوة (رابط جديد)')}
+                          )}
+                          {u.status === 'invited' && (
+                            <Button variant="outline" size="xs" onClick={() => copyLink(u)}>
+                              <Link2 aria-hidden />
+                              {t('Copy link', 'نسخ الرابط')}
+                            </Button>
+                          )}
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon-sm" aria-label={t(`More actions: ${u.email}`, `إجراءات أخرى: ${u.email}`)}>
+                                <MoreHorizontal aria-hidden />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-56">
+                              <DropdownMenuLabel className="truncate font-normal text-muted-foreground" dir="ltr">
+                                {u.email}
+                              </DropdownMenuLabel>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem disabled={me || u.roleId === 'admin'} onSelect={() => setRoleFor(u)}>
+                                {t('Change role', 'تغيير الدور')}
                               </DropdownMenuItem>
-                            )}
-                            {u.status === 'active' && (
-                              <DropdownMenuItem
-                                disabled={me}
-                                onSelect={() => {
-                                  setUserStatus(u.id, 'disabled')
-                                  log('user_deactivated', { en: `Deactivated ${u.email}`, ar: `أوقف ${u.email}` })
-                                  toast.success(t('Deactivated. They cannot sign in until reactivated.', 'تم الإيقاف. لا يستطيع تسجيل الدخول حتى إعادة التفعيل.'))
-                                }}
-                              >
-                                {t('Deactivate', 'إيقاف')}
-                              </DropdownMenuItem>
-                            )}
-                            {u.status === 'disabled' && (
-                              <DropdownMenuItem
-                                onSelect={() => {
-                                  setUserStatus(u.id, 'active')
-                                  log('user_reactivated', { en: `Reactivated ${u.email}`, ar: `أعاد تفعيل ${u.email}` })
-                                  toast.success(t('Reactivated.', 'أُعيد التفعيل.'))
-                                }}
-                              >
-                                {t('Reactivate', 'إعادة التفعيل')}
-                              </DropdownMenuItem>
-                            )}
-                            {u.status === 'invited' && (
-                              <>
-                                <DropdownMenuSeparator />
+                              {u.status !== 'active' && (
                                 <DropdownMenuItem
                                   onSelect={() => {
-                                    removeUser(u.id)
-                                    log('invite_withdrawn', { en: `Withdrew the invitation of ${u.email}`, ar: `سحب دعوة ${u.email}` })
-                                    if (lastInvite?.id === u.id) setLastInvite(null)
-                                    toast.success(t('Invitation withdrawn.', 'سُحبت الدعوة.'))
+                                    const next = reissueInvite(u.id)
+                                    if (next) {
+                                      log('user_reinvited', {
+                                        en: `Re-invited ${next.email}`,
+                                        ar: `أعاد دعوة ${next.email}`,
+                                      })
+                                      setLastInvite(next)
+                                      toast.success(t('New invitation link issued; the old one no longer works.', 'صدر رابط دعوة جديد؛ القديم لم يعد يعمل.'))
+                                    }
                                   }}
                                 >
-                                  {t('Withdraw invitation', 'سحب الدعوة')}
+                                  {t('Re-invite (new link)', 'إعادة الدعوة (رابط جديد)')}
                                 </DropdownMenuItem>
-                              </>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
+                              )}
+                              {u.status === 'active' && (
+                                <DropdownMenuItem
+                                  disabled={me}
+                                  onSelect={() => {
+                                    setUserStatus(u.id, 'disabled')
+                                    log('user_deactivated', {
+                                      en: `Deactivated ${u.email}`,
+                                      ar: `أوقف ${u.email}`,
+                                    })
+                                    toast.success(
+                                      t('Deactivated. They cannot sign in until reactivated.', 'تم الإيقاف. لا يستطيع تسجيل الدخول حتى إعادة التفعيل.'),
+                                    )
+                                  }}
+                                >
+                                  {t('Deactivate', 'إيقاف')}
+                                </DropdownMenuItem>
+                              )}
+                              {u.status === 'disabled' && (
+                                <DropdownMenuItem
+                                  onSelect={() => {
+                                    setUserStatus(u.id, 'active')
+                                    log('user_reactivated', {
+                                      en: `Reactivated ${u.email}`,
+                                      ar: `أعاد تفعيل ${u.email}`,
+                                    })
+                                    toast.success(t('Reactivated.', 'أُعيد التفعيل.'))
+                                  }}
+                                >
+                                  {t('Reactivate', 'إعادة التفعيل')}
+                                </DropdownMenuItem>
+                              )}
+                              {u.status === 'invited' && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    onSelect={() => {
+                                      removeUser(u.id)
+                                      log('invite_withdrawn', {
+                                        en: `Withdrew the invitation of ${u.email}`,
+                                        ar: `سحب دعوة ${u.email}`,
+                                      })
+                                      if (lastInvite?.id === u.id) setLastInvite(null)
+                                      toast.success(t('Invitation withdrawn.', 'سُحبت الدعوة.'))
+                                    }}
+                                  >
+                                    {t('Withdraw invitation', 'سحب الدعوة')}
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      )}
                     </TableCell>
                   )}
                 </TableRow>
@@ -278,7 +390,10 @@ export default function Users() {
               size="xs"
               onClick={() => {
                 resetUsers()
-                log('users_reset', { en: 'Restored the sample directory', ar: 'أعاد الدليل النموذجي' })
+                log('users_reset', {
+                  en: 'Restored the sample directory',
+                  ar: 'أعاد الدليل النموذجي',
+                })
                 setLastInvite(null)
                 toast.success(t('Sample directory restored.', 'أُعيد الدليل النموذجي.'))
               }}
@@ -290,12 +405,66 @@ export default function Users() {
         )}
       </Card>
 
+      <CustomRolesCard canEdit={canEdit} />
+
+      {leaving && (
+        <Dialog open onOpenChange={(o) => !o && setLeaving(null)}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>{t('Deactivate this person?', 'إيقاف هذا الشخص؟')}</DialogTitle>
+              <DialogDescription>
+                {t(
+                  `${leaving.name || leaving.email} will be signed out now and cannot sign in again. Nothing is deleted: their history stays in the audit log, and you can reactivate them later. Use this when someone resigns or leaves.`,
+                  `سيُسجَّل ${leaving.name || leaving.email} خروجه الآن ولن يستطيع الدخول مجدداً. لا يُحذف شيء: يبقى سجله في سجل التدقيق ويمكنك إعادة تفعيله لاحقاً. استخدم هذا عند الاستقالة أو المغادرة.`,
+                )}
+              </DialogDescription>
+            </DialogHeader>
+            {heldBy(leaving.id) > 0 && (
+              <InlineNote role="status" tone="warning">
+                {t(
+                  `${heldBy(leaving.id)} open call ${heldBy(leaving.id) === 1 ? 'case is' : 'cases are'} with them. After deactivating, the CX manager sees them flagged on Close the loop and moves them to someone else.`,
+                  `${heldBy(leaving.id)} حالة اتصال مفتوحة لديه. بعد الإيقاف يراها مدير CX مميّزة في «إغلاق الحلقة» وينقلها إلى شخص آخر.`,
+                )}
+              </InlineNote>
+            )}
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setLeaving(null)}>
+                {t('Cancel', 'إلغاء')}
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={() => {
+                  setUserStatus(leaving.id, 'disabled')
+                  log('user_deactivated', {
+                    en: `Deactivated ${leaving.email}`,
+                    ar: `أوقف ${leaving.email}`,
+                  })
+                  toast.success(
+                    t(
+                      'Deactivated. They are signed out and cannot sign in until reactivated.',
+                      'تم الإيقاف. خرج من النظام ولا يستطيع الدخول حتى إعادة التفعيل.',
+                    ),
+                  )
+                  setLeaving(null)
+                }}
+              >
+                {t('Deactivate', 'إيقاف')}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
       {inviteOpen && (
         <InviteDialog
           invitedBy={session?.userId}
           onClose={() => setInviteOpen(false)}
           onInvited={(u) => {
-            log('user_invited', { en: `Invited ${u.email} as ${roleDef(u.roleId)?.name.en ?? u.roleId}`, ar: `دعا ${u.email} بصفة ${roleDef(u.roleId)?.name.ar ?? u.roleId}` })
+            log('user_invited', {
+              en: `Invited ${u.email} as ${roleLabelOf(u, (b) => b.en)}`,
+              ar: `دعا ${u.email} بصفة ${roleLabelOf(u, (b) => b.ar)}`,
+            })
             setLastInvite(u)
             setInviteOpen(false)
           }}
@@ -305,44 +474,128 @@ export default function Users() {
         <ChangeRoleDialog
           user={roleFor}
           onClose={() => setRoleFor(null)}
-          onChanged={(r) => log('user_role_changed', { en: `Changed ${roleFor.email} to ${roleDef(r)?.name.en ?? r}`, ar: `غيّر ${roleFor.email} إلى ${roleDef(r)?.name.ar ?? r}` })}
+          onChanged={(label) =>
+            log('user_role_changed', {
+              en: `Changed ${roleFor.email} to ${label}`,
+              ar: `غيّر ${roleFor.email} إلى ${label}`,
+            })
+          }
         />
       )}
     </div>
   )
 }
 
-function RoleSelect({ value, onChange, id }: { value: RoleId; onChange: (r: RoleId) => void; id?: string }) {
-  const { L } = useI18n()
+function RoleSelect({ value, onChange, id }: { value: string; onChange: (v: string) => void; id?: string }) {
+  const { t, L } = useI18n()
+  const custom = useCustomRoles()
+  const { role } = useRole()
+  const ids: readonly RoleId[] = canManageAdmins(role.id) ? ['useradmin', ...INVITABLE_ROLES] : INVITABLE_ROLES
   return (
-    <Select value={value} onValueChange={(v) => onChange(v as RoleId)}>
+    <Select value={value} onValueChange={onChange}>
       <SelectTrigger id={id} className="w-full">
         <SelectValue />
       </SelectTrigger>
       <SelectContent position="popper" className="max-h-80">
-        {INVITABLE_ROLES.map((id) => {
-          const r = ROLE_DEFS.find((d) => d.id === id)!
+        {ids.map((rid) => {
+          const r = ROLE_DEFS.find((d) => d.id === rid)!
           return (
-            <SelectItem key={id} value={id}>
+            <SelectItem key={rid} value={rid}>
               {L(r.name)}
             </SelectItem>
           )
         })}
+        {custom.map((c) => (
+          <SelectItem key={c.id} value={`custom:${c.id}`}>
+            {c.name} · {t('custom', 'مخصص')}
+          </SelectItem>
+        ))}
+        <SelectItem value={NEW_ROLE}>{t('Other: build a new role…', 'أخرى: ابنِ دوراً جديداً…')}</SelectItem>
       </SelectContent>
     </Select>
   )
 }
 
+/** The screens, one row each, with No access / View only / Can edit. Used for a new role and when editing one. */
+function ScreenPicker({ screens, onChange }: { screens: Record<string, ScreenLevel>; onChange: (next: Record<string, ScreenLevel>) => void }) {
+  const { t, L } = useI18n()
+  const { role } = useRole()
+  const canSeeAdminScreens = canManageAdmins(role.id)
+  const levels: { v: ScreenLevel; en: string; ar: string }[] = [
+    { v: 'none', en: 'No access', ar: 'لا وصول' },
+    { v: 'view', en: 'View only', ar: 'عرض فقط' },
+    { v: 'edit', en: 'Can edit', ar: 'يعدّل' },
+  ]
+  return (
+    <div className="flex max-h-72 flex-col gap-3 overflow-y-auto rounded-xl border border-line p-3" role="group" aria-label={t('Screens', 'الشاشات')}>
+      {SCREEN_CATALOG.filter((g) => canSeeAdminScreens || !g.screens.some((sc) => sc.path.startsWith('/admin'))).map((g) => (
+        <div key={g.label.en} className="flex flex-col gap-1.5">
+          <span className="t-small-strong text-muted-foreground">{L(g.label)}</span>
+          {g.screens.map((sc) => {
+            const cur = screens[sc.path] ?? 'none'
+            return (
+              <div key={sc.path} className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-sm text-foreground">{L(sc.label)}</span>
+                <span className="inline-flex gap-1" role="radiogroup" aria-label={L(sc.label)}>
+                  {levels.map((l) => (
+                    <button
+                      key={l.v}
+                      type="button"
+                      role="radio"
+                      aria-checked={cur === l.v}
+                      onClick={() => onChange({ ...screens, [sc.path]: l.v })}
+                      className={`rounded-full px-2.5 py-1 text-xs outline-hidden transition-colors focus-visible:ring-2 ${cur === l.v ? 'bg-foreground text-background' : 'bg-(--surface-well) text-muted-foreground hover:text-foreground'}`}
+                    >
+                      {t(l.en, l.ar)}
+                    </button>
+                  ))}
+                </span>
+              </div>
+            )
+          })}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/** Shown when "Other: build a new role" is picked: the name, then the screens. */
+function NewRoleFields({ draft, onChange }: { draft: Draft; onChange: (d: Draft) => void }) {
+  const { t } = useI18n()
+  return (
+    <div className="flex flex-col gap-3">
+      <Field>
+        <FieldLabel htmlFor="new-role-name">{t('Role name', 'اسم الدور')}</FieldLabel>
+        <Input
+          id="new-role-name"
+          maxLength={40}
+          value={draft.name}
+          onChange={(e) => onChange({ ...draft, name: e.target.value })}
+          placeholder={t('For example: Admin', 'مثال: مسؤول')}
+        />
+      </Field>
+      <Field>
+        <FieldLabel>{t('What this role can do, screen by screen', 'ما يستطيعه هذا الدور، شاشة بشاشة')}</FieldLabel>
+        <ScreenPicker screens={draft.screens} onChange={(screens) => onChange({ ...draft, screens })} />
+        <FieldDescription>{t('The role is saved and can be given to more people later.', 'يُحفظ الدور ويمكن منحه لأشخاص آخرين لاحقاً.')}</FieldDescription>
+      </Field>
+    </div>
+  )
+}
+
 function InviteDialog({ invitedBy, onClose, onInvited }: { invitedBy?: string; onClose: () => void; onInvited: (u: PortalUser) => void }) {
   const { t, L } = useI18n()
-  const [roleId, setRoleId] = useState<RoleId>('cxteam')
+  const [choice, setChoice] = useState<string>('cxteam')
+  const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT)
   const [error, setError] = useState<string | null>(null)
   const schema = useMemo(
     () =>
       z.object({
         firstName: z.string().trim().max(40, t('Use 40 characters or fewer.', 'استخدم 40 حرفاً أو أقل.')),
         lastName: z.string().trim().max(40, t('Use 40 characters or fewer.', 'استخدم 40 حرفاً أو أقل.')),
-        email: z.email({ error: t('Enter a valid work email.', 'أدخل بريداً وظيفياً صالحاً.') }),
+        email: z.email({
+          error: t('Enter a valid work email.', 'أدخل بريداً وظيفياً صالحاً.'),
+        }),
       }),
     [t],
   )
@@ -351,13 +604,31 @@ function InviteDialog({ invitedBy, onClose, onInvited }: { invitedBy?: string; o
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: { firstName: '', lastName: '', email: '' } })
-  const def = roleDef(roleId)
+  } = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: { firstName: '', lastName: '', email: '' },
+  })
+  const def = choice === NEW_ROLE || choice.startsWith('custom:') ? undefined : roleDef(choice as RoleId)
 
   const onValid = (v: FormValues) => {
-    const res = inviteUser({ email: v.email, name: `${v.firstName} ${v.lastName}`.trim(), roleId, invitedBy })
+    const picked = resolveRole(choice, draft)
+    if (!picked.ok) {
+      setError(L(picked.error))
+      return
+    }
+    const res = inviteUser({
+      email: v.email,
+      name: `${v.firstName} ${v.lastName}`.trim(),
+      roleId: picked.roleId,
+      customRoleId: picked.customRoleId,
+      invitedBy,
+    })
     if (!res.ok) {
-      setError(res.reason === 'exists' ? t('This email already has an account.', 'هذا البريد له حساب بالفعل.') : t('Enter a valid work email.', 'أدخل بريداً وظيفياً صالحاً.'))
+      setError(
+        res.reason === 'exists'
+          ? t('This email already has an account.', 'هذا البريد له حساب بالفعل.')
+          : t('Enter a valid work email.', 'أدخل بريداً وظيفياً صالحاً.'),
+      )
       return
     }
     toast.success(t('Invitation created.', 'أُنشئت الدعوة.'))
@@ -366,11 +637,13 @@ function InviteDialog({ invitedBy, onClose, onInvited }: { invitedBy?: string; o
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-lg">
         <form noValidate onSubmit={handleSubmit(onValid)} className="flex flex-col gap-5">
           <DialogHeader>
             <DialogTitle>{t('Invite a user', 'دعوة مستخدم')}</DialogTitle>
-            <DialogDescription>{t('They get a link, set a password and land on the pages their role allows.', 'يصله رابط، يضع كلمة مرور، ويصل إلى الصفحات التي يسمح بها دوره.')}</DialogDescription>
+            <DialogDescription>
+              {t('They get a link, set a password and land on the pages their role allows.', 'يصله رابط، يضع كلمة مرور، ويصل إلى الصفحات التي يسمح بها دوره.')}
+            </DialogDescription>
           </DialogHeader>
 
           <Field data-invalid={!!errors.email}>
@@ -392,14 +665,18 @@ function InviteDialog({ invitedBy, onClose, onInvited }: { invitedBy?: string; o
             </Field>
           </div>
           <FieldDescription>
-            {t('Only the email is required. The person enters their own first and last name when they accept the invitation, and it appears next to their email in the audit log.', 'البريد وحده مطلوب. يدخل الشخص اسمه الأول واسم عائلته بنفسه عند قبول الدعوة، ويظهر بجانب بريده في سجل التدقيق.')}
+            {t(
+              'Only the email is required. The person enters their own first and last name when they accept the invitation, and it appears next to their email in the audit log.',
+              'البريد وحده مطلوب. يدخل الشخص اسمه الأول واسم عائلته بنفسه عند قبول الدعوة، ويظهر بجانب بريده في سجل التدقيق.',
+            )}
           </FieldDescription>
 
           <Field>
             <FieldLabel htmlFor="invite-role">{t('Role', 'الدور')}</FieldLabel>
-            <RoleSelect id="invite-role" value={roleId} onChange={setRoleId} />
+            <RoleSelect id="invite-role" value={choice} onChange={setChoice} />
             {def && <FieldDescription>{L(def.description)}</FieldDescription>}
           </Field>
+          {choice === NEW_ROLE && <NewRoleFields draft={draft} onChange={setDraft} />}
 
           {error && (
             <InlineNote role="status" tone="error">
@@ -422,13 +699,16 @@ function InviteDialog({ invitedBy, onClose, onInvited }: { invitedBy?: string; o
   )
 }
 
-function ChangeRoleDialog({ user, onClose, onChanged }: { user: PortalUser; onClose: () => void; onChanged: (r: RoleId) => void }) {
+function ChangeRoleDialog({ user, onClose, onChanged }: { user: PortalUser; onClose: () => void; onChanged: (label: string) => void }) {
   const { t, L } = useI18n()
-  const [roleId, setRoleId] = useState<RoleId>(user.roleId)
-  const def = roleDef(roleId)
+  const current = user.roleId === 'custom' ? `custom:${user.customRoleId}` : user.roleId
+  const [choice, setChoice] = useState<string>(current)
+  const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT)
+  const [error, setError] = useState<string | null>(null)
+  const def = choice === NEW_ROLE || choice.startsWith('custom:') ? undefined : roleDef(choice as RoleId)
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{t('Change role', 'تغيير الدور')}</DialogTitle>
           <DialogDescription dir="ltr" className="text-start">
@@ -437,19 +717,30 @@ function ChangeRoleDialog({ user, onClose, onChanged }: { user: PortalUser; onCl
         </DialogHeader>
         <Field>
           <FieldLabel htmlFor="change-role">{t('Role', 'الدور')}</FieldLabel>
-          <RoleSelect id="change-role" value={roleId} onChange={setRoleId} />
+          <RoleSelect id="change-role" value={choice} onChange={setChoice} />
           {def && <FieldDescription>{L(def.description)}</FieldDescription>}
         </Field>
+        {choice === NEW_ROLE && <NewRoleFields draft={draft} onChange={setDraft} />}
+        {error && (
+          <InlineNote role="status" tone="error">
+            {error}
+          </InlineNote>
+        )}
         <DialogFooter>
           <Button type="button" variant="outline" onClick={onClose}>
             {t('Cancel', 'إلغاء')}
           </Button>
           <Button
             type="button"
-            disabled={roleId === user.roleId}
+            disabled={choice === current}
             onClick={() => {
-              setUserRole(user.id, roleId)
-              onChanged(roleId)
+              const picked = resolveRole(choice, draft)
+              if (!picked.ok) {
+                setError(L(picked.error))
+                return
+              }
+              setUserRole(user.id, picked.roleId, picked.customRoleId)
+              onChanged(roleLabelOf(picked, L))
               toast.success(t('Role changed; it applies at their next sign-in.', 'تغيّر الدور؛ يسري عند تسجيل الدخول القادم.'))
               onClose()
             }}
@@ -459,5 +750,121 @@ function ChangeRoleDialog({ user, onClose, onChanged }: { user: PortalUser; onCl
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  )
+}
+
+/** The custom roles built so far: edit the screens of one, or delete one nobody uses. */
+function CustomRolesCard({ canEdit }: { canEdit: boolean }) {
+  const { t } = useI18n()
+  const roles = useCustomRoles()
+  const users = useUsers()
+  const { log } = useAuditActor()
+  const [editing, setEditing] = useState<CustomRole | null>(null)
+  if (!roles.length) return null
+  return (
+    <Card className="flex flex-col gap-3">
+      <h2 className="t-h4">{t('Custom roles', 'الأدوار المخصصة')}</h2>
+      <ul className="flex flex-col divide-y divide-line">
+        {roles.map((r) => {
+          const inUse = users.filter((u) => u.customRoleId === r.id).length
+          const view = Object.values(r.screens).filter((l) => l === 'view').length
+          const edit = Object.values(r.screens).filter((l) => l === 'edit').length
+          return (
+            <li key={r.id} className="flex flex-wrap items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0">
+              <span className="flex flex-col">
+                <span className="font-medium text-foreground">{r.name}</span>
+                <span className="text-xs text-muted-foreground">
+                  {t(
+                    `${edit} screens to edit · ${view} view only · given to ${inUse} ${inUse === 1 ? 'person' : 'people'}`,
+                    `${edit} شاشة للتعديل · ${view} للعرض فقط · ممنوح لـ ${inUse}`,
+                  )}
+                </span>
+              </span>
+              {canEdit && (
+                <span className="flex gap-1.5">
+                  <Button variant="outline" size="xs" onClick={() => setEditing(r)}>
+                    {t('Edit screens', 'تعديل الشاشات')}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="xs"
+                    disabled={inUse > 0}
+                    title={inUse > 0 ? t('Given to someone: change their role first.', 'ممنوح لشخص: غيّر دوره أولاً.') : undefined}
+                    onClick={() => {
+                      deleteCustomRole(r.id)
+                      log('user_role_changed', {
+                        en: `Deleted the custom role “${r.name}”`,
+                        ar: `حذف الدور المخصص «${r.name}»`,
+                      })
+                      toast.success(t('Role deleted.', 'حُذف الدور.'))
+                    }}
+                  >
+                    {t('Delete', 'حذف')}
+                  </Button>
+                </span>
+              )}
+            </li>
+          )
+        })}
+      </ul>
+      {editing && (
+        <Dialog open onOpenChange={(o) => !o && setEditing(null)}>
+          <EditRoleBody
+            role={editing}
+            onClose={() => setEditing(null)}
+            onSaved={(name) =>
+              log('user_role_changed', {
+                en: `Changed the screens of the custom role “${name}”`,
+                ar: `غيّر شاشات الدور المخصص «${name}»`,
+              })
+            }
+          />
+        </Dialog>
+      )}
+    </Card>
+  )
+}
+
+function EditRoleBody({ role, onClose, onSaved }: { role: CustomRole; onClose: () => void; onSaved: (name: string) => void }) {
+  const { t } = useI18n()
+  const [draft, setDraft] = useState<Draft>({
+    name: role.name,
+    screens: { ...role.screens },
+  })
+  const [error, setError] = useState<string | null>(null)
+  return (
+    <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-lg">
+      <DialogHeader>
+        <DialogTitle>{t('Edit custom role', 'تعديل دور مخصص')}</DialogTitle>
+        <DialogDescription>{t('Changes apply the next time each person signs in.', 'تسري التغييرات عند تسجيل دخول كل شخص القادم.')}</DialogDescription>
+      </DialogHeader>
+      <NewRoleFields draft={draft} onChange={setDraft} />
+      {error && (
+        <InlineNote role="status" tone="error">
+          {error}
+        </InlineNote>
+      )}
+      <DialogFooter>
+        <Button type="button" variant="outline" onClick={onClose}>
+          {t('Cancel', 'إلغاء')}
+        </Button>
+        <Button
+          type="button"
+          onClick={() => {
+            const screens = Object.fromEntries(Object.entries(draft.screens).filter(([, l]) => l !== 'none')) as CustomRole['screens']
+            if (draft.name.trim().length < 2 || !Object.keys(screens).length) {
+              setError(t('Name the role and give it at least one screen.', 'سمِّ الدور وامنحه شاشة واحدة على الأقل.'))
+              return
+            }
+            saveCustomRole({ id: role.id, name: draft.name, screens })
+            onSaved(draft.name.trim())
+            toast.success(t('Role saved.', 'حُفظ الدور.'))
+            onClose()
+          }}
+        >
+          {t('Save', 'حفظ')}
+        </Button>
+      </DialogFooter>
+    </DialogContent>
   )
 }

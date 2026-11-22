@@ -10,6 +10,7 @@ import { useI18n } from '@/i18n'
 import { useAuth } from '@/auth/session'
 import { canAccessPath } from '@/auth/access'
 import { roleDef } from '@/data/roles'
+import { customRoleLabel } from '@/data/customRoles'
 import { acceptInvite, findUserByEmail, findUserByToken, listUsers, type PortalUser } from '@/data/users'
 import { audit } from '@/data/auditLog'
 import { Button } from '@/components/ui/button'
@@ -296,7 +297,9 @@ function SignInForm({ phase, badInvite, onDone }: { phase: Phase; badInvite: boo
                 }}
                 className="glass ring-within flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-start transition-[background-color] duration-200 hover:bg-well-hover"
               >
-                <span className="t-ui-strong truncate">{L(roleDef(u.roleId)?.name ?? { en: u.roleId, ar: u.roleId })}</span>
+                <span className="t-ui-strong truncate">
+                  {u.roleId === 'custom' ? `${customRoleLabel(u.customRoleId)} · ${t('custom', 'مخصص')}` : u.roleId === 'cxteam' && u.name ? `${L(roleDef(u.roleId)!.name)} – ${u.name}` : L(roleDef(u.roleId)?.name ?? { en: u.roleId, ar: u.roleId })}
+                </span>
                 <span className="truncate text-xs text-muted-foreground" dir="ltr">
                   {u.email}
                 </span>
@@ -345,7 +348,7 @@ function AcceptInviteForm({ user, phase, onDone }: { user: PortalUser; phase: Ph
       <div className="flex flex-col gap-1.5">
         <h1 className="t-page-title">{t('Set up your account', 'إعداد حسابك')}</h1>
         <p className="t-body-m">
-          {t('You were invited as', 'تمت دعوتك بصفة')} <span className="font-medium text-foreground">{role ? L(role.name) : user.roleId}</span>
+          {t('You were invited as', 'تمت دعوتك بصفة')} <span className="font-medium text-foreground">{user.roleId === 'custom' ? customRoleLabel(user.customRoleId) : role ? L(role.name) : user.roleId}</span>
           {' · '}
           <span dir="ltr">{user.email}</span>
         </p>
@@ -353,7 +356,9 @@ function AcceptInviteForm({ user, phase, onDone }: { user: PortalUser; phase: Ph
 
       {role && (
         <InlineNote role="note">
-          <span className="text-muted-foreground">{L(role.description)}</span>
+          <span className="text-muted-foreground">
+            {user.roleId === 'custom' ? t('You will see the screens the super admin chose for this role.', 'سترى الشاشات التي اختارها المدير العام لهذا الدور.') : L(role.description)}
+          </span>
         </InlineNote>
       )}
 

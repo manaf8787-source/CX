@@ -1,5 +1,6 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from 'react'
 import { ROLE_DEFS, roleDef } from '../data/roles'
+import { useCustomRolesRevision } from '../data/customRoles'
 import type { RoleDef, RoleId } from '../types'
 
 interface RoleValue {
@@ -23,6 +24,7 @@ export function RoleProvider({ children }: { children: ReactNode }) {
     return DEFAULT_ROLE
   })
 
+  const customRev = useCustomRolesRevision()
   const value = useMemo<RoleValue>(
     () => ({
       role: roleDef(roleId) ?? roleDef(DEFAULT_ROLE)!,
@@ -35,7 +37,8 @@ export function RoleProvider({ children }: { children: ReactNode }) {
         }
       },
     }),
-    [roleId],
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+    [roleId, customRev],
   )
 
   return <RoleContext.Provider value={value}>{children}</RoleContext.Provider>

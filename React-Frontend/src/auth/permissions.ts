@@ -20,7 +20,7 @@ export function canViewConversationText(role: RoleId): boolean {
  * management / team leads / After-Sales lead are "own management" for their
  * product; HR, L&D, Marketing, Audit, executives and the shopper sign-in
  * never see a real name, only a title. */
-const AGENT_NAME_ROLES: ReadonlySet<RoleId> = new Set(['cxmgr', 'cxteam', 'envmgmt', 'teamlead', 'aslead', 'ld', 'hrspec', 'hrmgr', 'marketing', 'auditmkt', 'exec'])
+const AGENT_NAME_ROLES: ReadonlySet<RoleId> = new Set(['cxmgr', 'cxteam', 'envmgmt', 'teamlead', 'aslead', 'ld', 'hrspec', 'hrmgr', 'marketing', 'auditmkt', 'exec', 'custom'])
 
 export function canViewAgentNames(role: RoleId): boolean {
   return AGENT_NAME_ROLES.has(role)

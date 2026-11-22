@@ -32,7 +32,8 @@ import { CALL_COPY, attemptLine, callRulesFrom } from '@/utils/callSchedule'
 import { useAuth } from '@/auth/session'
 import { useAuditActor } from '@/auth/useAuditActor'
 import { useUsers } from '@/data/users'
-import { assignCall, clearAskedAgain, unassignCall, useCallAssignments } from '@/data/callAssignments'
+import { assignCall, clearAskedAgain, moveCalls, unassignCall, useCallAssignments } from '@/data/callAssignments'
+import { isAwayOn, unavailableReason, useAway } from '@/data/availability'
 import { personLabel } from '@/utils/peopleExport'
 import { envNameFromShort } from '@/data/environments'
 import { CLOSE_LOOP_NEXT } from '@/data/steps'
@@ -121,7 +122,21 @@ export default function CloseTheLoop() {
   const { log } = useAuditActor()
   const assignments = useCallAssignments()
   const directory = useUsers()
-  const cxTeam = useMemo(() => directory.filter((u) => u.roleId === 'cxteam' && u.status === 'active'), [directory])
+  const away = useAway()
+  // new cases go only to people who are active and not on leave today
+  const cxTeam = useMemo(() => directory.filter((u) => u.roleId === 'cxteam' && u.status === 'active' && !isAwayOn(away[u.id])), [directory, away])
+  const whyOut = (userId: string) => unavailableReason(directory.find((u) => u.id === userId), away)
+  // open cases held by someone who is on leave or has left, per person: the manager moves these
+  const stranded = useMemo(() => {
+    const by = new Map<string, DetractorCallItem[]>()
+    for (const i of sorted) {
+      const a = assignments[i.id]
+      if (!a || i.outcome || i.status === 'done' || !whyOut(a.userId)) continue
+      by.set(a.userId, [...(by.get(a.userId) ?? []), i])
+    }
+    return [...by.entries()]
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [sorted, assignments, directory, away])
   const nameOf = (userId: string) => directory.find((u) => u.id === userId)?.name ?? userId
   const me = session?.userId
   const now = useNow()
@@ -168,6 +183,23 @@ export default function CloseTheLoop() {
     assignCall(item.id, a.userId, me, { askedAgain: true })
     log('action', { en: `Asked ${nameOf(a.userId)} to call ${personName(item.personId)} again`, ar: `طلب من ${nameOf(a.userId)} الاتصال بـ${personName(item.personId)} مرة أخرى` })
     toast.success(t(`${nameOf(a.userId)} will see “call again”.`, `سيرى ${nameOf(a.userId)} طلب «اتصل مرة أخرى».`))
+  }
+
+  /** Moves every open case of someone who is away or left to the chosen person, or spreads them over everyone available. */
+  function moveAll(fromUserId: string, cases: DetractorCallItem[], target: string) {
+    if (!me) return
+    const to = target === 'spread' ? cxTeam.map((u) => u.id) : [target]
+    if (!to.length) {
+      toast.error(t('Nobody is available to take them.', 'لا أحد متاح لاستلامها.'))
+      return
+    }
+    moveCalls(cases.map((c) => c.id), to, me, whyOut(fromUserId) === 'left' ? 'left' : 'leave')
+    const toName = target === 'spread' ? t('the available team', 'الفريق المتاح') : nameOf(target)
+    log('action', {
+      en: `Moved ${cases.length} cases from ${nameOf(fromUserId)} (${whyOut(fromUserId) === 'left' ? 'left' : 'on leave'}) to ${toName}`,
+      ar: `نقل ${cases.length} حالة من ${nameOf(fromUserId)} إلى ${toName}`,
+    })
+    toast.success(t(`${cases.length} cases moved to ${toName}.`, `نُقلت ${cases.length} حالة إلى ${toName}.`))
   }
 
   /** "No answer": attempt + 1, the next one the following working day; after the last, WhatsApp goes out and the row needs a human. */
@@ -259,6 +291,11 @@ export default function CloseTheLoop() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">{t('Not assigned', 'غير مُسندة')}</SelectItem>
+                  {a && whyOut(a.userId) && (
+                    <SelectItem value={a.userId} disabled>
+                      {nameOf(a.userId)} · {whyOut(a.userId) === 'left' ? t('left', 'غادر') : t('on leave', 'في إجازة')}
+                    </SelectItem>
+                  )}
                   {cxTeam.map((u) => (
                     <SelectItem key={u.id} value={u.id}>
                       {u.name}
@@ -274,6 +311,17 @@ export default function CloseTheLoop() {
               </Button>
             ) : (
               <span className="text-muted-foreground">{t('Not assigned', 'غير مُسندة')}</span>
+            )}
+            {a && whyOut(a.userId) && (
+              <StatusBadge tone="danger" dot>
+                {whyOut(a.userId) === 'left'
+                  ? t(`With ${nameOf(a.userId)}, who left`, `لدى ${nameOf(a.userId)} الذي غادر`)
+                  : t(`With ${nameOf(a.userId)}, on leave`, `لدى ${nameOf(a.userId)} وهو في إجازة`)}
+                {i.severity === 'critical' ? ` · ${t('urgent', 'عاجل')}` : ''}
+              </StatusBadge>
+            )}
+            {a?.movedFrom && !whyOut(a.userId) && (
+              <span className="text-xs text-muted-foreground">{t(`Moved from ${nameOf(a.movedFrom)}`, `نُقلت من ${nameOf(a.movedFrom)}`)}</span>
             )}
             {a?.askedAgain && (
               <StatusBadge tone="warning" dot>
@@ -562,6 +610,40 @@ export default function CloseTheLoop() {
             <Button variant="ghost" size="icon-sm" onClick={() => setParams({}, { replace: true })} aria-label={t('Close this row', 'إغلاق هذا السطر')}>
               <X aria-hidden />
             </Button>
+          </div>
+        )}
+
+        {canAssign && stranded.length > 0 && (
+          <div role="alert" className="flex flex-col gap-2.5" data-testid="stranded-cases">
+            {stranded.map(([uid, cases]) => {
+              const left = whyOut(uid) === 'left'
+              const urgent = cases.filter((c) => c.severity === 'critical').length
+              return (
+                <div key={uid} className="well flex flex-wrap items-center gap-x-3 gap-y-2 border-s-4 px-4 py-3" style={{ borderColor: 'var(--status-warning-solid)' }}>
+                  <span className="text-sm text-foreground">
+                    <span className="font-medium">{t(`${cases.length} open ${cases.length === 1 ? 'case is' : 'cases are'} with ${nameOf(uid)}`, `${cases.length} حالة مفتوحة لدى ${nameOf(uid)}`)}</span>
+                    {', '}
+                    {left ? t('who has left the company.', 'الذي غادر الشركة.') : t('who is on leave.', 'وهو في إجازة.')}
+                    {urgent > 0 && <span className="ms-1 font-medium text-destructive">{t(`${urgent} urgent.`, `${urgent} عاجلة.`)}</span>}
+                  </span>
+                  <span className="ms-auto flex items-center gap-2">
+                    <Select onValueChange={(v) => moveAll(uid, cases, v)}>
+                      <SelectTrigger size="sm" className="h-8 min-w-44" aria-label={t('Move these cases to…', 'انقل هذه الحالات إلى…')}>
+                        <SelectValue placeholder={t('Move all to…', 'نقل الكل إلى…')} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="spread">{t('Spread across the available team', 'وزّع على الفريق المتاح')}</SelectItem>
+                        {cxTeam.map((u) => (
+                          <SelectItem key={u.id} value={u.id}>
+                            {u.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </span>
+                </div>
+              )
+            })}
           </div>
         )}
 

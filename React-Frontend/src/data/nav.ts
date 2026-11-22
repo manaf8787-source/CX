@@ -86,6 +86,7 @@ export const SETTINGS_NAV: NavLeaf[] = [
   { path: '/settings/voc', label: { en: 'Voice of Customer', ar: 'صوت العميل' } },
   { path: '/settings/surveys-reference', label: { en: 'Surveys (legacy reference)', ar: 'الاستبيانات (مرجع قديم)' } },
   { path: '/settings/ld', label: { en: 'L&D: training & materials', ar: 'التعلم والتطوير' } },
+  { path: '/settings/team-availability', label: { en: 'Team availability (leave)', ar: 'توفّر الفريق (الإجازات)' }, skipLanding: true },
   { path: '/settings/teams-structure', label: { en: 'Teams and structure', ar: 'الفرق والهيكل' } },
   { path: '/settings/hr-team', label: { en: 'HR team performance', ar: 'أداء فريق الموارد البشرية' } },
   { path: '/settings/feeds', label: { en: 'Data feeds', ar: 'تغذيات البيانات' } },

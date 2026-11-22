@@ -18,6 +18,10 @@ export type RoleId =
   | 'shopper'
   /** v43 (19 Nov): the super admin invites users and gives roles; sees the Users page only, nothing of CX. */
   | 'admin'
+  /** v43.2 (22 Nov): "Admin": runs the user list (invite, change role, deactivate) but cannot create another Admin and cannot open the audit log. */
+  | 'useradmin'
+  /** v43.1 (22 Nov): a role the super admin builds screen by screen (data/customRoles.ts). */
+  | 'custom'
 
 export type Access = 'full' | 'own' | 'view' | 'informed' | 'approve' | 'none'
 

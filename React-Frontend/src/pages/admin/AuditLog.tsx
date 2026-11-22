@@ -6,6 +6,7 @@ import { useRole } from '@/auth/RoleContext'
 import { canManageUsers } from '@/auth/access'
 import { roleDef } from '@/data/roles'
 import { useUsers } from '@/data/users'
+import { customRoleLabel } from '@/data/customRoles'
 import { AUDIT_KIND_LABEL, clearAudit, useAuditLog, type AuditEntry, type AuditKind } from '@/data/auditLog'
 import { downloadCsv } from '@/utils/csv'
 import { Button } from '@/components/ui/button'
@@ -79,6 +80,7 @@ export default function AuditLog() {
   )
   const visible = filtered.slice(0, shown)
   const nameOf = (id: string) => users.find((u) => u.id === id)?.name
+  const roleText = (e: AuditEntry, lang2: 'en' | 'ar') => (e.roleId === 'custom' ? customRoleLabel(users.find((u) => u.id === e.userId)?.customRoleId) : (roleDef(e.roleId)?.name[lang2] ?? e.roleId))
 
   const exportCsv = () => {
     downloadCsv(
@@ -89,7 +91,7 @@ export default function AuditLog() {
         time: fmtTime.format(new Date(e.at)),
         name: nameOf(e.userId) ?? '',
         email: e.email,
-        role: roleDef(e.roleId)?.name[lang] ?? e.roleId,
+        role: roleText(e, lang),
         event: L(AUDIT_KIND_LABEL[e.kind]),
         detail: L(e.detail),
         path: e.path,
@@ -110,7 +112,6 @@ export default function AuditLog() {
 
   const rowFor = (e: AuditEntry) => {
     const at = new Date(e.at)
-    const r = roleDef(e.roleId)
     return (
       <TableRow key={e.id}>
         <TableCell className="tabular whitespace-nowrap text-foreground">{fmtDate.format(at)}</TableCell>
@@ -124,7 +125,7 @@ export default function AuditLog() {
             <span className="tabular text-foreground" dir="ltr">
               {e.email}
             </span>
-            <span className="text-xs text-muted-foreground">{r ? L(r.name) : e.roleId}</span>
+            <span className="text-xs text-muted-foreground">{roleText(e, lang)}</span>
           </span>
         </TableCell>
         <TableCell>

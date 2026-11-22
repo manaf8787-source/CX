@@ -1,7 +1,8 @@
-import { useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useRole } from './RoleContext'
-import { findUserById } from '../data/users'
+import { findUserById, useUsers } from '../data/users'
+import { setActiveCustomRole } from '../data/customRoles'
 import { audit } from '../data/auditLog'
 import { AuthContext, readSession, useAuth, writeSession, type AuthValue, type Session } from './session'
 
@@ -18,10 +19,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return saved
   })
 
+  // a person deactivated while signed in (someone resigned) is signed out at once, not at the next load
+  const directory = useUsers()
+  const gone = session ? directory.find((u) => u.id === session.userId)?.status !== 'active' : false
+  useEffect(() => {
+    if (gone) {
+      writeSession(null)
+      setSession(null)
+    }
+  }, [gone])
+
   const value = useMemo<AuthValue>(
     () => ({
       session,
       signIn: (user) => {
+        setActiveCustomRole(user.customRoleId)
         setRole(user.roleId)
         const next: Session = { userId: user.id, email: user.email, displayName: user.name || null, signedInAt: new Date().toISOString() }
         writeSession(next)

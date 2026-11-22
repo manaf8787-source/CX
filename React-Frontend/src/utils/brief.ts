@@ -54,6 +54,8 @@ export const BRIEF_LINES_BY_ROLE: Record<RoleId, readonly BriefLineKind[]> = {
   auditmkt: ['nps', 'campaigns', 'drifting', 'public', 'sample'],
   shopper: [],
   admin: [],
+  useradmin: [],
+  custom: [],
 }
 
 /**

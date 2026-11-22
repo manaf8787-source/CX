@@ -15,6 +15,9 @@ export interface CallAssignment {
   /** The manager asked for another call: shown to the team member until the next attempt. */
   askedAgain?: boolean
   note?: string
+  /** Set when the manager moved the case from someone else (on leave, left the company, or by choice). */
+  movedFrom?: string
+  movedReason?: 'leave' | 'left' | 'manual'
 }
 
 const KEY = 'psicx.callAssignments'
@@ -67,4 +70,19 @@ export function clearAskedAgain(itemId: string) {
 
 export function useCallAssignments(): Record<string, CallAssignment> {
   return useSyncExternalStore(subscribe, () => map, () => map)
+}
+
+/**
+ * Moves cases from one person to others, round robin (the manager's "Move to…" on Close the loop). Each moved case remembers
+ * who held it before and why, so the history of the case reads "moved from Muhannad: on leave".
+ */
+export function moveCalls(itemIds: readonly string[], toUserIds: readonly string[], byUserId: string, reason: 'leave' | 'left' | 'manual') {
+  if (!itemIds.length || !toUserIds.length) return
+  const at = new Date().toISOString()
+  const next = { ...map }
+  itemIds.forEach((id, i) => {
+    const prev = next[id]
+    next[id] = { userId: toUserIds[i % toUserIds.length], at, byUserId, movedFrom: prev?.userId, movedReason: reason, askedAgain: prev?.askedAgain }
+  })
+  write(next)
 }

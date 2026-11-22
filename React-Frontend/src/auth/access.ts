@@ -51,6 +51,8 @@ export const USERS_PAGE = '/admin/users'
 /** v43: who opened what, when. The super admin only [Proposed]. */
 export const AUDIT_PAGE = '/admin/audit'
 
+import { customAllowedPaths } from '../data/customRoles'
+
 export const ROLE_PATHS: Record<RoleId, string[] | null> = {
   cxmgr: null,
   cxteam: null,
@@ -80,7 +82,13 @@ export const ROLE_PATHS: Record<RoleId, string[] | null> = {
   shopper: ['/settings/mystery-shopper'],
   // v43: the super admin runs the user directory and nothing else.
   admin: [USERS_PAGE, AUDIT_PAGE],
+  // v43.2: the Admin runs the user list; the audit log stays with the super admin.
+  useradmin: [USERS_PAGE],
+  // v43.1: a custom role's pages come from the role the super admin built (data/customRoles.ts), read live.
+  custom: [],
 }
+
+const pathsFor = (role: RoleId) => (role === 'custom' ? customAllowedPaths() : ROLE_PATHS[role])
 
 const OPEN_TO_ALL = ['/settings/glossary']
 
@@ -94,7 +102,7 @@ const isCx = (role: RoleId) => role === 'cxmgr' || role === 'cxteam'
 
 export function canAccessPath(role: RoleId, path: string): boolean {
   if (isCx(role) && NOT_FOR_CX.some((p) => matches(path, p))) return false
-  const allowed = ROLE_PATHS[role]
+  const allowed = pathsFor(role)
   if (allowed === null) return true
   if (OPEN_TO_ALL.some((p) => matches(path, p))) return true
   // A parent route (e.g. '/settings') is reachable when any child is.
@@ -105,7 +113,7 @@ export function canAccessPath(role: RoleId, path: string): boolean {
 /** True only for an exact page or a child of one — '/settings' alone is not a page. */
 export function canOpenPage(role: RoleId, path: string): boolean {
   if (isCx(role) && NOT_FOR_CX.some((p) => matches(path, p))) return false
-  const allowed = ROLE_PATHS[role]
+  const allowed = pathsFor(role)
   if (allowed === null) return true
   if (OPEN_TO_ALL.some((p) => matches(path, p))) return true
   return allowed.some((p) => matches(path, p))
@@ -126,5 +134,10 @@ export function canUseAssistant(role: RoleId): boolean {
 
 /** Who can invite, re-invite, change a role or deactivate: the super admin only. The CX manager sees the list [Proposed]. */
 export function canManageUsers(role: RoleId): boolean {
+  return role === 'admin' || role === 'useradmin'
+}
+
+/** Only the super admin creates, changes or deactivates an Admin or another super admin. */
+export function canManageAdmins(role: RoleId): boolean {
   return role === 'admin'
 }

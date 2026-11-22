@@ -43,6 +43,7 @@ const Voc = lazy(pageLoaders.voc)
 const SurveysReference = lazy(pageLoaders.surveysReference)
 const Ld = lazy(pageLoaders.ld)
 const TeamsStructure = lazy(pageLoaders.teamsStructure)
+const TeamAvailability = lazy(() => import('./pages/settings/TeamAvailability'))
 const HrTeamPerf = lazy(pageLoaders.hrTeamPerf)
 const Rules = lazy(pageLoaders.rules)
 const AiInsightsAccess = lazy(pageLoaders.aiInsightsAccess)
@@ -133,6 +134,7 @@ export default function App() {
                     <Route path="surveys-reference" element={<SurveysReference />} />
                     <Route path="ld" element={<Ld />} />
                     <Route path="teams-structure" element={<TeamsStructure />} />
+                    <Route path="team-availability" element={<TeamAvailability />} />
                     <Route path="hr-team" element={<HrTeamPerf />} />
                     <Route path="admin" element={<AdminSettings />} />
                     <Route path="rules" element={<Rules />} />
