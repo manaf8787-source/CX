@@ -30,10 +30,14 @@ const STORAGE_KEY = 'psicx.users'
 
 /** The sample directory on first run: one super admin plus one account per main role, so the demo still works end to end. */
 const SEED_DATE = '2026-11-19T07:00:00.000Z'
+const ADDED_SEED_IDS = ['u-cxteam2', 'u-cxteam3']
+
 export const SEED_USERS: PortalUser[] = [
   { id: 'u-admin', email: 'admin@psi.sample', name: 'Super admin', roleId: 'admin', status: 'active', invitedAt: SEED_DATE, activatedAt: SEED_DATE },
   { id: 'u-cxmgr', email: 'cx.manager@psi.sample', name: 'CX manager', roleId: 'cxmgr', status: 'active', invitedAt: SEED_DATE, activatedAt: SEED_DATE, invitedBy: 'u-admin' },
-  { id: 'u-cxteam', email: 'cx.team@psi.sample', name: 'CX team member', roleId: 'cxteam', status: 'active', invitedAt: SEED_DATE, activatedAt: SEED_DATE, invitedBy: 'u-admin' },
+  { id: 'u-cxteam', email: 'cx.team@psi.sample', name: 'Abeer', roleId: 'cxteam', status: 'active', invitedAt: SEED_DATE, activatedAt: SEED_DATE, invitedBy: 'u-admin' },
+  { id: 'u-cxteam2', email: 'cx.team2@psi.sample', name: 'Muhannad', roleId: 'cxteam', status: 'active', invitedAt: SEED_DATE, activatedAt: SEED_DATE, invitedBy: 'u-admin' },
+  { id: 'u-cxteam3', email: 'cx.team3@psi.sample', name: 'Dina', roleId: 'cxteam', status: 'active', invitedAt: SEED_DATE, activatedAt: SEED_DATE, invitedBy: 'u-admin' },
   { id: 'u-env', email: 'env.manager@psi.sample', name: 'Environment manager', roleId: 'envmgmt', status: 'active', invitedAt: SEED_DATE, activatedAt: SEED_DATE, invitedBy: 'u-admin' },
   { id: 'u-mkt', email: 'marketing@psi.sample', name: 'Marketing manager', roleId: 'marketing', status: 'active', invitedAt: SEED_DATE, activatedAt: SEED_DATE, invitedBy: 'u-admin' },
   { id: 'u-ld', email: 'ld@psi.sample', name: 'L&D manager', roleId: 'ld', status: 'active', invitedAt: SEED_DATE, activatedAt: SEED_DATE, invitedBy: 'u-admin' },
@@ -50,7 +54,14 @@ function read(): PortalUser[] {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (raw) {
       const parsed = JSON.parse(raw) as PortalUser[]
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        // sample people added after a browser first stored the directory (the extra CX team members for the call assignments)
+        const extra = SEED_USERS.filter((u) => ADDED_SEED_IDS.includes(u.id) && !parsed.some((x) => x.id === u.id)).map((u) => ({ ...u }))
+        // the three CX team members carry names now (they were "CX team member" in an earlier version of the sample directory)
+        const NAMES: Record<string, [string, string]> = { 'u-cxteam': ['CX team member', 'Abeer'], 'u-cxteam2': ['Second CX team member', 'Muhannad'], 'u-cxteam3': ['Third CX team member', 'Dina'] }
+        const renamed = parsed.map((u) => (NAMES[u.id] && u.name === NAMES[u.id][0] ? { ...u, name: NAMES[u.id][1] } : u))
+        return [...renamed, ...extra]
+      }
     }
   } catch {
     /* storage unavailable: the seed lasts until reload */

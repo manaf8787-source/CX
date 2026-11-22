@@ -124,7 +124,7 @@ export const CAMPAIGN_AUDIT_COPY = {
   }),
   // --- [Proposed]: not in the prototype -------------------------------------------------------------------------
   viewOnly: b(
-    'View only: the Internal Audit and Marketing Lead and the CX manager clear or send back campaigns.',
+    'View only: the Internal Audit and Marketing Lead clears or sends back campaigns.',
     'للعرض فقط: يجيز الحملات أو يعيدها مسؤول التدقيق الداخلي والتسويق ومدير تجربة العملاء.',
   ),
   campaignsLabel: b('Campaigns', 'الحملات'),

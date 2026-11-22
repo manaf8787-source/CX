@@ -1,6 +1,9 @@
 import { useMemo } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { useI18n } from '@/i18n'
+import { useRole } from '@/auth/RoleContext'
+import { resolveAgentDisplay } from '@/auth/permissions'
+import { useAgentDirectory } from '@/services/queries'
 import { PRODUCTS } from '@/data/products'
 import { envNameFromShort } from '@/data/environments'
 import { DataTable } from '@/components/common/DataTable'
@@ -15,7 +18,9 @@ import { signalCategoryLabel, signalKindLabel } from './labels'
  * Dense table (row 44): the date and the signal are the ink cells, the rest grey; the ids are grey tags.
  */
 export function SignalsTable({ signals, patterns, isLoading }: { signals: Signal[] | undefined; patterns: Pattern[] | undefined; isLoading: boolean }) {
-  const { t, L } = useI18n()
+  const { t, L, lang } = useI18n()
+  const { role } = useRole()
+  const { data: directory } = useAgentDirectory()
 
   // signal id -> the patterns it belongs to (for the "Counted in" column)
   const patternsOf = useMemo(() => {
@@ -44,6 +49,12 @@ export function SignalsTable({ signals, patterns, isLoading }: { signals: Signal
       id: 'where',
       header: t('Where', 'أين'),
       accessorFn: (s) => `${L(envNameFromShort(s.environment))} · ${L(PRODUCTS.find((p) => p.id === s.product)?.name ?? { en: s.product, ar: s.product })}`,
+    },
+    {
+      id: 'agent',
+      header: t('Agent', 'الموظف'),
+      accessorFn: (s) => (directory && s.agentRef ? resolveAgentDisplay(s.agentRef, role.id, directory, { en: 'Agent', ar: 'موظف' }, lang).label : ''),
+      cell: ({ getValue }) => getValue<string>() || <span className="text-muted-foreground">–</span>,
     },
     {
       id: 'pattern',

@@ -141,7 +141,7 @@ export function Timeline({ interactions }: { interactions: Interaction[] }) {
                       )}
                       {i.direction === 'inbound' ? t('Customer-started', 'بدأه العميل') : t('PSI-started', 'بدأته PSI')}
                     </span>
-                    {canSeeAgents && agent?.visible && <span className="text-muted-foreground">· {agent.label}</span>}
+                    {agent && (canSeeAgents && agent.visible ? <span className="font-medium text-foreground">· {t('Agent', 'الموظف')}: {agent.label}</span> : <span className="text-muted-foreground">· {t('Team', 'الفريق')}: {agent.label}</span>)}
                   </div>
                   {i.reason && <p className="text-sm text-foreground">{i.reason}</p>}
                   {i.outcome && <p className="text-sm text-muted-foreground">{t('Outcome', 'النتيجة')}: {i.outcome}</p>}

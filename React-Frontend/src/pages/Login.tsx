@@ -317,7 +317,8 @@ function AcceptInviteForm({ user, phase, onDone }: { user: PortalUser; phase: Ph
     () =>
       z
         .object({
-          name: z.string().trim().min(2, t('Enter your name.', 'أدخل اسمك.')).max(60, t('Use 60 characters or fewer.', 'استخدم 60 حرفاً أو أقل.')),
+          firstName: z.string().trim().min(1, t('Enter your first name.', 'أدخل اسمك الأول.')).max(40, t('Use 40 characters or fewer.', 'استخدم 40 حرفاً أو أقل.')),
+          lastName: z.string().trim().min(1, t('Enter your last name.', 'أدخل اسم عائلتك.')).max(40, t('Use 40 characters or fewer.', 'استخدم 40 حرفاً أو أقل.')),
           password: z.string().min(8, t('Use at least 8 characters.', 'استخدم 8 أحرف على الأقل.')),
           confirm: z.string(),
         })
@@ -329,10 +330,10 @@ function AcceptInviteForm({ user, phase, onDone }: { user: PortalUser; phase: Ph
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: { name: user.name, password: '', confirm: '' } })
+  } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: { firstName: user.name.split(' ')[0] ?? '', lastName: user.name.split(' ').slice(1).join(' '), password: '', confirm: '' } })
 
-  const onValid = ({ name }: FormValues) => {
-    const active = acceptInvite(user.id, name)
+  const onValid = ({ firstName, lastName }: FormValues) => {
+    const active = acceptInvite(user.id, `${firstName} ${lastName}`)
     if (active) {
       audit({ userId: active.id, email: active.email, roleId: active.roleId }, 'invite_accepted', { en: 'Accepted the invitation and set a password', ar: 'قبل الدعوة ووضع كلمة مرور' }, '/login')
       onDone(active)
@@ -356,11 +357,18 @@ function AcceptInviteForm({ user, phase, onDone }: { user: PortalUser; phase: Ph
         </InlineNote>
       )}
 
-      <Field data-invalid={!!errors.name}>
-        <FieldLabel htmlFor="invite-name">{t('Your name', 'اسمك')}</FieldLabel>
-        <Input id="invite-name" autoComplete="name" maxLength={60} aria-invalid={!!errors.name} disabled={phase !== 'idle'} {...register('name')} />
-        {errors.name && <FieldError>{errors.name.message}</FieldError>}
-      </Field>
+      <div className="grid grid-cols-2 gap-3">
+        <Field data-invalid={!!errors.firstName}>
+          <FieldLabel htmlFor="invite-first">{t('First name', 'الاسم الأول')}</FieldLabel>
+          <Input id="invite-first" autoComplete="given-name" maxLength={40} aria-invalid={!!errors.firstName} disabled={phase !== 'idle'} {...register('firstName')} />
+          {errors.firstName && <FieldError>{errors.firstName.message}</FieldError>}
+        </Field>
+        <Field data-invalid={!!errors.lastName}>
+          <FieldLabel htmlFor="invite-last">{t('Last name', 'اسم العائلة')}</FieldLabel>
+          <Input id="invite-last" autoComplete="family-name" maxLength={40} aria-invalid={!!errors.lastName} disabled={phase !== 'idle'} {...register('lastName')} />
+          {errors.lastName && <FieldError>{errors.lastName.message}</FieldError>}
+        </Field>
+      </div>
 
       <Field data-invalid={!!errors.password}>
         <FieldLabel htmlFor="invite-password">{t('Choose a password', 'اختر كلمة مرور')}</FieldLabel>

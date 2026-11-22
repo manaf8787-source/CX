@@ -1,6 +1,10 @@
 import { BrainCircuit, PhoneOff } from 'lucide-react'
 import { useI18n } from '@/i18n'
+import { useRole } from '@/auth/RoleContext'
+import { canViewAgentNames, resolveAgentDisplay } from '@/auth/permissions'
+import { useAgentDirectory } from '@/services/queries'
 import { RUNAWAY_TYPE_LABEL } from '@/utils/runaway'
+import { JOURNEY_RULES } from '@/utils/journeyRules'
 import type { AiJourneyReading, Interaction } from '@/types'
 import { Card, CardContent } from '@/components/ui/card'
 import { StatusBadge } from '@/components/common/StatusBadge'
@@ -10,60 +14,111 @@ import { CHANNEL_LABEL } from './channels'
 const TINT = 'bg-(--on-dark-tint)'
 
 /**
- * FR-2.4 — exactly four parts, every sentence pointing at a dated event on the timeline via `reading.evidence`.
- *
- * Design: the ONE dark feature card of a person's page (`Card variant="dark"`): the three parts are tint wells, "what to do next" is the one
- * the eye lands on (ink 500 and a dot), the evidence is a row of tint chips. Inside the dark card the normal text classes still work.
+ * The journey in short (rewritten 22 Nov so the person understands it the moment they open someone): a verdict line that says in words
+ * what the badge means, three plainly named parts, and the problems listed one by one with the date and where each happened.
+ * "High effort" is said from the customer's side: how hard they had to work, never how hard we worked.
  */
 export function AiReadingCard({ reading, interactions }: { reading: AiJourneyReading; interactions: Interaction[] }) {
   const { t, L, lang } = useI18n()
+  const { role } = useRole()
+  const { data: directory } = useAgentDirectory()
+  const seesNames = canViewAgentNames(role.id)
+  const agentOf = (ref?: string) => (directory ? resolveAgentDisplay(ref, role.id, directory, { en: 'Agent', ar: 'موظف' }, lang) : null)
   const tone = reading.verdict === 'healthy' ? 'success' : reading.verdict === 'high_effort' ? 'warning' : 'danger'
+  const fmtDate = (iso: string) => new Intl.DateTimeFormat(lang === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(iso))
+
+  const problems = interactions
+    .filter((i) => i.problemFlags.length > 0)
+    .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt))
+  const n = problems.length
+
+  // the same agent on more than one problem: the pattern the manager asked to see
+  const perAgent = new Map<string, number>()
+  for (const e of problems) if (e.agentRef) perAgent.set(e.agentRef, (perAgent.get(e.agentRef) ?? 0) + 1)
+  const [topAgent, topCount] = [...perAgent.entries()].sort((a, b) => b[1] - a[1])[0] ?? ['', 0]
+  const topLabel = topCount >= 2 ? agentOf(topAgent) : null
+
   const verdictLabel =
-    reading.verdict === 'healthy' ? t('Healthy', 'سليم') : reading.verdict === 'high_effort' ? t('High effort', 'جهد مرتفع') : L(RUNAWAY_TYPE_LABEL[reading.verdict])
+    reading.verdict === 'healthy'
+      ? t('Going well', 'الأمور جيدة')
+      : reading.verdict === 'high_effort'
+        ? t('High effort for the customer', 'جهد مرتفع على العميل')
+        : L(RUNAWAY_TYPE_LABEL[reading.verdict])
+  const verdictMeaning =
+    reading.verdict === 'healthy'
+      ? t('No problems found on this journey.', 'لا توجد مشاكل على هذه الرحلة.')
+      : reading.verdict === 'high_effort'
+        ? t(
+            `The customer had to work hard to get what they needed: ${n} problems on the journey (2 or more counts as high effort). They may still be with us, but the experience was tiring for them.`,
+            `اضطر العميل لبذل جهد كبير ليحصل على ما يحتاجه: ${n} مشاكل على الرحلة (مشكلتان أو أكثر تُحسب جهداً مرتفعاً). قد يبقى معنا، لكن التجربة كانت متعبة له.`,
+          )
+        : t('The customer looks like they are leaving or have left. Reason below.', 'يبدو أن العميل يبتعد أو غادر. السبب أدناه.')
 
   return (
     <Card variant="dark">
       <CardContent className="flex flex-col gap-5">
-        <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-col gap-1">
           <h2 className="t-card-title inline-flex items-center gap-2.5">
             <span aria-hidden className={`${TINT} inline-grid size-[30px] shrink-0 place-items-center rounded-full`}>
               <BrainCircuit className="size-4" />
             </span>
-            {t('AI reading', 'قراءة الذكاء الاصطناعي')}
+            {t('This person’s journey in short', 'رحلة هذا الشخص باختصار')}
           </h2>
+          <p className="text-xs text-muted-foreground">{t('Written by AI from the CRM log, chats and scores.', 'كتبها الذكاء الاصطناعي من سجل CRM والدردشات والتقييمات.')}</p>
+        </div>
+
+        <div className={`${TINT} flex flex-wrap items-center gap-3 rounded-xl p-4`}>
           <StatusBadge tone={tone} dot className={tone === 'success' ? `bg-none ${TINT} text-foreground shadow-none` : undefined}>
             {verdictLabel}
           </StatusBadge>
+          <p className="min-w-0 flex-1 basis-64 text-sm text-foreground">{verdictMeaning}</p>
         </div>
 
         <div className="grid grid-cols-1 gap-2.5 md:grid-cols-3">
-          <Part label={t('Who / how long / channels', 'من / منذ متى / القنوات')} text={L(reading.whoHowLongChannels)} />
-          <Part label={t('What went wrong', 'ما الخطأ الذي حدث')} text={L(reading.whatWentWrong)} />
-          <Part label={t('What to do next', 'ما العمل التالي')} text={L(reading.whatToDoNext)} highlight />
+          <Part label={t('Who they are', 'من هو')} text={L(reading.whoHowLongChannels)} />
+          <Part label={t('What went wrong for them', 'ما الذي حدث معه')} text={L(reading.whatWentWrong)} />
+          <Part label={t('What we do now', 'ماذا نفعل الآن')} text={L(reading.whatToDoNext)} highlight />
         </div>
 
         <div className="flex flex-col gap-2">
-          <span className="text-xs text-muted-foreground">{t('Evidence', 'الأدلة')}</span>
-          <ul className="flex flex-wrap gap-1.5">
-            {reading.evidence.map((e) => {
-              const event = interactions.find((i) => i.id === e.eventId)
-              return (
-                <li key={e.eventId} className={`pill ${TINT} gap-2 text-foreground`}>
-                  <span>{event ? L(CHANNEL_LABEL[event.channel]) : e.eventId}</span>
-                  <span className="tabular font-normal text-muted-foreground">{new Date(e.occurredAt).toLocaleDateString(lang)}</span>
+          <span className="text-xs text-muted-foreground">{t('The problems, newest first', 'المشاكل، الأحدث أولاً')}</span>
+          {n === 0 ? (
+            <p className="text-sm text-muted-foreground">{t('None.', 'لا يوجد.')}</p>
+          ) : (
+            <ul className="flex flex-col gap-1.5">
+              {problems.slice(0, 5).map((e) => {
+                const rule = JOURNEY_RULES.find((r) => r.id === e.problemFlags[0])
+                const ag = agentOf(e.agentRef)
+                return (
+                  <li key={e.id} className={`${TINT} flex flex-col gap-0.5 rounded-lg px-3 py-2 text-sm sm:flex-row sm:items-baseline sm:gap-3`}>
+                    <span className="tabular shrink-0 text-muted-foreground sm:w-40">{fmtDate(e.occurredAt)}</span>
+                    <span className="shrink-0 whitespace-nowrap font-medium text-foreground">{rule ? L(rule.label) : e.problemFlags[0]}</span>
+                    <span className="text-muted-foreground">
+                      {rule ? `${L(rule.definition)} ` : ''}· {L(CHANNEL_LABEL[e.channel])}
+                    </span>
+                    {ag && (
+                      <span className="shrink-0 font-medium text-foreground sm:ms-auto">
+                        {seesNames && ag.visible ? t(`Agent: ${ag.label}`, `الموظف: ${ag.label}`) : t(`Team: ${ag.label}`, `الفريق: ${ag.label}`)}
+                      </span>
+                    )}
+                  </li>
+                )
+              })}
+              {topLabel && (
+                <li className="rounded-lg border border-(--status-warning-solid) px-3 py-2 text-sm text-foreground">
+                  {seesNames && topLabel.visible
+                    ? t(`${topLabel.label} was the agent on ${topCount} of these ${n} problems.`, `${topLabel.label} هو الموظف في ${topCount} من هذه المشاكل الـ${n}.`)
+                    : t(`The same agent was on ${topCount} of these ${n} problems (team: ${topLabel.label}).`, `نفس الموظف في ${topCount} من هذه المشاكل الـ${n} (الفريق: ${topLabel.label}).`)}
                 </li>
-              )
-            })}
-            {!reading.evidence.length && <li className="text-sm text-muted-foreground">{t('No evidence recorded.', 'لا توجد أدلة مسجّلة.')}</li>}
-          </ul>
+              )}
+              {n > 5 && <li className="text-xs text-muted-foreground">{t(`and ${n - 5} more in the timeline below`, `و${n - 5} أخرى في الجدول الزمني أدناه`)}</li>}
+            </ul>
+          )}
         </div>
 
         <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
           <PhoneOff aria-hidden className="mt-px size-3.5 shrink-0" />
-          {t(
-            'The AI did not listen to calls — agent calls are not recorded. It read the CRM activity log, chats and scores.',
-            'لم يستمع الذكاء الاصطناعي إلى المكالمات — مكالمات الوكلاء غير مسجَّلة. اعتمد على سجل نشاط نظام العملاء والدردشات والتقييمات.',
-          )}
+          {t('Calls are not recorded, so the AI did not listen to any call. It only saw that a call happened.', 'المكالمات غير مسجَّلة، فلم يستمع الذكاء الاصطناعي إلى أي مكالمة. رأى فقط أن مكالمة حدثت.')}
         </p>
       </CardContent>
     </Card>

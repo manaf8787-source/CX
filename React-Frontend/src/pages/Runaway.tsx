@@ -7,7 +7,7 @@ import { useRole } from '@/auth/RoleContext'
 import { useAllInteractions, usePersons } from '@/services/queries'
 import { useEnvScope } from '@/services/queriesV40'
 import { JOURNEY_RULES } from '@/utils/journeyRules'
-import { buildFaultSummary, RUNAWAY_LEARNING_ORDER, RUNAWAY_TYPE_DEFINITION, RUNAWAY_TYPE_LABEL } from '@/utils/runaway'
+import { buildFaultSummary, RUNAWAY_LEARNING_ORDER, RUNAWAY_TYPE_LABEL, RUNAWAY_TYPE_PLAIN } from '@/utils/runaway'
 import { personLabel } from '@/utils/peopleExport'
 import { CUSTOMERS_LIST_COPY } from '@/data/customersList'
 import { envName } from '@/data/environments'
@@ -73,8 +73,8 @@ export default function Runaway() {
       <PageHeader
         term="Runaway customer" title={L(CUSTOMERS_LIST_COPY.tabs.leaving)}
         description={t(
-          'Six types as counters, plus a cross-type "what we keep doing wrong" list. The point is to learn and fix the cause, not to chase each one.',
-          'ستة أنواع كعدادات، مع قائمة الأخطاء المتكررة عبر الأنواع. الهدف التعلّم وإصلاح السبب، لا ملاحقة كل حالة.',
+          'People who have left us, or may be about to, sorted into six types. Each type says in plain words what it means, with an example. The goal is to learn why they go and fix it, not to chase each one.',
+          'أشخاص غادرونا أو قد يغادرون، مصنّفون إلى ستة أنواع. كل نوع مشروح بكلمات بسيطة مع مثال. الهدف أن نفهم لماذا يغادرون ونصلح السبب، لا أن نلاحق كل شخص.',
         )}
       />
 
@@ -102,6 +102,38 @@ export default function Runaway() {
           )
         })}
       </section>
+
+      <SectionCard
+        title={t('What each type means', 'ماذا يعني كل نوع')}
+        description={t('In plain words, with a made-up example and the rule the portal uses to put someone in it.', 'بكلمات بسيطة، مع مثال مُتخيَّل والقاعدة التي يستخدمها البورتال لتصنيف الشخص.')}
+      >
+        <ul className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+          {RUNAWAY_LEARNING_ORDER.map((type) => {
+            const Icon = TYPE_ICON[type]
+            const d = RUNAWAY_TYPE_PLAIN[type]
+            return (
+              <li key={type} className="well flex flex-col gap-2 p-4">
+                <span className="inline-flex items-center gap-2 text-sm font-medium text-foreground">
+                  <span aria-hidden className="material-light inline-grid size-[26px] shrink-0 place-items-center rounded-full [&_svg]:size-3.5">
+                    <Icon />
+                  </span>
+                  {L(RUNAWAY_TYPE_LABEL[type])}
+                </span>
+                <p className="text-sm text-foreground">{L(d.meaning)}</p>
+                <p className="text-xs text-muted-foreground">
+                  <span className="font-medium text-foreground">{t('Example: ', 'مثال: ')}</span>
+                  {L(d.example)}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  <span className="font-medium text-foreground">{t('How we decide: ', 'كيف نقرر: ')}</span>
+                  {L(d.rule)}
+                </p>
+                {d.estimated && <p className="text-xs text-(--status-warning-text)">{L(d.estimated)}</p>}
+              </li>
+            )
+          })}
+        </ul>
+      </SectionCard>
 
       <SectionCard
         term="Runaway customer" title={t('What we keep doing wrong', 'ما زلنا نكرر هذه الأخطاء')}
@@ -165,7 +197,7 @@ export default function Runaway() {
                     <span className="pill pill-light tabular">{list.length}</span>
                   </span>
                 }
-                description={L(RUNAWAY_TYPE_DEFINITION[type])}
+                description={L(RUNAWAY_TYPE_PLAIN[type].meaning)}
               >
                 <ul className="flex flex-col">
                   {list.map((p) => {

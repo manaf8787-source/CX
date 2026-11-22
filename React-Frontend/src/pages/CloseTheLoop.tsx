@@ -6,7 +6,7 @@ import { toast } from 'sonner'
 import { Bot, PhoneMissed, Phone, Plus, TrendingUp, X } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { useRole } from '@/auth/RoleContext'
-import { canRecordCallAttempt } from '@/auth/permissions'
+import { canAssignCalls, canRecordCallAttempt } from '@/auth/permissions'
 import {
   useAiCampaigns,
   useCreateAiCampaign,
@@ -29,6 +29,10 @@ import {
   sampleToCapacity,
 } from '@/utils/closeTheLoop'
 import { CALL_COPY, attemptLine, callRulesFrom } from '@/utils/callSchedule'
+import { useAuth } from '@/auth/session'
+import { useAuditActor } from '@/auth/useAuditActor'
+import { useUsers } from '@/data/users'
+import { assignCall, clearAskedAgain, unassignCall, useCallAssignments } from '@/data/callAssignments'
 import { personLabel } from '@/utils/peopleExport'
 import { envNameFromShort } from '@/data/environments'
 import { CLOSE_LOOP_NEXT } from '@/data/steps'
@@ -37,6 +41,7 @@ import { SEVERITY_TONE } from '@/lib/status'
 import type { DetractorCallItem } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
 import { Progress } from '@/components/ui/progress'
 import { PageHeader } from '@/components/common/PageHeader'
@@ -111,6 +116,14 @@ export default function CloseTheLoop() {
   const usedPct = sorted.length ? Math.min(100, Math.round((selected.length / sorted.length) * 100)) : 0
   const canCreateCampaign = role.id === 'cxmgr' || role.id === 'cxteam'
   const canRecordAttempt = canRecordCallAttempt(role.id)
+  const canAssign = canAssignCalls(role.id)
+  const { session } = useAuth()
+  const { log } = useAuditActor()
+  const assignments = useCallAssignments()
+  const directory = useUsers()
+  const cxTeam = useMemo(() => directory.filter((u) => u.roleId === 'cxteam' && u.status === 'active'), [directory])
+  const nameOf = (userId: string) => directory.find((u) => u.id === userId)?.name ?? userId
+  const me = session?.userId
   const now = useNow()
   // oxlint-disable-next-line react-hooks/exhaustive-deps
   const rate = useMemo(() => recoveryRate(items ?? [], now), [items, now, dataUpdatedAt])
@@ -136,8 +149,30 @@ export default function CloseTheLoop() {
     toast.success(t('Re-survey saved', 'تم حفظ إعادة الاستبيان'))
   }
 
+  /** The manager gives the case to a CX team member (or takes it back to the pool); the team member can take an unassigned one. */
+  function assignTo(item: DetractorCallItem, userId: string) {
+    if (!me) return
+    if (userId === 'none') {
+      unassignCall(item.id)
+      log('action', { en: `Took ${personName(item.personId)} off ${nameOf(assignments[item.id]?.userId ?? '')}`, ar: `سحب ${personName(item.personId)} من ${nameOf(assignments[item.id]?.userId ?? '')}` })
+      return
+    }
+    assignCall(item.id, userId, me)
+    log('action', { en: `Gave ${personName(item.personId)} to ${nameOf(userId)} to call`, ar: `أسند ${personName(item.personId)} إلى ${nameOf(userId)} للاتصال` })
+    toast.success(t(`Given to ${nameOf(userId)}.`, `أُسندت إلى ${nameOf(userId)}.`))
+  }
+
+  function askAgain(item: DetractorCallItem) {
+    const a = assignments[item.id]
+    if (!me || !a) return
+    assignCall(item.id, a.userId, me, { askedAgain: true })
+    log('action', { en: `Asked ${nameOf(a.userId)} to call ${personName(item.personId)} again`, ar: `طلب من ${nameOf(a.userId)} الاتصال بـ${personName(item.personId)} مرة أخرى` })
+    toast.success(t(`${nameOf(a.userId)} will see “call again”.`, `سيرى ${nameOf(a.userId)} طلب «اتصل مرة أخرى».`))
+  }
+
   /** "No answer": attempt + 1, the next one the following working day; after the last, WhatsApp goes out and the row needs a human. */
   function noAnswer(item: DetractorCallItem) {
+    clearAskedAgain(item.id)
     recordNoAnswer.mutate(
       { id: item.id },
       {
@@ -204,6 +239,55 @@ export default function CloseTheLoop() {
       header: t('Reason', 'السبب'),
       cell: ({ row }) =>
         row.original.reasonCode ? <span className="text-foreground">{L(REASON_CODE_LABEL[row.original.reasonCode])}</span> : <span className="text-muted-foreground">—</span>,
+    },
+    {
+      id: 'assignee',
+      accessorFn: (i) => (assignments[i.id] ? nameOf(assignments[i.id].userId) : ''),
+      header: t('Assigned to', 'مُسندة إلى'),
+      meta: { cellClassName: 'min-w-44' },
+      cell: ({ row }) => {
+        const i = row.original
+        const a = assignments[i.id]
+        if (i.status === 'done' || i.outcome) return a ? <span className="text-foreground">{nameOf(a.userId)}</span> : <span className="text-muted-foreground">—</span>
+        const canAsk = canAssign && !!a && (i.status === 'no_answer' || i.status === 'needs_human')
+        return (
+          <span className="inline-flex flex-col items-start gap-1.5">
+            {canAssign ? (
+              <Select value={a?.userId ?? 'none'} onValueChange={(v) => assignTo(i, v)}>
+                <SelectTrigger size="sm" className="h-8 min-w-40" aria-label={t('Assign to a CX team member', 'إسناد إلى موظف CX')}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">{t('Not assigned', 'غير مُسندة')}</SelectItem>
+                  {cxTeam.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : a ? (
+              <span className="font-medium text-foreground">{a.userId === me ? t('You', 'أنت') : nameOf(a.userId)}</span>
+            ) : canRecordAttempt && me ? (
+              <Button variant="outline" size="xs" onClick={() => assignTo(i, me)}>
+                {t('Take it', 'استلمها')}
+              </Button>
+            ) : (
+              <span className="text-muted-foreground">{t('Not assigned', 'غير مُسندة')}</span>
+            )}
+            {a?.askedAgain && (
+              <StatusBadge tone="warning" dot>
+                {t('Manager asked to call again', 'المدير طلب الاتصال مرة أخرى')}
+              </StatusBadge>
+            )}
+            {canAsk && !a?.askedAgain && (
+              <Button variant="ghost" size="xs" onClick={() => askAgain(i)}>
+                {t('Ask to call again', 'اطلب اتصالاً آخر')}
+              </Button>
+            )}
+          </span>
+        )
+      },
     },
     {
       id: 'due',
@@ -333,7 +417,9 @@ export default function CloseTheLoop() {
   // A plain function (not a component): the table rebuilds its columns every render, and a component defined here would remount its buttons and lose focus.
   function rowActions(item: DetractorCallItem) {
     if (item.outcome || item.status === 'done') return null
-    const canNoAnswer = canRecordAttempt && item.status !== 'needs_human'
+    // only the CX team member the case is given to makes the call; the manager gives it out and asks for another (no Call button)
+    if (!canRecordAttempt || assignments[item.id]?.userId !== me) return null
+    const canNoAnswer = item.status !== 'needs_human'
     return (
       <span className="inline-flex items-center justify-end gap-1.5">
         {canNoAnswer && (
@@ -342,7 +428,7 @@ export default function CloseTheLoop() {
             {L(CALL_COPY.noAnswerButton)}
           </Button>
         )}
-        <Button size="xs" onClick={() => setInterviewing(item)} data-tour="loop-call">
+        <Button size="xs" onClick={() => { clearAskedAgain(item.id); setInterviewing(item) }} data-tour="loop-call">
           <Phone aria-hidden />
           {t('Call', 'اتصال')}
         </Button>
@@ -479,6 +565,20 @@ export default function CloseTheLoop() {
           </div>
         )}
 
+        <p className="text-sm text-muted-foreground" data-testid="loop-summary">
+          {(() => {
+            const open = selected.filter((i) => !i.outcome && i.status !== 'done')
+            const unassigned = open.filter((i) => !assignments[i.id]).length
+            const today = new Date().toISOString().slice(0, 10)
+            const late = open.filter((i) => (i.nextAttemptOn ?? i.dueOn ?? '9999') < today).length
+            const asked = open.filter((i) => assignments[i.id]?.askedAgain).length
+            return t(
+              `${open.length} open · ${unassigned} not assigned · ${late} past their date · ${asked} asked to call again`,
+              `${open.length} مفتوحة · ${unassigned} غير مُسندة · ${late} تجاوزت موعدها · ${asked} طُلب فيها اتصال آخر`,
+            )
+          })()}
+        </p>
+
         <DataTable
           columns={columns}
           data={selected}
@@ -487,7 +587,7 @@ export default function CloseTheLoop() {
           pageSize={10}
           emptyTitle={t("Nobody on this month's list.", 'لا أحد في قائمة هذا الشهر.')}
           // a phone: the person and the call on two lines, severity, due date and status as tags, the rest behind "Details"
-          phone={{ title: 'person', meta: ['severity', 'due', 'outcome'], end: ['call'], detail: ['channel', 'firstScore', 'reason', 'resurvey', 'recovered'] }}
+          phone={{ title: 'person', meta: ['severity', 'assignee', 'due', 'outcome'], end: ['call'], detail: ['channel', 'firstScore', 'reason', 'resurvey', 'recovered'] }}
         />
       </SectionCard>
 

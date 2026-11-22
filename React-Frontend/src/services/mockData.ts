@@ -138,9 +138,8 @@ function buildPersons(count: number): Person[] {
 function buildAgentDirectory(): AgentDirectoryEntry[] {
   return Array.from({ length: 12 }, (_, i) => {
     const isAfterSales = i >= 8
-    const visibleTo: RoleId[] = isAfterSales
-      ? ['cxmgr', 'cxteam', 'aslead']
-      : ['cxmgr', 'cxteam', 'envmgmt', 'teamlead']
+    // 22 Nov (owner): agent names are visible to every signed-in role except the external mystery shopper
+    const visibleTo: RoleId[] = ['cxmgr', 'cxteam', 'envmgmt', 'teamlead', 'aslead', 'ld', 'hrspec', 'hrmgr', 'marketing', 'auditmkt', 'exec']
     return {
       agentRef: `agent-${i + 1}`,
       displayName: `${pick(rng, FIRST_NAMES)} ${pick(rng, LAST_NAMES)}`,
@@ -674,6 +673,10 @@ function buildCampaignRecommendations(personas: Persona[]): CampaignRecommendati
  * event via `evidence`. Verdict reuses `classifyRunaway` so the per-person
  * reading and the Runaway page agree on the same classification instead of
  * carrying two independent guesses. */
+const CHANNEL_NAME: Record<string, { en: string; ar: string }> = {
+  website: { en: 'the website', ar: 'الموقع' }, app: { en: 'the app', ar: 'التطبيق' }, whatsapp: { en: 'WhatsApp', ar: 'واتساب' }, call: { en: 'phone calls', ar: 'الاتصال' }, ivr: { en: 'the phone menu (IVR)', ar: 'الرد الآلي' }, branch: { en: 'a branch visit', ar: 'زيارة فرع' }, email: { en: 'email', ar: 'البريد' }, survey: { en: 'a survey', ar: 'استبيان' }, shopper: { en: 'a mystery shopper visit', ar: 'تسوق سري' }, club: { en: 'PSI Club', ar: 'نادي PSI' }, wallet: { en: 'PSI Wallet', ar: 'محفظة PSI' }, events: { en: 'an event', ar: 'فعالية' }, tours: { en: 'Tour Estate', ar: 'تور إستيت' }, facebook: { en: 'Facebook', ar: 'فيسبوك' }, instagram: { en: 'Instagram', ar: 'إنستغرام' }, linkedin: { en: 'LinkedIn', ar: 'لينكد إن' }, google: { en: 'Google', ar: 'غوغل' },
+}
+
 function buildAiJourneyReadings(persons: Person[], interactions: Interaction[], effortSummaries: EffortSummary[]): AiJourneyReading[] {
   return persons.map((p) => {
     const mine = interactions.filter((i) => i.personKey === p.id).sort((a, b) => a.occurredAt.localeCompare(b.occurredAt))
@@ -688,22 +691,27 @@ function buildAiJourneyReadings(persons: Person[], interactions: Interaction[], 
     const years = Math.max(1, Math.round((Date.now() - new Date(p.createdAt).getTime()) / (365 * 86_400_000)))
     const channelsUsed = [...new Set(mine.map((i) => i.channel))]
 
+    const fmt = (iso: string) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+    const names = channelsUsed.slice(0, 3).map((c) => CHANNEL_NAME[c]?.en ?? c)
+    const namesAr = channelsUsed.slice(0, 3).map((c) => CHANNEL_NAME[c]?.ar ?? c)
     return {
       personId: p.id,
       whoHowLongChannels: {
-        en: `${p.type === 'customer' ? 'Customer' : 'Lead'} for about ${years} year${years === 1 ? '' : 's'}, across ${channelsUsed.length} channel${channelsUsed.length === 1 ? '' : 's'}${channelsUsed.length ? ` (${channelsUsed.slice(0, 3).join(', ')}${channelsUsed.length > 3 ? '…' : ''})` : ''}.`,
-        ar: `${p.type === 'customer' ? 'عميل' : 'عميل محتمل'} منذ نحو ${years} سنة، عبر ${channelsUsed.length} قناة.`,
+        en: `${p.type === 'customer' ? 'A customer' : 'A lead'} for about ${years} year${years === 1 ? '' : 's'}. Has contacted us through ${channelsUsed.length} channel${channelsUsed.length === 1 ? '' : 's'}${names.length ? `: ${names.join(', ')}${channelsUsed.length > 3 ? ' and more' : ''}` : ''}.`,
+        ar: `${p.type === 'customer' ? 'عميل' : 'عميل محتمل'} منذ نحو ${years} سنة. تواصل معنا عبر ${channelsUsed.length} قنوات${namesAr.length ? `: ${namesAr.join('، ')}${channelsUsed.length > 3 ? ' وغيرها' : ''}` : ''}.`,
       },
       whatWentWrong: problemEvents.length
         ? {
-            en: `${problemEvents.slice(0, 3).map((e) => `${(e.problemFlags[0] ?? '').replace(/_/g, ' ')} on ${new Date(e.occurredAt).toLocaleDateString()}`).join('; ')}.`,
-            ar: 'مشاكل مسجّلة على الجدول الزمني — راجع الأحداث المظلّلة أدناه.',
+            en: `${problemEvents.length} problem${problemEvents.length === 1 ? '' : 's'}, the latest on ${fmt(problemEvents[problemEvents.length - 1].occurredAt)}.`,
+            ar: `${problemEvents.length} مشكلة مسجّلة على رحلته، آخرها بتاريخ ${fmt(problemEvents[problemEvents.length - 1].occurredAt)}.`,
           }
-        : { en: 'Nothing wrong found on the timeline.', ar: 'لم يُسجَّل أي خطأ على الجدول الزمني.' },
+        : { en: 'Nothing went wrong on this journey.', ar: 'لم يحدث أي خطأ على هذه الرحلة.' },
       verdict,
       whatToDoNext: classification
         ? classification.reason
-        : { en: 'No action needed — keep the current cadence.', ar: 'لا حاجة لإجراء — الاستمرار بالوتيرة الحالية.' },
+        : verdict === 'high_effort'
+          ? { en: 'Send a short check-in (a call or a message) to confirm everything is solved, then go back to the normal rhythm.', ar: 'أرسل متابعة قصيرة (اتصال أو رسالة) للتأكد أن كل شيء انحلّ، ثم عد إلى الإيقاع المعتاد.' }
+          : { en: 'Nothing to do now. Keep the normal rhythm.', ar: 'لا شيء مطلوب الآن. استمر بالإيقاع المعتاد.' },
       evidence: problemEvents.slice(0, 5).map((e) => ({ eventId: e.id, occurredAt: e.occurredAt })),
     }
   })

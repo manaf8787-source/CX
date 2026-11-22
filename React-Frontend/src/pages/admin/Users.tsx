@@ -340,7 +340,8 @@ function InviteDialog({ invitedBy, onClose, onInvited }: { invitedBy?: string; o
   const schema = useMemo(
     () =>
       z.object({
-        name: z.string().trim().max(60, t('Use 60 characters or fewer.', 'استخدم 60 حرفاً أو أقل.')),
+        firstName: z.string().trim().max(40, t('Use 40 characters or fewer.', 'استخدم 40 حرفاً أو أقل.')),
+        lastName: z.string().trim().max(40, t('Use 40 characters or fewer.', 'استخدم 40 حرفاً أو أقل.')),
         email: z.email({ error: t('Enter a valid work email.', 'أدخل بريداً وظيفياً صالحاً.') }),
       }),
     [t],
@@ -350,11 +351,11 @@ function InviteDialog({ invitedBy, onClose, onInvited }: { invitedBy?: string; o
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: { name: '', email: '' } })
+  } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: { firstName: '', lastName: '', email: '' } })
   const def = roleDef(roleId)
 
   const onValid = (v: FormValues) => {
-    const res = inviteUser({ email: v.email, name: v.name, roleId, invitedBy })
+    const res = inviteUser({ email: v.email, name: `${v.firstName} ${v.lastName}`.trim(), roleId, invitedBy })
     if (!res.ok) {
       setError(res.reason === 'exists' ? t('This email already has an account.', 'هذا البريد له حساب بالفعل.') : t('Enter a valid work email.', 'أدخل بريداً وظيفياً صالحاً.'))
       return
@@ -378,12 +379,21 @@ function InviteDialog({ invitedBy, onClose, onInvited }: { invitedBy?: string; o
             {errors.email && <FieldError>{errors.email.message}</FieldError>}
           </Field>
 
-          <Field data-invalid={!!errors.name}>
-            <FieldLabel htmlFor="invite-name">{t('Name (optional)', 'الاسم (اختياري)')}</FieldLabel>
-            <Input id="invite-name" maxLength={60} aria-invalid={!!errors.name} {...register('name')} />
-            <FieldDescription>{t('They can correct it when they accept.', 'يمكنه تصحيحه عند قبول الدعوة.')}</FieldDescription>
-            {errors.name && <FieldError>{errors.name.message}</FieldError>}
-          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field data-invalid={!!errors.firstName}>
+              <FieldLabel htmlFor="invite-first">{t('First name (optional)', 'الاسم الأول (اختياري)')}</FieldLabel>
+              <Input id="invite-first" maxLength={40} aria-invalid={!!errors.firstName} {...register('firstName')} />
+              {errors.firstName && <FieldError>{errors.firstName.message}</FieldError>}
+            </Field>
+            <Field data-invalid={!!errors.lastName}>
+              <FieldLabel htmlFor="invite-last">{t('Last name (optional)', 'اسم العائلة (اختياري)')}</FieldLabel>
+              <Input id="invite-last" maxLength={40} aria-invalid={!!errors.lastName} {...register('lastName')} />
+              {errors.lastName && <FieldError>{errors.lastName.message}</FieldError>}
+            </Field>
+          </div>
+          <FieldDescription>
+            {t('Only the email is required. The person enters their own first and last name when they accept the invitation, and it appears next to their email in the audit log.', 'البريد وحده مطلوب. يدخل الشخص اسمه الأول واسم عائلته بنفسه عند قبول الدعوة، ويظهر بجانب بريده في سجل التدقيق.')}
+          </FieldDescription>
 
           <Field>
             <FieldLabel htmlFor="invite-role">{t('Role', 'الدور')}</FieldLabel>

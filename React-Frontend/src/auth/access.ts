@@ -88,7 +88,12 @@ function matches(path: string, prefix: string) {
   return path === prefix || path.startsWith(`${prefix}/`)
 }
 
+/** 22 Nov (owner): the campaign audit is not CX's: the Internal Audit and Marketing Lead owns it, so CX (who otherwise open every page) do not. */
+const NOT_FOR_CX = [CAMPAIGN_AUDIT_PAGE]
+const isCx = (role: RoleId) => role === 'cxmgr' || role === 'cxteam'
+
 export function canAccessPath(role: RoleId, path: string): boolean {
+  if (isCx(role) && NOT_FOR_CX.some((p) => matches(path, p))) return false
   const allowed = ROLE_PATHS[role]
   if (allowed === null) return true
   if (OPEN_TO_ALL.some((p) => matches(path, p))) return true
@@ -99,6 +104,7 @@ export function canAccessPath(role: RoleId, path: string): boolean {
 
 /** True only for an exact page or a child of one — '/settings' alone is not a page. */
 export function canOpenPage(role: RoleId, path: string): boolean {
+  if (isCx(role) && NOT_FOR_CX.some((p) => matches(path, p))) return false
   const allowed = ROLE_PATHS[role]
   if (allowed === null) return true
   if (OPEN_TO_ALL.some((p) => matches(path, p))) return true

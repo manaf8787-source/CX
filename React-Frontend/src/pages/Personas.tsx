@@ -4,6 +4,7 @@ import { Ban, CheckCircle2, Clock, Gavel, Layers, Lock, Megaphone, Radio, Target
 import { useI18n } from '@/i18n'
 import { useRole } from '@/auth/RoleContext'
 import { canApprovePersona, canViewPersonaAudit } from '@/auth/permissions'
+import { canOpenPage } from '@/auth/access'
 import { useCampaignRecommendations, useDecidePersona, usePersonas } from '@/services/queries'
 import { useCampaignBriefs } from '@/services/referenceQueries'
 import { CHANNEL_LABEL } from '@/components/customers/channels'
@@ -38,6 +39,8 @@ export default function Personas() {
 
   const canApprove = canApprovePersona(role.id)
   const canAudit = canViewPersonaAudit(role.id)
+  // the campaign audit column is the Internal Audit's and Marketing's: roles that cannot open the audit page do not see its column
+  const showGate = canOpenPage(role.id, '/settings/campaign-audit')
   const ranked = useMemo(() => [...(recommendations ?? [])].sort((a, b) => a.rank - b.rank), [recommendations])
 
   const columns = useMemo<ColumnDef<Recommendation>[]>(() => {
@@ -67,7 +70,7 @@ export default function Personas() {
         header: t('Who', 'لمن'),
         cell: ({ getValue }) => <span className="block min-w-48 whitespace-normal">{getValue<string>()}</span>,
       },
-      {
+      ...(!showGate ? [] : [{
         // v42.1 (F33): the campaign audit's clearance, and the gated "Start campaign" for the roles that run a persona campaign
         id: 'gate',
         header: L(CAMPAIGN_AUDIT_COPY.gate.column),
@@ -78,9 +81,9 @@ export default function Personas() {
             <CampaignGate sourceId={row.original.personaId} kind="persona" compact />
           </div>
         ),
-      },
+      } as ColumnDef<Recommendation>]),
     ]
-  }, [t, L, personas])
+  }, [t, L, personas, showGate])
 
   return (
     <div data-density="dense" className="flex flex-col gap-6">
@@ -112,8 +115,8 @@ export default function Personas() {
           </StatusBadge>
           <p className="t-body-s">
             {t(
-              'Personal fields used to build a persona are shown only as aggregated attributes and segment sizes on this page — never exported per-person to Marketing (FR-6.5). The CX manager names and approves each persona; the Internal Audit and Marketing Lead audits the criteria behind it.',
-              'الحقول الشخصية المستخدمة لبناء الشخصية تُعرض هنا كسمات إجمالية وأحجام شرائح فقط — ولا تُصدَّر أبداً على مستوى الفرد للتسويق — FR-6.5. يسمّي مدير تجربة العملاء ويعتمد كل شخصية، ويراجع مسؤول التدقيق الداخلي والتسويق المعايير خلفها.',
+              'Personal fields used to build a persona are shown only as aggregated attributes and segment sizes on this page — never exported per-person to Marketing (FR-6.5). The Internal Audit and Marketing Lead names, approves and audits each persona and its criteria. CX supplies the evidence: who these people are, what goes wrong for them and how they use each channel.',
+              'الحقول الشخصية المستخدمة لبناء الشخصية تُعرض هنا كسمات إجمالية وأحجام شرائح فقط — ولا تُصدَّر أبداً على مستوى الفرد للتسويق — FR-6.5. يسمّي مسؤول التدقيق الداخلي والتسويق كل شخصية ويعتمدها ويدقّق معاييرها. وتوفّر تجربة العملاء الأدلة: من هؤلاء الأشخاص، وما الذي يسوء معهم، وكيف يستخدمون كل قناة.',
             )}
           </p>
         </div>
@@ -130,7 +133,7 @@ export default function Personas() {
           getRowId={(r) => r.id}
           pageSize={0}
           // a phone: the campaign and its persona on two lines, the rank and "Who" behind "Details"
-          phone={{ title: 'campaign', meta: ['persona', 'gate'], detail: ['rank', 'who'] }}
+          phone={{ title: 'campaign', meta: showGate ? ['persona', 'gate'] : ['persona'], detail: ['rank', 'who'] }}
           emptyTitle={t('No ranked campaigns yet.', 'لا توجد حملات مرتبة بعد.')}
           onRowClick={(r) => {
             const el = document.getElementById(`persona-${r.personaId}`)
@@ -203,7 +206,7 @@ function PersonaCard({ persona, canApprove, canAudit, onDecide }: { persona: Per
               <h2 className="t-card-title">{L(persona.name)}</h2>
             </div>
             <StatusBadge tone={persona.approvedByCxManager ? 'success' : 'warning'} icon={persona.approvedByCxManager ? <CheckCircle2 aria-hidden /> : <Clock aria-hidden />}>
-              {persona.approvedByCxManager ? t('Approved', 'معتمدة') : t('Pending CX approval', 'بانتظار الاعتماد')}
+              {persona.approvedByCxManager ? t('Approved', 'معتمدة') : t('Pending approval by Internal Audit and Marketing', 'بانتظار اعتماد التدقيق الداخلي والتسويق')}
             </StatusBadge>
           </div>
           <p className="text-sm text-muted-foreground">{L(persona.who)}</p>

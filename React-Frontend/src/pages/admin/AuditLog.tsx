@@ -78,6 +78,7 @@ export default function AuditLog() {
     [entries, who, kind, day],
   )
   const visible = filtered.slice(0, shown)
+  const nameOf = (id: string) => users.find((u) => u.id === id)?.name
 
   const exportCsv = () => {
     downloadCsv(
@@ -86,6 +87,7 @@ export default function AuditLog() {
         date: fmtDate.format(new Date(e.at)),
         day: fmtDay.format(new Date(e.at)),
         time: fmtTime.format(new Date(e.at)),
+        name: nameOf(e.userId) ?? '',
         email: e.email,
         role: roleDef(e.roleId)?.name[lang] ?? e.roleId,
         event: L(AUDIT_KIND_LABEL[e.kind]),
@@ -118,6 +120,7 @@ export default function AuditLog() {
         </TableCell>
         <TableCell>
           <span className="flex flex-col">
+            {nameOf(e.userId) && <span className="font-medium text-foreground">{nameOf(e.userId)}</span>}
             <span className="tabular text-foreground" dir="ltr">
               {e.email}
             </span>

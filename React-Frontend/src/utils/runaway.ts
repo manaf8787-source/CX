@@ -45,6 +45,46 @@ export const RUNAWAY_TYPE_DEFINITION: Record<RunawayType, Bi> = {
   complained_then_left: { en: 'Scored as a detractor or complained, then no further business.', ar: 'صُنّف كمنتقد أو قدّم شكوى، ثم لم تُسجَّل أي تعاملات لاحقة.' },
 }
 
+/**
+ * The six types in everyday words (22 Nov, owner's request: he must be able to say what each one means). `meaning` is one sentence a
+ * non-technical reader understands, `example` a made-up person, `rule` how the portal decides it today. `estimated` marks a type the
+ * prototype can only guess, because the CRM does not yet carry the field that would settle it (a "lost reason", a lease end date).
+ */
+export const RUNAWAY_TYPE_PLAIN: Record<RunawayType, { meaning: Bi; example: Bi; rule: Bi; estimated?: Bi }> = {
+  silent_lead: {
+    meaning: { en: 'Someone who asked about a property, we replied, and then they stopped answering on every channel.', ar: 'شخص سأل عن عقار وردّينا عليه، ثم توقف عن الرد على كل القنوات.' },
+    example: { en: 'Layla asked about a 2-bedroom on 3 October. We called her twice and wrote on WhatsApp. Nothing from her since.', ar: 'ليلى سألت عن شقة غرفتين يوم 3 أكتوبر. اتصلنا بها مرتين وكتبنا لها على واتساب. لا رد منذ ذلك اليوم.' },
+    rule: { en: 'A lead with no contact from either side for 30 days or more.', ar: 'عميل محتمل بلا أي تواصل من الطرفين لمدة 30 يوماً أو أكثر.' },
+  },
+  did_not_renew: {
+    meaning: { en: 'A tenant whose lease ended and who did not sign a new one.', ar: 'مستأجر انتهى عقده ولم يوقّع عقداً جديداً.' },
+    example: { en: 'Omar’s lease ended in August. Nobody offered him a renewal and he moved out.', ar: 'انتهى عقد عمر في أغسطس. لم يعرض عليه أحد التجديد وانتقل.' },
+    rule: { en: 'A customer with no contact for 3 to 12 months and a silence mark on the record.', ar: 'عميل بلا تواصل من 3 إلى 12 شهراً مع علامة صمت على السجل.' },
+    estimated: { en: 'Estimated: the lease end date is not in the data yet.', ar: 'تقديري: تاريخ انتهاء العقد غير موجود بالبيانات بعد.' },
+  },
+  dormant_owner: {
+    meaning: { en: 'An owner or investor we have not heard from, and who has done nothing with us, for a year or more.', ar: 'مالك أو مستثمر لم نسمع منه ولم يفعل شيئاً معنا منذ سنة أو أكثر.' },
+    example: { en: 'Hind owns a unit with us. No call, no deal and no referral for 14 months.', ar: 'هند تملك وحدة لدينا. لا اتصال ولا صفقة ولا إحالة منذ 14 شهراً.' },
+    rule: { en: 'An owner or investor with no contact, deal or referral for 12 months or more.', ar: 'مالك أو مستثمر بلا تواصل أو صفقة أو إحالة منذ 12 شهراً أو أكثر.' },
+  },
+  went_to_competitor: {
+    meaning: { en: 'Someone who was a lead or a customer and bought or rented from another broker or developer.', ar: 'شخص كان عميلاً محتملاً أو عميلاً واشترى أو استأجر من وسيط أو مطوّر آخر.' },
+    example: { en: 'Karim asked for a discount, was told yes, then no. Two weeks later he signed with another developer.', ar: 'كريم طلب خصماً، قيل له نعم ثم لا. بعد أسبوعين وقّع مع مطوّر آخر.' },
+    rule: { en: 'A lead who stayed reachable but hit a discount, reply-time or channel problem and never converted.', ar: 'عميل محتمل بقي متاحاً لكنه واجه مشكلة خصم أو سرعة رد أو قناة ولم يتحوّل إلى صفقة.' },
+    estimated: { en: 'Estimated: we only know for sure once the CRM records a “lost to a competitor” reason.', ar: 'تقديري: لن نعرف بالتأكيد إلا عندما يسجّل CRM سبب “خسرناه لمنافس”.' },
+  },
+  frozen_deal: {
+    meaning: { en: 'A booking, a payment plan or a handover that stopped moving. The person is still with us, but nothing happens.', ar: 'حجز أو خطة دفع أو تسليم توقف عن التقدم. الشخص ما زال معنا لكن لا شيء يتحرك.' },
+    example: { en: 'Dana was promised a payment plan by Friday. It is now 3 weeks later and she has heard nothing.', ar: 'وُعدت دانة بخطة دفع يوم الجمعة. مرّت 3 أسابيع ولم تسمع شيئاً.' },
+    rule: { en: 'A lead with a promise that was not kept and 5 to 29 days since the last contact.', ar: 'عميل محتمل لديه وعد لم يُنفَّذ ومرّ 5 إلى 29 يوماً على آخر تواصل.' },
+  },
+  complained_then_left: {
+    meaning: { en: 'Someone who complained or gave a very low score, and we have had no business with them since.', ar: 'شخص اشتكى أو أعطى درجة منخفضة جداً، ولم يحدث أي تعامل معه منذ ذلك الحين.' },
+    example: { en: 'Sami scored us 2 out of 10 after a handover delay. Two months later there is still no contact.', ar: 'سامي أعطانا 2 من 10 بعد تأخر التسليم. بعد شهرين لا يزال بلا أي تواصل.' },
+    rule: { en: 'A detractor score or complaint, then 60 days or more without business.', ar: 'درجة منتقد أو شكوى، ثم 60 يوماً أو أكثر بلا أي تعامل.' },
+  },
+}
+
 export interface RunawayClassification {
   type: RunawayType
   reason: Bi

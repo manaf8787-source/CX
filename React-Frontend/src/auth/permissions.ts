@@ -16,11 +16,11 @@ export function canViewConversationText(role: RoleId): boolean {
   return CONVERSATION_TEXT_ROLES.has(role)
 }
 
-/** Agent names: CX, plus the agent's own line management. Environment
+/** Agent names (owner's decision, 22 Nov: every signed-in person sees them, so a repeat on one agent can be traced; only the external mystery shopper sign-in does not). Before this: CX, plus the agent's own line management. Environment
  * management / team leads / After-Sales lead are "own management" for their
  * product; HR, L&D, Marketing, Audit, executives and the shopper sign-in
  * never see a real name, only a title. */
-const AGENT_NAME_ROLES: ReadonlySet<RoleId> = new Set(['cxmgr', 'cxteam', 'envmgmt', 'teamlead', 'aslead'])
+const AGENT_NAME_ROLES: ReadonlySet<RoleId> = new Set(['cxmgr', 'cxteam', 'envmgmt', 'teamlead', 'aslead', 'ld', 'hrspec', 'hrmgr', 'marketing', 'auditmkt', 'exec'])
 
 export function canViewAgentNames(role: RoleId): boolean {
   return AGENT_NAME_ROLES.has(role)
@@ -75,14 +75,15 @@ export function canActOnShopperCase(role: RoleId): boolean {
 /** FR-6.4 — "The CX manager names/approves personas." Marketing only
  * receives personas and campaign recommendations; it does not approve them. */
 export function canApprovePersona(role: RoleId): boolean {
-  return role === 'cxmgr'
+  // 22 Nov (owner): naming and approving personas is not CX's job; it is the Internal Audit and Marketing Lead's.
+  return role === 'auditmkt'
 }
 
 /** FR-6.4 — "the Internal Audit and Marketing Lead audits personas and
  * campaign criteria." Read-only for everyone else; the CX manager can also
  * see the audit note alongside their own approval decision. */
 export function canViewPersonaAudit(role: RoleId): boolean {
-  return role === 'auditmkt' || role === 'cxmgr'
+  return role === 'auditmkt'
 }
 
 /** v40 (F35): the CRM mapping and the escalation matrix are filled by the CX manager and the Internal Audit and Marketing Lead; everyone else reads. Feeds are read-only for everyone. */
@@ -141,7 +142,13 @@ export function canMarkMentionReplied(role: RoleId): boolean {
 
 /** v40 (F27): recording a call attempt ("No answer") is a CX action. */
 export function canRecordCallAttempt(role: RoleId): boolean {
-  return role === 'cxmgr' || role === 'cxteam'
+  // 22 Nov (owner): the CX manager does not make the calls; the CX team does (and the manager decides who).
+  return role === 'cxteam'
+}
+
+/** 22 Nov (owner): the CX manager gives a close-the-loop case to a CX team member, or asks for another call. */
+export function canAssignCalls(role: RoleId): boolean {
+  return role === 'cxmgr'
 }
 
 /**
@@ -150,7 +157,8 @@ export function canRecordCallAttempt(role: RoleId): boolean {
  * The audit role audits and never approves a fix (Decision 2): `canActOnCorrectiveAction` stays false for it.
  */
 export function canEditCampaignAudit(role: RoleId): boolean {
-  return role === 'cxmgr' || role === 'auditmkt'
+  // 22 Nov (owner): the campaign audit belongs to the Internal Audit and Marketing Lead, not to CX.
+  return role === 'auditmkt'
 }
 
 /**
