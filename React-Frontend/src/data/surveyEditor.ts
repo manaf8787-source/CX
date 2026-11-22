@@ -13,6 +13,18 @@ import type { Bi, ProductId } from '../types'
 export interface EditableQuestion extends Bi {
   /** Key of `LEGACY_QUESTION_TYPE_LABEL` in data/surveyVocabulary.ts. */
   kind?: string
+  /** Ask this question only when an earlier answer matches (campaigns only). Without it the question is always asked. */
+  showIf?: ShowIf
+}
+
+/**
+ * "Show this question only if question `q` (0-based, always an earlier one) was answered ...". `value` is "yes" or "no" for a yes/no
+ * question, the option's English text for a choice, and a number as text for a 0 to 10 or 1 to 5 question.
+ */
+export interface ShowIf {
+  q: number
+  op: 'is' | 'isNot' | 'atLeast' | 'atMost'
+  value: string
 }
 
 export interface EditableSet {

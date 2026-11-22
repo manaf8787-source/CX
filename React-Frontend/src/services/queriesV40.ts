@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { listSets, type EditableSet } from '../data/surveyEditor'
 import { latency, mock } from './mockStore'
 import {
   useAllInteractions,
@@ -69,7 +70,6 @@ import type {
   RoleId,
   SampleReader,
   SupervisorTest,
-  SurveyQuestionSet,
   TraceChain,
   TraceKind,
   WeeklySampleItem,
@@ -123,7 +123,10 @@ export const useCrmMapping = () =>
     queryKey: ['crm-mapping'],
     queryFn: async (): Promise<CrmMapping> => {
       await latency(LATENCY_MS)
-      return { rows: mock.MOCK_MAPPING.rows.map((r) => ({ ...r })), options: mock.MOCK_MAPPING.options }
+      return {
+        rows: mock.MOCK_MAPPING.rows.map((r) => ({ ...r })),
+        options: mock.MOCK_MAPPING.options,
+      }
     },
   })
 
@@ -165,7 +168,14 @@ export function useConfirmMapping() {
 /** A copy of a row, so a component never holds the store's own object. */
 function copyMatrixRow(r: MatrixRow): MatrixRow {
   if (r.kind === 'vip') return { ...r, rule: { ...r.rule } }
-  return { ...r, cells: { ...r.cells, ...(r.cells.asDays ? { asDays: { ...r.cells.asDays } } : {}) }, edited: { ...r.edited } }
+  return {
+    ...r,
+    cells: {
+      ...r.cells,
+      ...(r.cells.asDays ? { asDays: { ...r.cells.asDays } } : {}),
+    },
+    edited: { ...r.edited },
+  }
 }
 
 /** The twelve rows of one product's matrix (default Real Estate): eleven with cells, each with its `edited` flags, then the VIP rule. */
@@ -199,7 +209,12 @@ export function useSaveMatrixCell() {
       } else {
         const text = typeof input.value === 'string' ? input.value.trim() : ''
         const current = row.cells[input.field]
-        row.cells[input.field] = text ? { en: input.lang === 'ar' ? (current?.en ?? text) : text, ar: input.lang === 'ar' ? text : (current?.ar ?? text) } : null
+        row.cells[input.field] = text
+          ? {
+              en: input.lang === 'ar' ? (current?.en ?? text) : text,
+              ar: input.lang === 'ar' ? text : (current?.ar ?? text),
+            }
+          : null
       }
       row.edited[input.field] = true
       return copyMatrixRow(row)
@@ -217,7 +232,19 @@ export function useIsVipFix(fix?: Partial<Pick<CorrectiveAction, 'patternId'>>):
   const { data: signals } = useSignalsAll()
   const { data: persons } = usePersonsAll()
   const patternId = fix?.patternId
-  return useMemo(() => !!patternId && !!patterns && !!signals && !!persons && patternHasVip(patterns.find((p) => p.id === patternId), signals, persons), [patternId, patterns, signals, persons])
+  return useMemo(
+    () =>
+      !!patternId &&
+      !!patterns &&
+      !!signals &&
+      !!persons &&
+      patternHasVip(
+        patterns.find((p) => p.id === patternId),
+        signals,
+        persons,
+      ),
+    [patternId, patterns, signals, persons],
+  )
 }
 
 /**
@@ -240,29 +267,38 @@ export function useFixMatrixLine(fix?: Pick<CorrectiveAction, 'kind' | 'product'
 export const useQuestionSets = (product?: ProductId) =>
   useQuery({
     queryKey: ['question-sets', product ?? 'all'],
-    queryFn: async (): Promise<SurveyQuestionSet[]> => {
+    queryFn: async (): Promise<EditableSet[]> => {
       await latency(LATENCY_MS)
-      return mock.MOCK_QUESTION_SETS.filter((s) => !product || s.product === product)
+      return listSets().filter((s) => !product || s.product === product)
     },
   })
 
 // --- Indicators and the brief (F03, F09) ------------------------------------------------------------------
 
 /** NPS, CSAT, CES, answers and the change on last month, per live product. One source for the Home tiles, the Overview and the brief. */
-export function useIndicators(): { data: IndicatorSet[] | undefined; isLoading: boolean } {
+export function useIndicators(): {
+  data: IndicatorSet[] | undefined
+  isLoading: boolean
+} {
   // The product list is edited in place (launch toggle), so `dataUpdatedAt` is the change signal, not the array identity.
   const { data: products, isLoading: l1, dataUpdatedAt } = useProducts()
   const { data: rows, isLoading: l2 } = useVocRows()
   const { data: trend, isLoading: l3 } = useNpsTrend()
   // oxlint-disable-next-line react-hooks/exhaustive-deps
-  const data = useMemo(() => (products && rows && trend ? liveIndicators(products, rows, trend, CES_SAMPLE) : undefined), [products, rows, trend, dataUpdatedAt])
+  const data = useMemo(
+    () => (products && rows && trend ? liveIndicators(products, rows, trend, CES_SAMPLE) : undefined),
+    [products, rows, trend, dataUpdatedAt],
+  )
   return { data, isLoading: l1 || l2 || l3 }
 }
 
 const DAY_MS = 86_400_000
 
 /** The numbers the Daily brief reads: the same registers the pages show. (The brief text is workstream A's `utils/brief.ts`.) */
-export function useBriefInputs(): { data: BriefInputs | undefined; isLoading: boolean } {
+export function useBriefInputs(): {
+  data: BriefInputs | undefined
+  isLoading: boolean
+} {
   const now = useNow()
   const rules = useRules()
   const { data: signals, isLoading: l1, dataUpdatedAt: t1 } = useSignals()
@@ -279,7 +315,9 @@ export function useBriefInputs(): { data: BriefInputs | undefined; isLoading: bo
   // Campaign audit line (v42.1 F33): read for the Internal Audit and Marketing Lead only, so no other role waits for it.
   const { role } = useRole()
   const auditLead = role.id === 'auditmkt'
-  const { data: campaignAudit, isLoading: l11 } = useCampaignAuditSummary({ enabled: auditLead })
+  const { data: campaignAudit, isLoading: l11 } = useCampaignAuditSummary({
+    enabled: auditLead,
+  })
   // The registers are edited in place, so their identity does not change after an edit: these stamps do.
   const stamp = [t1, t2, t3, t4, t5, t9].join('.')
 
@@ -292,7 +330,13 @@ export function useBriefInputs(): { data: BriefInputs | undefined; isLoading: bo
     const open = loop.filter((l) => l.status !== 'done' && !allPersons.find((p) => p.id === l.personId)?.consent.dncr)
     const byPerson = new Map<string, typeof interactions>()
     for (const i of interactions) byPerson.set(i.personKey, [...(byPerson.get(i.personKey) ?? []), i])
-    const drifting = persons.filter((p) => classifyRunaway(p, effort.find((e) => e.personId === p.id), byPerson.get(p.id) ?? [])).length
+    const drifting = persons.filter((p) =>
+      classifyRunaway(
+        p,
+        effort.find((e) => e.personId === p.id),
+        byPerson.get(p.id) ?? [],
+      ),
+    ).length
     const negative = mentions.filter((m) => m.sentiment < 0).length
     const replied = mentions.filter((m) => m.replyHours != null)
     return {
@@ -316,8 +360,14 @@ export function useBriefInputs(): { data: BriefInputs | undefined; isLoading: bo
       loop: {
         open: open.length,
         critical: open.filter((l) => l.severity === 'critical').length,
-        recoveredByPhonePct: recoveryRate(loop.filter((l) => l.channel === 'human'), now).pct,
-        recoveredByAiPct: recoveryRate(loop.filter((l) => l.channel === 'ai_campaign'), now).pct,
+        recoveredByPhonePct: recoveryRate(
+          loop.filter((l) => l.channel === 'human'),
+          now,
+        ).pct,
+        recoveredByAiPct: recoveryRate(
+          loop.filter((l) => l.channel === 'ai_campaign'),
+          now,
+        ).pct,
       },
       people: { drifting, total: persons.length },
       publicMentions: {
@@ -330,18 +380,32 @@ export function useBriefInputs(): { data: BriefInputs | undefined; isLoading: bo
       ldFixes: fixes.filter((f) => f.kind === 'training_gap' && !closed(f.status)).length,
       conductNotes: fixes.filter((f) => f.kind === 'employee').length,
       sample: { toRead: sample.size, read: sample.read },
-      ...(auditLead && campaignAudit ? { campaigns: { waiting: campaignAudit.waiting, runningReachedPct: campaignAudit.runningReachedPct } } : {}),
+      ...(auditLead && campaignAudit
+        ? {
+            campaigns: {
+              waiting: campaignAudit.waiting,
+              runningReachedPct: campaignAudit.runningReachedPct,
+            },
+          }
+        : {}),
     }
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [signals, patterns, fixes, cases, loop, persons, allPersons, interactions, effort, mentions, sample, rules, now, stamp, auditLead, campaignAudit])
 
-  return { data, isLoading: l1 || l2 || l3 || l4 || l5 || l6 || l7 || l8 || l9 || l10 || l11 }
+  return {
+    data,
+    isLoading: l1 || l2 || l3 || l4 || l5 || l6 || l7 || l8 || l9 || l10 || l11,
+  }
 }
 
 // --- My inbox (F20) --------------------------------------------------------------------------------------------
 
 /** Everything on the signed-in role, ordered by urgency; `stats` feeds "Your work today". */
-export function useInbox(): { data: InboxItem[] | undefined; isLoading: boolean; stats: { total: number; urgent: number } } {
+export function useInbox(): {
+  data: InboxItem[] | undefined
+  isLoading: boolean
+  stats: { total: number; urgent: number }
+} {
   const { role } = useRole()
   const now = useNow()
   const rules = useRules()
@@ -354,7 +418,9 @@ export function useInbox(): { data: InboxItem[] | undefined; isLoading: boolean;
   const { data: sample, isLoading: l7 } = useWeeklySample()
   // Campaign audit rows (v42.1 F33): the Internal Audit and Marketing Lead only, so no other role waits for the audit.
   const auditLead = role.id === 'auditmkt'
-  const { data: campaignAudit, isLoading: l8 } = useCampaignAuditSummary({ enabled: auditLead })
+  const { data: campaignAudit, isLoading: l8 } = useCampaignAuditSummary({
+    enabled: auditLead,
+  })
   // The registers are edited in place, so their identity does not change after an edit: these stamps do.
   const stamp = [t1, t3, t4, t5].join('.')
   const data = useMemo(() => {
@@ -379,7 +445,11 @@ export function useInbox(): { data: InboxItem[] | undefined; isLoading: boolean;
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [role.id, role.environment, now, rules, fixes, patterns, loop, investigations, campaigns, persons, sample, stamp, auditLead, campaignAudit])
   const stats = useMemo(() => workTodayStats(data ?? []), [data])
-  return { data, isLoading: l1 || l2 || l3 || l4 || l5 || l6 || l7 || l8, stats }
+  return {
+    data,
+    isLoading: l1 || l2 || l3 || l4 || l5 || l6 || l7 || l8,
+    stats,
+  }
 }
 
 // --- Trace (F10, F11) -------------------------------------------------------------------------------------------
@@ -393,7 +463,12 @@ export function useTraceIndex() {
   const index = useMemo(
     () =>
       interactions.data && signals.data && patterns.data && fixes.data
-        ? traceIndexFor({ interactions: interactions.data, signals: signals.data, patterns: patterns.data, fixes: fixes.data })
+        ? traceIndexFor({
+            interactions: interactions.data,
+            signals: signals.data,
+            patterns: patterns.data,
+            fixes: fixes.data,
+          })
         : undefined,
     // dataUpdatedAt: the mock registers are mutated in place, so the array identity alone is not a change signal.
     // oxlint-disable-next-line react-hooks/exhaustive-deps
@@ -401,7 +476,11 @@ export function useTraceIndex() {
   )
   // A change signal for derived data (a fix changing status does not rebuild the index, but it changes every chain through it).
   const version = [interactions.dataUpdatedAt, signals.dataUpdatedAt, patterns.dataUpdatedAt, fixes.dataUpdatedAt].join('.')
-  return { index, version, isLoading: interactions.isLoading || signals.isLoading || patterns.isLoading || fixes.isLoading }
+  return {
+    index,
+    version,
+    isLoading: interactions.isLoading || signals.isLoading || patterns.isLoading || fixes.isLoading,
+  }
 }
 
 /** The chain EV, SG, PT, CA, VR, RP from any record. `id` is the internal id or the display id (`SG-12`). */
@@ -511,14 +590,21 @@ export interface InvestigationEvidence {
 }
 
 /** Evidence from returned investigations, by pattern id: the green "Evidence from investigation · INV-1: ..." line on the pattern card. */
-export function useInvestigationEvidence(): { data: Record<string, InvestigationEvidence> | undefined; isLoading: boolean } {
+export function useInvestigationEvidence(): {
+  data: Record<string, InvestigationEvidence> | undefined
+  isLoading: boolean
+} {
   const { data: investigations, isLoading, dataUpdatedAt } = useInvestigations()
   const data = useMemo(() => {
     if (!investigations) return undefined
     const out: Record<string, InvestigationEvidence> = {}
     for (const inv of investigations) {
       if (inv.status === 'returned' && inv.patternId && inv.result) {
-        out[inv.patternId] = { investigationId: inv.id, traceId: `INV-${inv.id.replace(/\D+/g, '')}`, result: inv.result }
+        out[inv.patternId] = {
+          investigationId: inv.id,
+          traceId: `INV-${inv.id.replace(/\D+/g, '')}`,
+          result: inv.result,
+        }
       }
     }
     return out
@@ -560,7 +646,15 @@ export function useWeeklySample() {
       const items = mock.MOCK_WEEKLY_SAMPLE.filter((i) => i.reader === reader).map((i) => ({ ...i }))
       const read = items.filter((i) => i.verdict !== null).length
       const wrong = items.filter((i) => i.verdict === false).length
-      return { items, reader, size: items.length, read, wrong, accuracyPct: read ? Math.round(((read - wrong) / read) * 100) : null, due: nextWeekday(new Date(), 4) }
+      return {
+        items,
+        reader,
+        size: items.length,
+        read,
+        wrong,
+        accuracyPct: read ? Math.round(((read - wrong) / read) * 100) : null,
+        due: nextWeekday(new Date(), 4),
+      }
     },
   })
 }
@@ -613,7 +707,11 @@ export const useSupervisorTests = () =>
 // --- Fix clocks (decided 18 Nov) -------------------------------------------------------------------------------------
 
 /** A due date held on the fix: the matrix or the fallback (written by approval), or `recorded` (a sample fix that holds a date and no source). */
-export type FixDueView = Omit<FixDue, 'source'> & { source: FixDue['source'] | 'recorded'; preview: boolean; /** The preview was halved because the fix is VIP-related (v42). */ vip?: boolean }
+export type FixDueView = Omit<FixDue, 'source'> & {
+  source: FixDue['source'] | 'recorded'
+  preview: boolean
+  /** The preview was halved because the fix is VIP-related (v42). */ vip?: boolean
+}
 
 /**
  * The due date of a fix. A fix that holds one returns it: approval writes it with its source (`dueSource` 'matrix' or
@@ -624,7 +722,9 @@ export type FixDueView = Omit<FixDue, 'source'> & { source: FixDue['source'] | '
  * the cell is empty (the employee row by design: a management note has no resolve clock). `preview` says which. Undefined until
  * the matrix has loaded.
  */
-export function useFixDue(fix?: Pick<CorrectiveAction, 'kind' | 'product' | 'dueDate' | 'dueSource'> & Partial<Pick<CorrectiveAction, 'status' | 'patternId'>>): FixDueView | undefined {
+export function useFixDue(
+  fix?: Pick<CorrectiveAction, 'kind' | 'product' | 'dueDate' | 'dueSource'> & Partial<Pick<CorrectiveAction, 'status' | 'patternId'>>,
+): FixDueView | undefined {
   const rules = useRules()
   const now = useNow()
   const { data: rows } = useMatrix(fix?.product ?? 're')
@@ -637,7 +737,11 @@ export function useFixDue(fix?: Pick<CorrectiveAction, 'kind' | 'product' | 'due
   const row = rows.find((r): r is MatrixCellRow => r.kind === MATRIX_KEY_BY_FIX_KIND[fix.kind])
   const rule = rows.find((r): r is MatrixRuleRow => r.kind === 'vip')
   const resolveH = dueHours(row?.cells.resolveH ?? null, rule?.rule ?? { factor: VIP_FACTOR }, vip)
-  return { ...fixDue(now, resolveH, rules), preview: true, ...(vip ? { vip } : {}) }
+  return {
+    ...fixDue(now, resolveH, rules),
+    preview: true,
+    ...(vip ? { vip } : {}),
+  }
 }
 
 // --- Public mentions (F30) -------------------------------------------------------------------------------------------
@@ -692,9 +796,14 @@ export function useRecordNoAnswer() {
       item.attempts = result.attempts
       item.status = result.status
       item.nextAttemptOn = result.nextAttemptOn
-      const toast: Bi = result.handedOver ? CALL_COPY.noAnswerHandOff(result.attempts) : result.needsHuman ? CALL_COPY.noAnswerLast(result.attempts) : CALL_COPY.noAnswerMore(result.nextAttemptOn as string)
+      const toast: Bi = result.handedOver
+        ? CALL_COPY.noAnswerHandOff(result.attempts)
+        : result.needsHuman
+          ? CALL_COPY.noAnswerLast(result.attempts)
+          : CALL_COPY.noAnswerMore(result.nextAttemptOn as string)
       return { item: { ...item }, result, toast }
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['detractor-call-items'] }),
   })
 }
+

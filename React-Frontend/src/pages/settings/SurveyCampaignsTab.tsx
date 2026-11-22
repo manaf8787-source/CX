@@ -1,12 +1,26 @@
 import { useMemo, useState } from 'react'
-import { Archive, ArchiveRestore, Copy, Plus, Search, Send } from 'lucide-react'
+import { Archive, ArchiveRestore, Copy, Plus, Search, Send, Trash2 } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { useAuditActor } from '@/auth/useAuditActor'
 import { useAuth } from '@/auth/session'
 import { useEditableSets } from '@/data/surveyEditor'
-import { createCampaign, duplicateCampaign, markSent, nameTaken, setArchived, updateCampaign, useCampaigns, type CampaignChannel, type SurveyCampaign } from '@/data/surveyCampaigns'
+import {
+  createCampaign,
+  duplicateCampaign,
+  markSent,
+  nameTaken,
+  setArchived,
+  updateCampaign,
+  useCampaigns,
+  type CampaignChannel,
+  type CampaignProduct,
+  type SurveyCampaign,
+} from '@/data/surveyCampaigns'
+import { LEGACY_QUESTION_TYPE_LABEL } from '@/data/surveyVocabulary'
+import type { EditableQuestion, ShowIf } from '@/data/surveyEditor'
+import { canDependOn, describeShowIf, opsFor, reindexAfterRemove, valuesFor } from '@/data/surveyLogic'
+import { kindOf } from '@/data/campaignResults'
 import { PRODUCTS } from '@/data/products'
-import type { ProductId } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -22,11 +36,14 @@ import { ProductTag } from '@/components/common/Chip'
  * can be found, read and reused later. The fixed surveys that go out by themselves are on the Questions and When we ask tabs.
  * Prototype: nothing is sent; "Send" marks it sent and shows sample results.
  */
-const CHANNEL_LABEL: Record<CampaignChannel, { en: string; ar: string }> = {
+export const CHANNEL_LABEL: Record<CampaignChannel, { en: string; ar: string }> = {
   whatsapp: { en: 'WhatsApp', ar: 'واتساب' },
-  app: { en: 'In the app', ar: 'داخل التطبيق' },
+  app: { en: 'Pop-up notification in the app', ar: 'إشعار منبثق داخل التطبيق' },
+  push: { en: 'Push notification on the phone', ar: 'إشعار دفع على الهاتف' },
   email: { en: 'Email', ar: 'البريد الإلكتروني' },
   sms: { en: 'SMS', ar: 'رسالة نصية' },
+  call: { en: 'Phone call by an agent', ar: 'مكالمة هاتفية من وكيل' },
+  link: { en: 'Link or QR code to share', ar: 'رابط أو رمز QR للمشاركة' },
 }
 
 type View = 'active' | 'archived' | 'all'
@@ -42,8 +59,7 @@ export function SurveyCampaignsTab({ canCreate }: { canCreate: boolean }) {
   const [openId, setOpenId] = useState<string | null>(null)
 
   const shown = useMemo(
-    () =>
-      campaigns.filter((c) => (view === 'all' || (view === 'archived') === c.archived) && c.name.toLowerCase().includes(query.trim().toLowerCase())),
+    () => campaigns.filter((c) => (view === 'all' || (view === 'archived') === c.archived) && c.name.toLowerCase().includes(query.trim().toLowerCase())),
     [campaigns, view, query],
   )
   const day = new Intl.DateTimeFormat(lang === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -82,7 +98,12 @@ export function SurveyCampaignsTab({ canCreate }: { canCreate: boolean }) {
           <label className="relative flex min-w-56 flex-1 flex-col gap-1 text-xs text-muted-foreground">
             {t('Find a campaign', 'ابحث عن حملة')}
             <Search aria-hidden className="pointer-events-none absolute start-3 top-[29px] size-3.5" />
-            <Input className="h-9 ps-9" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('Type part of the name', 'اكتب جزءاً من الاسم')} />
+            <Input
+              className="h-9 ps-9"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={t('Type part of the name', 'اكتب جزءاً من الاسم')}
+            />
           </label>
           <Segmented<View>
             label={t('Show', 'اعرض')}
@@ -108,7 +129,15 @@ export function SurveyCampaignsTab({ canCreate }: { canCreate: boolean }) {
         ) : (
           <ul className="flex flex-col gap-2">
             {shown.map((c) => (
-              <CampaignRow key={c.id} c={c} open={openId === c.id} onToggle={() => setOpenId(openId === c.id ? null : c.id)} canEdit={canCreate} day={day} L={L} />
+              <CampaignRow
+                key={c.id}
+                c={c}
+                open={openId === c.id}
+                onToggle={() => setOpenId(openId === c.id ? null : c.id)}
+                canEdit={canCreate}
+                day={day}
+                L={L}
+              />
             ))}
           </ul>
         )}
@@ -117,7 +146,21 @@ export function SurveyCampaignsTab({ canCreate }: { canCreate: boolean }) {
   )
 }
 
-function CampaignRow({ c, open, onToggle, canEdit, day, L }: { c: SurveyCampaign; open: boolean; onToggle: () => void; canEdit: boolean; day: Intl.DateTimeFormat; L: (b: { en: string; ar: string }) => string }) {
+function CampaignRow({
+  c,
+  open,
+  onToggle,
+  canEdit,
+  day,
+  L,
+}: {
+  c: SurveyCampaign
+  open: boolean
+  onToggle: () => void
+  canEdit: boolean
+  day: Intl.DateTimeFormat
+  L: (b: { en: string; ar: string }) => string
+}) {
   const { t, lang } = useI18n()
   const { log } = useAuditActor()
   const { session } = useAuth()
@@ -130,11 +173,16 @@ function CampaignRow({ c, open, onToggle, canEdit, day, L }: { c: SurveyCampaign
 
   return (
     <li className="well flex flex-col gap-3 p-3" data-testid={`campaign-${c.id}`}>
-      <button type="button" onClick={onToggle} aria-expanded={open} className="flex w-full flex-wrap items-center justify-between gap-2 text-start outline-hidden focus-visible:ring-2">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        className="flex w-full flex-wrap items-center justify-between gap-2 text-start outline-hidden focus-visible:ring-2"
+      >
         <span className="flex min-w-0 flex-col gap-1">
           <span className="font-medium text-foreground">{c.name}</span>
           <span className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-            <ProductTag productId={c.product} lang={lang} />
+            <CampaignProductTag product={c.product} lang={lang} />
             {L(CHANNEL_LABEL[c.channel])} · {day.format(new Date(c.sendOn))}
           </span>
         </span>
@@ -150,7 +198,10 @@ function CampaignRow({ c, open, onToggle, canEdit, day, L }: { c: SurveyCampaign
         <div className="flex flex-col gap-3 border-t border-line pt-3">
           {c.status === 'sent' && (
             <p className="text-sm text-foreground" data-testid="campaign-results">
-              {t(`Sent to ${c.sentCount} people, ${c.answeredCount} answered (${rate}%). Sample results.`, `أُرسلت إلى ${c.sentCount} شخص، أجاب ${c.answeredCount} (${rate}%). نتائج تجريبية.`)}
+              {t(
+                `Sent to ${c.sentCount} people, ${c.answeredCount} answered (${rate}%). Sample results.`,
+                `أُرسلت إلى ${c.sentCount} شخص، أجاب ${c.answeredCount} (${rate}%). نتائج تجريبية.`,
+              )}
             </p>
           )}
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -175,6 +226,7 @@ function CampaignRow({ c, open, onToggle, canEdit, day, L }: { c: SurveyCampaign
                 <li key={i}>
                   <span className="me-1.5 font-medium tabular">{i + 1}.</span>
                   {lang === 'ar' ? q.ar : q.en}
+                  {q.showIf && <span className="ms-2 text-xs text-muted-foreground">({describeShowIf(q.showIf, c.questions, t)})</span>}
                 </li>
               ))}
             </ol>
@@ -222,7 +274,10 @@ function CampaignRow({ c, open, onToggle, canEdit, day, L }: { c: SurveyCampaign
                 variant="ghost"
                 onClick={() => {
                   setArchived(c.id, !c.archived)
-                  log('action', { en: `${c.archived ? 'Restored' : 'Archived'} the survey campaign "${c.name}"`, ar: `${c.archived ? 'استعاد' : 'أرشف'} حملة الاستبيان "${c.name}"` })
+                  log('action', {
+                    en: `${c.archived ? 'Restored' : 'Archived'} the survey campaign "${c.name}"`,
+                    ar: `${c.archived ? 'استعاد' : 'أرشف'} حملة الاستبيان "${c.name}"`,
+                  })
                 }}
               >
                 {c.archived ? <ArchiveRestore aria-hidden /> : <Archive aria-hidden />}
@@ -236,20 +291,59 @@ function CampaignRow({ c, open, onToggle, canEdit, day, L }: { c: SurveyCampaign
   )
 }
 
-function CampaignForm({ onSave, onCancel }: { onSave: (v: { name: string; product: ProductId; basedOn: string; questions: { en: string; ar: string; kind?: string }[]; audience: string; channel: CampaignChannel; sendOn: string }) => void; onCancel: () => void }) {
+/** The product tag of a campaign, or "General" when it belongs to no product. */
+export function CampaignProductTag({ product, lang }: { product: CampaignProduct; lang: 'en' | 'ar' }) {
+  if (product === 'general') return <span className="pill pill-light">{lang === 'ar' ? 'عام، دون منتج' : 'General, no product'}</span>
+  return <ProductTag productId={product} lang={lang} />
+}
+
+const GENERAL = 'general'
+const OWN = '__own__'
+
+const blankQuestion = (): EditableQuestion => ({ en: '', ar: '', kind: 'open' })
+
+function CampaignForm({
+  onSave,
+  onCancel,
+}: {
+  onSave: (v: {
+    name: string
+    product: CampaignProduct
+    basedOn: string
+    questions: EditableQuestion[]
+    audience: string
+    channel: CampaignChannel
+    sendOn: string
+  }) => void
+  onCancel: () => void
+}) {
   const { t, L } = useI18n()
   const sets = useEditableSets()
   const [name, setName] = useState('')
-  const [product, setProduct] = useState<ProductId>('re')
-  const [setId, setSetId] = useState('')
+  const [product, setProduct] = useState<CampaignProduct>(GENERAL)
+  const [source, setSource] = useState<string>(OWN)
+  const [questions, setQuestions] = useState<EditableQuestion[]>([blankQuestion()])
   const [audience, setAudience] = useState('')
   const [channel, setChannel] = useState<CampaignChannel>('whatsapp')
   const [sendOn, setSendOn] = useState(() => new Date().toISOString().slice(0, 10))
 
-  const options = sets.filter((s) => s.product === product)
-  const chosen = options.find((s) => s.id === setId) ?? options[0]
+  const options = product === GENERAL ? [] : sets.filter((s) => s.product === product)
   const dup = name.trim() !== '' && nameTaken(name)
-  const ok = name.trim() && !dup && chosen && chosen.questions.some((q) => q.en.trim() && q.ar.trim()) && audience.trim()
+  const filled = questions.filter((q) => q.en.trim())
+  const ok = name.trim() && !dup && filled.length > 0 && audience.trim()
+
+  const pickSource = (id: string, forProduct: CampaignProduct = product) => {
+    setSource(id)
+    if (id === OWN) return setQuestions([blankQuestion()])
+    const found = sets.find((s) => s.id === id && s.product === forProduct)
+    if (found) setQuestions(found.questions.map((q) => ({ ...q })))
+  }
+  const patch = (i: number, p: Partial<EditableQuestion>) =>
+    setQuestions((qs) => {
+      const next = qs.map((q, j) => (j === i ? { ...q, ...p } : q))
+      // A change to a question's type or choices can make a rule that points at it unreadable: drop those rules.
+      return next.map((q) => (q.showIf && q.showIf.q === i && !valuesFor(next[i]).some((v) => v.value === q.showIf?.value) ? { ...q, showIf: undefined } : q))
+    })
 
   return (
     <div className="well flex flex-col gap-3 p-4" data-testid="campaign-form">
@@ -257,7 +351,12 @@ function CampaignForm({ onSave, onCancel }: { onSave: (v: { name: string; produc
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         <label className="flex flex-col gap-1 text-xs text-muted-foreground">
           {t('Campaign name', 'اسم الحملة')}
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t('For example: Dubai viewings, October follow-up', 'مثال: معاينات دبي، متابعة أكتوبر')} aria-invalid={dup} />
+          <Input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder={t('For example: Dubai viewings, October follow-up', 'مثال: معاينات دبي، متابعة أكتوبر')}
+            aria-invalid={dup}
+          />
           {dup && <span className="text-(--status-error-text)">{t('A campaign with this name already exists.', 'توجد حملة بهذا الاسم.')}</span>}
         </label>
         <label className="flex flex-col gap-1 text-xs text-muted-foreground">
@@ -265,18 +364,19 @@ function CampaignForm({ onSave, onCancel }: { onSave: (v: { name: string; produc
           <Input type="date" value={sendOn} onChange={(e) => setSendOn(e.target.value)} />
         </label>
         <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-          {t('Product', 'المنتج')}
+          {t('Product (optional)', 'المنتج (اختياري)')}
           <Select
             value={product}
             onValueChange={(v) => {
-              setProduct(v as ProductId)
-              setSetId('')
+              setProduct(v as CampaignProduct)
+              pickSource(OWN, v as CampaignProduct)
             }}
           >
             <SelectTrigger aria-label={t('Product', 'المنتج')}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value={GENERAL}>{t('Not tied to a product', 'غير مرتبطة بمنتج')}</SelectItem>
               {PRODUCTS.map((p) => (
                 <SelectItem key={p.id} value={p.id}>
                   {L(p.name)}
@@ -286,14 +386,16 @@ function CampaignForm({ onSave, onCancel }: { onSave: (v: { name: string; produc
           </Select>
         </label>
         <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-          {t('Questions to ask (start from a set)', 'الأسئلة (ابدأ من مجموعة)')}
-          <Select value={chosen?.id ?? ''} onValueChange={setSetId} disabled={options.length === 0}>
-            <SelectTrigger aria-label={t('Question set', 'مجموعة الأسئلة')}>
-              <SelectValue placeholder={t('No set for this product', 'لا توجد مجموعة لهذا المنتج')} />
+          {t('Questions', 'الأسئلة')}
+          <Select value={source} onValueChange={(v) => pickSource(v)}>
+            <SelectTrigger aria-label={t('Where the questions start from', 'من أين تبدأ الأسئلة')}>
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value={OWN}>{t('Write my own', 'أكتب أسئلتي بنفسي')}</SelectItem>
               {options.map((s) => (
                 <SelectItem key={s.id} value={s.id}>
+                  {t('Start from: ', 'ابدأ من: ')}
                   {L(s.name)}
                 </SelectItem>
               ))}
@@ -318,8 +420,86 @@ function CampaignForm({ onSave, onCancel }: { onSave: (v: { name: string; produc
       </div>
       <label className="flex flex-col gap-1 text-xs text-muted-foreground">
         {t('Who it goes to', 'لمن تُرسل')}
-        <Textarea value={audience} onChange={(e) => setAudience(e.target.value)} rows={2} placeholder={t('For example: Dubai clients who viewed a unit in October', 'مثال: عملاء دبي الذين عاينوا وحدة في أكتوبر')} />
+        <Textarea
+          value={audience}
+          onChange={(e) => setAudience(e.target.value)}
+          rows={2}
+          placeholder={t('For example: Dubai clients who viewed a unit in October', 'مثال: عملاء دبي الذين عاينوا وحدة في أكتوبر')}
+        />
       </label>
+
+      <div className="flex flex-col gap-3 border-t border-line pt-3">
+        <div className="flex flex-col gap-0.5">
+          <span className="t-ui-strong">{t('What you ask', 'ما الذي تسأله')}</span>
+          <span className="text-xs text-muted-foreground">
+            {t(
+              'Change the wording, the type, or add your own questions. This only changes this campaign, never the standing surveys.',
+              'غيّر الصياغة أو النوع أو أضف أسئلتك. هذا يغيّر هذه الحملة فقط، وليس الاستبيانات الدائمة.',
+            )}
+          </span>
+        </div>
+        {questions.map((q, i) => (
+          <div key={i} className="flex flex-col gap-2 rounded-xl border border-line p-3">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-medium text-muted-foreground">{t(`Question ${i + 1}`, `السؤال ${i + 1}`)}</span>
+              <div className="flex items-center gap-2">
+                <Select value={q.kind ?? 'open'} onValueChange={(v) => patch(i, { kind: v })}>
+                  <SelectTrigger aria-label={t('Answer type', 'نوع الإجابة')} className="h-8 min-w-36">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(LEGACY_QUESTION_TYPE_LABEL).map(([k, v]) => (
+                      <SelectItem key={k} value={k}>
+                        {L(v)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label={t('Remove this question', 'احذف هذا السؤال')}
+                  disabled={questions.length === 1}
+                  onClick={() => setQuestions((qs) => reindexAfterRemove(qs, i))}
+                >
+                  <Trash2 aria-hidden />
+                </Button>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+              <Textarea
+                value={q.en}
+                rows={2}
+                placeholder={t('The question, in English', 'السؤال بالإنجليزية')}
+                onChange={(e) => patch(i, { en: e.target.value })}
+              />
+              <Textarea
+                value={q.ar}
+                rows={2}
+                dir="rtl"
+                placeholder={t('In Arabic (optional)', 'بالعربية (اختياري)')}
+                onChange={(e) => patch(i, { ar: e.target.value })}
+              />
+            </div>
+            {i > 0 && <ShowIfEditor questions={questions} index={i} onChange={(showIf) => patch(i, { showIf })} />}
+            {q.kind === 'choice' && (
+              <span className="text-xs text-muted-foreground">
+                {t(
+                  'Write the choices in brackets at the end, separated by a dot: (price · service · location)',
+                  'اكتب الخيارات بين قوسين في النهاية مفصولة بنقطة: (السعر · الخدمة · الموقع)',
+                )}
+              </span>
+            )}
+          </div>
+        ))}
+        <div>
+          <Button variant="outline" size="sm" onClick={() => setQuestions((qs) => [...qs, blankQuestion()])}>
+            <Plus aria-hidden />
+            {t('Add a question', 'أضف سؤالاً')}
+          </Button>
+        </div>
+      </div>
+
       <div className="flex justify-end gap-2">
         <Button variant="ghost" size="sm" onClick={onCancel}>
           {t('Cancel', 'إلغاء')}
@@ -327,11 +507,111 @@ function CampaignForm({ onSave, onCancel }: { onSave: (v: { name: string; produc
         <Button
           size="sm"
           disabled={!ok}
-          onClick={() => chosen && onSave({ name, product, basedOn: chosen.id, questions: chosen.questions.map((q) => ({ ...q })), audience: audience.trim(), channel, sendOn })}
+          onClick={() =>
+            onSave({
+              name,
+              product,
+              basedOn: source === OWN ? 'custom' : source,
+              questions: filled.map((q) => ({ ...q, en: q.en.trim(), ar: q.ar.trim() || q.en.trim() })),
+              audience: audience.trim(),
+              channel,
+              sendOn,
+            })
+          }
         >
           {t('Save campaign', 'حفظ الحملة')}
         </Button>
       </div>
+    </div>
+  )
+}
+
+/** "Show this question: always / only if an earlier answer is ..." for one question of the campaign. */
+function ShowIfEditor({ questions, index, onChange }: { questions: EditableQuestion[]; index: number; onChange: (v: ShowIf | undefined) => void }) {
+  const { t, L } = useI18n()
+  const q = questions[index]
+  const sources = questions
+    .slice(0, index)
+    .map((x, i) => ({ x, i }))
+    .filter(({ x }) => canDependOn(x))
+  const show = q.showIf
+  const from = show ? questions[show.q] : undefined
+
+  const startRule = () => {
+    const first = sources[sources.length - 1] // the question just before, when it can be depended on
+    if (!first) return
+    const vals = valuesFor(first.x)
+    onChange({ q: first.i, op: opsFor(kindOf(first.x))[0].op, value: vals[0].value })
+  }
+  const pickSource = (i: number) => {
+    const x = questions[i]
+    onChange({ q: i, op: opsFor(kindOf(x))[0].op, value: valuesFor(x)[0].value })
+  }
+
+  if (!show)
+    return (
+      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+        <span>{t('Asked to everyone.', 'يُسأل للجميع.')}</span>
+        <Button variant="outline" size="sm" disabled={sources.length === 0} onClick={startRule}>
+          {t('Ask only if an earlier answer is…', 'اسأله فقط إذا كانت إجابة سابقة…')}
+        </Button>
+        {sources.length === 0 && (
+          <span>{t('Needs an earlier yes/no, choice, 0–10 or 1–5 question.', 'يحتاج سؤالاً سابقاً من نوع نعم/لا أو اختيار أو 0–10 أو 1–5.')}</span>
+        )}
+      </div>
+    )
+
+  return (
+    <div className="flex flex-col gap-2 rounded-lg bg-well p-2 text-xs">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="font-medium text-foreground">{t('Ask only if the answer to', 'اسأله فقط إذا كانت إجابة')}</span>
+        <Select value={String(show.q)} onValueChange={(v) => pickSource(Number(v))}>
+          <SelectTrigger aria-label={t('Earlier question', 'السؤال السابق')} className="h-8 min-w-28">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {sources.map(({ i }) => (
+              <SelectItem key={i} value={String(i)}>
+                {t(`question ${i + 1}`, `السؤال ${i + 1}`)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {from && (
+          <>
+            <Select value={show.op} onValueChange={(v) => onChange({ ...show, op: v as ShowIf['op'] })}>
+              <SelectTrigger aria-label={t('Condition', 'الشرط')} className="h-8 min-w-28">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {opsFor(kindOf(from)).map((o) => (
+                  <SelectItem key={o.op} value={o.op}>
+                    {L(o.label)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={show.value} onValueChange={(v) => onChange({ ...show, value: v })}>
+              <SelectTrigger aria-label={t('Answer', 'الإجابة')} className="h-8 min-w-24">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {valuesFor(from).map((v) => (
+                  <SelectItem key={v.value} value={v.value}>
+                    {L(v.label)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </>
+        )}
+        <Button variant="ghost" size="sm" onClick={() => onChange(undefined)}>
+          {t('Ask to everyone', 'اسأله للجميع')}
+        </Button>
+      </div>
+      <span className="text-muted-foreground">
+        {t('Everyone else skips this question and goes to the next one.', 'من لا تنطبق عليه الإجابة يتخطى هذا السؤال وينتقل للتالي.')}
+      </span>
     </div>
   )
 }

@@ -5,6 +5,7 @@ import { useI18n } from '@/i18n'
 import { useRole } from '@/auth/RoleContext'
 import { useLeadFunnel, useProducts, useVocRows } from '@/services/queries'
 import { useProductSurveyRules } from '@/services/referenceQueries'
+import { useEditableSets } from '@/data/surveyEditor'
 import { CES_SAMPLE, PRODUCT_COVERAGE, WALLET_COMPLAINT_TYPES, WALLET_SIGNALS_NO_SURVEY } from '@/data/v38Reference'
 import type { ProductId, VocRow } from '@/types'
 import { Button } from '@/components/ui/button'
@@ -41,6 +42,7 @@ export default function ProductPage() {
   const { data: vocRows } = useVocRows()
   const { data: funnel } = useLeadFunnel()
   const { data: rules } = useProductSurveyRules()
+  const questionSets = useEditableSets()
 
   if (isLoading) return <LoadingState rows={6} />
   const product = products?.find((p) => p.id === productId)
@@ -78,7 +80,13 @@ export default function ProductPage() {
       <div className="flex flex-col gap-4">
         <section aria-label={t('Indicators', 'المؤشرات')} className="grid grid-cols-2 gap-(--grid-gap) lg:grid-cols-4">
           {/* The product's own hue is the one colour that means something here: a 6px dot before NPS. */}
-          <KpiTile term="NPS" label="NPS" value={npsOf(rows) ?? t('Too early', 'مبكر')} accent={`var(${product.colorVar})`} sub={product.id === 'ev' ? t('No NPS for this product', 'لا NPS لهذا المنتج') : undefined} />
+          <KpiTile
+            term="NPS"
+            label="NPS"
+            value={npsOf(rows) ?? t('Too early', 'مبكر')}
+            accent={`var(${product.colorVar})`}
+            sub={product.id === 'ev' ? t('No NPS for this product', 'لا NPS لهذا المنتج') : undefined}
+          />
           <KpiTile term="CSAT" label="CSAT" value={csat ?? '–'} unit={csat != null ? '%' : undefined} />
           <KpiTile term="CES" label="CES" value={ces ?? '–'} unit={ces != null ? '%' : undefined} />
           <KpiTile label={t('Responses', 'الردود')} value={n ? fmt(n) : '–'} />
@@ -98,16 +106,38 @@ export default function ProductPage() {
               {rows.map((r) => (
                 <li key={r.channel} className="flex flex-col gap-2.5">
                   <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
-                    <span className="t-small-strong">{L(VOC_CHANNEL[r.channel] ?? { en: r.channel, ar: r.channel })}</span>
+                    <span className="t-small-strong">
+                      {L(
+                        VOC_CHANNEL[r.channel] ?? {
+                          en: r.channel,
+                          ar: r.channel,
+                        },
+                      )}
+                    </span>
                     <span className="t-body-s tabular">
                       NPS <bdi dir="ltr">{npsOf([r]) ?? '–'}</bdi> · CSAT {r.csat}% · n {r.n}
                     </span>
                   </div>
                   {/* Promoters = the dark hero, passives and detractors = the two greys; the numbers above are the printed values. */}
                   <div className="flex h-3 gap-0.5 overflow-hidden rounded-full bg-line shadow-inset-track" aria-hidden>
-                    <span className="material-dark" style={{ width: `${(100 * r.promoters) / Math.max(1, r.n)}%` }} />
-                    <span className="bg-chart-2" style={{ width: `${(100 * r.passives) / Math.max(1, r.n)}%` }} />
-                    <span className="bg-chart-5" style={{ width: `${(100 * r.detractors) / Math.max(1, r.n)}%` }} />
+                    <span
+                      className="material-dark"
+                      style={{
+                        width: `${(100 * r.promoters) / Math.max(1, r.n)}%`,
+                      }}
+                    />
+                    <span
+                      className="bg-chart-2"
+                      style={{
+                        width: `${(100 * r.passives) / Math.max(1, r.n)}%`,
+                      }}
+                    />
+                    <span
+                      className="bg-chart-5"
+                      style={{
+                        width: `${(100 * r.detractors) / Math.max(1, r.n)}%`,
+                      }}
+                    />
                   </div>
                 </li>
               ))}
@@ -117,11 +147,20 @@ export default function ProductPage() {
 
         {product.id === 're' && (
           <SectionCard
-            term="Omnichannel" title={t('Website and app: two named sources', 'الموقع والتطبيق: مصدران منفصلان')}
-            description={t('Kept apart in every count — a web user and an app user are different people at different stages.', 'منفصلان في كل عدد — مستخدم الموقع ومستخدم التطبيق شخصان مختلفان في مرحلتين مختلفتين.')}
+            term="Omnichannel"
+            title={t('Website and app: two named sources', 'الموقع والتطبيق: مصدران منفصلان')}
+            description={t(
+              'Kept apart in every count — a web user and an app user are different people at different stages.',
+              'منفصلان في كل عدد — مستخدم الموقع ومستخدم التطبيق شخصان مختلفان في مرحلتين مختلفتين.',
+            )}
           >
             <div className="grid grid-cols-1 gap-(--grid-gap) min-[480px]:grid-cols-2">
-              <SourceWell icon={<Globe />} label={t('PSI Website', 'موقع PSI')} value={sourceCount('PSI Website') != null ? fmt(sourceCount('PSI Website')!) : '–'} sub={t('Enquiries, sample', 'استفسارات، عينة')} />
+              <SourceWell
+                icon={<Globe />}
+                label={t('PSI Website', 'موقع PSI')}
+                value={sourceCount('PSI Website') != null ? fmt(sourceCount('PSI Website')!) : '–'}
+                sub={t('Enquiries, sample', 'استفسارات، عينة')}
+              />
               <SourceWell
                 icon={<Smartphone />}
                 label={t('PSI Real Estate app', 'تطبيق PSI العقاري')}
@@ -133,7 +172,10 @@ export default function ProductPage() {
         )}
 
         {product.id === 'wl' && (
-          <SectionCard title={t('Complaint types and owners', 'أنواع الشكاوى والمالكون')} description={t('Wallet events sit on the investor’s timeline as a source.', 'أحداث المحفظة تظهر على الجدول الزمني للمستثمر كمصدر.')}>
+          <SectionCard
+            title={t('Complaint types and owners', 'أنواع الشكاوى والمالكون')}
+            description={t('Wallet events sit on the investor’s timeline as a source.', 'أحداث المحفظة تظهر على الجدول الزمني للمستثمر كمصدر.')}
+          >
             <ul className="flex flex-col">
               {WALLET_COMPLAINT_TYPES.map((c) => (
                 <li key={c.type.en} className="row-divider flex flex-wrap items-center justify-between gap-x-3 gap-y-1 py-3 text-sm first:pt-0 last:pb-0">
@@ -173,6 +215,40 @@ export default function ProductPage() {
             ))}
           </dl>
           <p className="t-body-s mt-4">{L(rule.sources)}</p>
+        </SectionCard>
+      )}
+
+      {/* The questions as the CX manager last edited them (Surveys, Questions tab). */}
+      {questionSets.some((x) => x.product === product.id) && (
+        <SectionCard
+          title={t('What we ask', 'ما الذي نسأله')}
+          description={t(
+            'The wording customers see, as last edited on the Surveys screen.',
+            'الصياغة التي يراها العملاء، كما عُدّلت آخر مرة في شاشة الاستبيانات.',
+          )}
+          actions={
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/settings/surveys?tab=questions">
+                {t('Edit questions', 'تعديل الأسئلة')}
+                <ArrowRight aria-hidden className="rtl:rotate-180" />
+              </Link>
+            </Button>
+          }
+        >
+          <div className="grid grid-cols-1 gap-(--grid-gap) md:grid-cols-2">
+            {questionSets
+              .filter((x) => x.product === product.id)
+              .map((x) => (
+                <div key={x.id} className="well flex flex-col gap-2">
+                  <p className="text-sm font-medium text-foreground">{L(x.name)}</p>
+                  <ol className="list-decimal ps-5 text-sm text-foreground">
+                    {x.questions.map((q, i) => (
+                      <li key={i}>{L(q)}</li>
+                    ))}
+                  </ol>
+                </div>
+              ))}
+          </div>
         </SectionCard>
       )}
 
@@ -216,3 +292,4 @@ function SourceWell({ icon, label, value, sub }: { icon: ReactNode; label: strin
     </div>
   )
 }
+
