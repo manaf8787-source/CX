@@ -26,7 +26,8 @@ export default function SettingsLayout() {
   const { pathname } = useLocation()
   const navigate = useNavigate()
   const { role } = useRole()
-  const items = SETTINGS_NAV.filter((i) => canOpenPage(role.id, i.path))
+  const isCx = role.id === 'cxmgr' || role.id === 'cxteam'
+  const items = SETTINGS_NAV.filter((i) => canOpenPage(role.id, i.path) && !(isCx && i.hideForCx))
   const current = items.find((i) => pathname === i.path || pathname.startsWith(`${i.path}/`))?.path
   const navLabel = t('Settings and reference', 'الإعدادات والمرجع')
   const { ref, box, ready, animate } = useSlidingIndicator<HTMLDivElement>('a[aria-current=page]')
@@ -65,7 +66,10 @@ export default function SettingsLayout() {
                 aria-hidden
                 data-slot="settings-nav-indicator"
                 // physical left/top on purpose: the box comes from offsetLeft/offsetTop, which are physical in RTL as well
-                className={cn('material-dark pointer-events-none absolute top-0 left-0 rounded-xl', animate && 'transition-[translate,width,height] duration-400 ease-spring')}
+                className={cn(
+                  'material-dark pointer-events-none absolute top-0 left-0 rounded-xl',
+                  animate && 'transition-[translate,width,height] duration-400 ease-spring',
+                )}
                 style={{ width: box.w, height: box.h, translate: `${box.x}px ${box.y}px` }}
               />
             )}
@@ -101,3 +105,4 @@ export default function SettingsLayout() {
     </div>
   )
 }
+

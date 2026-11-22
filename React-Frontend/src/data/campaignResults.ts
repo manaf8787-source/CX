@@ -1,5 +1,6 @@
 import type { SurveyCampaign } from './surveyCampaigns'
-import type { EditableQuestion, ShowIf } from './surveyEditor'
+import type { EditableQuestion } from './surveyEditor'
+import { kindOf, optionsOf, targetOf, type QuestionKind } from './surveyLogic'
 import type { Bi } from '../types'
 
 /**
@@ -7,54 +8,7 @@ import type { Bi } from '../types'
  * campaign's id and its sent and answered counts, so the same campaign always shows the same figures. In the real platform they come
  * from the answers the survey agent collected; nothing here is a real customer's reply.
  */
-export type QuestionKind = 'nps' | 'rating' | 'choice' | 'yesno' | 'open'
-
-/** The kind a question carries, or the one its wording implies when it was written before kinds existed. */
-export function kindOf(q: EditableQuestion): QuestionKind {
-  if (q.kind && ['nps', 'rating', 'choice', 'yesno', 'open'].includes(q.kind)) return q.kind as QuestionKind
-  const en = q.en
-  if (/0 to 10/.test(en)) return 'nps'
-  if (/1 to 5/.test(en)) return 'rating'
-  if (/yes\s*\/\s*no/i.test(en)) return 'yesno'
-  if (optionsOf(q).length >= 2) return 'choice'
-  return 'open'
-}
-
-/** The options written in brackets, "(a · b · c)", in both languages. */
-export function optionsOf(q: EditableQuestion): Bi[] {
-  const grab = (s: string) =>
-    (/\(([^()]*·[^()]*)\)\s*$/.exec(s)?.[1] ?? '')
-      .split('·')
-      .map((x) => x.trim())
-      .filter(Boolean)
-  const en = grab(q.en)
-  const ar = grab(q.ar)
-  return en.map((e, i) => ({ en: e, ar: ar[i] ?? e }))
-}
-
-export function matchesValue(show: ShowIf, answer: string): boolean {
-  const n = Number(answer)
-  const v = Number(show.value)
-  switch (show.op) {
-    case 'is':
-      return answer === show.value
-    case 'isNot':
-      return answer !== show.value
-    case 'atLeast':
-      return n >= v
-    case 'atMost':
-      return n <= v
-  }
-}
-
-/** The share of the people who answered `prev` whose answer satisfies the rule (1 when the rule cannot be read). */
-function shareThatMatch(show: ShowIf, prev: QuestionResult | undefined): number {
-  if (!prev || !prev.bars.length) return 1
-  const total = prev.bars.reduce((s, b) => s + b.count, 0)
-  if (!total) return 1
-  const key = (b: { label: Bi }) => (prev.kind === 'yesno' ? b.label.en.toLowerCase() : b.label.en)
-  return prev.bars.filter((b) => matchesValue(show, key(b))).reduce((s, b) => s + b.count, 0) / total
-}
+export { kindOf, optionsOf, type QuestionKind } from './surveyLogic'
 
 function rng(seed: string) {
   let h = 2166136261
@@ -87,8 +41,8 @@ export interface QuestionResult {
   headline?: { label: Bi; value: number; unit: '' | '%' }
   /** open: a few example replies, clearly sample. */
   quotes: { text: Bi; tone: 'good' | 'bad' | 'neutral' }[]
-  /** Set when the question has an "only if" rule: how many people were asked it, out of all who answered. */
-  askedOf?: number
+  /** How many people reached this question, following the survey's jumps (people who stop half-way are not counted further). */
+  reached: number
 }
 
 export interface CampaignResult {
@@ -148,11 +102,8 @@ export function campaignResult(c: SurveyCampaign): CampaignResult | undefined {
   const mood = 0.35 + r() * 0.5 // how happy this campaign's people are, 0..1
 
   const questions: QuestionResult[] = []
-  const basisOf = (question: EditableQuestion) => (question.showIf ? (questions[question.showIf.q]?.answered ?? answered) : answered)
-  const build = (question: EditableQuestion, index: number): QuestionResult => {
+  const build = (question: EditableQuestion, index: number, n: number): Omit<QuestionResult, 'reached'> => {
     const kind = kindOf(question)
-    const gate = question.showIf ? shareThatMatch(question.showIf, questions[question.showIf.q]) : 1
-    const n = Math.max(1, Math.round(basisOf(question) * gate * (index === 0 ? 1 : 0.86 + r() * 0.12)))
     if (kind === 'nps') {
       const w = Array.from({ length: 11 }, (_, s) => Math.exp(-Math.pow((s - (5.5 + mood * 4.4)) / 2.1, 2)) * (0.8 + r() * 0.4))
       const counts = split(n, w)
@@ -243,9 +194,26 @@ export function campaignResult(c: SurveyCampaign): CampaignResult | undefined {
       ],
     }
   }
+  // Follow the survey: everyone who answered starts at question 1; each answer goes where the question's routes send it.
+  const reach: number[] = c.questions.map((_, i) => (i === 0 ? answered : 0))
   c.questions.forEach((question, index) => {
-    const res = build(question, index)
-    questions.push(question.showIf ? { ...res, askedOf: Math.round(basisOf(question) * shareThatMatch(question.showIf, questions[question.showIf.q])) } : res)
+    const kind = kindOf(question)
+    if (reach[index] === 0) {
+      questions.push({ index, question, kind, answered: 0, bars: [], quotes: [], reached: 0 })
+      return
+    }
+    const n = index === 0 ? reach[index] : Math.max(1, Math.round(reach[index] * (0.86 + r() * 0.12)))
+    const res = build(question, index, n)
+    questions.push({ ...res, reached: reach[index] })
+    if (res.bars.length) {
+      for (const b of res.bars) {
+        const to = targetOf(c.questions, index, kind === 'yesno' ? b.label.en.toLowerCase() : b.label.en)
+        if (to !== null) reach[to] += b.count
+      }
+    } else {
+      const to = targetOf(c.questions, index, undefined)
+      if (to !== null) reach[to] += n
+    }
   })
   const headline = questions.find((x) => x.headline)?.headline
   return {

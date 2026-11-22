@@ -23,13 +23,7 @@ import type { RoleId } from '../types'
  * - Surveys and triggers moved to `/settings/surveys`; Executive, Internal Audit and Marketing Lead, After-Sales lead and
  *   environment management keep it (the KB open item on Marketing stays open).
  */
-const REGISTER_PAGES = [
-  '/settings/feeds',
-  '/settings/crm-mapping',
-  '/settings/escalation-matrix',
-  '/settings/weekly-sample',
-  '/settings/public-mentions',
-]
+const REGISTER_PAGES = ['/settings/feeds', '/settings/crm-mapping', '/settings/escalation-matrix', '/settings/weekly-sample', '/settings/public-mentions']
 
 /**
  * v42 (F31): "Watch the AI team work" is open to the CX manager, the CX team (everything), environment management, Marketing, the
@@ -80,12 +74,26 @@ export const ROLE_PATHS: Record<RoleId, string[] | null> = {
     CAMPAIGN_AUDIT_PAGE,
     ...REGISTER_PAGES,
   ],
-  exec: ['/home', '/customers', '/runaway', '/actions', '/personas', '/overview', '/settings/monthly-pack', '/inbox', '/settings/surveys', WATCH_PAGE, CAMPAIGN_AUDIT_PAGE, ...REGISTER_PAGES],
+  exec: [
+    '/home',
+    '/customers',
+    '/runaway',
+    '/actions',
+    '/personas',
+    '/overview',
+    '/settings/monthly-pack',
+    '/inbox',
+    '/settings/surveys',
+    WATCH_PAGE,
+    CAMPAIGN_AUDIT_PAGE,
+    ...REGISTER_PAGES,
+  ],
   shopper: ['/settings/mystery-shopper'],
   // v43: the super admin runs the user directory and nothing else.
-  admin: [USERS_PAGE, AUDIT_PAGE, USER_PERFORMANCE_PAGE],
+  // 22 Nov (Chairman): the HR performance page is the HR roles', the Super admin's and the Admin's, not the CX side's.
+  admin: [USERS_PAGE, AUDIT_PAGE, USER_PERFORMANCE_PAGE, '/settings/hr-team'],
   // v43.2: the Admin runs the user list; the audit log stays with the super admin.
-  useradmin: [USERS_PAGE, USER_PERFORMANCE_PAGE],
+  useradmin: [USERS_PAGE, USER_PERFORMANCE_PAGE, '/settings/hr-team'],
   // v43.1: a custom role's pages come from the role the super admin built (data/customRoles.ts), read live.
   custom: [],
 }
@@ -110,6 +118,12 @@ function blocked(role: RoleId, path: string): boolean {
   if (role !== 'custom' && matches(path, '/reports')) return true
   // the agent reports are the CX manager's and the environment CEOs'; the CX team does not open them
   if (role === 'cxteam' && matches(path, '/agents')) return true
+  // everything waiting on other departments (HR conduct cases included) is the CX side's view only
+  if (!isCx(role) && matches(path, '/actions/with-teams')) return true
+  // HR performance (IVR callbacks, recruitment, HR operations) is not the CX side's (Chairman, 22 Nov)
+  if (isCx(role) && matches(path, '/settings/hr-team')) return true
+  // L&D's own page (training materials, training plan) is L&D's; the CX side follows L&D's open items under Actions, With other teams
+  if (isCx(role) && matches(path, '/settings/ld')) return true
   return role === 'cxteam' && matches(path, TEAM_PERFORMANCE_PAGE)
 }
 

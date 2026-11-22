@@ -3,16 +3,11 @@ import { Link } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { useCorrectiveActions, useLdRequests, useShopperCases } from '@/services/queries'
-import { useStandardsRegister, useTrainingMaterials, useTrainingSessions } from '@/services/referenceQueries'
-import { LD_COMPLAINT_TYPE, MATERIAL_STATUS, REGISTER_STATUS, type LdComplaintType } from '@/data/v38Reference'
+import { useTrainingMaterials, useTrainingSessions } from '@/services/referenceQueries'
+import { LD_COMPLAINT_TYPE, MATERIAL_STATUS, type LdComplaintType } from '@/data/v38Reference'
 import { LandingBrief } from '@/components/home/LandingBrief'
 import { KpiTile } from '@/components/common/KpiTile'
-import {
-  CORRECTIVE_STATUS_LABEL,
-  CORRECTIVE_STATUS_TONE,
-  LD_REQUEST_STATUS_LABEL,
-  LD_REQUEST_STATUS_TONE,
-} from '@/lib/status'
+import { CORRECTIVE_STATUS_LABEL, CORRECTIVE_STATUS_TONE, LD_REQUEST_STATUS_LABEL, LD_REQUEST_STATUS_TONE } from '@/lib/status'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { SectionCard } from '@/components/common/SectionCard'
@@ -39,15 +34,12 @@ function GoLink({ to, children }: { to: string; children: ReactNode }) {
 export default function Ld() {
   const { t, L } = useI18n()
   const { data: actions, isLoading: actionsLoading } = useCorrectiveActions()
-  const { data: register, isLoading: standardsLoading } = useStandardsRegister()
   const { data: materials } = useTrainingMaterials()
   const { data: sessions } = useTrainingSessions()
   const { data: shopperCases } = useShopperCases()
   const { data: requests, isLoading: requestsLoading } = useLdRequests()
 
   const trainingGapActions = (actions ?? []).filter((a) => a.kind === 'training_gap')
-  // KB §15: L&D owns the fifteen people-facing standards (M-12 to M-26).
-  const ownedStandards = (register ?? []).filter((s) => ['beh', 'com', 'sell', 'fol'].includes(s.area))
   const lowFindings = (shopperCases ?? []).filter((c) => c.severity === 'low').length
   const types = Object.keys(LD_COMPLAINT_TYPE) as LdComplaintType[]
 
@@ -55,7 +47,10 @@ export default function Ld() {
     <section data-density="comfortable" className="flex flex-col gap-4">
       <SubPageHeader
         title={t('L&D: training & materials', 'التعلم والتطوير')}
-        description={t('Training-gap actions, L&D requests, and the standards L&D owns and writes.', 'إجراءات فجوة التدريب، طلبات التعلم والتطوير، والمعايير التي يملكها ويكتبها قسم التعلم والتطوير.')}
+        description={t(
+          'Training-gap actions, L&D requests, training materials and the training plan.',
+          'إجراءات فجوة التدريب، طلبات التعلم والتطوير، المواد التدريبية وخطة التدريب.',
+        )}
       />
       {/* v40 F09: L&D lands here, not on Home, so the Daily brief sits at the top of this page. */}
       <LandingBrief roles={['ld']} />
@@ -72,7 +67,8 @@ export default function Ld() {
       </div>
 
       <SectionCard
-        term="Corrective action" title={t('Training-gap corrective actions', 'الإجراءات التصحيحية لفجوة التدريب')}
+        term="Corrective action"
+        title={t('Training-gap corrective actions', 'الإجراءات التصحيحية لفجوة التدريب')}
         actions={<GoLink to="/actions/corrective">{t('Open Actions → Corrective actions', 'فتح الإجراءات ← الإجراءات التصحيحية')}</GoLink>}
       >
         {actionsLoading ? (
@@ -143,7 +139,9 @@ export default function Ld() {
               return (
                 <TableRow key={ty}>
                   <TableCell className="font-medium text-foreground">{L(LD_COMPLAINT_TYPE[ty])}</TableCell>
-                  <TableCell className="whitespace-normal">{mats.map((m) => L(m.name)).join(' · ') || <StatusBadge tone="danger">{t('Not covered', 'غير مغطى')}</StatusBadge>}</TableCell>
+                  <TableCell className="whitespace-normal">
+                    {mats.map((m) => L(m.name)).join(' · ') || <StatusBadge tone="danger">{t('Not covered', 'غير مغطى')}</StatusBadge>}
+                  </TableCell>
                   <TableCell className="whitespace-normal">{ses.map((x) => L(x.name)).join(' · ') || '—'}</TableCell>
                 </TableRow>
               )
@@ -164,49 +162,40 @@ export default function Ld() {
                     {m.due ? <bdi dir="ltr">{m.due}</bdi> : '—'}
                   </span>
                 </div>
-                <StatusBadge tone={m.status === 'ready' ? 'success' : m.status === 'dev' ? 'warning' : m.status === 'plan' ? 'info' : 'neutral'}>{L(MATERIAL_STATUS[m.status])}</StatusBadge>
+                <StatusBadge tone={m.status === 'ready' ? 'success' : m.status === 'dev' ? 'warning' : m.status === 'plan' ? 'info' : 'neutral'}>
+                  {L(MATERIAL_STATUS[m.status])}
+                </StatusBadge>
               </li>
             ))}
           </ul>
         </SectionCard>
         <SectionCard title={t('Training plan', 'خطة التدريب')}>
           <ul className="flex flex-col">
-            {[...(sessions ?? [])].sort((a, b) => a.date.localeCompare(b.date)).map((x) => (
-              <li key={x.id} className="row-divider flex min-h-14 flex-col justify-center gap-0.5 py-2">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="t-ui-strong">{L(x.name)}</span>
-                  <bdi dir="ltr" className="text-sm text-muted-foreground tabular">{x.date}</bdi>
-                </div>
-                <span className="text-sm text-muted-foreground">
-                  {L(x.audience)} · {L(x.mode)} · {x.covers.map((c) => L(LD_COMPLAINT_TYPE[c])).join(', ')}
-                </span>
-              </li>
-            ))}
+            {[...(sessions ?? [])]
+              .sort((a, b) => a.date.localeCompare(b.date))
+              .map((x) => (
+                <li key={x.id} className="row-divider flex min-h-14 flex-col justify-center gap-0.5 py-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="t-ui-strong">{L(x.name)}</span>
+                    <bdi dir="ltr" className="text-sm text-muted-foreground tabular">
+                      {x.date}
+                    </bdi>
+                  </div>
+                  <span className="text-sm text-muted-foreground">
+                    {L(x.audience)} · {L(x.mode)} · {x.covers.map((c) => L(LD_COMPLAINT_TYPE[c])).join(', ')}
+                  </span>
+                </li>
+              ))}
           </ul>
         </SectionCard>
       </div>
 
-      <SectionCard
-        title={t('Standards L&D owns', 'المعايير التي يملكها قسم التعلم والتطوير')}
-        description={t('CX approves a standard for scoring; L&D writes it (FR: "writes the standards it owns").', 'يعتمد مدير تجربة العملاء المعيار للتقييم؛ يكتبه قسم التعلم والتطوير.')}
-        actions={<GoLink to="/settings/standards">{t('Open the full standards register', 'فتح سجل المعايير الكامل')}</GoLink>}
-      >
-        {standardsLoading ? (
-          <LoadingState rows={2} />
-        ) : ownedStandards.length ? (
-          <ul className="flex flex-col">
-            {ownedStandards.map((s) => (
-              <li key={s.code} className="row-divider flex min-h-12 items-center gap-3 py-2">
-                <span className="w-16 shrink-0 text-sm tabular text-muted-foreground">{s.code}</span>
-                <span className="t-ui-strong min-w-0 flex-1">{L(s.name)}</span>
-                <StatusBadge tone={s.status === 'appr' ? 'success' : s.status === 'draft' ? 'info' : 'warning'}>{L(REGISTER_STATUS[s.status].label)}</StatusBadge>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <EmptyState title={t('No L&D-owned standards matched yet.', 'لا توجد معايير مملوكة للتعلم والتطوير بعد.')} />
-        )}
-      </SectionCard>
+      {/* 22 Nov (owner): the standards register is not on this page; L&D opens it from its own Standards register page. */}
+      <p className="t-body-s">
+        {t('The standards L&D writes are in the Standards register.', 'المعايير التي يكتبها قسم التعلم والتطوير موجودة في سجل المعايير.')}{' '}
+        <GoLink to="/settings/standards">{t('Open the standards register', 'فتح سجل المعايير')}</GoLink>
+      </p>
     </section>
   )
 }
+

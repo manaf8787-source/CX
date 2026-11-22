@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Archive, ArchiveRestore, Copy, Plus, Search, Send, Trash2 } from 'lucide-react'
+import { Archive, ArchiveRestore, Copy, Plus, Search, Send } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { useAuditActor } from '@/auth/useAuditActor'
 import { useAuth } from '@/auth/session'
@@ -16,10 +16,9 @@ import {
   type CampaignProduct,
   type SurveyCampaign,
 } from '@/data/surveyCampaigns'
-import { LEGACY_QUESTION_TYPE_LABEL } from '@/data/surveyVocabulary'
-import type { EditableQuestion, ShowIf } from '@/data/surveyEditor'
-import { canDependOn, describeShowIf, opsFor, reindexAfterRemove, valuesFor } from '@/data/surveyLogic'
-import { kindOf } from '@/data/campaignResults'
+import type { EditableQuestion } from '@/data/surveyEditor'
+import { answersOf, describeRouting, hasLogic, kindOf } from '@/data/surveyLogic'
+import { SurveyBuilder, blankQuestion } from './SurveyBuilder'
 import { PRODUCTS } from '@/data/products'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -226,7 +225,7 @@ function CampaignRow({
                 <li key={i}>
                   <span className="me-1.5 font-medium tabular">{i + 1}.</span>
                   {lang === 'ar' ? q.ar : q.en}
-                  {q.showIf && <span className="ms-2 text-xs text-muted-foreground">({describeShowIf(q.showIf, c.questions, t)})</span>}
+                  {hasLogic(c.questions) && <span className="ms-2 text-xs text-muted-foreground">({describeRouting(c.questions, i, t, L)})</span>}
                 </li>
               ))}
             </ol>
@@ -300,8 +299,6 @@ export function CampaignProductTag({ product, lang }: { product: CampaignProduct
 const GENERAL = 'general'
 const OWN = '__own__'
 
-const blankQuestion = (): EditableQuestion => ({ en: '', ar: '', kind: 'open' })
-
 function CampaignForm({
   onSave,
   onCancel,
@@ -329,8 +326,8 @@ function CampaignForm({
 
   const options = product === GENERAL ? [] : sets.filter((s) => s.product === product)
   const dup = name.trim() !== '' && nameTaken(name)
-  const filled = questions.filter((q) => q.en.trim())
-  const ok = name.trim() && !dup && filled.length > 0 && audience.trim()
+  const missing = questions.findIndex((q) => !q.en.trim() || (kindOf(q) === 'choice' && answersOf(q).length < 2))
+  const ok = name.trim() && !dup && missing === -1 && audience.trim()
 
   const pickSource = (id: string, forProduct: CampaignProduct = product) => {
     setSource(id)
@@ -338,13 +335,6 @@ function CampaignForm({
     const found = sets.find((s) => s.id === id && s.product === forProduct)
     if (found) setQuestions(found.questions.map((q) => ({ ...q })))
   }
-  const patch = (i: number, p: Partial<EditableQuestion>) =>
-    setQuestions((qs) => {
-      const next = qs.map((q, j) => (j === i ? { ...q, ...p } : q))
-      // A change to a question's type or choices can make a rule that points at it unreadable: drop those rules.
-      return next.map((q) => (q.showIf && q.showIf.q === i && !valuesFor(next[i]).some((v) => v.value === q.showIf?.value) ? { ...q, showIf: undefined } : q))
-    })
-
   return (
     <div className="well flex flex-col gap-3 p-4" data-testid="campaign-form">
       <h3 className="t-ui-strong">{t('New campaign', 'حملة جديدة')}</h3>
@@ -433,74 +423,23 @@ function CampaignForm({
           <span className="t-ui-strong">{t('What you ask', 'ما الذي تسأله')}</span>
           <span className="text-xs text-muted-foreground">
             {t(
-              'Change the wording, the type, or add your own questions. This only changes this campaign, never the standing surveys.',
-              'غيّر الصياغة أو النوع أو أضف أسئلتك. هذا يغيّر هذه الحملة فقط، وليس الاستبيانات الدائمة.',
+              'Build the survey question by question. Pick a question on the left to edit it on the right, and choose where each answer goes next. Changes here affect this campaign only, never the standing surveys.',
+              'ابنِ الاستبيان سؤالاً سؤالاً. اختر سؤالاً من المسار لتعدّله، وحدّد إلى أين تذهب كل إجابة. التغييرات هنا تخص هذه الحملة فقط، وليس الاستبيانات الدائمة.',
             )}
           </span>
         </div>
-        {questions.map((q, i) => (
-          <div key={i} className="flex flex-col gap-2 rounded-xl border border-line p-3">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-xs font-medium text-muted-foreground">{t(`Question ${i + 1}`, `السؤال ${i + 1}`)}</span>
-              <div className="flex items-center gap-2">
-                <Select value={q.kind ?? 'open'} onValueChange={(v) => patch(i, { kind: v })}>
-                  <SelectTrigger aria-label={t('Answer type', 'نوع الإجابة')} className="h-8 min-w-36">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(LEGACY_QUESTION_TYPE_LABEL).map(([k, v]) => (
-                      <SelectItem key={k} value={k}>
-                        {L(v)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label={t('Remove this question', 'احذف هذا السؤال')}
-                  disabled={questions.length === 1}
-                  onClick={() => setQuestions((qs) => reindexAfterRemove(qs, i))}
-                >
-                  <Trash2 aria-hidden />
-                </Button>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-              <Textarea
-                value={q.en}
-                rows={2}
-                placeholder={t('The question, in English', 'السؤال بالإنجليزية')}
-                onChange={(e) => patch(i, { en: e.target.value })}
-              />
-              <Textarea
-                value={q.ar}
-                rows={2}
-                dir="rtl"
-                placeholder={t('In Arabic (optional)', 'بالعربية (اختياري)')}
-                onChange={(e) => patch(i, { ar: e.target.value })}
-              />
-            </div>
-            {i > 0 && <ShowIfEditor questions={questions} index={i} onChange={(showIf) => patch(i, { showIf })} />}
-            {q.kind === 'choice' && (
-              <span className="text-xs text-muted-foreground">
-                {t(
-                  'Write the choices in brackets at the end, separated by a dot: (price · service · location)',
-                  'اكتب الخيارات بين قوسين في النهاية مفصولة بنقطة: (السعر · الخدمة · الموقع)',
-                )}
-              </span>
-            )}
-          </div>
-        ))}
-        <div>
-          <Button variant="outline" size="sm" onClick={() => setQuestions((qs) => [...qs, blankQuestion()])}>
-            <Plus aria-hidden />
-            {t('Add a question', 'أضف سؤالاً')}
-          </Button>
-        </div>
+        <SurveyBuilder questions={questions} onChange={setQuestions} />
       </div>
 
-      <div className="flex justify-end gap-2">
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        {missing !== -1 && (
+          <span className="me-auto text-xs text-muted-foreground">
+            {t(
+              `Question ${missing + 1} needs its English wording (and two options for a choice).`,
+              `السؤال ${missing + 1} يحتاج صياغة بالإنجليزية (وخيارين للاختيار).`,
+            )}
+          </span>
+        )}
         <Button variant="ghost" size="sm" onClick={onCancel}>
           {t('Cancel', 'إلغاء')}
         </Button>
@@ -512,7 +451,7 @@ function CampaignForm({
               name,
               product,
               basedOn: source === OWN ? 'custom' : source,
-              questions: filled.map((q) => ({ ...q, en: q.en.trim(), ar: q.ar.trim() || q.en.trim() })),
+              questions: questions.map((q) => ({ ...q, en: q.en.trim(), ar: q.ar.trim() || q.en.trim() })),
               audience: audience.trim(),
               channel,
               sendOn,
@@ -522,96 +461,6 @@ function CampaignForm({
           {t('Save campaign', 'حفظ الحملة')}
         </Button>
       </div>
-    </div>
-  )
-}
-
-/** "Show this question: always / only if an earlier answer is ..." for one question of the campaign. */
-function ShowIfEditor({ questions, index, onChange }: { questions: EditableQuestion[]; index: number; onChange: (v: ShowIf | undefined) => void }) {
-  const { t, L } = useI18n()
-  const q = questions[index]
-  const sources = questions
-    .slice(0, index)
-    .map((x, i) => ({ x, i }))
-    .filter(({ x }) => canDependOn(x))
-  const show = q.showIf
-  const from = show ? questions[show.q] : undefined
-
-  const startRule = () => {
-    const first = sources[sources.length - 1] // the question just before, when it can be depended on
-    if (!first) return
-    const vals = valuesFor(first.x)
-    onChange({ q: first.i, op: opsFor(kindOf(first.x))[0].op, value: vals[0].value })
-  }
-  const pickSource = (i: number) => {
-    const x = questions[i]
-    onChange({ q: i, op: opsFor(kindOf(x))[0].op, value: valuesFor(x)[0].value })
-  }
-
-  if (!show)
-    return (
-      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-        <span>{t('Asked to everyone.', 'يُسأل للجميع.')}</span>
-        <Button variant="outline" size="sm" disabled={sources.length === 0} onClick={startRule}>
-          {t('Ask only if an earlier answer is…', 'اسأله فقط إذا كانت إجابة سابقة…')}
-        </Button>
-        {sources.length === 0 && (
-          <span>{t('Needs an earlier yes/no, choice, 0–10 or 1–5 question.', 'يحتاج سؤالاً سابقاً من نوع نعم/لا أو اختيار أو 0–10 أو 1–5.')}</span>
-        )}
-      </div>
-    )
-
-  return (
-    <div className="flex flex-col gap-2 rounded-lg bg-well p-2 text-xs">
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="font-medium text-foreground">{t('Ask only if the answer to', 'اسأله فقط إذا كانت إجابة')}</span>
-        <Select value={String(show.q)} onValueChange={(v) => pickSource(Number(v))}>
-          <SelectTrigger aria-label={t('Earlier question', 'السؤال السابق')} className="h-8 min-w-28">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {sources.map(({ i }) => (
-              <SelectItem key={i} value={String(i)}>
-                {t(`question ${i + 1}`, `السؤال ${i + 1}`)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {from && (
-          <>
-            <Select value={show.op} onValueChange={(v) => onChange({ ...show, op: v as ShowIf['op'] })}>
-              <SelectTrigger aria-label={t('Condition', 'الشرط')} className="h-8 min-w-28">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {opsFor(kindOf(from)).map((o) => (
-                  <SelectItem key={o.op} value={o.op}>
-                    {L(o.label)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={show.value} onValueChange={(v) => onChange({ ...show, value: v })}>
-              <SelectTrigger aria-label={t('Answer', 'الإجابة')} className="h-8 min-w-24">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {valuesFor(from).map((v) => (
-                  <SelectItem key={v.value} value={v.value}>
-                    {L(v.label)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </>
-        )}
-        <Button variant="ghost" size="sm" onClick={() => onChange(undefined)}>
-          {t('Ask to everyone', 'اسأله للجميع')}
-        </Button>
-      </div>
-      <span className="text-muted-foreground">
-        {t('Everyone else skips this question and goes to the next one.', 'من لا تنطبق عليه الإجابة يتخطى هذا السؤال وينتقل للتالي.')}
-      </span>
     </div>
   )
 }

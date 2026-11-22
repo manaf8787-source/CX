@@ -1,5 +1,5 @@
 import { Fragment, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useI18n } from '@/i18n'
 import { useRole } from '@/auth/RoleContext'
 import { canAccessPath } from '@/auth/access'
@@ -10,6 +10,8 @@ import { Input } from '@/components/ui/input'
 import { LoadingState } from '@/components/common/LoadingState'
 import { ProposedBadge } from '@/components/common/ProposedBadge'
 import { SettingsSection, SubPageHeader, ViewOnlyNotice } from './SubPageHeader'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import StandardsRegister from './StandardsRegister'
 import { ESCALATION_PRINCIPLES } from '@/data/v38Reference'
 import { MATRIX_COPY } from '@/data/escalationDefaults'
 import { RULE_IDS } from '@/utils/ruleValues'
@@ -18,14 +20,67 @@ import type { Bi, RuleConfigItem } from '@/types'
 
 /** Modules KB §12: the rules layer is five decisions; every number is a setting. */
 const DECISIONS: { n: number; title: Bi; ids: string[]; note?: Bi }[] = [
-  { n: 1, title: { en: 'Decision 1 · Signals', ar: 'القرار 1 · الإشارات' }, ids: ['rule_pattern_window', 'rule_pattern_same_issue', 'rule_pattern_same_agent', 'rule_pattern_env_concentration', 'rule_pattern_min_sample', 'rule_legal_once'] },
-  { n: 2, title: { en: 'Decision 2 · Mystery shopper', ar: 'القرار 2 · التسوق السري' }, ids: ['rule_shopper_respond', 'rule_shopper_resolve', 'rule_shopper_floor'], note: { en: 'Critical opens a case the same day; medium is a signal; low is an L&D statistic; a visit under the floor is medium.', ar: 'الحرج يفتح حالة في نفس اليوم؛ المتوسط إشارة؛ المنخفض إحصاء للتعلم والتطوير؛ والزيارة تحت الحد متوسطة.' } },
-  { n: 3, title: { en: 'Decision 3 · Recovered and worked', ar: 'القرار 3 · التعافي والفعالية' }, ids: ['rule_approval_days', 'rule_verification_days', 'rule_effective_drop', 'rule_effective_hold', 'rule_recovered_days', 'rule_resurvey_min', 'rule_resurvey_max', 'rule_calls_per_hour'], note: { en: 'Interviews are human by default; AI campaigns by the CX team’s choice. Capacity = people × hours × calls per hour × working days.', ar: 'المقابلات بشرية افتراضياً؛ وحملات الذكاء الاصطناعي باختيار فريق تجربة العملاء. السعة = الأشخاص × الساعات × المكالمات في الساعة × أيام العمل.' } },
-  { n: 5, title: { en: 'Decision 5 · Feedback coverage', ar: 'القرار 5 · تغطية الملاحظات' }, ids: ['rule_public_reply'], note: { en: 'Inside the CSAT/CES window the most important touchpoint is kept: viewing > offer > call. Public channels are never surveyed; each product has its own line; website and app are two named sources.', ar: 'ضمن نافذة CSAT/CES تُحفظ أهم نقطة تواصل: المعاينة > العرض > المكالمة. القنوات العامة لا تُستبين أبداً؛ لكل منتج خطه؛ الموقع والتطبيق مصدران منفصلان.' } },
+  {
+    n: 1,
+    title: { en: 'Decision 1 · Signals', ar: 'القرار 1 · الإشارات' },
+    ids: [
+      'rule_pattern_window',
+      'rule_pattern_same_issue',
+      'rule_pattern_same_agent',
+      'rule_pattern_env_concentration',
+      'rule_pattern_min_sample',
+      'rule_legal_once',
+    ],
+  },
+  {
+    n: 2,
+    title: { en: 'Decision 2 · Mystery shopper', ar: 'القرار 2 · التسوق السري' },
+    ids: ['rule_shopper_respond', 'rule_shopper_resolve', 'rule_shopper_floor'],
+    note: {
+      en: 'Critical opens a case the same day; medium is a signal; low is an L&D statistic; a visit under the floor is medium.',
+      ar: 'الحرج يفتح حالة في نفس اليوم؛ المتوسط إشارة؛ المنخفض إحصاء للتعلم والتطوير؛ والزيارة تحت الحد متوسطة.',
+    },
+  },
+  {
+    n: 3,
+    title: { en: 'Decision 3 · Recovered and worked', ar: 'القرار 3 · التعافي والفعالية' },
+    ids: [
+      'rule_approval_days',
+      'rule_verification_days',
+      'rule_effective_drop',
+      'rule_effective_hold',
+      'rule_recovered_days',
+      'rule_resurvey_min',
+      'rule_resurvey_max',
+      'rule_calls_per_hour',
+    ],
+    note: {
+      en: 'Interviews are human by default; AI campaigns by the CX team’s choice. Capacity = people × hours × calls per hour × working days.',
+      ar: 'المقابلات بشرية افتراضياً؛ وحملات الذكاء الاصطناعي باختيار فريق تجربة العملاء. السعة = الأشخاص × الساعات × المكالمات في الساعة × أيام العمل.',
+    },
+  },
+  {
+    n: 5,
+    title: { en: 'Decision 5 · Feedback coverage', ar: 'القرار 5 · تغطية الملاحظات' },
+    ids: ['rule_public_reply'],
+    note: {
+      en: 'Inside the CSAT/CES window the most important touchpoint is kept: viewing > offer > call. Public channels are never surveyed; each product has its own line; website and app are two named sources.',
+      ar: 'ضمن نافذة CSAT/CES تُحفظ أهم نقطة تواصل: المعاينة > العرض > المكالمة. القنوات العامة لا تُستبين أبداً؛ لكل منتج خطه؛ الموقع والتطبيق مصدران منفصلان.',
+    },
+  },
   {
     n: 6,
     title: { en: 'Added on 18 November · Clocks and calling', ar: 'أُضيف في 18 نوفمبر · المهل والاتصال' },
-    ids: [RULE_IDS.workingDays, RULE_IDS.workStart, RULE_IDS.workEnd, RULE_IDS.fixFallbackDays, RULE_IDS.callFrom, RULE_IDS.callTo, RULE_IDS.callTries, RULE_IDS.aiNoAnswers],
+    ids: [
+      RULE_IDS.workingDays,
+      RULE_IDS.workStart,
+      RULE_IDS.workEnd,
+      RULE_IDS.fixFallbackDays,
+      RULE_IDS.callFrom,
+      RULE_IDS.callTo,
+      RULE_IDS.callTries,
+      RULE_IDS.aiNoAnswers,
+    ],
     note: {
       en: 'The working week, the working day, a fix’s due date, the calling hours and the call attempts are settings, not constants. A fix is due at the matrix “Resolve (h)” in working hours from approval; the fallback applies when that cell is empty.',
       ar: 'أسبوع العمل ويوم العمل وموعد الحل وساعات الاتصال ومحاولات الاتصال إعدادات لا ثوابت. يُستحق الحل عند «الحل (ساعة)» في المصفوفة بساعات العمل من الاعتماد؛ ويُطبَّق البديل حين تكون تلك الخلية فارغة.',
@@ -64,7 +119,11 @@ function WeekPicker({
           return (
             <label
               key={d}
-              className={cn('inline-flex h-9 items-center gap-2 rounded-full bg-well ps-3 pe-3.5 pt-px text-sm transition-colors duration-200', canEdit && 'cursor-pointer hover:bg-well-hover', on ? 'font-medium text-foreground' : 'text-muted-foreground')}
+              className={cn(
+                'inline-flex h-9 items-center gap-2 rounded-full bg-well ps-3 pe-3.5 pt-px text-sm transition-colors duration-200',
+                canEdit && 'cursor-pointer hover:bg-well-hover',
+                on ? 'font-medium text-foreground' : 'text-muted-foreground',
+              )}
             >
               <input
                 type="checkbox"
@@ -100,7 +159,34 @@ function WeekPicker({
  * Composition (the skill's settings layout, comfortable): each decision is a section, the heading and its note above one card (stacked,
  * not split: the Settings menu already takes a third of the width) whose rows are divided by the one line (label, FR source and note on the left, the field, its unit and Save on
  * the right). 48px between the decisions. A read-only role sees the value as ink text and the view-only note. */
+/**
+ * 22 Nov (owner): for the CX manager and the CX team, the standards register lives here as a second tab: the rules are the numbers the
+ * portal applies, the standards are the documents behind them. Other roles that read the standards keep their own Standards page.
+ */
 export default function Rules() {
+  const { t } = useI18n()
+  const { role } = useRole()
+  const [params, setParams] = useSearchParams()
+  const showStandards = role.id === 'cxmgr' || role.id === 'cxteam'
+  if (!showStandards) return <RulesBody />
+  const tab = params.get('tab') === 'standards' ? 'standards' : 'rules'
+  return (
+    <Tabs value={tab} onValueChange={(v) => setParams({ tab: v }, { replace: true })} className="gap-4">
+      <TabsList aria-label={t('Rules and standards', 'القواعد والمعايير')}>
+        <TabsTrigger value="rules">{t('Rules', 'القواعد')}</TabsTrigger>
+        <TabsTrigger value="standards">{t('Standards (the documents behind them)', 'المعايير (المستندات وراءها)')}</TabsTrigger>
+      </TabsList>
+      <TabsContent value="rules">
+        <RulesBody />
+      </TabsContent>
+      <TabsContent value="standards">
+        <StandardsRegister embedded />
+      </TabsContent>
+    </Tabs>
+  )
+}
+
+function RulesBody() {
   const { t, L, lang } = useI18n()
   const { role } = useRole()
   const canEdit = role.id === 'cxmgr'
@@ -111,12 +197,19 @@ export default function Rules() {
 
   const groups = useMemo(() => {
     const placed = new Set(DECISIONS.flatMap((d) => d.ids))
-    const decided = DECISIONS.map((d) => ({ key: `d${d.n}`, title: d.title, note: d.note, rows: d.ids.map((id) => (rules ?? []).find((r) => r.id === id)).filter((r) => !!r) }))
+    const decided = DECISIONS.map((d) => ({
+      key: `d${d.n}`,
+      title: d.title,
+      note: d.note,
+      rows: d.ids.map((id) => (rules ?? []).find((r) => r.id === id)).filter((r) => !!r),
+    }))
     // the three survey numbers moved to Surveys > When we ask
     const other = (rules ?? []).filter((r) => !placed.has(r.id) && !SURVEY_RULE_IDS.includes(r.id))
     return [
       ...decided,
-      ...(other.length ? [{ key: 'other', title: { en: 'Other thresholds (runaway types)', ar: 'حدود أخرى (أنواع الهروب)' }, note: undefined, rows: other }] : []),
+      ...(other.length
+        ? [{ key: 'other', title: { en: 'Other thresholds (runaway types)', ar: 'حدود أخرى (أنواع الهروب)' }, note: undefined, rows: other }]
+        : []),
     ]
   }, [rules])
 
@@ -182,7 +275,13 @@ export default function Rules() {
                   const dirty = draft[r.id] !== undefined && draft[r.id] !== r.value
                   const inputId = `rule-${r.id}`
                   return (
-                    <li key={r.id} className={cn('row-divider flex min-h-(--row-h) flex-col gap-2 py-3.5 first:pt-0 last:pb-0', !r.days && 'sm:flex-row sm:items-center sm:justify-between sm:gap-6')}>
+                    <li
+                      key={r.id}
+                      className={cn(
+                        'row-divider flex min-h-(--row-h) flex-col gap-2 py-3.5 first:pt-0 last:pb-0',
+                        !r.days && 'sm:flex-row sm:items-center sm:justify-between sm:gap-6',
+                      )}
+                    >
                       <div className="flex min-w-0 flex-col gap-0.5">
                         <div className="flex flex-wrap items-center gap-2">
                           {r.days ? (

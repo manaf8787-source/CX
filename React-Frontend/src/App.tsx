@@ -22,6 +22,7 @@ const ProductPage = lazy(pageLoaders.productPage)
 
 const ActionsLayout = lazy(pageLoaders.actionsLayout)
 const Corrective = lazy(pageLoaders.corrective)
+const WithOtherTeams = lazy(pageLoaders.withOtherTeams)
 const Signals = lazy(pageLoaders.signals)
 const AiInsights = lazy(pageLoaders.aiInsights)
 const ShopperCases = lazy(pageLoaders.shopperCases)
@@ -104,6 +105,7 @@ export default function App() {
                     <Route path="ai-insights" element={<AiInsights />} />
                     <Route path="shopper-cases" element={<ShopperCases />} />
                     <Route path="investigations" element={<Investigations />} />
+                    <Route path="with-teams" element={<WithOtherTeams />} />
                   </Route>
 
                   <Route path="/close-the-loop" element={<CloseTheLoop />} />

@@ -3,7 +3,7 @@ import { Download } from 'lucide-react'
 import { Bar, BarChart, CartesianGrid, Tooltip, XAxis, YAxis } from 'recharts'
 import { useI18n } from '@/i18n'
 import { useCampaigns, type SurveyCampaign } from '@/data/surveyCampaigns'
-import { describeShowIf } from '@/data/surveyLogic'
+import { hasLogic } from '@/data/surveyLogic'
 import type { EditableQuestion } from '@/data/surveyEditor'
 import { campaignResult, type CampaignResult, type QuestionResult } from '@/data/campaignResults'
 import { PRODUCTS } from '@/data/products'
@@ -334,13 +334,11 @@ function QuestionCard({ q, fmt, allQuestions }: { q: QuestionResult; fmt: (n: nu
     <SectionCard
       title={t(`Question ${q.index + 1}`, `السؤال ${q.index + 1}`)}
       description={
-        q.askedOf != null ? (
+        q.index > 0 && hasLogic(allQuestions) ? (
           <>
             {L(q.question)}
             <span className="mt-1 block">
-              {describeShowIf(q.question.showIf, allQuestions, t)}
-              {' · '}
-              {t(`asked to ${fmt(q.askedOf)} people`, `سُئل ${fmt(q.askedOf)} شخصاً`)}
+              {t(`Reached by ${fmt(q.reached)} people, following the survey's jumps`, `وصل إليه ${fmt(q.reached)} شخصاً حسب مسارات الاستبيان`)}
             </span>
           </>
         ) : (

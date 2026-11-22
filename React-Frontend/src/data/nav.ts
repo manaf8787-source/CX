@@ -6,6 +6,8 @@ export interface NavLeaf {
   dotVar?: string // CSS custom property for the nav-dot color
   /** Never the page `/settings` sends a role to (`SETTINGS_LANDING`): a demo page listed in the menu, not an entry point [Proposed]. */
   skipLanding?: boolean
+  /** Not listed for the CX manager and the CX team (the page lives elsewhere for them). */
+  hideForCx?: boolean
 }
 
 export interface NavGroup {
@@ -78,6 +80,8 @@ export const ACTIONS_TABS: NavLeaf[] = [
   { path: '/actions/ai-insights', label: { en: 'AI Insights', ar: 'رؤى الذكاء الاصطناعي' } },
   { path: '/actions/shopper-cases', label: { en: 'Shopper cases', ar: 'حالات التسوق السري' } },
   { path: '/actions/investigations', label: { en: 'Investigations', ar: 'التحقيقات' } },
+  // 22 Nov: everything waiting on another department (fixes, HR conduct cases, L&D requests, documents) in one list. CX only.
+  { path: '/actions/with-teams', label: { en: 'With other teams', ar: 'عند الأقسام الأخرى' } },
 ]
 
 /** "Settings and reference" sub-navigation, in the v40 order (F08): the AI team page, the registers
@@ -92,7 +96,8 @@ export const SETTINGS_NAV: NavLeaf[] = [
   { path: '/settings/public-mentions', label: { en: 'Public mentions', ar: 'الإشارات العامة' } },
   { path: '/settings/monthly-pack', label: { en: 'Monthly CX pack', ar: 'الحزمة الشهرية' } },
   { path: '/settings/mystery-shopper', label: { en: 'Mystery shopper', ar: 'التسوق السري' } },
-  { path: '/settings/standards', label: { en: 'Standards register', ar: 'سجل المعايير' } },
+  // 22 Nov: for the CX side the register is a tab of Rules as configuration
+  { path: '/settings/standards', label: { en: 'Standards register', ar: 'سجل المعايير' }, hideForCx: true },
   { path: '/settings/surveys', label: { en: 'Surveys', ar: 'الاستبيانات' } },
   { path: '/settings/voc', label: { en: 'Voice of Customer', ar: 'صوت العميل' } },
   { path: '/settings/ld', label: { en: 'L&D: training & materials', ar: 'التعلم والتطوير' } },

@@ -15,6 +15,7 @@ export const pageLoaders = {
   productPage: () => import('../pages/ProductPage'),
   actionsLayout: () => import('../pages/actions/ActionsLayout'),
   corrective: () => import('../pages/actions/Corrective'),
+  withOtherTeams: () => import('../pages/actions/WithOtherTeams'),
   signals: () => import('../pages/actions/Signals'),
   aiInsights: () => import('../pages/actions/AiInsights'),
   shopperCases: () => import('../pages/actions/ShopperCases'),

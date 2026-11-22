@@ -1,17 +1,11 @@
 import { useMemo, useState } from 'react'
+import { Navigate } from 'react-router-dom'
 import type { ColumnDef } from '@tanstack/react-table'
 import { ShieldAlert } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { useRole } from '@/auth/RoleContext'
 import { useSetRegisterStatus, useStandardsRegister } from '@/services/referenceQueries'
-import {
-  REGISTER_SOURCE,
-  REGISTER_STATUS,
-  STANDARD_AREA_LABEL,
-  type RegisterStandard,
-  type RegisterStatus,
-  type StandardArea,
-} from '@/data/v38Reference'
+import { REGISTER_SOURCE, REGISTER_STATUS, STANDARD_AREA_LABEL, type RegisterStandard, type RegisterStatus, type StandardArea } from '@/data/v38Reference'
 import type { Tone } from '@/lib/status'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { DataTable, SortableHeader } from '@/components/common/DataTable'
@@ -30,7 +24,7 @@ const PEOPLE_FACING: ReadonlySet<StandardArea> = new Set(['beh', 'com', 'sell', 
 /** KB §15 / Programme KB §28: the 26-standard register (M-01 to M-26) with
  * statuses observe only, draft standard, approved and scored. Items under a
  * standard that is not approved are recorded, not scored. */
-export default function StandardsRegister() {
+export default function StandardsRegister({ embedded = false }: { embedded?: boolean } = {}) {
   const { t, L } = useI18n()
   const { role } = useRole()
   const { data: register, isLoading } = useStandardsRegister()
@@ -125,6 +119,9 @@ export default function StandardsRegister() {
     [t, L, role.id, setStatus],
   )
 
+  // 22 Nov: for the CX side the register is a tab of Rules as configuration
+  if (!embedded && (role.id === 'cxmgr' || role.id === 'cxteam')) return <Navigate to="/settings/rules?tab=standards" replace />
+
   return (
     <section data-density="dense" className="flex flex-col gap-4">
       <SubPageHeader
@@ -137,7 +134,10 @@ export default function StandardsRegister() {
       {role.id !== 'cxmgr' && (
         <ViewOnlyNotice>
           {role.id === 'ld'
-            ? t('You edit the fifteen people-facing standards; only the CX manager approves a standard for scoring.', 'أنت تحرر المعايير الخمسة عشر المتعلقة بالأشخاص؛ ومدير تجربة العملاء وحده يعتمد المعيار للتقييم.')
+            ? t(
+                'You edit the fifteen people-facing standards; only the CX manager approves a standard for scoring.',
+                'أنت تحرر المعايير الخمسة عشر المتعلقة بالأشخاص؛ ومدير تجربة العملاء وحده يعتمد المعيار للتقييم.',
+              )
             : t('View only — the CX manager approves standards for scoring.', 'للعرض فقط — مدير تجربة العملاء يعتمد المعايير للتقييم.')}
         </ViewOnlyNotice>
       )}
@@ -194,3 +194,4 @@ export default function StandardsRegister() {
     </section>
   )
 }
+

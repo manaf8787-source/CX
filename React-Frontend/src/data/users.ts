@@ -34,25 +34,177 @@ const STORAGE_KEY = 'psicx.users'
 
 /** The sample directory on first run: one super admin plus one account per main role, so the demo still works end to end. */
 const SEED_DATE = '2026-11-19T07:00:00.000Z'
-const ADDED_SEED_IDS = ['u-cxteam2', 'u-cxteam3', 'u-admin2', 'u-viewer', 'u-env2', 'u-env3', 'u-salessupport']
+const ADDED_SEED_IDS = ['u-cxteam2', 'u-cxteam3', 'u-admin2', 'u-viewer', 'u-env2', 'u-env3', 'u-salessupport', 'u-hrdir', 'u-hrspec']
 
 export const SEED_USERS: PortalUser[] = [
   { id: 'u-admin', email: 'admin@psi.sample', name: 'Super admin', roleId: 'admin', status: 'active', invitedAt: SEED_DATE, activatedAt: SEED_DATE },
-  { id: 'u-admin2', email: 'admin2@psi.sample', name: 'Admin', roleId: 'useradmin', status: 'active', invitedAt: SEED_DATE, activatedAt: SEED_DATE, invitedBy: 'u-admin' },
-  { id: 'u-viewer', email: 'reporting.viewer@psi.sample', name: 'Reporting viewer', roleId: 'custom', customRoleId: 'cr-reporting-viewer', status: 'active', invitedAt: SEED_DATE, activatedAt: SEED_DATE, invitedBy: 'u-admin' },
-  { id: 'u-cxmgr', email: 'cx.manager@psi.sample', name: 'CX manager', roleId: 'cxmgr', status: 'active', invitedAt: SEED_DATE, activatedAt: SEED_DATE, invitedBy: 'u-admin' },
-  { id: 'u-cxteam', email: 'cx.team@psi.sample', name: 'Abeer', roleId: 'cxteam', status: 'active', invitedAt: SEED_DATE, activatedAt: SEED_DATE, invitedBy: 'u-admin' },
-  { id: 'u-cxteam2', email: 'cx.team2@psi.sample', name: 'Muhannad', roleId: 'cxteam', status: 'active', invitedAt: SEED_DATE, activatedAt: SEED_DATE, invitedBy: 'u-admin' },
-  { id: 'u-cxteam3', email: 'cx.team3@psi.sample', name: 'Dina', roleId: 'cxteam', status: 'active', invitedAt: SEED_DATE, activatedAt: SEED_DATE, invitedBy: 'u-admin' },
-  { id: 'u-env', email: 'env.manager@psi.sample', name: 'Dubai CEO', roleId: 'envmgmt', envId: 'dub', status: 'active', invitedAt: SEED_DATE, activatedAt: SEED_DATE, invitedBy: 'u-admin' },
-  { id: 'u-env2', email: 'env.manager.auh@psi.sample', name: 'Firas', roleId: 'envmgmt', envId: 'auh', status: 'active', invitedAt: SEED_DATE, activatedAt: SEED_DATE, invitedBy: 'u-admin' },
-  { id: 'u-env3', email: 'env.manager.assets@psi.sample', name: 'Niveen', roleId: 'envmgmt', envId: 'ast', status: 'active', invitedAt: SEED_DATE, activatedAt: SEED_DATE, invitedBy: 'u-admin' },
-  { id: 'u-salessupport', email: 'sales.support@psi.sample', name: 'Sales support', roleId: 'custom', customRoleId: 'cr-sales-support', status: 'active', invitedAt: SEED_DATE, activatedAt: SEED_DATE, invitedBy: 'u-admin' },
-  { id: 'u-mkt', email: 'marketing@psi.sample', name: 'Marketing manager', roleId: 'marketing', status: 'active', invitedAt: SEED_DATE, activatedAt: SEED_DATE, invitedBy: 'u-admin' },
-  { id: 'u-ld', email: 'ld@psi.sample', name: 'L&D manager', roleId: 'ld', status: 'active', invitedAt: SEED_DATE, activatedAt: SEED_DATE, invitedBy: 'u-admin' },
-  { id: 'u-audit', email: 'audit@psi.sample', name: 'Internal Audit and Marketing Lead', roleId: 'auditmkt', status: 'active', invitedAt: SEED_DATE, activatedAt: SEED_DATE, invitedBy: 'u-admin' },
+  {
+    id: 'u-admin2',
+    email: 'admin2@psi.sample',
+    name: 'Admin',
+    roleId: 'useradmin',
+    status: 'active',
+    invitedAt: SEED_DATE,
+    activatedAt: SEED_DATE,
+    invitedBy: 'u-admin',
+  },
+  {
+    id: 'u-viewer',
+    email: 'reporting.viewer@psi.sample',
+    name: 'Reporting viewer',
+    roleId: 'custom',
+    customRoleId: 'cr-reporting-viewer',
+    status: 'active',
+    invitedAt: SEED_DATE,
+    activatedAt: SEED_DATE,
+    invitedBy: 'u-admin',
+  },
+  {
+    id: 'u-cxmgr',
+    email: 'cx.manager@psi.sample',
+    name: 'CX manager',
+    roleId: 'cxmgr',
+    status: 'active',
+    invitedAt: SEED_DATE,
+    activatedAt: SEED_DATE,
+    invitedBy: 'u-admin',
+  },
+  {
+    id: 'u-cxteam',
+    email: 'cx.team@psi.sample',
+    name: 'Abeer',
+    roleId: 'cxteam',
+    status: 'active',
+    invitedAt: SEED_DATE,
+    activatedAt: SEED_DATE,
+    invitedBy: 'u-admin',
+  },
+  {
+    id: 'u-cxteam2',
+    email: 'cx.team2@psi.sample',
+    name: 'Muhannad',
+    roleId: 'cxteam',
+    status: 'active',
+    invitedAt: SEED_DATE,
+    activatedAt: SEED_DATE,
+    invitedBy: 'u-admin',
+  },
+  {
+    id: 'u-cxteam3',
+    email: 'cx.team3@psi.sample',
+    name: 'Dina',
+    roleId: 'cxteam',
+    status: 'active',
+    invitedAt: SEED_DATE,
+    activatedAt: SEED_DATE,
+    invitedBy: 'u-admin',
+  },
+  {
+    id: 'u-env',
+    email: 'env.manager@psi.sample',
+    name: 'Dubai CEO',
+    roleId: 'envmgmt',
+    envId: 'dub',
+    status: 'active',
+    invitedAt: SEED_DATE,
+    activatedAt: SEED_DATE,
+    invitedBy: 'u-admin',
+  },
+  {
+    id: 'u-env2',
+    email: 'env.manager.auh@psi.sample',
+    name: 'Firas',
+    roleId: 'envmgmt',
+    envId: 'auh',
+    status: 'active',
+    invitedAt: SEED_DATE,
+    activatedAt: SEED_DATE,
+    invitedBy: 'u-admin',
+  },
+  {
+    id: 'u-env3',
+    email: 'env.manager.assets@psi.sample',
+    name: 'Niveen',
+    roleId: 'envmgmt',
+    envId: 'ast',
+    status: 'active',
+    invitedAt: SEED_DATE,
+    activatedAt: SEED_DATE,
+    invitedBy: 'u-admin',
+  },
+  {
+    id: 'u-salessupport',
+    email: 'sales.support@psi.sample',
+    name: 'Sales support',
+    roleId: 'custom',
+    customRoleId: 'cr-sales-support',
+    status: 'active',
+    invitedAt: SEED_DATE,
+    activatedAt: SEED_DATE,
+    invitedBy: 'u-admin',
+  },
+  {
+    id: 'u-mkt',
+    email: 'marketing@psi.sample',
+    name: 'Marketing manager',
+    roleId: 'marketing',
+    status: 'active',
+    invitedAt: SEED_DATE,
+    activatedAt: SEED_DATE,
+    invitedBy: 'u-admin',
+  },
+  // 22 Nov: the HR side, for the HR performance page (sample people until HR names them)
+  {
+    id: 'u-hrdir',
+    email: 'hr.director@psi.sample',
+    name: 'HR director',
+    roleId: 'hrmgr',
+    status: 'active',
+    invitedAt: SEED_DATE,
+    activatedAt: SEED_DATE,
+    invitedBy: 'u-admin',
+  },
+  {
+    id: 'u-hrspec',
+    email: 'hr.specialist@psi.sample',
+    name: 'HR specialist',
+    roleId: 'hrspec',
+    status: 'active',
+    invitedAt: SEED_DATE,
+    activatedAt: SEED_DATE,
+    invitedBy: 'u-admin',
+  },
+  {
+    id: 'u-ld',
+    email: 'ld@psi.sample',
+    name: 'L&D manager',
+    roleId: 'ld',
+    status: 'active',
+    invitedAt: SEED_DATE,
+    activatedAt: SEED_DATE,
+    invitedBy: 'u-admin',
+  },
+  {
+    id: 'u-audit',
+    email: 'audit@psi.sample',
+    name: 'Internal Audit and Marketing Lead',
+    roleId: 'auditmkt',
+    status: 'active',
+    invitedAt: SEED_DATE,
+    activatedAt: SEED_DATE,
+    invitedBy: 'u-admin',
+  },
   // one open invitation, so the admin page shows what an invited (not yet active) person looks like
-  { id: 'u-aslead', email: 'aftersales.lead@psi.sample', name: 'After-Sales team lead', roleId: 'aslead', status: 'invited', invitedAt: SEED_DATE, inviteToken: 'inv-sample-aslead', invitedBy: 'u-admin' },
+  {
+    id: 'u-aslead',
+    email: 'aftersales.lead@psi.sample',
+    name: 'After-Sales team lead',
+    roleId: 'aslead',
+    status: 'invited',
+    invitedAt: SEED_DATE,
+    inviteToken: 'inv-sample-aslead',
+    invitedBy: 'u-admin',
+  },
 ]
 
 let users: PortalUser[] = read()
@@ -67,7 +219,14 @@ function read(): PortalUser[] {
         // sample people added after a browser first stored the directory (the extra CX team members for the call assignments)
         const extra = SEED_USERS.filter((u) => ADDED_SEED_IDS.includes(u.id) && !parsed.some((x) => x.id === u.id)).map((u) => ({ ...u }))
         // the three CX team members carry names now (they were "CX team member" in an earlier version of the sample directory)
-        const NAMES: Record<string, [string, string]> = { 'u-cxteam': ['CX team member', 'Abeer'], 'u-cxteam2': ['Second CX team member', 'Muhannad'], 'u-cxteam3': ['Third CX team member', 'Dina'], 'u-env': ['Environment manager', 'Dubai CEO'], 'u-env2': ['Abu Dhabi environment manager', 'Firas'], 'u-env3': ['PSI Assets environment manager', 'Niveen'] }
+        const NAMES: Record<string, [string, string]> = {
+          'u-cxteam': ['CX team member', 'Abeer'],
+          'u-cxteam2': ['Second CX team member', 'Muhannad'],
+          'u-cxteam3': ['Third CX team member', 'Dina'],
+          'u-env': ['Environment manager', 'Dubai CEO'],
+          'u-env2': ['Abu Dhabi environment manager', 'Firas'],
+          'u-env3': ['PSI Assets environment manager', 'Niveen'],
+        }
         const renamed = parsed.map((u) => (NAMES[u.id] && u.name === NAMES[u.id][0] ? { ...u, name: NAMES[u.id][1] } : u))
         return [...renamed, ...extra]
       }
@@ -158,7 +317,13 @@ export function reissueInvite(id: string): PortalUser | undefined {
 }
 
 export function setUserRole(id: string, roleId: RoleId, customRoleId?: string, envId?: EnvId) {
-  write(users.map((u) => (u.id === id ? { ...u, roleId, customRoleId: roleId === 'custom' ? customRoleId : undefined, envId: roleId === 'envmgmt' ? (envId ?? u.envId ?? 'dub') : undefined } : u)))
+  write(
+    users.map((u) =>
+      u.id === id
+        ? { ...u, roleId, customRoleId: roleId === 'custom' ? customRoleId : undefined, envId: roleId === 'envmgmt' ? (envId ?? u.envId ?? 'dub') : undefined }
+        : u,
+    ),
+  )
 }
 
 export function setUserStatus(id: string, status: 'active' | 'disabled') {

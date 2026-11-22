@@ -8,6 +8,8 @@ import { NextBox } from '@/components/common/NextBox'
 import { RouteTransition } from '@/components/layout/RouteTransition'
 import { RouteTabs } from '@/components/common/Tabs'
 import { ACTIONS_TABS } from '@/data/nav'
+import { useRole } from '@/auth/RoleContext'
+import { canOpenPage } from '@/auth/access'
 import { actionsNext, type ActionsTabKind } from '@/data/steps'
 
 /** v40 F07: above the tabs, "where you are, what happens next": Signals = step sg, Investigations = step pt, every other tab = step ca. */
@@ -20,13 +22,19 @@ function tabKind(pathname: string): ActionsTabKind {
 export default function ActionsLayout() {
   const { t } = useI18n()
   const { pathname } = useLocation()
+  const { role } = useRole()
+  const tabs = ACTIONS_TABS.filter((x) => canOpenPage(role.id, x.path))
   return (
     <div data-density="dense" className="flex flex-col gap-5">
-      <PageHeader term="Corrective action" title={t('Actions', 'الإجراءات')} description={t('What is being fixed, why, and did it work.', 'ما الذي يتم إصلاحه، ولماذا، وهل نجح؟')} />
+      <PageHeader
+        term="Corrective action"
+        title={t('Actions', 'الإجراءات')}
+        description={t('What is being fixed, why, and did it work.', 'ما الذي يتم إصلاحه، ولماذا، وهل نجح؟')}
+      />
       {/* v40 F09: the HR specialist lands on the fixes tab, not on Home, so the Daily brief sits at the top of that landing page. */}
       {pathname === '/actions/corrective' && <LandingBrief roles={['hrspec']} />}
       <NextBox next={actionsNext(tabKind(pathname))} />
-      <RouteTabs items={ACTIONS_TABS} label={t('Actions sections', 'أقسام الإجراءات')} />
+      <RouteTabs items={tabs} label={t('Actions sections', 'أقسام الإجراءات')} />
       <Suspense fallback={<LoadingState rows={5} />}>
         <RouteTransition scope="section">
           <Outlet />
@@ -35,3 +43,4 @@ export default function ActionsLayout() {
     </div>
   )
 }
+

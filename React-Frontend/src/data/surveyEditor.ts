@@ -13,18 +13,26 @@ import type { Bi, ProductId } from '../types'
 export interface EditableQuestion extends Bi {
   /** Key of `LEGACY_QUESTION_TYPE_LABEL` in data/surveyVocabulary.ts. */
   kind?: string
-  /** Ask this question only when an earlier answer matches (campaigns only). Without it the question is always asked. */
-  showIf?: ShowIf
+  /** A choice question's options, one per row (campaign builder). Older questions write them in brackets in the wording instead. */
+  choices?: Bi[]
+  /** Where each answer goes next (campaign builder). Without it every answer goes to the next question. */
+  next?: Routing
 }
 
-/**
- * "Show this question only if question `q` (0-based, always an earlier one) was answered ...". `value` is "yes" or "no" for a yes/no
- * question, the option's English text for a choice, and a number as text for a 0 to 10 or 1 to 5 question.
- */
-export interface ShowIf {
-  q: number
-  op: 'is' | 'isNot' | 'atLeast' | 'atMost'
+/** `next`: the question after this one; `end`: finish the survey; a number: jump to that question (0-based, always a later one). */
+export type Target = 'next' | 'end' | number
+
+/** One branch: answers that match go to `to`. `value` is "yes"/"no", an option's English text, or a score as text. */
+export interface Route {
+  op: 'is' | 'atLeast' | 'atMost'
   value: string
+  to: Target
+}
+
+/** The first matching route wins; anything else goes to `otherwise`. */
+export interface Routing {
+  routes: Route[]
+  otherwise: Target
 }
 
 export interface EditableSet {

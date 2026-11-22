@@ -1,7 +1,13 @@
+import { Fragment, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
+import { ChevronDown } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { useRole } from '@/auth/RoleContext'
-import { useHrPool, useProducts, useToggleProductLaunch } from '@/services/queries'
+import { useHrPool, useProducts, useShopperCases, useToggleProductLaunch } from '@/services/queries'
+import { hrCasesBySpecialist } from '@/data/pendingWork'
+import { SEVERITY_TONE } from '@/lib/status'
+import { cn } from '@/lib/utils'
 import { useHeadNotices, useUpdateHeadNotice, type DigestFrequency } from '@/services/referenceQueries'
 import { INFORMED_RULE } from '@/data/v38Reference'
 import { Switch } from '@/components/ui/switch'
@@ -34,6 +40,10 @@ export default function AdminSettings() {
   const { data: products, isLoading: productsLoading } = useProducts()
   const toggleLaunch = useToggleProductLaunch()
   const { data: hrPool, isLoading: poolLoading } = useHrPool()
+  const { data: shopperCases } = useShopperCases()
+  const hrCases = hrCasesBySpecialist(shopperCases ?? [], hrPool ?? [])
+  const [openSpecialist, setOpenSpecialist] = useState<string | null>(null)
+  const day = (iso: string) => new Date(iso).toLocaleDateString(lang === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short' })
   const { data: notices, isLoading: noticesLoading } = useHeadNotices()
   const updateNotice = useUpdateHeadNotice()
 
@@ -47,13 +57,18 @@ export default function AdminSettings() {
             'أي المنتجات مُطلقة ومن في مجموعة الموارد البشرية وأي الإشعارات تصل الرؤساء. البيئات والمجموعات تُقرأ من CRM ولا تُعدّل هنا.',
           )}
         />
-        {!canEdit && <ViewOnlyNotice>{t('View only. The CX manager changes these settings.', 'للعرض فقط. يغيّر مدير تجربة العملاء هذه الإعدادات.')}</ViewOnlyNotice>}
+        {!canEdit && (
+          <ViewOnlyNotice>{t('View only. The CX manager changes these settings.', 'للعرض فقط. يغيّر مدير تجربة العملاء هذه الإعدادات.')}</ViewOnlyNotice>
+        )}
       </div>
 
       <div className="flex flex-col gap-12">
         <SettingsSection
           title={t('Product launch', 'إطلاق المنتجات')}
-          description={t('Show only what is live. Products that are not launched stay out of the menu, the entry page and the filters.', 'أظهر فقط ما أُطلق. المنتجات التي لم تُطلق تبقى خارج القائمة وصفحة الدخول والفلاتر.')}
+          description={t(
+            'Show only what is live. Products that are not launched stay out of the menu, the entry page and the filters.',
+            'أظهر فقط ما أُطلق. المنتجات التي لم تُطلق تبقى خارج القائمة وصفحة الدخول والفلاتر.',
+          )}
         >
           {productsLoading ? (
             <LoadingState rows={4} />
@@ -90,7 +105,10 @@ export default function AdminSettings() {
         <SettingsSection
           table
           title={t('HR pool', 'مجموعة الموارد البشرية')}
-          description={t('Conduct cases are assigned to the HR pool; the agent’s direct manager reviews HR’s actions.', 'تُعيَّن حالات السلوك لمجموعة الموارد البشرية؛ ويراجع المدير المباشر للموظف إجراءاتها.')}
+          description={t(
+            'Conduct cases are assigned to the HR pool; the agent’s direct manager reviews HR’s actions.',
+            'تُعيَّن حالات السلوك لمجموعة الموارد البشرية؛ ويراجع المدير المباشر للموظف إجراءاتها.',
+          )}
         >
           {poolLoading ? (
             <LoadingState rows={2} />
@@ -105,31 +123,74 @@ export default function AdminSettings() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(hrPool ?? []).map((m) => (
-                  <TableRow key={m.title}>
-                    <TableCell className="font-medium text-foreground">{m.title}</TableCell>
-                    <TableCell className="tabular" dir="ltr">
-                      {m.email}
-                    </TableCell>
-                    <TableCell className="tabular" dir="ltr">
-                      {m.mobile}
-                    </TableCell>
-                    <TableCell className="text-end font-medium tabular text-foreground">{m.assignedCases}</TableCell>
-                  </TableRow>
-                ))}
+                {(hrPool ?? []).map((m) => {
+                  const mine = hrCases.get(m.title) ?? []
+                  const open = openSpecialist === m.title
+                  return (
+                    <Fragment key={m.title}>
+                      <TableRow>
+                        <TableCell className="font-medium text-foreground">{m.title}</TableCell>
+                        <TableCell className="tabular" dir="ltr">
+                          {m.email}
+                        </TableCell>
+                        <TableCell className="tabular" dir="ltr">
+                          {m.mobile}
+                        </TableCell>
+                        <TableCell className="text-end">
+                          <button
+                            type="button"
+                            aria-expanded={open}
+                            disabled={!mine.length}
+                            onClick={() => setOpenSpecialist(open ? null : m.title)}
+                            className="inline-flex items-center gap-1 rounded-md px-2 py-1 font-medium tabular text-foreground underline-offset-4 hover:underline disabled:no-underline"
+                          >
+                            {mine.length}
+                            {mine.length > 0 && <ChevronDown aria-hidden className={cn('size-3.5 transition-transform', open && 'rotate-180')} />}
+                          </button>
+                        </TableCell>
+                      </TableRow>
+                      {open && (
+                        <TableRow>
+                          <TableCell colSpan={4} className="bg-well">
+                            <ul className="flex flex-col gap-2 py-1">
+                              {mine.map((c) => (
+                                <li key={c.id} className="flex flex-wrap items-center justify-between gap-2 text-sm whitespace-normal">
+                                  <span className="flex flex-col gap-0.5">
+                                    <span className="font-medium text-foreground">
+                                      {t(`Conduct case: ${c.category.replace(/_/g, ' ')}`, `حالة سلوك: ${c.category.replace(/_/g, ' ')}`)}
+                                    </span>
+                                    <span className="text-xs text-muted-foreground">
+                                      {c.environment} · {t('opened', 'فُتحت')} {day(c.openedAt)} · {t('due', 'الموعد')} {day(c.resolveDueAt)} ·{' '}
+                                      {t('visit score', 'نتيجة الزيارة')} {c.visitScorePct}%
+                                    </span>
+                                  </span>
+                                  <StatusBadge tone={SEVERITY_TONE[c.severity]}>{c.severity}</StatusBadge>
+                                </li>
+                              ))}
+                              <li>
+                                <Link to="/actions/with-teams" className="text-xs font-medium text-foreground underline underline-offset-4">
+                                  {t('Read each case in full under Actions, With other teams', 'اقرأ كل حالة كاملة في الإجراءات، عند الأقسام الأخرى')}
+                                </Link>
+                              </li>
+                            </ul>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </Fragment>
+                  )
+                })}
               </TableBody>
             </Table>
           )}
-          <p className="px-2.5 text-sm text-muted-foreground">{t('Real HR pool members are still to be named by HR management. [Proposed]', 'أعضاء مجموعة الموارد البشرية الفعليون لم تحددهم إدارة الموارد بعد. [مقترح]')}</p>
+          <p className="px-2.5 text-sm text-muted-foreground">
+            {t(
+              'Real HR pool members are still to be named by HR management. [Proposed]',
+              'أعضاء مجموعة الموارد البشرية الفعليون لم تحددهم إدارة الموارد بعد. [مقترح]',
+            )}
+          </p>
         </SettingsSection>
 
-        <SettingsSection
-          table
-          layout="stacked"
-          title={t('Notices and digests', 'الإشعارات والخلاصات')}
-          term="Informed only"
-          description={L(INFORMED_RULE)}
-        >
+        <SettingsSection table layout="stacked" title={t('Notices and digests', 'الإشعارات والخلاصات')} term="Informed only" description={L(INFORMED_RULE)}>
           {noticesLoading ? (
             <LoadingState rows={4} />
           ) : (
@@ -154,7 +215,12 @@ export default function AdminSettings() {
                         </span>
                       </TableCell>
                       <TableCell className="text-foreground">
-                        <NoticeRecipients productId={n.productId} productLabel={L(product?.name ?? { en: n.productId, ar: n.productId })} fallbackTitle={L(n.informed)} canEdit={canEdit} />
+                        <NoticeRecipients
+                          productId={n.productId}
+                          productLabel={L(product?.name ?? { en: n.productId, ar: n.productId })}
+                          fallbackTitle={L(n.informed)}
+                          canEdit={canEdit}
+                        />
                       </TableCell>
                       <TableCell>
                         {canEdit ? (
