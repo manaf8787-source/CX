@@ -384,6 +384,9 @@ export function useAuditState(): State {
   )
 }
 
+/** The current audit state, outside React (the inbox reads it). */
+export const readAuditState = (): State => state
+
 export const auditOf = (id: string): CampaignAudit => state.audits[id] ?? { targets: {}, skipped: [], manual: {} }
 
 export function updateAudit(id: string, patch: Partial<CampaignAudit>) {

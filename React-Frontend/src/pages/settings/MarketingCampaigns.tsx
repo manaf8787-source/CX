@@ -42,17 +42,16 @@ import { InlineNote } from '@/components/common/InlineNote'
 import { ProductTag } from '@/components/common/Chip'
 import { ChartTooltip, ChartWell, RankedBars } from '@/components/common/charts'
 import { chartAxis, chartBar, chartCursorBar, chartGrid } from '@/components/common/chartTheme'
-import CampaignAudit from './CampaignAudit'
 import { SubPageHeader } from './SubPageHeader'
 
 /**
  * Marketing campaigns (owner's and Chairman's request, 23 Nov): one page for Marketing and the Internal Audit and Marketing Lead.
  * Results (both): per campaign, what the marketing platform sent and what the CRM says happened to the leads tagged with the campaign
  * code, read again every hour, with the conversion rate. Audit after the run and Criteria (the Internal Audit and Marketing Lead only):
- * criteria and targets per campaign, judged only after a long tracking window. Before it runs: the existing clearance (five checks).
+ * criteria and targets per campaign, judged only after a long tracking window. 23 Nov: no clearance before a run (removed by the owner): everything here is after the campaign.
  * Sources: where each number comes from and what must exist in the CRM (the campaign tag).
  */
-const TABS = ['results', 'audit', 'criteria', 'clearance', 'sources'] as const
+const TABS = ['results', 'audit', 'criteria', 'sources'] as const
 type Tab = (typeof TABS)[number]
 const ALL = 'all'
 
@@ -62,7 +61,7 @@ export default function MarketingCampaigns() {
   const isAuditor = role.id === 'auditmkt'
   const [params, setParams] = useSearchParams()
   const asked = params.get('tab') as Tab | null
-  const allowed: Tab[] = isAuditor ? [...TABS] : ['results', 'clearance', 'sources']
+  const allowed: Tab[] = isAuditor ? [...TABS] : ['results', 'sources']
   const tab: Tab = asked && allowed.includes(asked) ? asked : 'results'
   const [picked, setPicked] = useState<string>(params.get('campaign') ?? ALL)
   const pick = (id: string) => {
@@ -95,7 +94,6 @@ export default function MarketingCampaigns() {
             <TabsTrigger value="results">{t('Results', 'النتائج')}</TabsTrigger>
             {isAuditor && <TabsTrigger value="audit">{t('Audit after the run', 'التدقيق بعد التشغيل')}</TabsTrigger>}
             {isAuditor && <TabsTrigger value="criteria">{t('Criteria', 'المعايير')}</TabsTrigger>}
-            <TabsTrigger value="clearance">{t('Before it runs', 'قبل التشغيل')}</TabsTrigger>
             <TabsTrigger value="sources">{t('Where the numbers come from', 'من أين تأتي الأرقام')}</TabsTrigger>
           </TabsList>
         </div>
@@ -112,9 +110,6 @@ export default function MarketingCampaigns() {
             <CriteriaTab />
           </TabsContent>
         )}
-        <TabsContent value="clearance">
-          <CampaignAudit />
-        </TabsContent>
         <TabsContent value="sources">
           <SourcesTab />
         </TabsContent>

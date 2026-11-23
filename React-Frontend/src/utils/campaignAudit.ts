@@ -1,6 +1,7 @@
 import type { InboxItem, RoleId } from '../types'
-import { CAMPAIGN_AUDIT_COPY, CAMPAIGN_AUDIT_PATH, belowTargetingLine, pct, type CheckId } from '../data/campaignAudit'
+import { CAMPAIGN_AUDIT_PATH, belowTargetingLine, pct, type CheckId } from '../data/campaignAudit'
 import type { AuditCampaignView } from '../services/mockCampaignAudit'
+import { CAMPAIGNS, auditWindow, readAuditState } from '../data/marketingCampaigns'
 
 /**
  * What the campaign audit hands to the rest of the portal (v42.1, F33): the counts of the inbox and of the Daily brief, the targeting
@@ -47,38 +48,34 @@ export function targetingSignals(views: readonly AuditCampaignView[]): Targeting
 }
 
 /**
- * The inbox of the Internal Audit and Marketing Lead (prototype `CAUD`, `CAUD2`): "Clear or send back: N campaigns waiting before they
- * run" (2 working days, urgent, with the Marketing manager) and "Audit after the run: N finished campaigns" (normal, nobody). Both open
- * the campaign audit page. A row with nothing to count is not listed. Nobody else gets these rows.
+ * The inbox of the Internal Audit and Marketing Lead. 23 Nov (owner): no clearance before a run, so only one row: the marketing
+ * campaigns whose audit window is open (or past its date) and that have no verdict yet. It opens the audit tab of Marketing campaigns.
+ * The summary argument is kept for the callers' signature and no longer read.
  */
-export function campaignAuditInboxItems(role: RoleId, summary: Pick<CampaignAuditSummary, 'waiting' | 'finished'> | undefined): InboxItem[] {
-  if (role !== 'auditmkt' || !summary) return []
-  const items: InboxItem[] = []
-  if (summary.waiting > 0) {
-    items.push({
-      id: 'campaign-audit:waiting',
-      kind: 'caud',
-      text: CAMPAIGN_AUDIT_COPY.inboxWaiting(summary.waiting),
-      daysLeft: 2,
-      unit: 'wd',
-      who: CAMPAIGN_AUDIT_COPY.owners.marketing,
-      priority: 2,
-      target: CAMPAIGN_AUDIT_PATH,
-    })
-  }
-  if (summary.finished > 0) {
-    items.push({
-      id: 'campaign-audit:finished',
+export function campaignAuditInboxItems(role: RoleId, _summary?: Pick<CampaignAuditSummary, 'waiting' | 'finished'>): InboxItem[] {
+  if (role !== 'auditmkt') return []
+  const st = readAuditState()
+  const ready = CAMPAIGNS.filter((c) => {
+    const w = auditWindow(c, st.settings)
+    return (w.phase === 'open' || w.phase === 'overdue') && !st.audits[c.id]?.verdict
+  })
+  if (!ready.length) return []
+  const overdue = ready.some((c) => auditWindow(c, st.settings).phase === 'overdue')
+  return [
+    {
+      id: 'campaign-audit:ready',
       kind: 'caud2',
-      text: CAMPAIGN_AUDIT_COPY.inboxFinished(summary.finished),
-      daysLeft: 5,
+      text: {
+        en: `Audit after the run: ${ready.length === 1 ? '1 campaign is ready' : `${ready.length} campaigns are ready`}${overdue ? ', one or more past the date' : ''}`,
+        ar: `التدقيق بعد التشغيل: ${ready.length === 1 ? 'حملة واحدة جاهزة' : `${ready.length} حملات جاهزة`}${overdue ? '، وبعضها تجاوز الموعد' : ''}`,
+      },
+      daysLeft: overdue ? 0 : 5,
       unit: 'wd',
       who: null,
-      priority: 0,
-      target: CAMPAIGN_AUDIT_PATH,
-    })
-  }
-  return items
+      priority: overdue ? 2 : 0,
+      target: `${CAMPAIGN_AUDIT_PATH}?tab=audit`,
+    },
+  ]
 }
 
 /** Why a campaign may not start yet, or null when it may: the gate the Close the loop and Personas buttons read. */
@@ -97,3 +94,4 @@ export function defaultCampaignId(views: readonly AuditCampaignView[], canEdit: 
 export function failedCheckNames(failed: readonly CheckId[], title: (id: CheckId) => string, lang: 'en' | 'ar' = 'en'): string {
   return failed.map(title).join(lang === 'ar' ? '، ' : ', ')
 }
+

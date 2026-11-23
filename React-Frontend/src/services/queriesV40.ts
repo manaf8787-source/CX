@@ -380,14 +380,7 @@ export function useBriefInputs(): {
       ldFixes: fixes.filter((f) => f.kind === 'training_gap' && !closed(f.status)).length,
       conductNotes: fixes.filter((f) => f.kind === 'employee').length,
       sample: { toRead: sample.size, read: sample.read },
-      ...(auditLead && campaignAudit
-        ? {
-            campaigns: {
-              waiting: campaignAudit.waiting,
-              runningReachedPct: campaignAudit.runningReachedPct,
-            },
-          }
-        : {}),
+      // 23 Nov (owner): no clearance before a run, so the brief no longer has the "waits for your clearance" line
     }
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [signals, patterns, fixes, cases, loop, persons, allPersons, interactions, effort, mentions, sample, rules, now, stamp, auditLead, campaignAudit])

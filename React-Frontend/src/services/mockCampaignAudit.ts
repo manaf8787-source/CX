@@ -20,7 +20,7 @@ import {
  * - "Cleared to run" needs all five checks passed, "Send back" at least one failed [Proposed: the prototype lets either be pressed at any time];
  * - changing a check after a verdict withdraws the verdict (the campaign waits for clearance again) [Proposed];
  * - the checks and the verdict are closed once the campaign has started [Proposed];
- * - NOTHING STARTS BEFORE CLEARANCE: `start` refuses a campaign whose verdict is not "cleared" (`not_cleared`), whoever asks.
+ * - 23 Nov (owner): there is no clearance before a run any more; `start` no longer checks a verdict. The audit is after the run only.
  */
 
 export type CampaignAuditErrorCode = 'not_found' | 'not_allowed' | 'locked' | 'checks_incomplete' | 'no_failed_check' | 'not_cleared' | 'wrong_stage'
@@ -172,7 +172,7 @@ export function createCampaignAuditStore(
       const rec = recordOf(c)
       if (rec.stage !== 'before') throw new CampaignAuditError('wrong_stage', 'Only a campaign that has not started can start')
       // THE GATE: nothing reaches a customer before the Internal Audit and Marketing Lead has cleared it.
-      if (rec.verdict !== 'ok') throw new CampaignAuditError('not_cleared', 'Not cleared by the Internal Audit and Marketing Lead: the campaign cannot start')
+      // 23 Nov (owner): no clearance before a campaign runs; the audit is after the run only (Marketing campaigns page)
       setStage(c, rec, 'running')
       return view(c)
     },
@@ -189,3 +189,4 @@ export function createCampaignAuditStore(
     reset: () => records.clear(),
   }
 }
+

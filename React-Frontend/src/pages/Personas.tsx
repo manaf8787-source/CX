@@ -4,7 +4,6 @@ import { Ban, CheckCircle2, Clock, Gavel, Layers, Lock, Megaphone, Radio, Target
 import { useI18n } from '@/i18n'
 import { useRole } from '@/auth/RoleContext'
 import { canApprovePersona, canViewPersonaAudit } from '@/auth/permissions'
-import { canOpenPage } from '@/auth/access'
 import { useCampaignRecommendations, useDecidePersona, usePersonas } from '@/services/queries'
 import { useCampaignBriefs } from '@/services/referenceQueries'
 import { CHANNEL_LABEL } from '@/components/customers/channels'
@@ -19,8 +18,6 @@ import { InlineNote } from '@/components/common/InlineNote'
 import { DataTable } from '@/components/common/DataTable'
 import { EmptyState } from '@/components/common/EmptyState'
 import { LoadingState } from '@/components/common/LoadingState'
-import { CampaignGate } from '@/components/campaigns/CampaignGate'
-import { CAMPAIGN_AUDIT_COPY } from '@/data/campaignAudit'
 import { DecisionDialog } from './actions/components/DecisionDialog'
 
 type Recommendation = NonNullable<ReturnType<typeof useCampaignRecommendations>['data']>[number]
@@ -40,7 +37,6 @@ export default function Personas() {
   const canApprove = canApprovePersona(role.id)
   const canAudit = canViewPersonaAudit(role.id)
   // the campaign audit column is the Internal Audit's and Marketing's: roles that cannot open the audit page do not see its column
-  const showGate = canOpenPage(role.id, '/settings/campaign-audit')
   const ranked = useMemo(() => [...(recommendations ?? [])].sort((a, b) => a.rank - b.rank), [recommendations])
 
   const columns = useMemo<ColumnDef<Recommendation>[]>(() => {
@@ -70,20 +66,8 @@ export default function Personas() {
         header: t('Who', 'لمن'),
         cell: ({ getValue }) => <span className="block min-w-48 whitespace-normal">{getValue<string>()}</span>,
       },
-      ...(!showGate ? [] : [{
-        // v42.1 (F33): the campaign audit's clearance, and the gated "Start campaign" for the roles that run a persona campaign
-        id: 'gate',
-        header: L(CAMPAIGN_AUDIT_COPY.gate.column),
-        meta: { cellClassName: 'min-w-52 whitespace-normal' },
-        cell: ({ row }) => (
-          // a click or Enter on the row jumps to its persona: the controls of the gate must not
-          <div onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
-            <CampaignGate sourceId={row.original.personaId} kind="persona" compact />
-          </div>
-        ),
-      } as ColumnDef<Recommendation>]),
     ]
-  }, [t, L, personas, showGate])
+  }, [t, L, personas])
 
   return (
     <div data-density="dense" className="flex flex-col gap-6">
@@ -133,7 +117,7 @@ export default function Personas() {
           getRowId={(r) => r.id}
           pageSize={0}
           // a phone: the campaign and its persona on two lines, the rank and "Who" behind "Details"
-          phone={{ title: 'campaign', meta: showGate ? ['persona', 'gate'] : ['persona'], detail: ['rank', 'who'] }}
+          phone={{ title: 'campaign', meta: ['persona'], detail: ['rank', 'who'] }}
           emptyTitle={t('No ranked campaigns yet.', 'لا توجد حملات مرتبة بعد.')}
           onRowClick={(r) => {
             const el = document.getElementById(`persona-${r.personaId}`)
@@ -300,3 +284,4 @@ function SavedBriefs() {
     </SectionCard>
   )
 }
+
