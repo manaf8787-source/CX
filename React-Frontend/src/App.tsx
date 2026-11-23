@@ -14,6 +14,7 @@ import { EnvScopeProvider } from './components/layout/EnvScopeProvider'
 import { UiProviders } from './components/layout/UiProviders'
 import { BrandLogo } from './components/common/BrandLogo'
 import { pageLoaders } from './routes/pages'
+import { useRole } from './auth/RoleContext'
 
 const Login = lazy(pageLoaders.login)
 const Home = lazy(pageLoaders.home)
@@ -109,7 +110,7 @@ export default function App() {
                         <Route path="corrective" element={<Corrective />} />
                         <Route path="signals" element={<Signals />} />
                         <Route path="ai-insights" element={<AiInsights />} />
-                        <Route path="shopper-cases" element={<ShopperCases />} />
+                        <Route path="shopper-cases" element={<ShopperCasesRoute />} />
                         <Route path="investigations" element={<Investigations />} />
                         <Route path="with-teams" element={<WithOtherTeams />} />
                       </Route>
@@ -172,4 +173,11 @@ export default function App() {
       </ThemeProvider>
     </I18nProvider>
   )
+}
+
+/** 23 Nov (owner): for the CX side, shopper cases live on the Mystery shopper page (a tab); the old address takes them there. */
+function ShopperCasesRoute() {
+  const { role } = useRole()
+  if (role.id === 'cxmgr' || role.id === 'cxteam') return <Navigate to="/settings/mystery-shopper?tab=cases" replace />
+  return <ShopperCases />
 }

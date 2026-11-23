@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
+import ShopperCases from '@/pages/actions/ShopperCases'
 import { AlertTriangle, ArrowLeft, Check, CheckCircle2, ClipboardCheck, Gauge, RotateCcw, Send, ShieldAlert } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { useNow } from '@/hooks/useNow'
@@ -31,7 +32,7 @@ import { LoadingState } from '@/components/common/LoadingState'
 import { InlineNote } from '@/components/common/InlineNote'
 import { IN_CARD, SubPageHeader } from './SubPageHeader'
 
-const TABS = ['results', 'checklists', 'shoppers', 'distribution', 'review'] as const
+const TABS = ['results', 'checklists', 'shoppers', 'distribution', 'review', 'cases'] as const
 type Tab = (typeof TABS)[number]
 const TAB_LABEL: Record<Tab, Bi> = {
   results: { en: 'Results', ar: 'النتائج' },
@@ -39,6 +40,8 @@ const TAB_LABEL: Record<Tab, Bi> = {
   shoppers: { en: 'Shoppers', ar: 'المتسوقون' },
   distribution: { en: 'Distribution', ar: 'التوزيع' },
   review: { en: 'Review', ar: 'المراجعة' },
+  // 23 Nov (owner): the cases the visits opened, here for the CX side instead of a tab of Problems and fixes
+  cases: { en: 'Shopper cases', ar: 'حالات التسوق السري' },
 }
 
 // The demo sign-in for the separate shopper landing page (FR: "email/mobile
@@ -67,6 +70,10 @@ function MysteryShopperConsole() {
   const { t, L } = useI18n()
   const { role } = useRole()
   const canManage = role.id === 'cxmgr' || role.id === 'cxteam'
+  const showCases = canManage
+  const [params, setParams] = useSearchParams()
+  const rawTab = params.get('tab') as Tab | null
+  const tab: Tab = rawTab && TABS.includes(rawTab) && (rawTab !== 'cases' || showCases) ? rawTab : 'results'
   const { data: checklists } = useMsChecklists()
   const { data: scenarios } = useMsScenarios()
   const { data: shoppers } = useMsShoppers()
@@ -93,17 +100,22 @@ function MysteryShopperConsole() {
     <section data-density="dense" className="flex flex-col gap-4">
       <SubPageHeader
         title={t('Mystery shopper', 'التسوق السري')}
-        description={t('Plans, distributes, collects and reviews mystery shopping visits and calls.', 'تخطيط وتوزيع وجمع ومراجعة زيارات ومكالمات التسوق السري.')}
+        description={t(
+          'Plans, distributes, collects and reviews mystery shopping visits and calls.',
+          'تخطيط وتوزيع وجمع ومراجعة زيارات ومكالمات التسوق السري.',
+        )}
       />
 
-      <Tabs defaultValue="results" className="gap-4">
+      <Tabs value={tab} onValueChange={(v) => setParams({ tab: v }, { replace: true })} className="gap-4">
         <div className="-m-1 overflow-x-auto p-1">
           <TabsList className="min-w-max">
-            {TABS.map((id) => (
+            {TABS.filter((id) => id !== 'cases' || showCases).map((id) => (
               <TabsTrigger key={id} value={id}>
                 {L(TAB_LABEL[id])}
                 {id === 'review' && toReview.length > 0 && (
-                  <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-warning-bg px-1.5 text-xs font-medium text-warning-text tabular">{toReview.length}</span>
+                  <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-warning-bg px-1.5 text-xs font-medium text-warning-text tabular">
+                    {toReview.length}
+                  </span>
                 )}
               </TabsTrigger>
             ))}
@@ -112,8 +124,19 @@ function MysteryShopperConsole() {
 
         <TabsContent value="results" className="flex flex-col gap-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <KpiTile label={t('Average score', 'متوسط النتيجة')} value={<bdi dir="ltr">{avgScore != null ? `${avgScore}%` : '–'}</bdi>} icon={<Gauge />} loading={isLoading} />
-            <KpiTile label={t('Critical fails', 'الإخفاقات الحرجة')} value={criticalFails} icon={<ShieldAlert />} accent={criticalFails ? 'var(--destructive)' : undefined} loading={isLoading} />
+            <KpiTile
+              label={t('Average score', 'متوسط النتيجة')}
+              value={<bdi dir="ltr">{avgScore != null ? `${avgScore}%` : '–'}</bdi>}
+              icon={<Gauge />}
+              loading={isLoading}
+            />
+            <KpiTile
+              label={t('Critical fails', 'الإخفاقات الحرجة')}
+              value={criticalFails}
+              icon={<ShieldAlert />}
+              accent={criticalFails ? 'var(--destructive)' : undefined}
+              loading={isLoading}
+            />
             <KpiTile label={t('Completed', 'مكتملة')} value={list.filter((a) => a.status === 'approved').length} icon={<CheckCircle2 />} loading={isLoading} />
           </div>
           <SectionCard contentClassName={IN_CARD}>
@@ -145,7 +168,7 @@ function MysteryShopperConsole() {
                         <TableCell className="text-end font-medium tabular text-foreground">
                           <span className="inline-flex items-center justify-end gap-2">
                             {severity === 'critical' && (
-                              <Link to="/actions/shopper-cases" className="inline-flex rounded-full outline-hidden">
+                              <Link to="?tab=cases" className="inline-flex rounded-full outline-hidden">
                                 <StatusBadge tone="danger" icon={<AlertTriangle aria-hidden />}>
                                   {t('case opened', 'تم فتح حالة')}
                                 </StatusBadge>
@@ -301,9 +324,7 @@ function MysteryShopperConsole() {
                               key={s.id}
                               type="button"
                               aria-pressed={on}
-                              onClick={() =>
-                                setDist((d) => ({ ...d, shopperIds: on ? d.shopperIds.filter((x) => x !== s.id) : [...d.shopperIds, s.id] }))
-                              }
+                              onClick={() => setDist((d) => ({ ...d, shopperIds: on ? d.shopperIds.filter((x) => x !== s.id) : [...d.shopperIds, s.id] }))}
                               className="inline-flex h-[34px] cursor-pointer items-center gap-2 rounded-full bg-well ps-[5px] pe-3.5 pt-px text-sm font-medium text-foreground outline-hidden transition-colors duration-200 ease-out hover:bg-well-hover"
                             >
                               <span aria-hidden className={cn('grid size-6 place-items-center rounded-full', on ? 'material-dark' : 'bg-line shadow-dot-off')}>
@@ -369,6 +390,11 @@ function MysteryShopperConsole() {
             <EmptyState title={t('Nothing waiting for review.', 'لا يوجد شيء بانتظار المراجعة.')} />
           )}
         </TabsContent>
+        {showCases && (
+          <TabsContent value="cases">
+            <ShopperCases />
+          </TabsContent>
+        )}
       </Tabs>
     </section>
   )
@@ -526,13 +552,13 @@ function ShopperMyTasks() {
                           </ChoiceButton>
                         ))}
                       {it.type === 'text' && (
-                        <Textarea
-                          aria-label={L(it.text)}
-                          className="min-h-20 w-full"
-                          onChange={() => setAnswers((a) => ({ ...a, [it.id]: 1 }))}
-                        />
+                        <Textarea aria-label={L(it.text)} className="min-h-20 w-full" onChange={() => setAnswers((a) => ({ ...a, [it.id]: 1 }))} />
                       )}
-                      <ChoiceButton on={answers[it.id] === 'na'} onClick={() => setAnswers((a) => ({ ...a, [it.id]: 'na' }))} label={t('Not applicable', 'لا ينطبق')}>
+                      <ChoiceButton
+                        on={answers[it.id] === 'na'}
+                        onClick={() => setAnswers((a) => ({ ...a, [it.id]: 'na' }))}
+                        label={t('Not applicable', 'لا ينطبق')}
+                      >
                         N/A
                       </ChoiceButton>
                     </div>

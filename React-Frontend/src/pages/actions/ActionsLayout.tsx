@@ -23,12 +23,13 @@ export default function ActionsLayout() {
   const { t } = useI18n()
   const { pathname } = useLocation()
   const { role } = useRole()
-  const tabs = ACTIONS_TABS.filter((x) => canOpenPage(role.id, x.path))
+  const isCx = role.id === 'cxmgr' || role.id === 'cxteam'
+  const tabs = ACTIONS_TABS.filter((x) => canOpenPage(role.id, x.path) && !(isCx && x.hideForCx))
   return (
     <div data-density="dense" className="flex flex-col gap-5">
       <PageHeader
         term="Corrective action"
-        title={t('Actions', 'الإجراءات')}
+        title={t('Problems and fixes', 'المشاكل والحلول')}
         description={t('What is being fixed, why, and did it work.', 'ما الذي يتم إصلاحه، ولماذا، وهل نجح؟')}
       />
       {/* v40 F09: the HR specialist lands on the fixes tab, not on Home, so the Daily brief sits at the top of that landing page. */}
@@ -43,4 +44,3 @@ export default function ActionsLayout() {
     </div>
   )
 }
-

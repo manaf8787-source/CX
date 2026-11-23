@@ -81,7 +81,8 @@ export default function ShopperCases() {
           {cases.map((c) => {
             const flow = FLOW.filter((step) => step !== 'hr_review' || c.isConductIssue)
             const currentIndex = flow.indexOf(c.status)
-            const next = FLOW[Math.min(FLOW.length - 1, FLOW.indexOf(c.status) + 1)]
+            // 23 Nov: the next step follows this case's own flow, so a case that is not about conduct skips HR review and goes to Closed
+            const next = flow[Math.min(flow.length - 1, Math.max(0, currentIndex) + 1)]
             return (
               <li key={c.id}>
                 <Card>

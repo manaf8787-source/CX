@@ -26,7 +26,7 @@ export const PRIMARY_NAV: NavGroup[] = [
       { path: '/home', label: { en: 'Home', ar: 'الرئيسية' } },
       { path: '/customers', label: { en: '1 · Customers', ar: '1 · العملاء' } },
       { path: '/inbox', label: { en: 'My inbox', ar: 'صندوقي' } },
-      { path: '/actions', label: { en: '2–4 · Signals and fixes', ar: '2–4 · الإشارات والحلول' } },
+      { path: '/actions', label: { en: 'Problems and fixes', ar: 'المشاكل والحلول' } },
       { path: '/close-the-loop', label: { en: '5 · Close the loop', ar: '5 · إغلاق الحلقة' } },
       { path: '/overview', label: { en: '6 · CX indicators', ar: '6 · مؤشرات تجربة العملاء' } },
       // 23 Nov (owner): gifts to customers, emailed to the Administration team, with the stock and the history (CX manager and CX team).
@@ -88,7 +88,8 @@ export const ACTIONS_TABS: NavLeaf[] = [
   { path: '/actions/corrective', label: { en: 'Corrective actions', ar: 'الإجراءات التصحيحية' } },
   { path: '/actions/signals', label: { en: 'Signals & patterns', ar: 'الإشارات والأنماط' } },
   { path: '/actions/ai-insights', label: { en: 'AI Insights', ar: 'رؤى الذكاء الاصطناعي' } },
-  { path: '/actions/shopper-cases', label: { en: 'Shopper cases', ar: 'حالات التسوق السري' } },
+  // 23 Nov (owner): for the CX side, shopper cases are a tab of the Mystery shopper page
+  { path: '/actions/shopper-cases', label: { en: 'Shopper cases', ar: 'حالات التسوق السري' }, hideForCx: true },
   { path: '/actions/investigations', label: { en: 'Investigations', ar: 'التحقيقات' } },
   // 22 Nov: everything waiting on another department (fixes, HR conduct cases, L&D requests, documents) in one list. CX only.
   { path: '/actions/with-teams', label: { en: 'With other teams', ar: 'عند الأقسام الأخرى' } },
@@ -109,16 +110,18 @@ export const SETTINGS_NAV: NavLeaf[] = [
   // 22 Nov: for the CX side the register is a tab of Rules as configuration
   { path: '/settings/standards', label: { en: 'Standards register', ar: 'سجل المعايير' }, hideForCx: true },
   { path: '/settings/surveys', label: { en: 'Surveys', ar: 'الاستبيانات' } },
-  { path: '/settings/voc', label: { en: 'Voice of Customer', ar: 'صوت العميل' } },
+  // 23 Nov (owner): for the CX side these four live elsewhere: VoC on 6 · CX indicators, leave on Team performance, notices and the
+  // AI Insights access matrix as tabs of Rules as configuration. Other roles keep their own entries.
+  { path: '/settings/voc', label: { en: 'Voice of Customer', ar: 'صوت العميل' }, hideForCx: true },
   { path: '/settings/ld', label: { en: 'L&D: training & materials', ar: 'التعلم والتطوير' } },
-  { path: '/settings/team-availability', label: { en: 'Team availability (leave)', ar: 'توفّر الفريق (الإجازات)' }, skipLanding: true },
+  { path: '/settings/team-availability', label: { en: 'Team availability (leave)', ar: 'توفّر الفريق (الإجازات)' }, skipLanding: true, hideForCx: true },
   { path: '/settings/hr-team', label: { en: 'HR team performance', ar: 'أداء فريق الموارد البشرية' } },
   { path: '/settings/feeds', label: { en: 'Data feeds', ar: 'تغذيات البيانات' } },
   { path: '/settings/crm-mapping', label: { en: 'CRM mapping', ar: 'ربط قيم CRM' } },
   { path: '/settings/escalation-matrix', label: { en: 'Who handles what', ar: 'من يتولّى ماذا' } },
-  { path: '/settings/admin', label: { en: 'Notices and digests', ar: 'الإشعارات والخلاصات' } },
+  { path: '/settings/admin', label: { en: 'Notices and digests', ar: 'الإشعارات والخلاصات' }, hideForCx: true },
   { path: '/settings/rules', label: { en: 'Rules as configuration', ar: 'القواعد كإعدادات' } },
-  { path: '/settings/ai-insights-access', label: { en: 'AI Insights access matrix', ar: 'مصفوفة صلاحيات رؤى الذكاء الاصطناعي' } },
+  { path: '/settings/ai-insights-access', label: { en: 'AI Insights access matrix', ar: 'مصفوفة صلاحيات رؤى الذكاء الاصطناعي' }, hideForCx: true },
   { path: '/settings/glossary', label: { en: 'What the terms mean', ar: 'ماذا تعني المصطلحات' } },
 ]
 

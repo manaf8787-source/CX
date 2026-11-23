@@ -8,9 +8,22 @@ import { cn } from '@/lib/utils'
  * (up to four categories). The segments are decoration; the counts are printed beside the bar by the caller and `label` (when given)
  * names the bar for assistive technology.
  */
-const NPS_SEGMENT_COLOR = { promoters: 'var(--chart-1)', passives: 'var(--chart-5)', detractors: 'var(--chart-4)' } as const
+// 23 Nov (owner): promoters green, detractors red
+const NPS_SEGMENT_COLOR = { promoters: 'var(--status-success-solid)', passives: 'var(--chart-5)', detractors: 'var(--status-error-solid)' } as const
 
-export function NpsBar({ promoters, passives, detractors, label, className }: { promoters: number; passives: number; detractors: number; label?: string; className?: string }) {
+export function NpsBar({
+  promoters,
+  passives,
+  detractors,
+  label,
+  className,
+}: {
+  promoters: number
+  passives: number
+  detractors: number
+  label?: string
+  className?: string
+}) {
   const n = Math.max(1, promoters + passives + detractors)
   const seg = (v: number, color: string) => <span className="block h-full" style={{ width: `${(v / n) * 100}%`, backgroundColor: color }} />
   return (

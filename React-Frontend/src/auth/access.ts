@@ -125,6 +125,14 @@ function blocked(role: RoleId, path: string): boolean {
   if (isCx(role) && matches(path, '/settings/ld')) return true
   // 23 Nov: integrations and the data feeds are the Super admin's and the Admin's, not the CX side's
   if (isCx(role) && (matches(path, '/admin/integrations') || matches(path, '/settings/feeds') || matches(path, '/admin/products'))) return true
+  // 23 Nov (owner): the audit log is the Super admin's; the CX team does not see the user directory, nor the settings it does not
+  // edit (the weekly sample is the auditor's; rules, routing and CRM values are the CX manager's)
+  if (isCx(role) && matches(path, AUDIT_PAGE)) return true
+  if (
+    role === 'cxteam' &&
+    [USERS_PAGE, '/settings/weekly-sample', '/settings/crm-mapping', '/settings/escalation-matrix', '/settings/rules'].some((p) => matches(path, p))
+  )
+    return true
   return role === 'cxteam' && matches(path, TEAM_PERFORMANCE_PAGE)
 }
 
@@ -169,4 +177,3 @@ export function canManageUsers(role: RoleId): boolean {
 export function canManageAdmins(role: RoleId): boolean {
   return role === 'admin'
 }
-

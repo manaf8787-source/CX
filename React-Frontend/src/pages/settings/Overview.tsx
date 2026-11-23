@@ -1,11 +1,11 @@
-import { Ban, Package } from 'lucide-react'
+import { useState } from 'react'
+import { Ban } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { useRole } from '@/auth/RoleContext'
-import { useCorrectiveActions, useHomeSummary, usePatterns, useProducts, useShopperCases, useSignals, useToggleProductLaunch, useVocRows } from '@/services/queries'
+import { useCorrectiveActions, useHomeSummary, usePatterns, useProducts, useShopperCases, useSignals, useVocRows } from '@/services/queries'
 import { canAccessPath } from '@/auth/access'
 import type { ProductId } from '@/types'
 import { csatOf, fmtSigned, npsOf } from '@/utils/indicators'
-import { Switch } from '@/components/ui/switch'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { SectionCard } from '@/components/common/SectionCard'
@@ -15,6 +15,18 @@ import { LoadingState } from '@/components/common/LoadingState'
 import { IN_CARD, SubPageHeader } from './SubPageHeader'
 import { KpiTile } from '@/components/common/KpiTile'
 import { FunnelSummary, OverviewCharts, ReputationIndex } from './OverviewInsights'
+import Voc from './Voc'
+import { Delta, Signed } from '@/components/common/Trend'
+import { useNpsTrend } from '@/services/referenceQueries'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+
+const CHANNEL_NAME: Record<string, { en: string; ar: string }> = {
+  digital: { en: 'Digital', ar: 'رقمي' },
+  call: { en: 'Call', ar: 'اتصال' },
+  app: { en: 'App', ar: 'التطبيق' },
+  branch: { en: 'Branch', ar: 'الفرع' },
+  event: { en: 'Event', ar: 'فعالية' },
+}
 
 /** Ported and upgraded from `frontend/src/pages/Overview.tsx`
  * (APPLICATION_MODULES.md §C) — adds the per-product "no group NPS" framing
@@ -29,12 +41,11 @@ import { FunnelSummary, OverviewCharts, ReputationIndex } from './OverviewInsigh
 export default function SettingsOverview({ hideHeader = false }: { hideHeader?: boolean }) {
   const { t, L, lang } = useI18n()
   const { role } = useRole()
-  const canEdit = role.id === 'cxmgr'
   const { data: products, isLoading: productsLoading } = useProducts()
   const { data: vocRows } = useVocRows()
+  const { data: trend } = useNpsTrend()
   const { data: actions, isLoading: actionsLoading } = useCorrectiveActions()
   const { data: cases, isLoading: casesLoading } = useShopperCases()
-  const toggleLaunch = useToggleProductLaunch()
   const { data: summary, isLoading: summaryLoading } = useHomeSummary()
   const { data: signals, isLoading: signalsLoading } = useSignals()
   const { data: patterns, isLoading: patternsLoading } = usePatterns()
@@ -44,8 +55,14 @@ export default function SettingsOverview({ hideHeader = false }: { hideHeader?: 
   const openActions = (actions ?? []).filter((a) => a.status !== 'effective' && a.status !== 'failed').length
   const criticalCases = (cases ?? []).filter((c) => c.severity === 'critical' && c.status !== 'closed').length
 
+  // 23 Nov (owner): one page, one set of filters; the environment is the switch at the top of every page
+  const [product, setProduct] = useState<'all' | ProductId>('all')
+  const [channel, setChannel] = useState('all')
+  const channels = [...new Set((vocRows ?? []).map((r) => r.channel))]
+  const vocFiltered = (vocRows ?? []).filter((r) => (product === 'all' || r.product === product) && (channel === 'all' || r.channel === channel))
+  const shown = launched.filter((p) => product === 'all' || p.id === product)
   function rowsFor(id: ProductId) {
-    return (vocRows ?? []).filter((r) => r.product === id)
+    return vocFiltered.filter((r) => r.product === id)
   }
 
   return (
@@ -53,9 +70,48 @@ export default function SettingsOverview({ hideHeader = false }: { hideHeader?: 
       {!hideHeader && (
         <SubPageHeader
           title={t('Overview', 'نظرة عامة')}
-          description={t('Headline experience scores, per product — never one blended number (FR-7.4).', 'مؤشرات التجربة الرئيسية لكل منتج — دون رقم إجمالي واحد أبداً.')}
+          description={t(
+            'Headline experience scores, per product — never one blended number (FR-7.4).',
+            'مؤشرات التجربة الرئيسية لكل منتج — دون رقم إجمالي واحد أبداً.',
+          )}
         />
       )}
+
+      <div className="sticky top-14 z-10 flex flex-wrap items-center gap-3 rounded-2xl border bg-card/95 p-3 backdrop-blur" data-testid="indicator-filters">
+        <span className="t-small-strong">{t('Show', 'اعرض')}</span>
+        <Select value={product} onValueChange={(v) => setProduct(v as 'all' | ProductId)}>
+          <SelectTrigger className="h-9 min-w-44" aria-label={t('Product', 'المنتج')}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t('All products', 'كل المنتجات')}</SelectItem>
+            {launched.map((p) => (
+              <SelectItem key={p.id} value={p.id}>
+                {L(p.name)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={channel} onValueChange={setChannel}>
+          <SelectTrigger className="h-9 min-w-40" aria-label={t('Channel', 'القناة')}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t('All channels', 'كل القنوات')}</SelectItem>
+            {channels.map((c) => (
+              <SelectItem key={c} value={c}>
+                {L(CHANNEL_NAME[c] ?? { en: c, ar: c })}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <span className="t-body-s">
+          {t(
+            'The scores, Voice of Customer, the public reputation and the charts follow these filters. Environment: the switch at the top of the page.',
+            'المؤشرات وصوت العميل والسمعة العامة والرسوم تتبع هذه الفلاتر. البيئة: من المفتاح أعلى الصفحة.',
+          )}
+        </span>
+      </div>
 
       <div className="grid grid-cols-1 gap-(--grid-gap) xl:grid-cols-2">
         <section aria-labelledby="ov-cust">
@@ -66,9 +122,28 @@ export default function SettingsOverview({ hideHeader = false }: { hideHeader?: 
               </CardTitle>
             </CardHeader>
             <CardContent className="grid grid-cols-2 gap-3">
-              <KpiTile variant="well" label={t('People on record', 'الأشخاص المسجلون')} value={summary?.journeysViewed} to={linkIf('/customers')} loading={summaryLoading} />
-              <KpiTile variant="well" term="Runaway" label={t('Runaway customers', 'العملاء الهاربون')} value={summary?.runawayCount} to={linkIf('/runaway')} loading={summaryLoading} />
-              <KpiTile variant="well" label={t('Detractors to call', 'منتقدون للاتصال')} value={summary?.toCall} to={linkIf('/close-the-loop')} loading={summaryLoading} />
+              <KpiTile
+                variant="well"
+                label={t('People on record', 'الأشخاص المسجلون')}
+                value={summary?.journeysViewed}
+                to={linkIf('/customers')}
+                loading={summaryLoading}
+              />
+              <KpiTile
+                variant="well"
+                term="Runaway"
+                label={t('Runaway customers', 'العملاء الهاربون')}
+                value={summary?.runawayCount}
+                to={linkIf('/runaway')}
+                loading={summaryLoading}
+              />
+              <KpiTile
+                variant="well"
+                label={t('Detractors to call', 'منتقدون للاتصال')}
+                value={summary?.toCall}
+                to={linkIf('/close-the-loop')}
+                loading={summaryLoading}
+              />
               <KpiTile variant="well" label={t('Personas', 'الشخصيات')} value={summary?.personaCount} to={linkIf('/personas')} loading={summaryLoading} />
             </CardContent>
           </Card>
@@ -82,10 +157,36 @@ export default function SettingsOverview({ hideHeader = false }: { hideHeader?: 
               </CardTitle>
             </CardHeader>
             <CardContent className="grid grid-cols-2 gap-3">
-              <KpiTile variant="well" term="Signal" label={t('Signals, counted not worked', 'الإشارات، تُحتسب ولا تُعالج فردياً')} value={signals?.length} to={linkIf('/actions/signals')} loading={signalsLoading} />
-              <KpiTile variant="well" term="Pattern" label={t('Patterns past threshold', 'أنماط تجاوزت الحد')} value={(patterns ?? []).filter((p) => p.currentValue >= p.thresholdTarget).length} to={linkIf('/actions/signals')} loading={patternsLoading} />
-              <KpiTile variant="well" label={t('Open corrective actions', 'الإجراءات التصحيحية المفتوحة')} value={openActions} to={linkIf('/actions/corrective')} loading={actionsLoading} />
-              <KpiTile variant="well" label={t('Critical shopper cases open', 'حالات متسوق حرجة مفتوحة')} value={criticalCases} to={linkIf('/actions/shopper-cases')} loading={casesLoading} />
+              <KpiTile
+                variant="well"
+                term="Signal"
+                label={t('Signals, counted not worked', 'الإشارات، تُحتسب ولا تُعالج فردياً')}
+                value={signals?.length}
+                to={linkIf('/actions/signals')}
+                loading={signalsLoading}
+              />
+              <KpiTile
+                variant="well"
+                term="Pattern"
+                label={t('Patterns past threshold', 'أنماط تجاوزت الحد')}
+                value={(patterns ?? []).filter((p) => p.currentValue >= p.thresholdTarget).length}
+                to={linkIf('/actions/signals')}
+                loading={patternsLoading}
+              />
+              <KpiTile
+                variant="well"
+                label={t('Open corrective actions', 'الإجراءات التصحيحية المفتوحة')}
+                value={openActions}
+                to={linkIf('/actions/corrective')}
+                loading={actionsLoading}
+              />
+              <KpiTile
+                variant="well"
+                label={t('Critical shopper cases open', 'حالات متسوق حرجة مفتوحة')}
+                value={criticalCases}
+                to={linkIf('/actions/shopper-cases')}
+                loading={casesLoading}
+              />
             </CardContent>
           </Card>
         </section>
@@ -93,8 +194,9 @@ export default function SettingsOverview({ hideHeader = false }: { hideHeader?: 
 
       <div className="grid grid-cols-1 gap-(--grid-gap) xl:grid-cols-5">
         <SectionCard
-          className="xl:col-span-3"
-          term="NPS" title={t('Indicators per product', 'المؤشرات لكل منتج')}
+          className="xl:col-span-5"
+          term="NPS"
+          title={t('Indicators per product', 'المؤشرات لكل منتج')}
           contentClassName={IN_CARD}
           description={
             <StatusBadge tone="neutral" icon={<Ban aria-hidden />}>
@@ -115,79 +217,56 @@ export default function SettingsOverview({ hideHeader = false }: { hideHeader?: 
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(products ?? []).filter((p) => p.live || role.id === 'cxmgr' || role.id === 'cxteam').map((p) => {
-                  const rows = rowsFor(p.id)
-                  const c = csatOf(rows)
-                  return (
-                    <TableRow key={p.id}>
-                      <TableCell>
-                        <span className="flex flex-wrap items-center gap-2">
-                          <ProductTag productId={p.id} lang={lang} />
-                          {!p.live && <span className="t-body-s">{t('hidden', 'مخفي')}</span>}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-end font-medium tabular text-foreground">
-                        <bdi dir="ltr">{fmtSigned(npsOf(rows))}</bdi>
-                      </TableCell>
-                      <TableCell className="text-end font-medium tabular text-foreground">
-                        <bdi dir="ltr">{c != null ? `${c}%` : '–'}</bdi>
-                      </TableCell>
-                      <TableCell className="text-end tabular">{rows.reduce((s, r) => s + r.n, 0)}</TableCell>
-                    </TableRow>
-                  )
-                })}
+                {(products ?? [])
+                  .filter((p) => (p.live || role.id === 'cxmgr' || role.id === 'cxteam') && (product === 'all' || p.id === product))
+                  .map((p) => {
+                    const rows = rowsFor(p.id)
+                    const c = csatOf(rows)
+                    return (
+                      <TableRow key={p.id}>
+                        <TableCell>
+                          <span className="flex flex-wrap items-center gap-2">
+                            <ProductTag productId={p.id} lang={lang} />
+                            {!p.live && <span className="t-body-s">{t('hidden', 'مخفي')}</span>}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-end font-medium tabular text-foreground">
+                          <span className="inline-flex items-center justify-end gap-2">
+                            <Signed value={npsOf(rows)}>
+                              <bdi dir="ltr">{fmtSigned(npsOf(rows))}</bdi>
+                            </Signed>
+                            {(() => {
+                              // 23 Nov (owner): green arrow when NPS rose against last month, red when it fell
+                              const tr = trend?.[p.id] ?? []
+                              return tr.length > 1 ? (
+                                <Delta
+                                  now={tr[tr.length - 1]}
+                                  before={tr[tr.length - 2]}
+                                  goodWhen="up"
+                                  label={t('vs last month', 'عن الشهر الماضي')}
+                                  className="text-xs"
+                                />
+                              ) : null
+                            })()}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-end font-medium tabular text-foreground">
+                          <bdi dir="ltr">{c != null ? `${c}%` : '–'}</bdi>
+                        </TableCell>
+                        <TableCell className="text-end tabular">{rows.reduce((s, r) => s + r.n, 0)}</TableCell>
+                      </TableRow>
+                    )
+                  })}
               </TableBody>
             </Table>
           )}
         </SectionCard>
-
-        <SectionCard
-          className="xl:col-span-2"
-          title={
-            <span className="inline-flex items-center gap-2">
-              <Package aria-hidden className="size-4 text-muted-foreground" />
-              {t('Product launch', 'إطلاق المنتج')}
-              <bdi dir="ltr" className="text-sm font-normal text-muted-foreground tabular">{`${launched.length} / ${products?.length ?? 6}`}</bdi>
-            </span>
-          }
-          description={t('Hidden products disappear from menus, cards and filters everywhere in the portal.', 'تختفي المنتجات المخفية من القوائم والبطاقات والفلاتر في كل أنحاء البوابة.')}
-        >
-          {productsLoading ? (
-            <LoadingState rows={4} />
-          ) : (
-            <ul className="flex flex-col">
-              {(products ?? []).map((p) => {
-                const status = (
-                  <StatusBadge tone={p.live ? 'success' : 'neutral'} dot>
-                    {p.live ? t('Live', 'مُفعّل') : t('Hidden', 'مخفي')}
-                  </StatusBadge>
-                )
-                return (
-                  <li key={p.id} className="row-divider flex min-h-14 items-center justify-between gap-3 py-2">
-                    <ProductTag productId={p.id} lang={lang} />
-                    {canEdit ? (
-                      <label className="flex cursor-pointer items-center gap-3">
-                        {status}
-                        <Switch
-                          checked={p.live}
-                          onCheckedChange={() => toggleLaunch.mutate({ id: p.id })}
-                          aria-label={`${L(p.name)}: ${t('show in the portal', 'إظهار في البوابة')}`}
-                        />
-                      </label>
-                    ) : (
-                      status
-                    )}
-                  </li>
-                )
-              })}
-            </ul>
-          )}
-        </SectionCard>
       </div>
 
+      <Voc embedded product={product} channel={channel} />
       <FunnelSummary />
-      <ReputationIndex />
-      <OverviewCharts products={launched} vocRows={vocRows ?? []} />
+      <ReputationIndex productFilter={product} />
+      <OverviewCharts products={shown} vocRows={vocFiltered} />
     </section>
   )
 }

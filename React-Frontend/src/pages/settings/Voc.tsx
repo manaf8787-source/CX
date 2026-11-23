@@ -39,28 +39,49 @@ function fmtSigned(v: number | null) {
  * Composition (comfortable): the per-product summaries are wells on the page (the product tag and its NPS in the head, a row per channel
  * with the three-segment bar and the response count), not a card each; the legend is written once under them. The comments are one
  * card: the product filter is the skill's sliding pill filter, each comment a divided row with its tags. */
-export default function Voc() {
+export default function Voc({
+  embedded = false,
+  product = 'all',
+  channel = 'all',
+}: { embedded?: boolean; product?: ProductId | 'all'; channel?: string } = {}) {
   const { t, L, lang } = useI18n()
   const { data: products, isLoading: productsLoading } = useProducts()
   const { data: vocRows } = useVocRows()
   const { data: comments, isLoading: commentsLoading } = useVocComments()
   const [filterProduct, setFilterProduct] = useState<ProductId | 'all'>('all')
 
-  const launched = (products ?? []).filter((p) => p.live)
+  // 23 Nov (owner): on 6 · CX indicators this is a section, driven by the page's own product and channel filters
+  const launched = (products ?? []).filter((p) => p.live && (!embedded || product === 'all' || p.id === product))
+  const pick = embedded ? product : filterProduct
   const visibleComments = (comments ?? []).filter(
-    (c) => launched.some((p) => p.id === c.product) && (filterProduct === 'all' || c.product === filterProduct),
+    (c) => launched.some((p) => p.id === c.product) && (pick === 'all' || c.product === pick) && (channel === 'all' || c.channel === channel),
   )
-  const filters: { value: ProductId | 'all'; label: string }[] = [{ value: 'all', label: t('All', 'الكل') }, ...launched.map((p) => ({ value: p.id, label: L(p.name) }))]
+  const filters: { value: ProductId | 'all'; label: string }[] = [
+    { value: 'all', label: t('All', 'الكل') },
+    ...launched.map((p) => ({ value: p.id, label: L(p.name) })),
+  ]
 
   return (
     <section data-density="comfortable" className="flex flex-col gap-8">
-      <SubPageHeader
-        title={t('Voice of Customer', 'صوت العميل')}
-        description={t(
-          'Comments, IVR feedback and survey free text across every channel, with themes and sentiment.',
-          'التعليقات وملاحظات الرد الصوتي والنصوص الحرة عبر كل القنوات، مع المواضيع والمشاعر.',
-        )}
-      />
+      {embedded ? (
+        <div className="flex flex-col gap-1">
+          <h2 className="t-h4 text-foreground">{t('Voice of Customer', 'صوت العميل')}</h2>
+          <p className="t-body-s">
+            {t(
+              'Comments, IVR feedback and survey free text across every channel, with themes and sentiment.',
+              'التعليقات وملاحظات الرد الصوتي والنصوص الحرة عبر كل القنوات، مع المواضيع والمشاعر.',
+            )}
+          </p>
+        </div>
+      ) : (
+        <SubPageHeader
+          title={t('Voice of Customer', 'صوت العميل')}
+          description={t(
+            'Comments, IVR feedback and survey free text across every channel, with themes and sentiment.',
+            'التعليقات وملاحظات الرد الصوتي والنصوص الحرة عبر كل القنوات، مع المواضيع والمشاعر.',
+          )}
+        />
+      )}
 
       {productsLoading ? (
         <LoadingState rows={4} />
@@ -68,13 +89,16 @@ export default function Voc() {
         <div className="flex flex-col gap-4">
           <div className="grid grid-cols-1 gap-(--grid-gap) md:grid-cols-2">
             {launched.map((p) => {
-              const rows = (vocRows ?? []).filter((r) => r.product === p.id)
+              const rows = (vocRows ?? []).filter((r) => r.product === p.id && (channel === 'all' || r.channel === channel))
               return (
                 <div key={p.id} role="group" aria-label={L(p.name)} className="well flex flex-col gap-5">
                   <div className="flex items-center justify-between gap-2">
                     <ProductTag productId={p.id} lang={lang} />
                     <span className="t-body-s">
-                      NPS <bdi dir="ltr" className="t-ui-strong tabular">{fmtSigned(nps(rows))}</bdi>
+                      NPS{' '}
+                      <bdi dir="ltr" className="t-ui-strong tabular">
+                        {fmtSigned(nps(rows))}
+                      </bdi>
                     </span>
                   </div>
                   {rows.length ? (
@@ -106,7 +130,15 @@ export default function Voc() {
       )}
 
       <SectionCard title={t('Comments and free text', 'التعليقات والنصوص الحرة')} contentClassName="flex flex-col gap-5">
-        <Segmented variant="pressed" label={t('Filter by product', 'تصفية حسب المنتج')} value={filterProduct} onValueChange={setFilterProduct} options={filters} />
+        {!embedded && (
+          <Segmented
+            variant="pressed"
+            label={t('Filter by product', 'تصفية حسب المنتج')}
+            value={filterProduct}
+            onValueChange={setFilterProduct}
+            options={filters}
+          />
+        )}
         {commentsLoading ? (
           <LoadingState rows={3} />
         ) : visibleComments.length ? (

@@ -18,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { CHANNEL_LABEL } from '@/components/customers/channels'
 import type { Bi, Product, ProductId, VocRow } from '@/types'
 import { cn } from '@/lib/utils'
+import { Bad, Delta, Good } from '@/components/common/Trend'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -88,7 +89,7 @@ function repStats(list: PublicMention[], nowMs: number) {
   }
 }
 
-export function ReputationIndex() {
+export function ReputationIndex({ productFilter }: { productFilter?: 'all' | ProductId } = {}) {
   const { t, L, lang } = useI18n()
   const { role } = useRole()
   const now = useNow()
@@ -98,7 +99,9 @@ export function ReputationIndex() {
   const [to, setTo] = useState(() => isoDay(now))
   const platforms: PublicPlatform[] = ['facebook', 'instagram', 'linkedin', 'google', 'googleplay', 'appstore', 'webcomment']
   /** 23 Nov (owner): the product filter; 'none' = not classified yet. */
-  const [product, setProduct] = useState<'all' | 'none' | ProductId>('all')
+  const [ownProduct, setProduct] = useState<'all' | 'none' | ProductId>('all')
+  // 23 Nov (owner): on 6 · CX indicators the page's product filter drives this card
+  const product = productFilter ?? ownProduct
 
   // The window [start, end] as ISO days, and the window of the same length just before it (for the comparison).
   const win = useMemo(() => {
@@ -172,8 +175,8 @@ export function ReputationIndex() {
         ? `${fmtDay(win.start)} – ${fmtDay(win.end)}`
         : t(`last ${period} days`, `آخر ${num(Number(period))} يوماً`)
   /** "was 40%" against the previous window of the same length. */
-  const was = (v: number | undefined, unit = '%') => (idx.prev && v != null ? t(` · was ${v}${unit}`, ` · كانت ${num(v)}${unit === '%' ? '%' : ' س'}`) : '')
-  const colors = { pos: chartColor(0), neu: chartColor(2), neg: chartColor(1) }
+  // 23 Nov (owner): positive green, negative red, everywhere
+  const colors = { pos: 'var(--status-success-solid)', neu: chartColor(2), neg: 'var(--status-error-solid)' }
 
   return (
     <SectionCard
@@ -215,20 +218,22 @@ export function ReputationIndex() {
             { value: 'custom', label: t('Pick dates', 'اختر التواريخ') },
           ]}
         />
-        <Select value={product} onValueChange={(v) => setProduct(v as 'all' | 'none' | ProductId)}>
-          <SelectTrigger className="h-9 min-w-44" aria-label={t('Product', 'المنتج')}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t('All products', 'كل المنتجات')}</SelectItem>
-            {PRODUCTS.map((p) => (
-              <SelectItem key={p.id} value={p.id}>
-                {L(p.name)}
-              </SelectItem>
-            ))}
-            <SelectItem value="none">{t('Not classified yet', 'غير مصنّفة بعد')}</SelectItem>
-          </SelectContent>
-        </Select>
+        {!productFilter && (
+          <Select value={product} onValueChange={(v) => setProduct(v as 'all' | 'none' | ProductId)}>
+            <SelectTrigger className="h-9 min-w-44" aria-label={t('Product', 'المنتج')}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t('All products', 'كل المنتجات')}</SelectItem>
+              {PRODUCTS.map((p) => (
+                <SelectItem key={p.id} value={p.id}>
+                  {L(p.name)}
+                </SelectItem>
+              ))}
+              <SelectItem value="none">{t('Not classified yet', 'غير مصنّفة بعد')}</SelectItem>
+            </SelectContent>
+          </Select>
+        )}
         {period === 'custom' && (
           <div className="flex flex-wrap items-center gap-2">
             <label className="t-small flex items-center gap-1.5">
@@ -250,16 +255,22 @@ export function ReputationIndex() {
             <KpiTile
               variant="well"
               label={t('Positive / negative', 'إيجابي / سلبي')}
-              value={<bdi dir="ltr">{`${idx.posShare}% / ${idx.negShare}%`}</bdi>}
+              value={
+                <bdi dir="ltr">
+                  <Good>{idx.posShare}%</Good> / <Bad>{idx.negShare}%</Bad>
+                </bdi>
+              }
               sub={
-                t(`${idx.n} public mentions, ${periodText}`, `${num(idx.n)} إشارة عامة، ${periodText}`) +
-                was(idx.prev?.negShare).replace('was', 'negative was').replace('كانت', 'السلبي كان')
+                <>
+                  {t(`${idx.n} public mentions, ${periodText}`, `${num(idx.n)} إشارة عامة، ${periodText}`)}{' '}
+                  <Delta now={idx.negShare} before={idx.prev?.negShare} goodWhen="down" unit="%" label={t('negative vs before', 'السلبي مقارنة بالسابق')} />
+                </>
               }
             />
             <KpiTile
               variant="well"
               label={t('Negative still without a reply', 'سلبية بلا رد بعد')}
-              value={num(idx.waiting)}
+              value={idx.waiting ? <Bad>{num(idx.waiting)}</Bad> : <Good>{num(idx.waiting)}</Good>}
               sub={
                 idx.overdue
                   ? t(`${idx.overdue} past the 48 h target`, `${num(idx.overdue)} تجاوزت هدف 48 ساعة`)
@@ -270,13 +281,23 @@ export function ReputationIndex() {
               variant="well"
               label={t('Public reply time', 'زمن الرد العام')}
               value={<bdi dir="ltr">{`${idx.avgReplyH} h`}</bdi>}
-              sub={t(`${idx.within48}% within 48 h`, `${num(idx.within48)}% خلال 48 ساعة`) + was(idx.prev?.avgReplyH, ' h')}
+              sub={
+                <>
+                  {t(`${idx.within48}% within 48 h`, `${num(idx.within48)}% خلال 48 ساعة`)}{' '}
+                  <Delta now={idx.avgReplyH} before={idx.prev?.avgReplyH} goodWhen="down" unit=" h" label={t('vs before', 'مقارنة بالسابق')} />
+                </>
+              }
             />
             <KpiTile
               variant="well"
               label={t('Moved to a private channel', 'انتقلوا إلى قناة خاصة')}
               value={`${idx.movedShare}%`}
-              sub={t('of negative mentions became identified', 'من الإشارات السلبية أصبحت معرَّفة') + was(idx.prev?.movedShare)}
+              sub={
+                <>
+                  {t('of negative mentions became identified', 'من الإشارات السلبية أصبحت معرَّفة')}{' '}
+                  <Delta now={idx.movedShare} before={idx.prev?.movedShare} goodWhen="up" unit="%" label={t('vs before', 'مقارنة بالسابق')} />
+                </>
+              }
             />
             <KpiTile
               variant="well"
@@ -332,7 +353,14 @@ export function ReputationIndex() {
                         {L(CHANNEL_LABEL[r.platform])} <span className="font-normal text-muted-foreground">· {t('public', 'عام')}</span>
                       </TableCell>
                       {[r.n, r.pos, r.neg, r.replied].map((v, k) => (
-                        <TableCell key={k} className="text-end tabular">
+                        <TableCell
+                          key={k}
+                          className={cn(
+                            'text-end tabular',
+                            v > 0 && k === 1 && 'text-(--status-success-text)',
+                            v > 0 && k === 2 && 'text-(--status-error-text)',
+                          )}
+                        >
                           {num(v)}
                         </TableCell>
                       ))}
@@ -369,7 +397,10 @@ export function ReputationIndex() {
                       )}
                     </TableCell>
                     {[r.n, r.pos, r.neg, r.open].map((v, k) => (
-                      <TableCell key={k} className="text-end tabular">
+                      <TableCell
+                        key={k}
+                        className={cn('text-end tabular', v > 0 && k === 1 && 'text-(--status-success-text)', v > 0 && k === 2 && 'text-(--status-error-text)')}
+                      >
                         {num(v)}
                       </TableCell>
                     ))}

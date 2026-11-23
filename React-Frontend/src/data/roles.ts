@@ -25,7 +25,8 @@ export const ROLE_DEFS: RoleDef[] = [
       en: 'Works the cases: triage, propose corrective actions, run the assistant, create AI interview campaigns.',
       ar: 'يعمل على الحالات: الفرز، اقتراح الإجراءات التصحيحية، تشغيل المساعد، إنشاء حملات المقابلات بالذكاء الاصطناعي.',
     },
-    home: '/home',
+    // 23 Nov (owner): the CX team's work is all in the inbox
+    home: '/inbox',
   },
   {
     id: 'envmgmt',
@@ -190,4 +191,3 @@ export const SIGN_IN_COPY = {
     ar: 'أدوار أخرى تُستخدم في العرض (قادة الفرق، الموارد البشرية، التنفيذيون، فرق المنتجات، المتسوقون)',
   },
 }
-

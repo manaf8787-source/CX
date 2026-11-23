@@ -11,6 +11,8 @@ import { LoadingState } from '@/components/common/LoadingState'
 import { ProposedBadge } from '@/components/common/ProposedBadge'
 import { SettingsSection, SubPageHeader, ViewOnlyNotice } from './SubPageHeader'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import AdminSettings from './AdminSettings'
+import AiInsightsAccess from './AiInsightsAccess'
 import StandardsRegister from './StandardsRegister'
 import { ESCALATION_PRINCIPLES } from '@/data/v38Reference'
 import { MATRIX_COPY } from '@/data/escalationDefaults'
@@ -169,12 +171,17 @@ export default function Rules() {
   const [params, setParams] = useSearchParams()
   const showStandards = role.id === 'cxmgr' || role.id === 'cxteam'
   if (!showStandards) return <RulesBody />
-  const tab = params.get('tab') === 'standards' ? 'standards' : 'rules'
+  const raw = params.get('tab')
+  const isMgr = role.id === 'cxmgr'
+  const tab = raw === 'standards' || (isMgr && (raw === 'notices' || raw === 'access')) ? raw : 'rules'
   return (
     <Tabs value={tab} onValueChange={(v) => setParams({ tab: v }, { replace: true })} className="gap-4">
       <TabsList aria-label={t('Rules and standards', 'القواعد والمعايير')}>
         <TabsTrigger value="rules">{t('Rules', 'القواعد')}</TabsTrigger>
         <TabsTrigger value="standards">{t('Standards (the documents behind them)', 'المعايير (المستندات وراءها)')}</TabsTrigger>
+        {/* 23 Nov (owner): two settings pages folded in, so the CX manager's menu is shorter */}
+        {isMgr && <TabsTrigger value="notices">{t('Notices and digests', 'الإشعارات والخلاصات')}</TabsTrigger>}
+        {isMgr && <TabsTrigger value="access">{t('AI Insights access', 'صلاحيات رؤى الذكاء الاصطناعي')}</TabsTrigger>}
       </TabsList>
       <TabsContent value="rules">
         <RulesBody />
@@ -182,6 +189,16 @@ export default function Rules() {
       <TabsContent value="standards">
         <StandardsRegister embedded />
       </TabsContent>
+      {isMgr && (
+        <TabsContent value="notices">
+          <AdminSettings />
+        </TabsContent>
+      )}
+      {isMgr && (
+        <TabsContent value="access">
+          <AiInsightsAccess />
+        </TabsContent>
+      )}
     </Tabs>
   )
 }
