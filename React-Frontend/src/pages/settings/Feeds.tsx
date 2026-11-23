@@ -10,6 +10,7 @@ import { LoadingState } from '@/components/common/LoadingState'
 import { SectionCard } from '@/components/common/SectionCard'
 import { StatusBadge } from '@/components/common/StatusBadge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { InlineNote } from '@/components/common/InlineNote'
 import { IN_CARD, SubPageHeader } from './SubPageHeader'
 
 const DAY_MS = 86_400_000
@@ -70,6 +71,14 @@ export default function Feeds() {
         }
       />
 
+      {/* 23 Nov (owner): say plainly that this is incoming data, not something the portal produces */}
+      <InlineNote title={t('This is the data we receive', 'هذه هي البيانات التي نستلمها')}>
+        {t(
+          'Each row is one source sending data INTO the portal (CRM, WhatsApp, the call center, the app and website, surveys, social media). The portal does not create these numbers; it reads them. "Today" says whether the source delivered today. The connection settings behind each row are on the Connections tab.',
+          'كل سطر مصدر يرسل البيانات إلى البورتال (CRM، واتساب، مركز الاتصال، التطبيق والموقع، الاستبيانات، وسائل التواصل). البورتال لا يصنع هذه الأرقام بل يقرؤها. «اليوم» تبيّن هل سلّم المصدر بياناته اليوم. إعدادات الربط خلف كل سطر في تبويب الاتصالات.',
+        )}
+      </InlineNote>
+
       {isError ? (
         <ErrorState onRetry={() => void refetch()} />
       ) : isLoading || !feeds ? (
@@ -113,3 +122,4 @@ export default function Feeds() {
     </section>
   )
 }
+

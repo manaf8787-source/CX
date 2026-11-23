@@ -3,7 +3,7 @@ import type { Bi, EnvId, ProductId } from '../types'
 import { ymd } from './performance'
 
 /**
- * The CRM agents' performance (owner's request, 22 Nov): two reports, Sales agents and Support agents, each filterable by product.
+ * The CRM agents' performance (owner's request, 22 Nov): two reports, Sales agents and the Excellence team (was Support agents), each filterable by product.
  * The source is the CRM: the lead SLA (first response) and the SLA on every activity for PSI Real Estate and PSI Club; Tour Estate
  * guides are measured on customer feedback linked to their name (needs an API from the product owner); PSI Wallet is mostly the
  * user's own work, so only its front-end support agents (WhatsApp and in-app chat) are measured.
@@ -249,8 +249,8 @@ export const PRODUCT_SOURCES: Partial<Record<ProductId, { ready: boolean; text: 
   wl: {
     ready: false,
     text: {
-      en: 'PSI Wallet: the work is mostly the user’s own, so only the front-end support agents are measured, on WhatsApp and in-app chat. Needs the chat tool’s API; until then the figures are sample data.',
-      ar: 'محفظة بي إس آي: العمل يقوم به المستخدم في الغالب، لذا يُقاس فقط وكلاء الدعم في الواجهة عبر واتساب ودردشة التطبيق. يحتاج واجهة أداة الدردشة؛ إلى ذلك الحين الأرقام تجريبية.',
+      en: 'PSI Wallet: the work is mostly the user’s own, so only the Excellence team members on the front line are measured, on WhatsApp and in-app chat. Needs the chat tool’s API; until then the figures are sample data.',
+      ar: 'محفظة بي إس آي: العمل يقوم به المستخدم في الغالب، لذا يُقاس فقط أعضاء فريق التميّز في الواجهة عبر واتساب ودردشة التطبيق. يحتاج واجهة أداة الدردشة؛ إلى ذلك الحين الأرقام تجريبية.',
     },
   },
 }

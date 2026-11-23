@@ -47,6 +47,7 @@ const CxReports = lazy(() => import('./pages/CxReports'))
 const SalesAgents = lazy(() => import('./pages/agents/SalesAgents'))
 const SupportAgents = lazy(() => import('./pages/agents/SupportAgents'))
 const UserPerformance = lazy(() => import('./pages/admin/UserPerformance'))
+const Integrations = lazy(() => import('./pages/admin/Integrations'))
 const TeamAvailability = lazy(() => import('./pages/settings/TeamAvailability'))
 const HrTeamPerf = lazy(pageLoaders.hrTeamPerf)
 const Rules = lazy(pageLoaders.rules)
@@ -120,6 +121,7 @@ export default function App() {
                   <Route path="/admin/users" element={<Users />} />
                   <Route path="/admin/audit" element={<AuditLog />} />
                   <Route path="/admin/performance" element={<UserPerformance />} />
+                  <Route path="/admin/integrations" element={<Integrations />} />
                   <Route path="/performance" element={<Performance />} />
                   <Route path="/reports" element={<CxReports />} />
                   <Route path="/agents/sales" element={<SalesAgents />} />

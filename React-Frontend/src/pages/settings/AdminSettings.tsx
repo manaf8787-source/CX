@@ -1,13 +1,7 @@
-import { Fragment, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
-import { ChevronDown } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { useRole } from '@/auth/RoleContext'
-import { useHrPool, useProducts, useShopperCases, useToggleProductLaunch } from '@/services/queries'
-import { hrCasesBySpecialist } from '@/data/pendingWork'
-import { SEVERITY_TONE } from '@/lib/status'
-import { cn } from '@/lib/utils'
+import { useProducts, useToggleProductLaunch } from '@/services/queries'
 import { useHeadNotices, useUpdateHeadNotice, type DigestFrequency } from '@/services/referenceQueries'
 import { INFORMED_RULE } from '@/data/v38Reference'
 import { Switch } from '@/components/ui/switch'
@@ -27,7 +21,7 @@ const DIGEST_LABEL: Record<DigestFrequency, { en: string; ar: string }> = {
 }
 
 /** Modules KB §15: "Settings holds the launch list (which products are live),
- * the HR pool, the notices heads receive, and Rules as configuration." The
+ * the notices heads receive (22 Nov: the HR pool left this page; its open cases are under Actions, With other teams, and its people are the HR specialist users in Users and access), and Rules as configuration." The
  * CX manager changes them; the CX team reads them.
  *
  * Design: comfortable density and the skill's two-column settings layout (Heading 4 and description on the left, the card on the
@@ -39,11 +33,6 @@ export default function AdminSettings() {
   const canEdit = role.id === 'cxmgr'
   const { data: products, isLoading: productsLoading } = useProducts()
   const toggleLaunch = useToggleProductLaunch()
-  const { data: hrPool, isLoading: poolLoading } = useHrPool()
-  const { data: shopperCases } = useShopperCases()
-  const hrCases = hrCasesBySpecialist(shopperCases ?? [], hrPool ?? [])
-  const [openSpecialist, setOpenSpecialist] = useState<string | null>(null)
-  const day = (iso: string) => new Date(iso).toLocaleDateString(lang === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short' })
   const { data: notices, isLoading: noticesLoading } = useHeadNotices()
   const updateNotice = useUpdateHeadNotice()
 
@@ -53,8 +42,8 @@ export default function AdminSettings() {
         <SubPageHeader
           title={t('Settings', 'الإعدادات')}
           description={t(
-            'Which products are live, who is in the HR pool, and which notices the heads receive. Environments and pools are read from the CRM and are not edited here.',
-            'أي المنتجات مُطلقة ومن في مجموعة الموارد البشرية وأي الإشعارات تصل الرؤساء. البيئات والمجموعات تُقرأ من CRM ولا تُعدّل هنا.',
+            'Which products are live, and which notices the heads receive. Environments and pools are read from the CRM and are not edited here.',
+            'أي المنتجات مُطلقة وأي الإشعارات تصل الرؤساء. البيئات والمجموعات تُقرأ من CRM ولا تُعدّل هنا.',
           )}
         />
         {!canEdit && (
@@ -100,94 +89,6 @@ export default function AdminSettings() {
               })}
             </ul>
           )}
-        </SettingsSection>
-
-        <SettingsSection
-          table
-          title={t('HR pool', 'مجموعة الموارد البشرية')}
-          description={t(
-            'Conduct cases are assigned to the HR pool; the agent’s direct manager reviews HR’s actions.',
-            'تُعيَّن حالات السلوك لمجموعة الموارد البشرية؛ ويراجع المدير المباشر للموظف إجراءاتها.',
-          )}
-        >
-          {poolLoading ? (
-            <LoadingState rows={2} />
-          ) : (
-            <Table density="comfortable">
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t('Title', 'المسمى')}</TableHead>
-                  <TableHead>{t('Email', 'البريد')}</TableHead>
-                  <TableHead>{t('Mobile', 'الجوال')}</TableHead>
-                  <TableHead className="text-end">{t('Assigned cases', 'الحالات المعيّنة')}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(hrPool ?? []).map((m) => {
-                  const mine = hrCases.get(m.title) ?? []
-                  const open = openSpecialist === m.title
-                  return (
-                    <Fragment key={m.title}>
-                      <TableRow>
-                        <TableCell className="font-medium text-foreground">{m.title}</TableCell>
-                        <TableCell className="tabular" dir="ltr">
-                          {m.email}
-                        </TableCell>
-                        <TableCell className="tabular" dir="ltr">
-                          {m.mobile}
-                        </TableCell>
-                        <TableCell className="text-end">
-                          <button
-                            type="button"
-                            aria-expanded={open}
-                            disabled={!mine.length}
-                            onClick={() => setOpenSpecialist(open ? null : m.title)}
-                            className="inline-flex items-center gap-1 rounded-md px-2 py-1 font-medium tabular text-foreground underline-offset-4 hover:underline disabled:no-underline"
-                          >
-                            {mine.length}
-                            {mine.length > 0 && <ChevronDown aria-hidden className={cn('size-3.5 transition-transform', open && 'rotate-180')} />}
-                          </button>
-                        </TableCell>
-                      </TableRow>
-                      {open && (
-                        <TableRow>
-                          <TableCell colSpan={4} className="bg-well">
-                            <ul className="flex flex-col gap-2 py-1">
-                              {mine.map((c) => (
-                                <li key={c.id} className="flex flex-wrap items-center justify-between gap-2 text-sm whitespace-normal">
-                                  <span className="flex flex-col gap-0.5">
-                                    <span className="font-medium text-foreground">
-                                      {t(`Conduct case: ${c.category.replace(/_/g, ' ')}`, `حالة سلوك: ${c.category.replace(/_/g, ' ')}`)}
-                                    </span>
-                                    <span className="text-xs text-muted-foreground">
-                                      {c.environment} · {t('opened', 'فُتحت')} {day(c.openedAt)} · {t('due', 'الموعد')} {day(c.resolveDueAt)} ·{' '}
-                                      {t('visit score', 'نتيجة الزيارة')} {c.visitScorePct}%
-                                    </span>
-                                  </span>
-                                  <StatusBadge tone={SEVERITY_TONE[c.severity]}>{c.severity}</StatusBadge>
-                                </li>
-                              ))}
-                              <li>
-                                <Link to="/actions/with-teams" className="text-xs font-medium text-foreground underline underline-offset-4">
-                                  {t('Read each case in full under Actions, With other teams', 'اقرأ كل حالة كاملة في الإجراءات، عند الأقسام الأخرى')}
-                                </Link>
-                              </li>
-                            </ul>
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </Fragment>
-                  )
-                })}
-              </TableBody>
-            </Table>
-          )}
-          <p className="px-2.5 text-sm text-muted-foreground">
-            {t(
-              'Real HR pool members are still to be named by HR management. [Proposed]',
-              'أعضاء مجموعة الموارد البشرية الفعليون لم تحددهم إدارة الموارد بعد. [مقترح]',
-            )}
-          </p>
         </SettingsSection>
 
         <SettingsSection table layout="stacked" title={t('Notices and digests', 'الإشعارات والخلاصات')} term="Informed only" description={L(INFORMED_RULE)}>

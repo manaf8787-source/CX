@@ -35,7 +35,7 @@ export const PRIMARY_NAV: NavGroup[] = [
       { path: '/reports', label: { en: 'CX reports', ar: 'تقارير تجربة العملاء' } },
       // 22 Nov: the CRM agents' reports, by product (CX manager, each environment's CEO, and custom roles such as Sales support).
       { path: '/agents/sales', label: { en: 'Sales agents', ar: 'وكلاء المبيعات' } },
-      { path: '/agents/support', label: { en: 'Support agents', ar: 'وكلاء الدعم' } },
+      { path: '/agents/support', label: { en: 'Excellence team', ar: 'فريق التميّز' } },
     ],
   },
   {
@@ -46,6 +46,8 @@ export const PRIMARY_NAV: NavGroup[] = [
       { path: '/admin/users', label: { en: 'Users and access', ar: 'المستخدمون والصلاحيات' } },
       { path: '/admin/audit', label: { en: 'Audit log', ar: 'سجل التدقيق' } },
       { path: '/admin/performance', label: { en: 'User performance', ar: 'أداء المستخدمين' } },
+      // 23 Nov: connections with other platforms and products, and the data feeds; Super admin and Admin only.
+      { path: '/admin/integrations', label: { en: 'Integrations', ar: 'الربط والتكاملات' } },
     ],
   },
 ]
@@ -107,7 +109,7 @@ export const SETTINGS_NAV: NavLeaf[] = [
   { path: '/settings/feeds', label: { en: 'Data feeds', ar: 'تغذيات البيانات' } },
   { path: '/settings/crm-mapping', label: { en: 'CRM mapping', ar: 'ربط قيم CRM' } },
   { path: '/settings/escalation-matrix', label: { en: 'Escalation matrix', ar: 'مصفوفة التصعيد' } },
-  { path: '/settings/admin', label: { en: 'Settings: launch, HR pool, notices', ar: 'الإعدادات: الإطلاق، الموارد البشرية، الإشعارات' } },
+  { path: '/settings/admin', label: { en: 'Settings: launch and notices', ar: 'الإعدادات: الإطلاق والإشعارات' } },
   { path: '/settings/rules', label: { en: 'Rules as configuration', ar: 'القواعد كإعدادات' } },
   { path: '/settings/ai-insights-access', label: { en: 'AI Insights access matrix', ar: 'مصفوفة صلاحيات رؤى الذكاء الاصطناعي' } },
   { path: '/settings/glossary', label: { en: 'What the terms mean', ar: 'ماذا تعني المصطلحات' } },

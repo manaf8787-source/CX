@@ -31,7 +31,9 @@ export function AsOfBar() {
   const { role } = useRole()
   const { env, setEnv, allowed, fixed } = useEnvScope()
   const { data } = useFeedScope()
-  const link = canAccessPath(role.id, '/settings/feeds')
+  // 23 Nov: the feeds live on Integrations for the Super admin and the Admin; other roles that read them keep the Settings page
+  const feedsPath = canAccessPath(role.id, '/admin/integrations') ? '/admin/integrations?tab=feeds' : '/settings/feeds'
+  const link = canAccessPath(role.id, feedsPath.split('?')[0])
   const late = data?.lateCount ?? 0
   const asOf = data?.asOf
     ? new Intl.DateTimeFormat(lang === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(data.asOf))
@@ -124,7 +126,7 @@ export function AsOfBar() {
       </span>
 
       {link ? (
-        <Link to="/settings/feeds" title={`${L(FEEDS_COPY.barDataAsOf)} ${asOf}`} className="rounded-full outline-hidden transition-opacity duration-200 hover:opacity-80">
+        <Link to={feedsPath} title={`${L(FEEDS_COPY.barDataAsOf)} ${asOf}`} className="rounded-full outline-hidden transition-opacity duration-200 hover:opacity-80">
           {chip}
         </Link>
       ) : (
@@ -135,3 +137,4 @@ export function AsOfBar() {
     </div>
   )
 }
+

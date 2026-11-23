@@ -91,9 +91,9 @@ export const ROLE_PATHS: Record<RoleId, string[] | null> = {
   shopper: ['/settings/mystery-shopper'],
   // v43: the super admin runs the user directory and nothing else.
   // 22 Nov (Chairman): the HR performance page is the HR roles', the Super admin's and the Admin's, not the CX side's.
-  admin: [USERS_PAGE, AUDIT_PAGE, USER_PERFORMANCE_PAGE, '/settings/hr-team'],
+  admin: [USERS_PAGE, AUDIT_PAGE, USER_PERFORMANCE_PAGE, '/settings/hr-team', '/admin/integrations'],
   // v43.2: the Admin runs the user list; the audit log stays with the super admin.
-  useradmin: [USERS_PAGE, USER_PERFORMANCE_PAGE, '/settings/hr-team'],
+  useradmin: [USERS_PAGE, USER_PERFORMANCE_PAGE, '/settings/hr-team', '/admin/integrations'],
   // v43.1: a custom role's pages come from the role the super admin built (data/customRoles.ts), read live.
   custom: [],
 }
@@ -124,6 +124,8 @@ function blocked(role: RoleId, path: string): boolean {
   if (isCx(role) && matches(path, '/settings/hr-team')) return true
   // L&D's own page (training materials, training plan) is L&D's; the CX side follows L&D's open items under Actions, With other teams
   if (isCx(role) && matches(path, '/settings/ld')) return true
+  // 23 Nov: integrations and the data feeds are the Super admin's and the Admin's, not the CX side's
+  if (isCx(role) && (matches(path, '/admin/integrations') || matches(path, '/settings/feeds'))) return true
   return role === 'cxteam' && matches(path, TEAM_PERFORMANCE_PAGE)
 }
 

@@ -5,7 +5,7 @@ import { useRole } from '@/auth/RoleContext'
 import { LEGACY_AUTHORITY_MATRIX, LEGACY_ROLE_DEFS } from '@/data/legacyReference'
 import { ROLE_DEFS } from '@/data/roles'
 import { INFORMED_RULE, ROLE_SCOPE } from '@/data/v38Reference'
-import { useHrPool, useProducts } from '@/services/queries'
+import { useProducts } from '@/services/queries'
 import { useCrmFields, useProductRouting } from '@/services/referenceQueries'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -30,7 +30,6 @@ export default function TeamsStructure() {
   const { role } = useRole()
   const { data: routing, isLoading: routingLoading } = useProductRouting()
   const { data: crmFields } = useCrmFields()
-  const { data: hrPool } = useHrPool()
   const { data: products } = useProducts()
   const legacyRows: MatrixRow[] = LEGACY_AUTHORITY_MATRIX.map((r) => ({
     key: `${r.group.en}|${r.label.en}`,
@@ -66,7 +65,6 @@ export default function TeamsStructure() {
             <TabsTrigger value="roles">{t('Who does what', 'من يفعل ماذا')}</TabsTrigger>
             <TabsTrigger value="routing">{t('Product routing', 'توجيه المنتجات')}</TabsTrigger>
             <TabsTrigger value="crm">{t('From the CRM', 'من نظام CRM')}</TabsTrigger>
-            <TabsTrigger value="hr">{t('HR pool', 'مجموعة الموارد البشرية')}</TabsTrigger>
             <TabsTrigger value="informed">{t('Who is informed', 'من يُبلَّغ')}</TabsTrigger>
             <TabsTrigger value="legacy">{t('Earlier authority matrix', 'مصفوفة الصلاحيات السابقة')}</TabsTrigger>
           </TabsList>
@@ -168,37 +166,6 @@ export default function TeamsStructure() {
           </SectionCard>
         </TabsContent>
 
-        <TabsContent value="hr">
-          <SectionCard
-            description={t(
-              'The HR pool is dynamic: HR management gives the emails and mobiles; each member signs in and sees only the cases assigned to them. The HR manager sees the team report and an alert only when the team is late — never a case.',
-              'مجموعة الموارد البشرية ديناميكية: تعطي إدارة الموارد البريد والجوال؛ يدخل كل عضو ولا يرى إلا الحالات المعيّنة له. مدير الموارد يرى تقرير الفريق وتنبيهاً عند تأخر الفريق فقط — ولا يرى أي حالة.',
-            )}
-            contentClassName={IN_CARD}
-          >
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t('Title', 'المسمى')}</TableHead>
-                  <TableHead>{t('Email', 'البريد')}</TableHead>
-                  <TableHead>{t('Mobile', 'الجوال')}</TableHead>
-                  <TableHead className="text-end">{t('Open cases', 'حالات مفتوحة')}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(hrPool ?? []).map((m) => (
-                  <TableRow key={m.title}>
-                    <TableCell className="font-medium text-foreground">{m.title}</TableCell>
-                    <TableCell className="tabular" dir="ltr">{m.email}</TableCell>
-                    <TableCell className="tabular" dir="ltr">{m.mobile}</TableCell>
-                    <TableCell className="text-end font-medium tabular text-foreground">{m.assignedCases}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-            <p className="mt-3 px-2.5 text-sm text-muted-foreground">{t('Real HR pool members are still to be named by HR management.', 'أعضاء مجموعة الموارد البشرية الفعليون لم تحددهم إدارة الموارد بعد.')}</p>
-          </SectionCard>
-        </TabsContent>
 
         <TabsContent value="informed">
           <SectionCard title={t('Who is informed', 'من يُبلَّغ')}>
@@ -219,3 +186,4 @@ export default function TeamsStructure() {
     </section>
   )
 }
+

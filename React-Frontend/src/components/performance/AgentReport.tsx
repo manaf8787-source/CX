@@ -24,7 +24,7 @@ import { ChartTooltip, ChartWell, ChartLegend } from '@/components/common/charts
 import { chartAxis, chartBar, chartBarMuted, chartColor, chartCursorBar, chartGrid } from '@/components/common/chartTheme'
 
 /**
- * The Sales agents and Support agents reports (22 Nov): one component, filterable by product, period, environment and agent.
+ * The Sales agents and Excellence team reports (22 Nov; the Excellence team was "Support agents" until 23 Nov): one component, filterable by product, period, environment and agent.
  * `envId` limits it to one environment (the environment's CEO sees their own only); without it every agent shows.
  * The date range drives the tiles, the table, the chart and the export, so what is on screen is what is exported.
  */
@@ -92,17 +92,17 @@ export function AgentReport({ kind, canExport, envId }: Props) {
   const sources = (product === 'all' ? products.map((p) => p.id) : [product]).filter((id) => PRODUCT_SOURCES[id])
 
   const sales = kind === 'sales'
-  const baseName = sales ? 'sales-agents' : 'support-agents'
+  const baseName = sales ? 'sales-agents' : 'excellence-team'
   const rangeTag = `${from}_to_${to}`
-  const title = sales ? t('Sales agents', 'وكلاء المبيعات') : t('Support agents', 'وكلاء الدعم')
+  const title = sales ? t('Sales agents', 'وكلاء المبيعات') : t('Excellence team', 'فريق التميّز')
   const description = sales
     ? t(
         'How each sales agent handles leads: first response against the CRM lead SLA, activities done on time against their SLA, leads handled and converted, and what customers say about the agent.',
         'كيف يتعامل كل وكيل مبيعات مع العملاء المحتملين: أول رد مقابل مهلة CRM، والأنشطة المنجزة في موعدها، والعملاء المعالجون والمحوّلون، وما يقوله العملاء عن الوكيل.',
       )
     : t(
-        'How each support agent handles customers on WhatsApp and in-app chat: first response and resolution against their SLA, first-contact resolution, escalations and customer score.',
-        'كيف يتعامل كل وكيل دعم مع العملاء عبر واتساب ودردشة التطبيق: أول رد والحل مقابل المهلة، والحل من أول تواصل، والتصعيد، وتقييم العميل.',
+        'How each Excellence team member handles customers on WhatsApp and in-app chat: first response and resolution against their SLA, first-contact resolution, escalations and customer score.',
+        'كيف يتعامل كل عضو في فريق التميّز مع العملاء عبر واتساب ودردشة التطبيق: أول رد والحل مقابل المهلة، والحل من أول تواصل، والتصعيد، وتقييم العميل.',
       )
 
   function exportSummary() {
@@ -137,7 +137,7 @@ export function AgentReport({ kind, canExport, envId }: Props) {
         [t('To', 'إلى')]: to,
       })),
     )
-    log('action', { en: `Exported the ${sales ? 'sales' : 'support'} agents summary, ${from} to ${to}`, ar: `صدّر ملخص ${sales ? 'وكلاء المبيعات' : 'وكلاء الدعم'}، من ${from} إلى ${to}` })
+    log('action', { en: `Exported the ${sales ? 'sales agents' : 'Excellence team'} summary, ${from} to ${to}`, ar: `صدّر ملخص ${sales ? 'وكلاء المبيعات' : 'فريق التميّز'}، من ${from} إلى ${to}` })
   }
 
   function exportRecords() {
@@ -164,7 +164,7 @@ export function AgentReport({ kind, canExport, envId }: Props) {
           [t('Source', 'المصدر')]: t('Sample history', 'سجل تجريبي'),
         })),
     )
-    log('action', { en: `Exported every record behind the ${sales ? 'sales' : 'support'} agents report, ${from} to ${to}`, ar: `صدّر كل السجلات خلف تقرير ${sales ? 'وكلاء المبيعات' : 'وكلاء الدعم'}، من ${from} إلى ${to}` })
+    log('action', { en: `Exported every record behind the ${sales ? 'sales agents' : 'Excellence team'} report, ${from} to ${to}`, ar: `صدّر كل السجلات خلف تقرير ${sales ? 'وكلاء المبيعات' : 'فريق التميّز'}، من ${from} إلى ${to}` })
   }
 
   return (
