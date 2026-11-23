@@ -48,6 +48,8 @@ export const PRIMARY_NAV: NavGroup[] = [
       { path: '/admin/performance', label: { en: 'User performance', ar: 'أداء المستخدمين' } },
       // 23 Nov: connections with other platforms and products, and the data feeds; Super admin and Admin only.
       { path: '/admin/integrations', label: { en: 'Integrations', ar: 'الربط والتكاملات' } },
+      // 23 Nov: which products are live; moved from the CX manager's Settings to the Super admin and Admin.
+      { path: '/admin/products', label: { en: 'Product launch', ar: 'إطلاق المنتجات' } },
     ],
   },
 ]
@@ -62,6 +64,8 @@ export const CUSTOMERS_TABS: NavLeaf[] = [
 /** Old URLs that still work: the page moved, the old path redirects (F08, F18). Search and hash are kept. */
 export const LEGACY_REDIRECTS: Record<string, string> = {
   '/surveys': '/settings/surveys',
+  // 23 Nov: Teams and structure was split: routing went to Who handles what, the CRM fields to Integrations, the rest was removed
+  '/settings/teams-structure': '/settings/escalation-matrix?view=routing',
   '/settings/overview': '/overview',
   // 22 Nov: three Surveys pages became one screen with tabs
   '/settings/survey-questions': '/settings/surveys?tab=questions',
@@ -94,7 +98,7 @@ export const SETTINGS_NAV: NavLeaf[] = [
   { path: '/settings/watch-ai-team', label: { en: 'Watch the AI team work', ar: 'شاهد فريق الذكاء يعمل' }, skipLanding: true },
   { path: '/settings/weekly-sample', label: { en: 'Weekly sample', ar: 'العينة الأسبوعية' } },
   // v42.1 (F33): right after the weekly sample. skipLanding: listed there, it would become Marketing's landing page (its first allowed page under /settings).
-  { path: '/settings/campaign-audit', label: { en: 'Campaign audit', ar: 'تدقيق الحملات' }, skipLanding: true },
+  { path: '/settings/campaign-audit', label: { en: 'Marketing campaigns', ar: 'الحملات التسويقية' }, skipLanding: true },
   { path: '/settings/public-mentions', label: { en: 'Public mentions', ar: 'الإشارات العامة' } },
   { path: '/settings/monthly-pack', label: { en: 'Monthly CX pack', ar: 'الحزمة الشهرية' } },
   { path: '/settings/mystery-shopper', label: { en: 'Mystery shopper', ar: 'التسوق السري' } },
@@ -104,12 +108,11 @@ export const SETTINGS_NAV: NavLeaf[] = [
   { path: '/settings/voc', label: { en: 'Voice of Customer', ar: 'صوت العميل' } },
   { path: '/settings/ld', label: { en: 'L&D: training & materials', ar: 'التعلم والتطوير' } },
   { path: '/settings/team-availability', label: { en: 'Team availability (leave)', ar: 'توفّر الفريق (الإجازات)' }, skipLanding: true },
-  { path: '/settings/teams-structure', label: { en: 'Teams and structure', ar: 'الفرق والهيكل' } },
   { path: '/settings/hr-team', label: { en: 'HR team performance', ar: 'أداء فريق الموارد البشرية' } },
   { path: '/settings/feeds', label: { en: 'Data feeds', ar: 'تغذيات البيانات' } },
   { path: '/settings/crm-mapping', label: { en: 'CRM mapping', ar: 'ربط قيم CRM' } },
-  { path: '/settings/escalation-matrix', label: { en: 'Escalation matrix', ar: 'مصفوفة التصعيد' } },
-  { path: '/settings/admin', label: { en: 'Settings: launch and notices', ar: 'الإعدادات: الإطلاق والإشعارات' } },
+  { path: '/settings/escalation-matrix', label: { en: 'Who handles what', ar: 'من يتولّى ماذا' } },
+  { path: '/settings/admin', label: { en: 'Notices and digests', ar: 'الإشعارات والخلاصات' } },
   { path: '/settings/rules', label: { en: 'Rules as configuration', ar: 'القواعد كإعدادات' } },
   { path: '/settings/ai-insights-access', label: { en: 'AI Insights access matrix', ar: 'مصفوفة صلاحيات رؤى الذكاء الاصطناعي' } },
   { path: '/settings/glossary', label: { en: 'What the terms mean', ar: 'ماذا تعني المصطلحات' } },

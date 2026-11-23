@@ -19,6 +19,9 @@ import { cn } from '@/lib/utils'
 import type { MatrixCellRow, MatrixCells, MatrixField, MatrixRuleRow, ProductId } from '@/types'
 import { Segmented } from '@/components/ui/segmented'
 import { IN_CARD, SubPageHeader, ViewOnlyNotice } from './SubPageHeader'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { INFORMED_RULE } from '@/data/v38Reference'
+import { ProductRoutingTab } from './ProductRoutingTab'
 
 const PRODUCT_IDS = PRODUCTS.map((p) => p.id)
 
@@ -42,69 +45,104 @@ export default function EscalationMatrix() {
   const product: ProductId = asked && PRODUCT_IDS.includes(asked) ? asked : 're'
   const { data: rows, isLoading } = useMatrix(product)
   const c = MATRIX_COPY.columns
+  const view = params.get('view') === 'routing' ? 'routing' : 'matrix'
 
   return (
     <section data-density="dense" className="flex flex-col gap-4">
-      <SubPageHeader title={L(MATRIX_COPY.title)} description={L(MATRIX_COPY.intro)} />
-      {!canEdit && <ViewOnlyNotice>{t('View only — the CX manager and the Internal Audit and Marketing Lead fill these cells.', 'للعرض فقط — يملأ هذه الخلايا مدير تجربة العملاء ومسؤول التدقيق الداخلي والتسويق.')}</ViewOnlyNotice>}
+      <SubPageHeader
+        title={t('Who handles what', 'من يتولّى ماذا')}
+        description={t(
+          'Who receives each kind of problem, who is informed, the backup, and how fast they must respond and resolve, per product; and, on the second tab, how a case is assigned in each product.',
+          'من يستلم كل نوع من المشاكل، ومن يُبلَّغ، والبديل، ومدى سرعة الرد والحل، لكل منتج؛ وفي التبويب الثاني كيف تُعيَّن الحالة في كل منتج.',
+        )}
+      />
+      {!canEdit && (
+        <ViewOnlyNotice>
+          {t(
+            'View only — the CX manager and the Internal Audit and Marketing Lead fill these cells.',
+            'للعرض فقط — يملأ هذه الخلايا مدير تجربة العملاء ومسؤول التدقيق الداخلي والتسويق.',
+          )}
+        </ViewOnlyNotice>
+      )}
 
-      <RulesCard />
-
-      <Segmented
-        variant="pressed"
-        label={t('Product', 'المنتج')}
-        value={product}
-        onValueChange={(id) => {
+      <Tabs
+        value={view}
+        onValueChange={(v) => {
           const next = new URLSearchParams(params)
-          next.set('product', id)
+          next.set('view', v)
           setParams(next, { replace: true })
         }}
-        options={PRODUCTS.map((p) => ({ value: p.id, label: L(p.name) }))}
-      />
+        className="gap-4"
+      >
+        <TabsList aria-label={t('Who handles what', 'من يتولّى ماذا')}>
+          <TabsTrigger value="matrix">{t('By kind of problem (escalation matrix)', 'حسب نوع المشكلة (مصفوفة التصعيد)')}</TabsTrigger>
+          <TabsTrigger value="routing">{t('By product (case routing)', 'حسب المنتج (توجيه الحالات)')}</TabsTrigger>
+        </TabsList>
+        <TabsContent value="routing">
+          <ProductRoutingTab canEdit={canEdit} />
+        </TabsContent>
+        <TabsContent value="matrix" className="flex flex-col gap-4">
+          <RulesCard />
 
-      <Card>
-        <div className={IN_CARD}>
-          {isLoading || !rows ? (
-            <LoadingState rows={6} />
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow className="row-divider-none">
-                  <TableHead>{L(c.kind)}</TableHead>
-                  {MATRIX_FIELDS.map((f) => (
-                    <TableHead key={f}>{L(c[f])}</TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rows.map((r) =>
-                  r.kind === 'vip' ? (
-                    <VipRuleRow key={r.kind} row={r} />
-                  ) : (
-                    <TableRow key={r.kind} data-row={r.kind}>
-                      <TableCell className="min-w-28 font-medium whitespace-normal text-foreground">{L(r.label)}</TableCell>
+          <Segmented
+            variant="pressed"
+            label={t('Product', 'المنتج')}
+            value={product}
+            onValueChange={(id) => {
+              const next = new URLSearchParams(params)
+              next.set('product', id)
+              setParams(next, { replace: true })
+            }}
+            options={PRODUCTS.map((p) => ({ value: p.id, label: L(p.name) }))}
+          />
+
+          <Card>
+            <div className={IN_CARD}>
+              {isLoading || !rows ? (
+                <LoadingState rows={6} />
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow className="row-divider-none">
+                      <TableHead>{L(c.kind)}</TableHead>
                       {MATRIX_FIELDS.map((f) => (
-                        <TableCell key={f} className="align-top whitespace-normal">
-                          <MatrixCell product={product} row={r} field={f} canEdit={canEdit} />
-                        </TableCell>
+                        <TableHead key={f}>{L(c[f])}</TableHead>
                       ))}
                     </TableRow>
-                  ),
-                )}
-              </TableBody>
-            </Table>
-          )}
-        </div>
-      </Card>
-      <div className="flex flex-col gap-1.5 px-1">
-        <p className="t-body-s" data-testid="matrix-set-note">
-          {L(MATRIX_COPY.setNote)}
-        </p>
-        <p className="t-body-s" data-testid="matrix-vip-row-note">
-          {L(MATRIX_COPY.vipRowNote)}
-        </p>
-        <p className="t-body-s">{L(MATRIX_COPY.principles)}</p>
-      </div>
+                  </TableHeader>
+                  <TableBody>
+                    {rows.map((r) =>
+                      r.kind === 'vip' ? (
+                        <VipRuleRow key={r.kind} row={r} />
+                      ) : (
+                        <TableRow key={r.kind} data-row={r.kind}>
+                          <TableCell className="min-w-28 font-medium whitespace-normal text-foreground">{L(r.label)}</TableCell>
+                          {MATRIX_FIELDS.map((f) => (
+                            <TableCell key={f} className="align-top whitespace-normal">
+                              <MatrixCell product={product} row={r} field={f} canEdit={canEdit} />
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      ),
+                    )}
+                  </TableBody>
+                </Table>
+              )}
+            </div>
+          </Card>
+          <div className="flex flex-col gap-1.5 px-1">
+            <p className="t-body-s" data-testid="matrix-set-note">
+              {L(MATRIX_COPY.setNote)}
+            </p>
+            <p className="t-body-s" data-testid="matrix-vip-row-note">
+              {L(MATRIX_COPY.vipRowNote)}
+            </p>
+            <p className="t-body-s">{L(MATRIX_COPY.principles)}</p>
+            {/* 23 Nov: "Who is informed" was a tab of Teams and structure; one line here now */}
+            <p className="t-body-s">{L(INFORMED_RULE)}</p>
+          </div>
+        </TabsContent>
+      </Tabs>
     </section>
   )
 }
@@ -257,3 +295,4 @@ function MatrixCell({ product, row, field, canEdit }: { product: ProductId; row:
     </div>
   )
 }
+

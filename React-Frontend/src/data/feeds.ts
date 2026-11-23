@@ -36,9 +36,7 @@ export const FEED_STATUS: Record<FeedStatus, { label: Bi; tone: Tone }> = {
 
 /** "{n} feed late or missing": the prototype says it with a singular only; this says it for any n. */
 export function lateFeedsLabel(n: number): Bi {
-  return n === 1
-    ? b('1 feed late or missing', 'تغذية واحدة متأخرة أو مفقودة')
-    : b(`${n} feeds late or missing`, `${n} تغذيات متأخرة أو مفقودة`)
+  return n === 1 ? b('1 feed late or missing', 'تغذية واحدة متأخرة أو مفقودة') : b(`${n} feeds late or missing`, `${n} تغذيات متأخرة أو مفقودة`)
 }
 
 interface FeedSeed {
@@ -55,14 +53,108 @@ interface FeedSeed {
 
 /** v40 sample table (docs/V40_DELTA.md F13). All values are sample data; times are anchored to "today". */
 const SEEDS: FeedSeed[] = [
-  { id: 'crm_auh', env: 'auh', name: b('CRM · Abu Dhabi', 'CRM · أبوظبي'), daysAgo: 0, at: [6, 10], status: 'ok', rows: 3_728_460, note: b('Leads, activities, contacts, transactions, history', 'العملاء المحتملون، الأنشطة، جهات الاتصال، الصفقات، السجل') },
-  { id: 'crm_dub', env: 'dub', name: b('CRM · Dubai', 'CRM · دبي'), daysAgo: 0, at: [6, 12], status: 'ok', rows: 1_890_213, note: b('Separate database, same business', 'قاعدة بيانات منفصلة، نفس العمل') },
-  { id: 'crm_ast', env: 'ast', name: b('CRM · PSI Assets (rental)', 'CRM · PSI للأصول (التأجير)'), daysAgo: 1, at: [6, 5], status: 'late', rows: 402_118, note: b("Yesterday's file; today's not received by 07:00", 'ملف الأمس؛ ملف اليوم لم يصل حتى 07:00') },
-  { id: 'wa', name: b('WhatsApp Business', 'واتساب للأعمال'), daysAgo: 0, at: [6, 40], status: 'ok', rows: 3_105, note: b('Messages, direction, reply times', 'الرسائل، الاتجاه، أزمنة الرد') },
-  { id: 'ai', name: b('AI caller and IVR', 'المتصل الذكي والرد الآلي'), daysAgo: 0, at: [6, 30], status: 'ok', rows: 1_240, note: b('Calls, durations, outcomes', 'المكالمات، المدد، النتائج') },
-  { id: 'app', name: b('PSI Real Estate app and PSI Website', 'تطبيق PSI العقارية وموقع PSI'), daysAgo: 0, at: [5, 50], status: 'ok', rows: 8_220, note: b('Enquiries, chats, abandoned steps, ratings', 'الاستفسارات، المحادثات، الخطوات المتروكة، التقييمات') },
-  { id: 'sv', name: b('Surveys', 'الاستبيانات'), daysAgo: 0, at: [5, 30], status: 'ok', rows: 1_646, note: b('Sent, answered, skipped, with the skip reason', 'المرسلة، المجابة، المتخطاة، مع سبب التخطي') },
-  { id: 'pub', name: b('Facebook, Instagram, LinkedIn, Google', 'فيسبوك، إنستغرام، لينكد إن، Google'), daysAgo: 0, at: [4, 0], status: 'ok', rows: 16, note: b('Public mentions and ratings; no person matched', 'الإشارات والتقييمات العامة؛ لا مطابقة لأشخاص') },
+  {
+    id: 'crm_auh',
+    env: 'auh',
+    name: b('CRM · Abu Dhabi', 'CRM · أبوظبي'),
+    daysAgo: 0,
+    at: [6, 10],
+    status: 'ok',
+    rows: 3_728_460,
+    note: b('Leads, activities, contacts, transactions, history', 'العملاء المحتملون، الأنشطة، جهات الاتصال، الصفقات، السجل'),
+  },
+  {
+    id: 'crm_dub',
+    env: 'dub',
+    name: b('CRM · Dubai', 'CRM · دبي'),
+    daysAgo: 0,
+    at: [6, 12],
+    status: 'ok',
+    rows: 1_890_213,
+    note: b('Separate database, same business', 'قاعدة بيانات منفصلة، نفس العمل'),
+  },
+  {
+    id: 'crm_ast',
+    env: 'ast',
+    name: b('CRM · PSI Assets (rental)', 'CRM · PSI للأصول (التأجير)'),
+    daysAgo: 1,
+    at: [6, 5],
+    status: 'late',
+    rows: 402_118,
+    note: b("Yesterday's file; today's not received by 07:00", 'ملف الأمس؛ ملف اليوم لم يصل حتى 07:00'),
+  },
+  {
+    id: 'wa',
+    name: b('WhatsApp Business', 'واتساب للأعمال'),
+    daysAgo: 0,
+    at: [6, 40],
+    status: 'ok',
+    rows: 3_105,
+    note: b('Messages, direction, reply times', 'الرسائل، الاتجاه، أزمنة الرد'),
+  },
+  {
+    id: 'ai',
+    name: b('AI caller and IVR', 'المتصل الذكي والرد الآلي'),
+    daysAgo: 0,
+    at: [6, 30],
+    status: 'ok',
+    rows: 1_240,
+    note: b('Calls, durations, outcomes', 'المكالمات، المدد، النتائج'),
+  },
+  {
+    id: 'app',
+    name: b('PSI Real Estate app and PSI Website', 'تطبيق PSI العقارية وموقع PSI'),
+    daysAgo: 0,
+    at: [5, 50],
+    status: 'ok',
+    rows: 8_220,
+    note: b('Enquiries, chats, abandoned steps, ratings', 'الاستفسارات، المحادثات، الخطوات المتروكة، التقييمات'),
+  },
+  {
+    id: 'sv',
+    name: b('Surveys', 'الاستبيانات'),
+    daysAgo: 0,
+    at: [5, 30],
+    status: 'ok',
+    rows: 1_646,
+    note: b('Sent, answered, skipped, with the skip reason', 'المرسلة، المجابة، المتخطاة، مع سبب التخطي'),
+  },
+  {
+    id: 'pub_fb',
+    name: b('Facebook', 'فيسبوك'),
+    daysAgo: 0,
+    at: [4, 0],
+    status: 'ok',
+    rows: 9,
+    note: b('Public comments, mentions and page reviews; no person matched', 'التعليقات والإشارات وتقييمات الصفحة العامة؛ لا مطابقة لأشخاص'),
+  },
+  {
+    id: 'pub_ig',
+    name: b('Instagram', 'إنستغرام'),
+    daysAgo: 0,
+    at: [4, 0],
+    status: 'ok',
+    rows: 4,
+    note: b('Public comments and mentions; no person matched', 'التعليقات والإشارات العامة؛ لا مطابقة لأشخاص'),
+  },
+  {
+    id: 'pub_li',
+    name: b('LinkedIn', 'لينكد إن'),
+    daysAgo: 1,
+    at: [4, 0],
+    status: 'down',
+    rows: 0,
+    note: b('Not connected yet (LinkedIn page admin to approve the app)', 'غير مربوط بعد (موافقة مسؤول صفحة لينكد إن على التطبيق)'),
+  },
+  {
+    id: 'pub_g',
+    name: b('Google reviews', 'تقييمات Google'),
+    daysAgo: 0,
+    at: [4, 30],
+    status: 'ok',
+    rows: 3,
+    note: b('Star ratings and review text per branch; no person matched', 'التقييمات ونص المراجعة لكل فرع؛ لا مطابقة لأشخاص'),
+  },
 ]
 
 /** Builds the feed table anchored to `now` (default: the current time). */
@@ -86,3 +178,4 @@ export function summariseFeeds(feeds: DataFeed[], scope: EnvScope): FeedScope {
   const latest = inScope.reduce<string | null>((max, f) => (max === null || f.receivedAt > max ? f.receivedAt : max), null)
   return { asOf: latest, lateCount: inScope.filter((f) => f.status !== 'ok').length, feeds: inScope }
 }
+

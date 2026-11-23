@@ -23,6 +23,7 @@ import {
   type Integration,
   type Method,
   type Schedule,
+  type Param,
 } from '@/data/integrations'
 import { cn } from '@/lib/utils'
 import type { Tone } from '@/lib/status'
@@ -36,6 +37,8 @@ import { PageHeader } from '@/components/common/PageHeader'
 import { StatusBadge } from '@/components/common/StatusBadge'
 import { InlineNote } from '@/components/common/InlineNote'
 import Feeds from '@/pages/settings/Feeds'
+import { useCrmFields } from '@/services/referenceQueries'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
 /**
  * Integrations (owner's request, 23 Nov): one page for the Super admin and the Admin to add, edit, test and switch off every connection
@@ -48,7 +51,8 @@ const DIR_ICON: Record<Direction, typeof ArrowDownToLine> = { in: ArrowDownToLin
 export default function Integrations() {
   const { t } = useI18n()
   const [params, setParams] = useSearchParams()
-  const tab = params.get('tab') === 'feeds' ? 'feeds' : 'connections'
+  const asked = params.get('tab')
+  const tab = asked === 'feeds' || asked === 'crm' ? asked : 'connections'
   return (
     <div data-density="comfortable" className="flex flex-col gap-5">
       <PageHeader
@@ -62,12 +66,16 @@ export default function Integrations() {
         <TabsList aria-label={t('Integrations', 'الربط والتكاملات')}>
           <TabsTrigger value="connections">{t('Connections', 'الاتصالات')}</TabsTrigger>
           <TabsTrigger value="feeds">{t('Data feeds (what arrived)', 'تغذيات البيانات (ما وصل)')}</TabsTrigger>
+          <TabsTrigger value="crm">{t('Fields we need from the CRM', 'الحقول المطلوبة من CRM')}</TabsTrigger>
         </TabsList>
         <TabsContent value="connections">
           <Connections />
         </TabsContent>
         <TabsContent value="feeds">
           <Feeds />
+        </TabsContent>
+        <TabsContent value="crm">
+          <CrmFields />
         </TabsContent>
       </Tabs>
     </div>
@@ -175,6 +183,9 @@ function Connections() {
                     <Fact label={t('Owner on their side', 'المسؤول لديهم')} value={x.owner || '—'} />
                     <Fact label={t('Last sync', 'آخر مزامنة')} value={when(x.lastSync)} />
                     {x.lastError && <Fact label={t('Last error', 'آخر خطأ')} value={<span className="text-(--status-error-text)">{x.lastError}</span>} />}
+                    {(x.params ?? []).map((p) => (
+                      <Fact key={p.key} label={p.label} value={p.secret ? p.value || t('not entered', 'غير مُدخل') : p.value || '—'} mono />
+                    ))}
                   </dl>
                   <div className="flex flex-wrap justify-end gap-2">
                     <Button
@@ -249,6 +260,8 @@ function EditForm({ value, onSave, onCancel }: { value: Integration; onSave: (v:
   const { t, L } = useI18n()
   const [v, setV] = useState<Integration>(value)
   const [secret, setSecret] = useState('')
+  const [paramSecrets, setParamSecrets] = useState<Record<string, string>>({})
+  const setParam = (i: number, p: Partial<Param>) => set({ params: (v.params ?? []).map((x, j) => (j === i ? { ...x, ...p } : x)) })
   const set = (p: Partial<Integration>) => setV((x) => ({ ...x, ...p }))
   const needsSecret = v.auth !== 'none' && v.auth !== 'oauth'
   const badUrl = v.baseUrl.trim() !== '' && v.baseUrl.trim() !== 'https://' && !/^https:\/\/[^\s]+$/.test(v.baseUrl.trim())
@@ -343,6 +356,59 @@ function EditForm({ value, onSave, onCancel }: { value: Integration; onSave: (v:
           )}
         </p>
       )}
+      <div className="flex flex-col gap-2 rounded-lg bg-well p-3">
+        <span className="text-sm font-medium text-foreground">{t('Settings for this platform', 'إعدادات هذه المنصة')}</span>
+        <span className="text-xs text-muted-foreground">
+          {t(
+            'What this one platform needs besides the address and the key: a page ID, a phone number ID, a database name, a queue name.',
+            'ما تحتاجه هذه المنصة تحديداً غير العنوان والمفتاح: معرّف صفحة، معرّف رقم هاتف، اسم قاعدة بيانات، اسم قائمة انتظار.',
+          )}
+        </span>
+        {(v.params ?? []).map((p, i) => (
+          <div key={i} className="grid grid-cols-1 items-end gap-2 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)_auto]">
+            <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+              {t('Setting', 'الإعداد')}
+              <Input
+                value={p.label}
+                onChange={(e) => setParam(i, { label: e.target.value, key: p.key || e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, '_') })}
+                className="bg-(--surface-card)"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+              {p.secret
+                ? p.value
+                  ? t(`Value (set ${p.value}; type to replace)`, `القيمة (مضبوطة ${p.value}؛ اكتب للاستبدال)`)
+                  : t('Value (secret)', 'القيمة (سرية)')
+                : t('Value', 'القيمة')}
+              <Input
+                dir="ltr"
+                type={p.secret ? 'password' : 'text'}
+                autoComplete="off"
+                value={p.secret ? (paramSecrets[p.key] ?? '') : p.value}
+                onChange={(e) => (p.secret ? setParamSecrets((x) => ({ ...x, [p.key]: e.target.value })) : setParam(i, { value: e.target.value }))}
+                className="bg-(--surface-card)"
+              />
+            </label>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label={t('Remove this setting', 'احذف هذا الإعداد')}
+              onClick={() => set({ params: (v.params ?? []).filter((_, j) => j !== i) })}
+            >
+              <Trash2 aria-hidden />
+            </Button>
+          </div>
+        ))}
+        <Button
+          variant="outline"
+          size="sm"
+          className="self-start bg-(--surface-card)"
+          onClick={() => set({ params: [...(v.params ?? []), { key: '', label: '', value: '' }] })}
+        >
+          <Plus aria-hidden />
+          {t('Add a setting', 'أضف إعداداً')}
+        </Button>
+      </div>
       <div className="flex justify-end gap-2">
         <Button variant="ghost" size="sm" onClick={onCancel}>
           {t('Cancel', 'إلغاء')}
@@ -356,11 +422,48 @@ function EditForm({ value, onSave, onCancel }: { value: Integration; onSave: (v:
               name: v.name.trim(),
               baseUrl: v.baseUrl.trim() === 'https://' ? '' : v.baseUrl.trim(),
               secretHint: needsSecret ? (hintOf(secret) ?? v.secretHint) : undefined,
+              params: (v.params ?? []).filter((p) => p.label.trim()).map((p) => (p.secret ? { ...p, value: hintOf(paramSecrets[p.key] ?? '') ?? p.value } : p)),
             })
           }
         >
           {t('Save', 'حفظ')}
         </Button>
+      </div>
+    </div>
+  )
+}
+
+/** 23 Nov: moved from Teams and structure. The CRM fields every customer record must carry for the portal to work. */
+function CrmFields() {
+  const { t, L } = useI18n()
+  const { data: fields } = useCrmFields()
+  return (
+    <div className="flex flex-col gap-4">
+      <InlineNote title={t('What the CRM connections must deliver', 'ما يجب أن تسلّمه اتصالات CRM')}>
+        {t(
+          'Read from the CRM, not edited here. Environments, agent pools and which agent served which customer all come from the CRM; a new environment appears after the next sync. What each CRM value means in the portal (stages, sources, activity types) is set by the CX manager on the CRM mapping page.',
+          'تُقرأ من CRM ولا تُعدَّل هنا. البيئات ومجموعات الموظفين ومن خدم أي عميل كلها من CRM؛ تظهر البيئة الجديدة بعد المزامنة التالية. معنى كل قيمة من CRM في البورتال (المراحل، المصادر، أنواع الأنشطة) يحدده مدير تجربة العملاء في صفحة ربط قيم CRM.',
+        )}
+      </InlineNote>
+      <div className="rounded-2xl border border-line bg-(--surface-card) p-2">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>{t('Field', 'الحقل')}</TableHead>
+              <TableHead>{t('Used for', 'يُستخدم في')}</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {(fields ?? []).map((f) => (
+              <TableRow key={f.field}>
+                <TableCell className="font-medium tabular whitespace-normal text-foreground" dir="ltr">
+                  {f.field}
+                </TableCell>
+                <TableCell className="whitespace-normal">{L(f.usedFor)}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </div>
     </div>
   )

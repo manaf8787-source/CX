@@ -41,13 +41,13 @@ const MysteryShopper = lazy(pageLoaders.mysteryShopper)
 const Standards = lazy(pageLoaders.standards)
 const Voc = lazy(pageLoaders.voc)
 const Ld = lazy(pageLoaders.ld)
-const TeamsStructure = lazy(pageLoaders.teamsStructure)
 const Performance = lazy(() => import('./pages/Performance'))
 const CxReports = lazy(() => import('./pages/CxReports'))
 const SalesAgents = lazy(() => import('./pages/agents/SalesAgents'))
 const SupportAgents = lazy(() => import('./pages/agents/SupportAgents'))
 const UserPerformance = lazy(() => import('./pages/admin/UserPerformance'))
 const Integrations = lazy(() => import('./pages/admin/Integrations'))
+const ProductLaunch = lazy(() => import('./pages/admin/ProductLaunch'))
 const TeamAvailability = lazy(() => import('./pages/settings/TeamAvailability'))
 const HrTeamPerf = lazy(pageLoaders.hrTeamPerf)
 const Rules = lazy(pageLoaders.rules)
@@ -122,6 +122,7 @@ export default function App() {
                   <Route path="/admin/audit" element={<AuditLog />} />
                   <Route path="/admin/performance" element={<UserPerformance />} />
                   <Route path="/admin/integrations" element={<Integrations />} />
+                  <Route path="/admin/products" element={<ProductLaunch />} />
                   <Route path="/performance" element={<Performance />} />
                   <Route path="/reports" element={<CxReports />} />
                   <Route path="/agents/sales" element={<SalesAgents />} />
@@ -145,7 +146,7 @@ export default function App() {
                     <Route path="voc" element={<Voc />} />
                     <Route path="surveys-reference" element={<Navigate to="/settings/surveys?tab=campaigns" replace />} />
                     <Route path="ld" element={<Ld />} />
-                    <Route path="teams-structure" element={<TeamsStructure />} />
+                    <Route path="teams-structure" element={<Navigate to="/settings/escalation-matrix?view=routing" replace />} />
                     <Route path="team-availability" element={<TeamAvailability />} />
                     <Route path="hr-team" element={<HrTeamPerf />} />
                     <Route path="admin" element={<AdminSettings />} />

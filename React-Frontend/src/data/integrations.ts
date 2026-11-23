@@ -40,6 +40,16 @@ export interface Integration {
   lastError?: string
   /** Added in the portal (not one of the sample connections): only these can be deleted. */
   custom?: boolean
+  /** The settings this one platform needs besides the address and the key (a Facebook page ID, a WhatsApp phone number ID, an
+   * Odoo database name…). A secret one is stored like the key: only its last four characters. */
+  params?: Param[]
+}
+
+export interface Param {
+  key: string
+  label: string
+  value: string
+  secret?: boolean
 }
 
 export const DIRECTION_LABEL: Record<Direction, Bi> = {
@@ -98,6 +108,11 @@ function seed(): Integration[] {
       status: 'connected',
       enabled: true,
       lastSync: today(6, 10),
+      params: [
+        { key: 'environment', label: 'CRM environment', value: 'AUH' },
+        { key: 'campaign_tag_field', label: 'Lead field holding the campaign tag (code)', value: '' },
+        { key: 'api_user', label: 'Read-only API user', value: 'cx-portal-auh' },
+      ],
     },
     {
       id: 'int-crm-dub',
@@ -115,6 +130,11 @@ function seed(): Integration[] {
       status: 'connected',
       enabled: true,
       lastSync: today(6, 12),
+      params: [
+        { key: 'environment', label: 'CRM environment', value: 'DXB' },
+        { key: 'campaign_tag_field', label: 'Lead field holding the campaign tag (code)', value: '' },
+        { key: 'api_user', label: 'Read-only API user', value: 'cx-portal-dxb' },
+      ],
     },
     {
       id: 'int-crm-ast',
@@ -133,6 +153,11 @@ function seed(): Integration[] {
       enabled: true,
       lastSync: new Date(Date.now() - 86_400_000).toISOString(),
       lastError: "Today's file did not arrive by 07:00",
+      params: [
+        { key: 'environment', label: 'CRM environment', value: 'ASSETS' },
+        { key: 'campaign_tag_field', label: 'Lead field holding the campaign tag (code)', value: '' },
+        { key: 'api_user', label: 'Read-only API user', value: 'cx-portal-assets' },
+      ],
     },
     {
       id: 'int-wa',
@@ -149,6 +174,11 @@ function seed(): Integration[] {
       status: 'connected',
       enabled: true,
       lastSync: today(6, 40),
+      params: [
+        { key: 'waba_id', label: 'WhatsApp Business account ID', value: '104455667788990' },
+        { key: 'phone_number_id', label: 'Phone number ID (the sending number)', value: '109988776655443' },
+        { key: 'verify_token', label: 'Webhook verify token', value: '', secret: true },
+      ],
     },
     {
       id: 'int-ivr',
@@ -165,6 +195,10 @@ function seed(): Integration[] {
       status: 'connected',
       enabled: true,
       lastSync: today(6, 30),
+      params: [
+        { key: 'hr_queue', label: 'IVR queue for "talk to HR"', value: 'HR_CALLBACK' },
+        { key: 'complaint_queue', label: 'IVR queue for complaints', value: 'CX_COMPLAINTS' },
+      ],
     },
     {
       id: 'int-app',
@@ -183,20 +217,99 @@ function seed(): Integration[] {
       lastSync: today(5, 50),
     },
     {
-      id: 'int-social',
-      name: 'Facebook, Instagram, LinkedIn, Google reviews',
+      id: 'int-fb',
+      name: 'Facebook Pages',
       scope: 'All products (public)',
-      data: 'Public mentions and ratings; no person is linked',
+      data: 'Comments, posts that mention PSI, page reviews and messages to the page; no person is linked to a customer',
       direction: 'in',
-      method: 'rest',
+      method: 'webhook',
       baseUrl: 'https://graph.facebook.com/v20.0',
-      auth: 'oauth',
-      schedule: 'daily',
-      runAt: '04:00',
-      owner: 'Marketing',
+      auth: 'token',
+      secretHint: '••••91fe',
+      schedule: 'realtime',
+      owner: 'Marketing (Meta Business account owner)',
       status: 'connected',
       enabled: true,
       lastSync: today(4, 0),
+      params: [
+        { key: 'page_ids', label: 'Facebook page IDs (one per product page)', value: '1023344556677, 1099887766554' },
+        { key: 'app_id', label: 'Meta app ID', value: '880112233445566' },
+        { key: 'verify_token', label: 'Webhook verify token', value: '', secret: true },
+      ],
+    },
+    {
+      id: 'int-ig',
+      name: 'Instagram',
+      scope: 'All products (public)',
+      data: 'Comments and mentions on the PSI Instagram business accounts; no person is linked to a customer',
+      direction: 'in',
+      method: 'webhook',
+      baseUrl: 'https://graph.facebook.com/v20.0',
+      auth: 'token',
+      secretHint: '••••91fe',
+      schedule: 'realtime',
+      owner: 'Marketing (Meta Business account owner)',
+      status: 'connected',
+      enabled: true,
+      lastSync: today(4, 0),
+      params: [{ key: 'ig_business_ids', label: 'Instagram business account IDs', value: '17841400000000001' }],
+    },
+    {
+      id: 'int-li',
+      name: 'LinkedIn',
+      scope: 'All products (public)',
+      data: 'Comments and mentions on the PSI company pages (Community Management API)',
+      direction: 'in',
+      method: 'rest',
+      baseUrl: 'https://api.linkedin.com/rest',
+      auth: 'oauth',
+      schedule: 'daily',
+      runAt: '04:00',
+      owner: 'Marketing (LinkedIn page admin)',
+      status: 'not_connected',
+      enabled: false,
+      params: [
+        { key: 'org_ids', label: 'LinkedIn organization IDs', value: '' },
+        { key: 'client_id', label: 'LinkedIn app client ID', value: '' },
+      ],
+    },
+    {
+      id: 'int-google',
+      name: 'Google reviews (Business Profile)',
+      scope: 'Branches and offices (public)',
+      data: 'Star ratings and review text per branch; replies are posted by Marketing',
+      direction: 'in',
+      method: 'rest',
+      baseUrl: 'https://mybusiness.googleapis.com/v4',
+      auth: 'oauth',
+      schedule: 'daily',
+      runAt: '04:30',
+      owner: 'Marketing (Google Business Profile owner)',
+      status: 'connected',
+      enabled: true,
+      lastSync: today(4, 30),
+      params: [
+        { key: 'account_id', label: 'Business Profile account ID', value: 'accounts/112233445566' },
+        { key: 'location_ids', label: 'Location IDs (one per branch)', value: 'locations/101, locations/102, locations/103' },
+      ],
+    },
+    {
+      id: 'int-mkt',
+      name: 'Marketing campaigns platform',
+      scope: 'Marketing campaigns · all products',
+      data: 'Campaigns: name and code, type, target segment, persona, owner, channels, budget, dates; recipients and what each received (email, message), delivered, opened, clicked',
+      direction: 'in',
+      method: 'rest',
+      baseUrl: '',
+      auth: 'api_key',
+      schedule: 'hourly',
+      owner: 'Marketing (platform owner)',
+      status: 'not_connected',
+      enabled: false,
+      params: [
+        { key: 'platform', label: 'Which platform (name)', value: '' },
+        { key: 'campaign_code_field', label: 'Field holding the campaign code', value: 'campaign_code' },
+      ],
     },
     {
       id: 'int-sms',
@@ -211,6 +324,10 @@ function seed(): Integration[] {
       owner: 'IT',
       status: 'not_connected',
       enabled: false,
+      params: [
+        { key: 'sender_id', label: 'SMS sender name', value: 'PSI' },
+        { key: 'from_email', label: 'From email address', value: 'feedback@psinv.net' },
+      ],
     },
     {
       id: 'int-odoo',
@@ -226,6 +343,10 @@ function seed(): Integration[] {
       owner: 'HR (Odoo admin)',
       status: 'not_connected',
       enabled: false,
+      params: [
+        { key: 'database', label: 'Odoo database name', value: 'psi-production' },
+        { key: 'api_user', label: 'Read-only API user (login)', value: '' },
+      ],
     },
     {
       id: 'int-tour',
@@ -266,7 +387,16 @@ function read(): Integration[] {
     const raw = localStorage.getItem(KEY)
     if (raw) {
       const parsed = JSON.parse(raw) as Integration[]
-      if (Array.isArray(parsed) && parsed.length) return parsed
+      if (Array.isArray(parsed) && parsed.length) {
+        // 23 Nov: the one "Facebook, Instagram, LinkedIn, Google reviews" connection became four, each with its own API and settings
+        if (parsed.some((x) => x.id === 'int-social')) {
+          const fresh = seed().filter((x) => ['int-fb', 'int-ig', 'int-li', 'int-google'].includes(x.id))
+          return parsed.flatMap((x) => (x.id === 'int-social' ? fresh : [x]))
+        }
+        // new sample connections added after this browser first stored the list (e.g. the marketing platform, 23 Nov)
+        const missing = seed().filter((x) => !parsed.some((p) => p.id === x.id))
+        return [...parsed, ...missing]
+      }
     }
   } catch {
     /* storage unavailable */

@@ -417,6 +417,8 @@ export const TRAINING_SESSIONS: TrainingSession[] = [
 ]
 
 // --- Who uses it and what each one sees (Modules KB §2, verbatim) ---
+// 23 Nov (owner): no longer shown on any page (the "Who does what" tab of Teams and structure was removed). Kept here as the written
+// reference of each role's pages, view and actions; the access the portal enforces is in auth/access.ts and auth/permissions.ts.
 
 export const ROLE_SCOPE: { role: import('../types').RoleId; pages: Bi; sees: Bi; can: Bi }[] = [
   { role: 'cxmgr', pages: b('All pages, plus Settings and reference', 'كل الصفحات، والإعدادات والمرجع'), sees: b('Everything, all categories, all environments, agent names, conversation text', 'كل شيء، كل الفئات والبيئات، أسماء الموظفين، نص المحادثات'), can: b('Approve corrective actions, set thresholds, set who sees what, approve standards for scoring', 'اعتماد الإجراءات التصحيحية، ضبط الحدود، تحديد من يرى ماذا، اعتماد المعايير للتقييم') },
@@ -480,3 +482,4 @@ export const WALLET_SIGNALS_NO_SURVEY: { title: Bi; hint: Bi; moment: Bi; signal
 
 /** CES sample figure per product (prototype CES_DEMO); null = not asked yet. */
 export const CES_SAMPLE: Record<ProductId, number | null> = { re: 71, af: 66, cl: null, to: null, ev: null, wl: 74 }
+

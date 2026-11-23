@@ -35,7 +35,6 @@ export const pageLoaders = {
   standards: () => import('../pages/settings/StandardsRegister'),
   voc: () => import('../pages/settings/Voc'),
   ld: () => import('../pages/settings/Ld'),
-  teamsStructure: () => import('../pages/settings/TeamsStructure'),
   hrTeamPerf: () => import('../pages/settings/HrTeamPerf'),
   rules: () => import('../pages/settings/Rules'),
   aiInsightsAccess: () => import('../pages/settings/AiInsightsAccess'),
@@ -44,7 +43,8 @@ export const pageLoaders = {
   // v42 (F31): the replay page under Settings and reference.
   watchTeam: () => import('../pages/settings/WatchTeam'),
   // v42.1 (F33): the campaign audit, right after the weekly sample in the Settings menu.
-  campaignAudit: () => import('../pages/settings/CampaignAudit'),
+  // 23 Nov: the campaign audit page became Marketing campaigns (results, audit, criteria, clearance, sources)
+  campaignAudit: () => import('../pages/settings/MarketingCampaigns'),
   // v43 (19 Nov): the super admin's user directory.
   users: () => import('../pages/admin/Users'),
   auditLog: () => import('../pages/admin/AuditLog'),

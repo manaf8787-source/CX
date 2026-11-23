@@ -1,7 +1,7 @@
 import { toast } from 'sonner'
+import { useProducts } from '@/services/queries'
 import { useI18n } from '@/i18n'
 import { useRole } from '@/auth/RoleContext'
-import { useProducts, useToggleProductLaunch } from '@/services/queries'
 import { useHeadNotices, useUpdateHeadNotice, type DigestFrequency } from '@/services/referenceQueries'
 import { INFORMED_RULE } from '@/data/v38Reference'
 import { Switch } from '@/components/ui/switch'
@@ -31,8 +31,7 @@ export default function AdminSettings() {
   const { t, L, lang } = useI18n()
   const { role } = useRole()
   const canEdit = role.id === 'cxmgr'
-  const { data: products, isLoading: productsLoading } = useProducts()
-  const toggleLaunch = useToggleProductLaunch()
+  const { data: products } = useProducts()
   const { data: notices, isLoading: noticesLoading } = useHeadNotices()
   const updateNotice = useUpdateHeadNotice()
 
@@ -40,10 +39,10 @@ export default function AdminSettings() {
     <div data-density="comfortable" className="@container flex flex-col gap-8">
       <div className="flex flex-col gap-4">
         <SubPageHeader
-          title={t('Settings', 'الإعدادات')}
+          title={t('Notices and digests', 'الإشعارات والخلاصات')}
           description={t(
-            'Which products are live, and which notices the heads receive. Environments and pools are read from the CRM and are not edited here.',
-            'أي المنتجات مُطلقة وأي الإشعارات تصل الرؤساء. البيئات والمجموعات تُقرأ من CRM ولا تُعدّل هنا.',
+            'Who is informed about each product, how often they get a digest, and whether they get an immediate alert. (Product launch moved to the Super admin and Admin on 23 Nov.)',
+            'من يُبلَّغ عن كل منتج، وكم مرة تصله الخلاصة، وهل يصله تنبيه فوري. (انتقل إطلاق المنتجات إلى المشرف العام والمشرف في 23 نوفمبر.)',
           )}
         />
         {!canEdit && (
@@ -52,45 +51,6 @@ export default function AdminSettings() {
       </div>
 
       <div className="flex flex-col gap-12">
-        <SettingsSection
-          title={t('Product launch', 'إطلاق المنتجات')}
-          description={t(
-            'Show only what is live. Products that are not launched stay out of the menu, the entry page and the filters.',
-            'أظهر فقط ما أُطلق. المنتجات التي لم تُطلق تبقى خارج القائمة وصفحة الدخول والفلاتر.',
-          )}
-        >
-          {productsLoading ? (
-            <LoadingState rows={4} />
-          ) : (
-            <ul className="flex flex-col">
-              {(products ?? []).map((p) => {
-                const status = (
-                  <StatusBadge tone={p.live ? 'success' : 'neutral'} dot>
-                    {p.live ? t('Live', 'مُفعّل') : t('Hidden', 'مخفي')}
-                  </StatusBadge>
-                )
-                return (
-                  <li key={p.id} className="row-divider flex min-h-14 items-center justify-between gap-3 py-2">
-                    <ProductTag productId={p.id} lang={lang} />
-                    {canEdit ? (
-                      <label className="flex cursor-pointer items-center gap-3">
-                        {status}
-                        <Switch
-                          checked={p.live}
-                          onCheckedChange={() => toggleLaunch.mutate({ id: p.id })}
-                          aria-label={`${L(p.name)}: ${t('show in the portal', 'إظهار في البوابة')}`}
-                        />
-                      </label>
-                    ) : (
-                      status
-                    )}
-                  </li>
-                )
-              })}
-            </ul>
-          )}
-        </SettingsSection>
-
         <SettingsSection table layout="stacked" title={t('Notices and digests', 'الإشعارات والخلاصات')} term="Informed only" description={L(INFORMED_RULE)}>
           {noticesLoading ? (
             <LoadingState rows={4} />
