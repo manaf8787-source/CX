@@ -1,3 +1,4 @@
+import { classifyMention } from './mentionClassify'
 import type { Bi, ProductId } from '../types'
 
 /**
@@ -613,7 +614,8 @@ export const SWITCH_ON_STAGES: { stage: Bi; what: Bi; exit: Bi }[] = [
 
 // --- Public channels (KB §10; prototype PUB, repIndex) ---
 
-export type PublicPlatform = 'facebook' | 'instagram' | 'linkedin' | 'google'
+/** 23 Nov (owner): also the app stores and the comments on a product's own website. 'google' is Google reviews (Maps). */
+export type PublicPlatform = 'facebook' | 'instagram' | 'linkedin' | 'google' | 'googleplay' | 'appstore' | 'webcomment'
 
 export interface PublicMention {
   id: string
@@ -637,6 +639,20 @@ export interface PublicMention {
   repliedBy?: Bi
   /** 23 Nov: the CX team member who replies (a human, never the AI). The CX manager can reassign it. */
   assignee?: string
+  /** 23 Nov (owner): when the published reply was last edited on the platform, and how many times. */
+  replyEditedAt?: string
+  replyEdits?: number
+  /** 23 Nov (owner): the product the comment is about; null = not classified yet (a person chooses). */
+  productId: ProductId | null
+  /** How sure Agent 2 was (0 to 1), when it classified. */
+  productConfidence?: number
+  /** Who set the product: the page it sits on, Agent 2, or a person (their name). */
+  productBy: 'page' | 'ai' | 'person'
+  envBy: 'page' | 'ai' | 'person' | 'none'
+  /** The person who classified or corrected it. */
+  classifiedBy?: Bi
+  /** The product's own page the comment sits on (its app in a store, its website). */
+  pageProduct?: ProductId
 }
 
 /** The owner column of the public mentions page (decided 18 Nov: Marketing, channel owner). */
@@ -647,7 +663,7 @@ function daysAgo(n: number): string {
   return new Date(Date.now() - n * 86_400_000).toISOString().slice(0, 10)
 }
 
-const PUB_ROWS: [PublicPlatform, string, string, string, -1 | 0 | 1, boolean, boolean][] = [
+const PUB_ROWS: [PublicPlatform, string, string, string, -1 | 0 | 1, boolean, boolean, ProductId?][] = [
   ['facebook', '2026-10-03', 'Abu Dhabi', 'Nobody called me back after I filled the form on your page.', -1, true, true],
   ['instagram', '2026-10-05', 'Dubai', 'Beautiful listing but the agent never replied to my DM.', -1, true, false],
   ['google', '2026-10-06', 'Abu Dhabi', '4 stars. Smooth viewing, handover paperwork took too long.', 1, false, false],
@@ -677,24 +693,38 @@ const PUB_ROWS: [PublicPlatform, string, string, string, -1 | 0 | 1, boolean, bo
   // two fresh ones, dated from today, so the reply clock has something inside the 48 hours whatever day the prototype is opened
   ['facebook', daysAgo(1), 'Abu Dhabi', 'Waited 40 minutes at the Reem Island office for my viewing.', -1, false, false],
   ['google', daysAgo(0), 'Dubai', '5 stars. Quick answers on WhatsApp, thank you.', 1, false, false],
+  // 23 Nov (owner): the app stores, a product's own website, and Google Maps reviews about a product
+  ['googleplay', '2026-11-08', '', 'The app crashes when I try to pay for the desert tour.', -1, false, false, 'to'],
+  ['appstore', '2026-11-12', '', 'Love the new listing filters; booking a viewing in Abu Dhabi took two taps.', 1, false, false, 're'],
+  ['webcomment', '2026-11-15', '', 'Our guide was 30 minutes late and the driver did not know the way to the Dubai Frame.', -1, false, false, 'to'],
+  ['google', '2026-11-17', 'Dubai', '5 stars for the Tour Estate city tour, the guide was excellent.', 1, false, false],
+  ['instagram', '2026-11-19', 'Dubai', 'Is the event on Saturday open to everyone?', 0, false, false],
 ]
 const REPLY_HOURS = [6, 30, 20, 52, 40, 12, 9, 18]
 /** The three CX team members the sample mentions are shared between (round robin). */
 const MENTION_TEAM = ['u-cxteam', 'u-cxteam2', 'u-cxteam3']
 
-export const PUBLIC_MENTIONS: PublicMention[] = PUB_ROWS.map(([platform, date, environment, text, sentiment, replied, becameIdentified], k) => ({
-  id: `PUB-${301 + k}`,
-  platform,
-  date,
-  environment,
-  text,
-  sentiment,
-  replied,
-  replyHours: replied ? REPLY_HOURS[k % REPLY_HOURS.length] : null,
-  becameIdentified,
-  owner: PUBLIC_REPLY_OWNER,
-  assignee: MENTION_TEAM[k % MENTION_TEAM.length],
-}))
+export const PUBLIC_MENTIONS: PublicMention[] = PUB_ROWS.map(([platform, date, pageEnv, text, sentiment, replied, becameIdentified, pageProduct], k) => {
+  const c = classifyMention(text, pageEnv, pageProduct)
+  return {
+    id: `PUB-${301 + k}`,
+    platform,
+    date,
+    environment: c.environment,
+    envBy: c.envFrom,
+    productId: c.productId,
+    productConfidence: c.confidence || undefined,
+    productBy: c.productFrom,
+    pageProduct,
+    text,
+    sentiment,
+    replied,
+    replyHours: replied ? REPLY_HOURS[k % REPLY_HOURS.length] : null,
+    becameIdentified,
+    owner: PUBLIC_REPLY_OWNER,
+    assignee: MENTION_TEAM[k % MENTION_TEAM.length],
+  }
+})
 
 /** Google rating, average of the last 90 days (prototype repIndex sample). */
 export const GOOGLE_RATING_90D = 4.1

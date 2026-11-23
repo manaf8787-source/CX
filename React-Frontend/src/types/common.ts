@@ -34,6 +34,9 @@ export type ChannelId =
   | 'instagram'
   | 'linkedin'
   | 'google'
+  | 'googleplay'
+  | 'appstore'
+  | 'webcomment'
 
 export type Severity = 'critical' | 'medium' | 'low'
 export type StatusLevel = 'good' | 'warn' | 'crit' | 'neutral'
@@ -69,4 +72,3 @@ export interface ConsentFlags {
   sms: boolean
   email: boolean
 }
-

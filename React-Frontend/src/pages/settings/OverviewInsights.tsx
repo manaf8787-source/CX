@@ -13,8 +13,10 @@ import { formatMonth } from '@/lib/format'
 import { useLeadFunnel } from '@/services/queries'
 import { useDetractorReasons, useNpsTrend, usePublicMentions } from '@/services/referenceQueries'
 import { GOOGLE_RATING_90D, type PublicMention, type PublicPlatform } from '@/data/v38Reference'
+import { PRODUCTS } from '@/data/products'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { CHANNEL_LABEL } from '@/components/customers/channels'
-import type { Bi, Product, VocRow } from '@/types'
+import type { Bi, Product, ProductId, VocRow } from '@/types'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -44,13 +46,6 @@ const VOC_CHANNEL_LABEL: Record<string, Bi> = {
   app: { en: 'App', ar: 'التطبيق' },
   branch: { en: 'Branch', ar: 'الفرع' },
   event: { en: 'Event', ar: 'فعالية' },
-}
-
-const PLATFORM_CHANNEL: Record<PublicPlatform, 'facebook' | 'instagram' | 'linkedin' | 'google'> = {
-  facebook: 'facebook',
-  instagram: 'instagram',
-  linkedin: 'linkedin',
-  google: 'google',
 }
 
 function npsOf(r: Pick<VocRow, 'n' | 'promoters' | 'detractors'>) {
@@ -101,7 +96,9 @@ export function ReputationIndex() {
   const [period, setPeriod] = useState<RepPeriod>('30')
   const [from, setFrom] = useState(() => isoDay(now - 30 * DAY_MS))
   const [to, setTo] = useState(() => isoDay(now))
-  const platforms: PublicPlatform[] = ['facebook', 'instagram', 'linkedin', 'google']
+  const platforms: PublicPlatform[] = ['facebook', 'instagram', 'linkedin', 'google', 'googleplay', 'appstore', 'webcomment']
+  /** 23 Nov (owner): the product filter; 'none' = not classified yet. */
+  const [product, setProduct] = useState<'all' | 'none' | ProductId>('all')
 
   // The window [start, end] as ISO days, and the window of the same length just before it (for the comparison).
   const win = useMemo(() => {
@@ -116,7 +113,7 @@ export function ReputationIndex() {
   }, [period, from, to, now])
 
   const idx = useMemo(() => {
-    const all = mentions ?? []
+    const all = (mentions ?? []).filter((m) => product === 'all' || (product === 'none' ? !m.productId : m.productId === product))
     const inWin = (m: PublicMention, w: { start: string; end: string }) => m.date >= w.start && m.date <= w.end
     const list = all.filter((m) => inWin(m, win))
     const weeks = new Map<string, { week: string; pos: number; neu: number; neg: number }>()
@@ -137,6 +134,18 @@ export function ReputationIndex() {
           )
         : null,
       weeks: [...weeks.values()],
+      byProduct: [...PRODUCTS.map((p) => p.id as ProductId | null), null]
+        .map((pid) => {
+          const rows = list.filter((m) => (m.productId ?? null) === pid)
+          return {
+            pid,
+            n: rows.length,
+            neg: rows.filter((m) => m.sentiment < 0).length,
+            pos: rows.filter((m) => m.sentiment > 0).length,
+            open: rows.filter((m) => !m.replied).length,
+          }
+        })
+        .filter((r) => r.n > 0),
       byPlatform: platforms.map((p) => {
         const rows = list.filter((m) => m.platform === p)
         const hours = rows.filter((m) => m.replyHours != null).map((m) => m.replyHours as number)
@@ -152,7 +161,7 @@ export function ReputationIndex() {
       }),
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mentions, win, now])
+  }, [mentions, win, now, product])
   const num = (v: number) => v.toLocaleString(lang === 'ar' ? 'ar-AE' : 'en-US')
   const fmtDay = (d: string) =>
     new Date(`${d}T00:00:00Z`).toLocaleDateString(lang === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' })
@@ -176,8 +185,8 @@ export function ReputationIndex() {
         </span>
       }
       description={t(
-        'Facebook, Instagram, LinkedIn and Google. Nobody here is identified, so there are no surveys: mentions count as signals and as reputation, never as journeys. Separate from NPS.',
-        'فيسبوك وإنستغرام ولينكد إن وغوغل. لا أحد هنا معرَّف، فلا استبيانات: تُحسب الإشارات كإشارات وكسمعة، لا كرحلات. منفصل عن NPS.',
+        'Facebook, Instagram, LinkedIn, Google reviews, Google Play, the App Store and comments on our websites, by product. Nobody here is identified, so there are no surveys: mentions count as signals and as reputation, never as journeys. Separate from NPS.',
+        'فيسبوك وإنستغرام ولينكد إن وتقييمات غوغل وغوغل بلاي وآب ستور وتعليقات مواقعنا، حسب المنتج. لا أحد هنا معرَّف، فلا استبيانات: تُحسب الإشارات كإشارات وكسمعة، لا كرحلات. منفصل عن NPS.',
       )}
       actions={
         // v40 (F30): the button into the Public mentions list (reply status, Marketing as owner, the 48-hour clock).
@@ -206,6 +215,20 @@ export function ReputationIndex() {
             { value: 'custom', label: t('Pick dates', 'اختر التواريخ') },
           ]}
         />
+        <Select value={product} onValueChange={(v) => setProduct(v as 'all' | 'none' | ProductId)}>
+          <SelectTrigger className="h-9 min-w-44" aria-label={t('Product', 'المنتج')}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t('All products', 'كل المنتجات')}</SelectItem>
+            {PRODUCTS.map((p) => (
+              <SelectItem key={p.id} value={p.id}>
+                {L(p.name)}
+              </SelectItem>
+            ))}
+            <SelectItem value="none">{t('Not classified yet', 'غير مصنّفة بعد')}</SelectItem>
+          </SelectContent>
+        </Select>
         {period === 'custom' && (
           <div className="flex flex-wrap items-center gap-2">
             <label className="t-small flex items-center gap-1.5">
@@ -301,20 +324,55 @@ export function ReputationIndex() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {idx.byPlatform.map((r) => (
-                  <TableRow key={r.platform}>
+                {idx.byPlatform
+                  .filter((r) => r.n > 0)
+                  .map((r) => (
+                    <TableRow key={r.platform}>
+                      <TableCell className="font-medium text-foreground">
+                        {L(CHANNEL_LABEL[r.platform])} <span className="font-normal text-muted-foreground">· {t('public', 'عام')}</span>
+                      </TableCell>
+                      {[r.n, r.pos, r.neg, r.replied].map((v, k) => (
+                        <TableCell key={k} className="text-end tabular">
+                          {num(v)}
+                        </TableCell>
+                      ))}
+                      <TableCell className="text-end tabular">
+                        <bdi dir="ltr">{r.avgH == null ? '–' : `${r.avgH} h`}</bdi>
+                      </TableCell>
+                      <TableCell className="text-end tabular">{num(r.identified)}</TableCell>
+                    </TableRow>
+                  ))}
+              </TableBody>
+            </Table>
+          </div>
+          <div className="-mx-2.5 overflow-x-auto">
+            <Table density="comfortable">
+              <TableHeader>
+                <TableRow className="row-divider-none">
+                  <TableHead>{t('Product (Agent 2, corrected by the CX team)', 'المنتج (الوكيل 2، ويصححه فريق CX)')}</TableHead>
+                  <TableHead className="text-end">{t('Mentions', 'الإشارات')}</TableHead>
+                  <TableHead className="text-end">{t('Positive', 'إيجابي')}</TableHead>
+                  <TableHead className="text-end">{t('Negative', 'سلبي')}</TableHead>
+                  <TableHead className="text-end">{t('No reply yet', 'بلا رد بعد')}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {idx.byProduct.map((r) => (
+                  <TableRow key={r.pid ?? 'none'}>
                     <TableCell className="font-medium text-foreground">
-                      {L(CHANNEL_LABEL[PLATFORM_CHANNEL[r.platform]])} <span className="font-normal text-muted-foreground">· {t('public', 'عام')}</span>
+                      {r.pid ? (
+                        <ProductTag productId={r.pid} lang={lang} />
+                      ) : (
+                        <Link to="/settings/public-mentions?product=none" className="text-destructive underline underline-offset-2">
+                          {t('Not classified yet: classify them', 'غير مصنّفة بعد: صنّفها')}
+                        </Link>
+                      )}
                     </TableCell>
-                    {[r.n, r.pos, r.neg, r.replied].map((v, k) => (
+                    {[r.n, r.pos, r.neg, r.open].map((v, k) => (
                       <TableCell key={k} className="text-end tabular">
                         {num(v)}
                       </TableCell>
                     ))}
-                    <TableCell className="text-end tabular">
-                      <bdi dir="ltr">{r.avgH == null ? '–' : `${r.avgH} h`}</bdi>
-                    </TableCell>
-                    <TableCell className="text-end tabular">{num(r.identified)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

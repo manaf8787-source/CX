@@ -30,6 +30,7 @@ import { canAccessPath } from '../auth/access'
 import { useNow } from '../hooks/useNow'
 import { AGENT_JDS, CES_SAMPLE } from '../data/v38Reference'
 import { mentionInboxItems, publicReplyBreaches } from '../data/publicMentions'
+import { giftInboxItems, useGifts } from '../data/gifts'
 import { useAuth } from '../auth/session'
 import { applyApprovalClock, applyDoneClock } from './fixClockStore'
 import { useCampaignAuditSummary } from './campaignAuditQueries'
@@ -413,6 +414,7 @@ export function useInbox(): {
   // 23 Nov (owner): public comments assigned to a CX team member, and the ones escalated to the CX manager.
   const { session } = useAuth()
   const { data: mentions, dataUpdatedAt: t9 } = usePublicMentions()
+  const gifts = useGifts()
   // Campaign audit rows (v42.1 F33): the Internal Audit and Marketing Lead only, so no other role waits for the audit.
   const auditLead = role.id === 'auditmkt'
   const { data: campaignAudit, isLoading: l8 } = useCampaignAuditSummary({
@@ -439,7 +441,7 @@ export function useInbox(): {
       sampleDue: sample.due,
       campaignAudit: auditLead && campaignAudit ? { waiting: campaignAudit.waiting, finished: campaignAudit.finished } : undefined,
     })
-    const extra = mentionInboxItems(role.id, session?.userId, mentions ?? [], now, rules)
+    const extra = [...mentionInboxItems(role.id, session?.userId, mentions ?? [], now, rules), ...giftInboxItems(role.id, session?.userId, gifts)]
     return extra.length ? [...extra, ...base].sort((a, b) => b.priority - a.priority || (a.daysLeft ?? Infinity) - (b.daysLeft ?? Infinity)) : base
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -460,6 +462,7 @@ export function useInbox(): {
     mentions,
     t9,
     session?.userId,
+    gifts,
   ])
   const stats = useMemo(() => workTodayStats(data ?? []), [data])
   return {
@@ -787,6 +790,55 @@ export function useMarkReplied() {
       m.repliedAt = new Date().toISOString()
       if (input.text) m.replyText = input.text
       if (input.by) m.repliedBy = input.by
+      return { ...m }
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['public-mentions'] }),
+  })
+}
+
+/**
+ * 23 Nov (owner): edit a reply already published on the platform. Real platform: Facebook and LinkedIn update the comment, Google
+ * replaces the review reply, Instagram cannot edit (delete the old reply, post the new one). Prototype: the text is changed here.
+ */
+export function useEditReply() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (input: { id: string; text: string; by?: Bi }) => {
+      await latency(LATENCY_MS)
+      const { PUBLIC_MENTIONS } = await import('../data/v38Reference')
+      const m = PUBLIC_MENTIONS.find((x) => x.id === input.id)
+      if (!m) throw new Error('Public mention not found')
+      m.replyText = input.text
+      m.replyEditedAt = new Date().toISOString()
+      m.replyEdits = (m.replyEdits ?? 0) + 1
+      if (input.by) m.repliedBy = input.by
+      return { ...m }
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['public-mentions'] }),
+  })
+}
+
+/**
+ * 23 Nov (owner): a person sets or corrects the product or the environment of a public comment. The person's choice wins over Agent 2;
+ * in the real platform each correction goes to the auditor's weekly sample.
+ */
+export function useClassifyMention() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (input: { id: string; productId?: ProductId | null; environment?: string; by: Bi }) => {
+      await latency(LATENCY_MS)
+      const { PUBLIC_MENTIONS } = await import('../data/v38Reference')
+      const m = PUBLIC_MENTIONS.find((x) => x.id === input.id)
+      if (!m) throw new Error('Public mention not found')
+      if (input.productId !== undefined) {
+        m.productId = input.productId
+        m.productBy = 'person'
+      }
+      if (input.environment !== undefined) {
+        m.environment = input.environment
+        m.envBy = 'person'
+      }
+      m.classifiedBy = input.by
       return { ...m }
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['public-mentions'] }),

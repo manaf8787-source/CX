@@ -1,4 +1,7 @@
-import { Crown, Fingerprint } from 'lucide-react'
+import { Crown, Fingerprint, Gift } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { canAccessPath } from '@/auth/access'
+import { Button } from '@/components/ui/button'
 import { useI18n } from '@/i18n'
 import { useRole } from '@/auth/RoleContext'
 import { canViewMobiles } from '@/auth/permissions'
@@ -22,20 +25,34 @@ export function ProfileCard({ person }: { person: Person }) {
   const { data: personas } = usePersonas()
   const persona = personas?.find((p) => p.id === person.personaId)
   const personal = canViewMobiles(role.id)
-  const identity = [personal ? person.identity.mobile : undefined, personal ? person.identity.email : undefined, personal ? person.identity.emiratesId : undefined, person.identity.crmContactId].filter(
-    (v): v is string => !!v,
-  )
+  const identity = [
+    personal ? person.identity.mobile : undefined,
+    personal ? person.identity.email : undefined,
+    personal ? person.identity.emiratesId : undefined,
+    person.identity.crmContactId,
+  ].filter((v): v is string => !!v)
 
   return (
     <SectionCard
       well
       title={t('Profile', 'الملف الشخصي')}
       actions={
-        person.vip && (
-          <StatusBadge tone="warning" icon={<Crown aria-hidden />}>
-            {t('VIP — PSI Club', 'عميل مميز — نادي PSI')}
-          </StatusBadge>
-        )
+        <span className="flex flex-wrap items-center gap-2">
+          {person.vip && (
+            <StatusBadge tone="warning" icon={<Crown aria-hidden />}>
+              {t('VIP — PSI Club', 'عميل مميز — نادي PSI')}
+            </StatusBadge>
+          )}
+          {/* 23 Nov (owner): send this customer a gift; the CX manager and the CX team */}
+          {canAccessPath(role.id, '/gifts') && (
+            <Button size="sm" variant="outline" asChild>
+              <Link to={`/gifts?person=${person.id}`}>
+                <Gift aria-hidden />
+                {t('Send a gift', 'أرسل هدية')}
+              </Link>
+            </Button>
+          )}
+        </span>
       }
     >
       <dl className="grid grid-cols-2 gap-x-6 gap-y-5 md:grid-cols-3">

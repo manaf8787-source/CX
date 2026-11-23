@@ -1,5 +1,6 @@
 import type { Bi } from '../types'
-import type { PublicMention } from './v38Reference'
+import type { PublicMention, PublicPlatform } from './v38Reference'
+import { PRODUCTS } from './products'
 
 const b = (en: string, ar: string): Bi => ({ en, ar })
 
@@ -95,20 +96,31 @@ const OTHERS = [
 ]
 const hash = (s: string) => [...s].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 7)
 
-export function postOf(m: Pick<PublicMention, 'id' | 'platform' | 'environment' | 'text' | 'replied' | 'replyHours'> & { replyText?: string }): MentionPost {
+export function postOf(
+  m: Pick<PublicMention, 'id' | 'platform' | 'environment' | 'text' | 'replied' | 'replyHours' | 'pageProduct'> & { replyText?: string },
+): MentionPost {
   const h = hash(m.id)
   const handle = PAGE_HANDLE[m.environment] ?? 'psi'
   const env = m.environment
   const brand = env.startsWith('PSI') ? env : `PSI ${env}`
   const num = String(1_000_000 + (h % 8_999_999))
-  const byPlatform = {
+  const product = m.pageProduct ? PRODUCTS.find((p) => p.id === m.pageProduct)?.name.en : undefined
+  const app = product ? `${product} app` : 'PSI app'
+  const byPlatform: Record<PublicPlatform, { page: string; url: string }> = {
     facebook: { page: `${brand} · Facebook page`, url: `https://www.facebook.com/psi.${handle}/posts/${num}` },
     instagram: { page: `@psi.${handle} · Instagram`, url: `https://www.instagram.com/p/C${num}/` },
     linkedin: { page: 'Property Shop Investment · LinkedIn page', url: `https://www.linkedin.com/feed/update/urn:li:activity:7${num}` },
     google: { page: `${brand} office · Google reviews`, url: `https://www.google.com/maps/place/?q=PSI+${handle}&review=${num}` },
-  }[m.platform]
+    googleplay: {
+      page: `${app} · Google Play reviews`,
+      url: `https://play.google.com/store/apps/details?id=com.psi.${m.pageProduct ?? 'app'}&reviewId=${num}`,
+    },
+    appstore: { page: `${app} · App Store reviews`, url: `https://apps.apple.com/app/id${num}?see-all=reviews` },
+    webcomment: { page: `${product ?? 'PSI'} website · comments`, url: `https://www.psinv.net/${m.pageProduct ?? 'blog'}#comment-${num}` },
+  }
+  const byPage = byPlatform[m.platform]
   const thread: MentionPost['thread'] = [{ who: 'Commenter', text: m.text, hoursAfter: 0 }]
-  if (m.platform !== 'google') {
+  if (m.platform !== 'google' && m.platform !== 'googleplay' && m.platform !== 'appstore') {
     thread.push({ who: `User ${String.fromCharCode(65 + (h % 20))}.`, text: OTHERS[h % OTHERS.length], hoursAfter: 2 + (h % 9) })
     if (h % 3 === 0) thread.push({ who: `User ${String.fromCharCode(66 + (h % 19))}.`, text: OTHERS[(h >>> 3) % OTHERS.length], hoursAfter: 11 + (h % 7) })
   }
@@ -119,7 +131,16 @@ export function postOf(m: Pick<PublicMention, 'id' | 'platform' | 'environment' 
       hoursAfter: m.replyHours ?? 0,
       isPsi: true,
     })
-  return { ...byPlatform, post: m.platform === 'google' ? undefined : POSTS[h % POSTS.length], thread }
+  return {
+    ...byPage,
+    post:
+      m.platform === 'google' || m.platform === 'googleplay' || m.platform === 'appstore'
+        ? undefined
+        : m.pageProduct === 'to'
+          ? b('Blog: the best tours to book in the UAE this winter', 'مدونة: أفضل الجولات للحجز في الإمارات هذا الشتاء')
+          : POSTS[h % POSTS.length],
+    thread,
+  }
 }
 
 /**

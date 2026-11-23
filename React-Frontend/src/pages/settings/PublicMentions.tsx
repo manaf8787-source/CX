@@ -1,13 +1,17 @@
 import { Fragment, useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import { Check, ChevronRight, Copy, ExternalLink, Pencil, Plus, RotateCcw, TimerOff, Trash2 } from 'lucide-react'
+import { ChevronRight, ExternalLink, Send, Pencil, Plus, RotateCcw, TimerOff, Trash2 } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { useRole } from '@/auth/RoleContext'
 import { canEditReplyLibrary, canMarkMentionReplied } from '@/auth/permissions'
 import { usePublicMentions } from '@/services/referenceQueries'
-import { useAssignMention, useMarkReplied, useRules } from '@/services/queriesV40'
+import { useAssignMention, useClassifyMention, useEditReply, useMarkReplied, useRules } from '@/services/queriesV40'
+import { PRODUCTS } from '@/data/products'
+import { ProductTag } from '@/components/common/Chip'
+import type { ProductId } from '@/types'
 import { PUBLIC_MENTIONS_COPY as COPY, STAGE_LABEL, mentionStage, postOf, replyLabel, replyState, type ReplyState } from '@/data/publicMentions'
 import { useAuth } from '@/auth/session'
+import { GiftFlow, mentionJustification } from '@/components/gifts/GiftFlow'
 import { useUsers } from '@/data/users'
 import { Link, useSearchParams } from 'react-router-dom'
 import type { PublicMention, PublicPlatform } from '@/data/v38Reference'
@@ -52,7 +56,8 @@ type PlatformFilter = 'all' | PublicPlatform
 type Tab = 'mentions' | 'scripts' | 'questions'
 
 const HOUR_MS = 3_600_000
-const PLATFORMS: PublicPlatform[] = ['facebook', 'instagram', 'linkedin', 'google']
+const PLATFORMS: PublicPlatform[] = ['facebook', 'instagram', 'linkedin', 'google', 'googleplay', 'appstore', 'webcomment']
+const ENV_SHORTS = ['Dubai', 'Abu Dhabi', 'PSI Assets', 'PSI-AI']
 const toneOf = (s: number): ScriptTone => (s < 0 ? 'negative' : s > 0 ? 'positive' : 'neutral')
 const TONE_LABEL: Record<ScriptTone, Bi> = { positive: COPY.tone.positive, negative: COPY.tone.negative, neutral: COPY.tone.neutral }
 const TONE_BADGE: Record<ScriptTone, 'success' | 'danger' | 'neutral'> = { positive: 'success', negative: 'danger', neutral: 'neutral' }
@@ -116,6 +121,8 @@ function MentionsTab() {
     statusParam === 'open' || statusParam === 'overdue' || statusParam === 'awaiting' || statusParam === 'replied' ? statusParam : 'all',
   )
   const [platform, setPlatform] = useState<PlatformFilter>('all')
+  // 23 Nov (owner): the product filter ('none' = not classified yet)
+  const [product, setProduct] = useState<string>(params.get('product') ?? 'all')
   const initialAssignee = params.get('assignee')
   const [assignee, setAssignee] = useState<string>(initialAssignee === 'me' ? (session?.userId ?? 'all') : (initialAssignee ?? 'all'))
   const [open, setOpen] = useState<string | null>(params.get('open'))
@@ -125,7 +132,13 @@ function MentionsTab() {
     () => [...(mentions ?? [])].sort((a, b) => b.date.localeCompare(a.date)).map((m) => ({ m, state: replyState(m, now, hours) })),
     [mentions, now, hours],
   )
-  const byPlatform = rows.filter((r) => (platform === 'all' || r.m.platform === platform) && (assignee === 'all' || r.m.assignee === assignee))
+  const byPlatform = rows.filter(
+    (r) =>
+      (platform === 'all' || r.m.platform === platform) &&
+      (assignee === 'all' || r.m.assignee === assignee) &&
+      (product === 'all' || (product === 'none' ? !r.m.productId : r.m.productId === product)),
+  )
+  const unclassified = rows.filter((r) => !r.m.productId || !r.m.environment).length
   const counts = {
     all: byPlatform.length,
     open: byPlatform.filter((r) => r.state !== 'replied').length,
@@ -179,13 +192,35 @@ function MentionsTab() {
         <KpiTile label={t('Replied', 'رُدّ عليها')} value={counts.replied} />
       </div>
 
+      {unclassified > 0 && (
+        <InlineNote
+          tone="warning"
+          title={t(
+            `${unclassified} ${unclassified === 1 ? 'comment needs' : 'comments need'} a product or an environment`,
+            `${unclassified} تعليق يحتاج منتجاً أو بيئة`,
+          )}
+          action={
+            <Button size="sm" variant="outline" onClick={() => setProduct('none')}>
+              {t('Show them', 'اعرضها')}
+            </Button>
+          }
+        >
+          {t(
+            'Agent 2 classifies each comment; when it is not sure it leaves it to you. Open the comment and choose. Until then it counts under "Not classified" on the dashboard.',
+            'يصنّف الوكيل 2 كل تعليق؛ وحين لا يكون متأكداً يتركه لك. افتح التعليق واختر. وحتى ذلك يُحتسب تحت "غير مصنّفة" في اللوحة.',
+          )}
+        </InlineNote>
+      )}
+
       <div className="flex flex-wrap items-center gap-3">
         <Segmented
           variant="pressed"
           label={t('Filter by platform', 'تصفية حسب المنصة')}
           options={[
             { value: 'all', label: t('All platforms', 'كل المنصات'), count: rows.length },
-            ...PLATFORMS.map((p) => ({ value: p, label: L(CHANNEL_LABEL[p]), count: rows.filter((r) => r.m.platform === p).length })),
+            ...PLATFORMS.map((p) => ({ value: p, label: L(CHANNEL_LABEL[p]), count: rows.filter((r) => r.m.platform === p).length })).filter(
+              (o) => o.count > 0,
+            ),
           ]}
           value={platform}
           onValueChange={(v) => setPlatform(v as PlatformFilter)}
@@ -197,6 +232,22 @@ function MentionsTab() {
           value={filter}
           onValueChange={setFilter}
         />
+        <Select value={product} onValueChange={setProduct}>
+          <SelectTrigger className="h-9 min-w-44" aria-label={t('Product', 'المنتج')}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t('All products', 'كل المنتجات')}</SelectItem>
+            {PRODUCTS.map((p) => (
+              <SelectItem key={p.id} value={p.id}>
+                {L(p.name)}
+              </SelectItem>
+            ))}
+            <SelectItem value="none">
+              {t(`Not classified yet (${rows.filter((r) => !r.m.productId).length})`, `غير مصنّفة بعد (${rows.filter((r) => !r.m.productId).length})`)}
+            </SelectItem>
+          </SelectContent>
+        </Select>
         <Select value={assignee} onValueChange={setAssignee}>
           <SelectTrigger className="h-9 min-w-44" aria-label={t('Assigned to', 'مُسندة إلى')}>
             <SelectValue />
@@ -242,7 +293,14 @@ function MentionsTab() {
                         <span className="flex flex-col items-start gap-1">
                           <SourceBadge channel={m.platform} />
                           <span className="text-xs">{post.page}</span>
-                          <span className="text-xs text-muted-foreground">{L(envNameFromShort(m.environment))}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {m.environment ? L(envNameFromShort(m.environment)) : t('Environment: not classified', 'البيئة: غير مصنّفة')}
+                          </span>
+                          {m.productId ? (
+                            <ProductTag productId={m.productId} lang={lang} />
+                          ) : (
+                            <StatusBadge tone="danger">{t('Product: not classified', 'المنتج: غير مصنّف')}</StatusBadge>
+                          )}
                         </span>
                       </TableCell>
                       <TableCell className="min-w-40 whitespace-normal text-foreground">{m.text}</TableCell>
@@ -305,7 +363,8 @@ function MentionsTab() {
               <SheetHeader>
                 <SheetTitle>{t('Public comment', 'تعليق عام')}</SheetTitle>
                 <SheetDescription>
-                  {L(CHANNEL_LABEL[openMention.platform])} · <bdi dir="ltr">{fmtDate(openMention.date)}</bdi> · {L(envNameFromShort(openMention.environment))}
+                  {L(CHANNEL_LABEL[openMention.platform])} · <bdi dir="ltr">{fmtDate(openMention.date)}</bdi>
+                  {openMention.environment && <> · {L(envNameFromShort(openMention.environment))}</>}
                 </SheetDescription>
               </SheetHeader>
               <div className="px-5 pb-5">
@@ -341,17 +400,15 @@ function MentionDetail({ m, canReply, onDone }: { m: PublicMention; canReply: bo
     return first ? fillText(L(first.text), values) : ''
   })
 
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(text)
-      toast(t('Reply copied. Paste it under the post.', 'نُسخ الرد. الصقه تحت المنشور.'))
-    } catch {
-      toast(t('Could not copy; select the text and copy it.', 'تعذّر النسخ؛ حدّد النص وانسخه.'))
-    }
-  }
+  const editReply = useEditReply()
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(m.replyText ?? '')
+  const platformName = L(CHANNEL_LABEL[m.platform])
+  const byMe = me ? { en: me.name, ar: me.name } : role.name
 
   return (
     <div className="flex flex-col gap-5">
+      <ClassificationBox m={m} />
       <div className="flex flex-col gap-3">
         <div className="well flex flex-col gap-1.5">
           <span className="t-small text-muted-foreground">{t('Where it was posted', 'أين نُشرت')}</span>
@@ -365,7 +422,11 @@ function MentionDetail({ m, canReply, onDone }: { m: PublicMention; canReply: bo
               <span className="text-foreground">“{L(post.post)}”</span>
             </span>
           ) : (
-            <span className="text-sm">{t('A review on the branch’s Google listing.', 'مراجعة على صفحة الفرع في Google.')}</span>
+            <span className="text-sm">
+              {m.platform === 'google'
+                ? t('A review on the branch’s Google listing.', 'مراجعة على صفحة الفرع في Google.')
+                : t('A review of the app in the store.', 'مراجعة للتطبيق في المتجر.')}
+            </span>
           )}
           <a
             href={post.url}
@@ -423,10 +484,71 @@ function MentionDetail({ m, canReply, onDone }: { m: PublicMention; canReply: bo
           </label>
         )}
         {m.replied ? (
-          <InlineNote tone="success" title={t('Replied', 'تم الرد')}>
-            {m.replyText ?? t('The reply was posted on the platform; its text was not recorded here.', 'نُشر الرد على المنصة؛ لم يُسجَّل نصه هنا.')}
-            {m.repliedBy && <span className="block pt-1 text-xs">{t(`By ${m.repliedBy.en}`, `بواسطة ${m.repliedBy.ar}`)}</span>}
-          </InlineNote>
+          editing ? (
+            <div className="flex flex-col gap-2">
+              <span className="t-small text-muted-foreground">{t('Edit the reply', 'عدّل الرد')}</span>
+              <Textarea
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                rows={5}
+                dir={lang === 'ar' ? 'rtl' : 'ltr'}
+                aria-label={t('Reply text', 'نص الرد')}
+              />
+              {m.platform === 'instagram' && (
+                <p className="text-xs text-muted-foreground">
+                  {t(
+                    'Instagram does not let a reply be edited: the old reply is deleted and the new one is posted in its place.',
+                    'إنستغرام لا يسمح بتعديل الرد: يُحذف الرد القديم ويُنشر الجديد مكانه.',
+                  )}
+                </p>
+              )}
+              <span className="flex gap-2">
+                <Button
+                  size="sm"
+                  disabled={!draft.trim() || draft.trim() === m.replyText || editReply.isPending}
+                  onClick={() =>
+                    editReply.mutate(
+                      { id: m.id, text: draft.trim(), by: byMe },
+                      {
+                        onSuccess: () => {
+                          toast(t(`Reply updated on ${platformName}.`, `حُدّث الرد على ${platformName}.`))
+                          setEditing(false)
+                        },
+                      },
+                    )
+                  }
+                >
+                  <Send aria-hidden />
+                  {t(`Update on ${platformName}`, `حدّث على ${platformName}`)}
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => (setEditing(false), setDraft(m.replyText ?? ''))}>
+                  {t('Cancel', 'إلغاء')}
+                </Button>
+              </span>
+            </div>
+          ) : (
+            <InlineNote
+              tone="success"
+              title={t(`Replied on ${platformName}`, `تم الرد على ${platformName}`)}
+              action={
+                canReply &&
+                m.replyText && (
+                  <Button size="sm" variant="outline" onClick={() => (setDraft(m.replyText ?? ''), setEditing(true))}>
+                    <Pencil aria-hidden />
+                    {t('Edit', 'تعديل')}
+                  </Button>
+                )
+              }
+            >
+              {m.replyText ?? t('The reply was posted on the platform; its text was not recorded here.', 'نُشر الرد على المنصة؛ لم يُسجَّل نصه هنا.')}
+              {m.repliedBy && (
+                <span className="block pt-1 text-xs">
+                  {t(`By ${m.repliedBy.en}`, `بواسطة ${m.repliedBy.ar}`)}
+                  {m.replyEditedAt && t(` · edited ${m.replyEdits ?? 1}×`, ` · عُدّل ${m.replyEdits ?? 1} مرة`)}
+                </span>
+              )}
+            </InlineNote>
+          )
         ) : canReply ? (
           <>
             <span className="t-small text-muted-foreground">{t('Your reply', 'ردك')}</span>
@@ -465,15 +587,11 @@ function MentionDetail({ m, canReply, onDone }: { m: PublicMention; canReply: bo
             />
             <p className="text-xs text-muted-foreground">
               {t(
-                'Never write a name, number or price in a public reply. Copy the reply, paste it under the post, then mark it replied here.',
-                'لا تكتب اسماً أو رقماً أو سعراً في رد عام. انسخ الرد والصقه تحت المنشور، ثم علّمه كمردود هنا.',
+                `Never write a name, number or price in a public reply. "Publish" posts it on ${platformName} under this comment, as the PSI page; you can edit it afterwards. Prototype: nothing is really posted.`,
+                `لا تكتب اسماً أو رقماً أو سعراً في رد عام. "انشر" يضع الرد على ${platformName} تحت هذا التعليق باسم صفحة PSI؛ ويمكنك تعديله بعدها. في النموذج لا يُنشر شيء فعلاً.`,
               )}
             </p>
             <div className="flex flex-wrap gap-2">
-              <Button size="sm" variant="outline" onClick={() => void copy()} disabled={!text.trim()}>
-                <Copy aria-hidden />
-                {t('Copy the reply', 'انسخ الرد')}
-              </Button>
               <Button size="sm" variant="outline" asChild>
                 <a href={post.url} target="_blank" rel="noopener noreferrer">
                   <ExternalLink aria-hidden />
@@ -485,18 +603,18 @@ function MentionDetail({ m, canReply, onDone }: { m: PublicMention; canReply: bo
                 disabled={!text.trim() || markReplied.isPending}
                 onClick={() =>
                   markReplied.mutate(
-                    { id: m.id, text: text.trim(), by: me ? { en: me.name, ar: me.name } : role.name },
+                    { id: m.id, text: text.trim(), by: byMe },
                     {
                       onSuccess: () => {
-                        toast(L(COPY.toast))
+                        toast(t(`Published on ${platformName}.`, `نُشر على ${platformName}.`))
                         onDone()
                       },
                     },
                   )
                 }
               >
-                <Check aria-hidden />
-                {L(COPY.action)}
+                <Send aria-hidden />
+                {t(`Publish on ${platformName}`, `انشر على ${platformName}`)}
               </Button>
             </div>
           </>
@@ -506,6 +624,8 @@ function MentionDetail({ m, canReply, onDone }: { m: PublicMention; canReply: bo
           </InlineNote>
         )}
       </div>
+      {/* 23 Nov (owner): "eligible for a gift", approved by the CX manager, sent to Administration, all from this panel */}
+      <GiftFlow relatedRef={m.id} reason={m.sentiment < 0 ? 'recovery' : 'thanks'} justification={mentionJustification(m, post.page, platformName, lang)} />
     </div>
   )
 }
@@ -775,6 +895,87 @@ function BiFields({ label, value, onChange, multiline }: { label: string; value:
           rows={multiline ? 4 : undefined}
         />
       </label>
+    </div>
+  )
+}
+
+/**
+ * 23 Nov (owner): which product and environment the comment is about. Agent 2 sets them (from the page the comment sits on, or by
+ * reading it) with how sure it was; when it is not sure, the comment says "not classified" and the CX team or the CX manager choose.
+ * A person's choice wins and is named; it feeds the product filter here and on the dashboard.
+ */
+function ClassificationBox({ m }: { m: PublicMention }) {
+  const { t, L, lang } = useI18n()
+  const { role } = useRole()
+  const { session } = useAuth()
+  const users = useUsers()
+  const classify = useClassifyMention()
+  const me = users.find((u) => u.id === session?.userId)
+  const canEdit = role.id === 'cxmgr' || role.id === 'cxteam'
+  const by = me ? { en: me.name, ar: me.name } : role.name
+  const missing = !m.productId || !m.environment
+  const how = (src: 'page' | 'ai' | 'person' | 'none', conf?: number) =>
+    src === 'page'
+      ? t('from the page it sits on', 'من الصفحة التي نُشر عليها')
+      : src === 'ai'
+        ? t(`by Agent 2${conf ? `, ${Math.round(conf * 100)}% sure` : ''}`, `بواسطة الوكيل 2${conf ? `، متأكد ${Math.round(conf * 100)}%` : ''}`)
+        : src === 'person'
+          ? t(`by ${m.classifiedBy?.en ?? 'the CX team'}`, `بواسطة ${m.classifiedBy?.ar ?? 'فريق CX'}`)
+          : t('Agent 2 could not tell', 'لم يستطع الوكيل 2 التحديد')
+  const save = (patch: { productId?: ProductId | null; environment?: string }) =>
+    classify.mutate(
+      { id: m.id, ...patch, by },
+      { onSuccess: () => toast(t('Saved. It now counts under this product on the dashboard.', 'حُفظ. يُحتسب الآن تحت هذا المنتج في اللوحة.')) },
+    )
+
+  return (
+    <div className={cn('flex flex-col gap-2 rounded-xl border p-3', missing && 'border-destructive/50')}>
+      <span className="flex items-center justify-between gap-2">
+        <span className="font-medium text-foreground">{t('What it is about', 'عن ماذا يتحدث')}</span>
+        {missing && <StatusBadge tone="danger">{t('Needs a person to classify', 'يحتاج تصنيفاً من شخص')}</StatusBadge>}
+      </span>
+      <div className="grid gap-2 sm:grid-cols-2">
+        <label className="flex flex-col gap-1 text-sm">
+          {t('Product', 'المنتج')}
+          <Select value={m.productId ?? ''} onValueChange={(v) => save({ productId: v as ProductId })} disabled={!canEdit}>
+            <SelectTrigger aria-label={t('Product', 'المنتج')}>
+              <SelectValue placeholder={t('Not classified: choose', 'غير مصنّف: اختر')} />
+            </SelectTrigger>
+            <SelectContent>
+              {PRODUCTS.map((p) => (
+                <SelectItem key={p.id} value={p.id}>
+                  {L(p.name)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <span className="text-xs text-muted-foreground">{m.productId ? how(m.productBy, m.productConfidence) : how('none')}</span>
+        </label>
+        <label className="flex flex-col gap-1 text-sm">
+          {t('Environment', 'البيئة')}
+          <Select value={m.environment || ''} onValueChange={(v) => save({ environment: v })} disabled={!canEdit}>
+            <SelectTrigger aria-label={t('Environment', 'البيئة')}>
+              <SelectValue placeholder={t('Not classified: choose', 'غير مصنّف: اختر')} />
+            </SelectTrigger>
+            <SelectContent>
+              {ENV_SHORTS.map((e) => (
+                <SelectItem key={e} value={e}>
+                  {L(envNameFromShort(e))}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <span className="text-xs text-muted-foreground">{m.environment ? how(m.envBy) : how('none')}</span>
+        </label>
+      </div>
+      {lang && canEdit && (
+        <span className="text-xs text-muted-foreground">
+          {t(
+            'A correction you make here is checked in the auditor’s weekly sample, so Agent 2 learns from it.',
+            'أي تصحيح هنا يُراجع في العينة الأسبوعية للمدقق، ليتعلم منه الوكيل 2.',
+          )}
+        </span>
+      )}
     </div>
   )
 }

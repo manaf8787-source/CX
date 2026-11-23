@@ -1,6 +1,29 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { CircleHelp, Gauge, Home, Inbox, ListChecks, PanelLeftClose, PanelLeftOpen, PhoneCall, ScrollText, Settings2, UserCog, Users, X, type LucideIcon } from 'lucide-react'
+import {
+  Activity,
+  Award,
+  FileBarChart,
+  Handshake,
+  Plug,
+  Rocket,
+  TrendingUp,
+  CircleHelp,
+  Gauge,
+  Gift,
+  Home,
+  Inbox,
+  ListChecks,
+  PanelLeftClose,
+  PanelLeftOpen,
+  PhoneCall,
+  ScrollText,
+  Settings2,
+  UserCog,
+  Users,
+  X,
+  type LucideIcon,
+} from 'lucide-react'
 import {
   SidebarContent,
   SidebarFooter,
@@ -41,9 +64,18 @@ const ICONS: Record<string, LucideIcon> = {
   '/actions': ListChecks,
   '/close-the-loop': PhoneCall,
   '/overview': Gauge,
+  '/gifts': Gift,
   '/settings': Settings2,
   '/admin/users': UserCog,
   '/admin/audit': ScrollText,
+  // 23 Nov (owner): each page its own icon, by what it is (they all fell back to the Home icon)
+  '/performance': TrendingUp,
+  '/reports': FileBarChart,
+  '/agents/sales': Handshake,
+  '/agents/support': Award,
+  '/admin/performance': Activity,
+  '/admin/integrations': Plug,
+  '/admin/products': Rocket,
 }
 
 /** One entry of the menu after labels are resolved to the active language. `children` and `count` are supported (the skill's nested items
@@ -66,8 +98,7 @@ export interface SidebarNavGroup {
 
 /** The skill's selected item is ONE dark pill that slides between items. While it is placed (`data-indicator=on` on the list) the active
  *  item drops its own material and only keeps the white text; before that (first paint, jsdom) the item paints the material itself. */
-const ITEM =
-  'relative z-10 group-data-[indicator=on]/nav:data-[active=true]:bg-none! group-data-[indicator=on]/nav:data-[active=true]:shadow-none!'
+const ITEM = 'relative z-10 group-data-[indicator=on]/nav:data-[active=true]:bg-none! group-data-[indicator=on]/nav:data-[active=true]:shadow-none!'
 
 /**
  * Opening and closing (owner's request, 19 Nov: gradual and smooth). Opening: the expanded layout is laid out at its full width at once and
@@ -297,7 +328,10 @@ function NavBody({ variant, groups, toggle, onClose, onNavigate, onReplay }: Nav
             aria-hidden
             data-slot="sidebar-indicator"
             // physical left/top on purpose: the box comes from offsetLeft/offsetTop, which are physical in RTL as well
-            className={cn('material-dark pointer-events-none absolute top-0 left-0 rounded-md', animate && 'transition-[translate,width,height] duration-400 ease-spring')}
+            className={cn(
+              'material-dark pointer-events-none absolute top-0 left-0 rounded-md',
+              animate && 'transition-[translate,width,height] duration-400 ease-spring',
+            )}
             style={{ width: box.w, height: box.h, translate: `${box.x}px ${box.y}px` }}
           />
         )}
@@ -305,13 +339,24 @@ function NavBody({ variant, groups, toggle, onClose, onNavigate, onReplay }: Nav
           <SidebarGroup key={group.key} className="static p-0">
             {/* a short screen (a laptop at 125%): less air above each label, so the whole menu fits more often */}
             {/* (the rail keeps its own spacing: its hidden labels pull the icons together by a fixed amount) */}
-            <SidebarGroupLabel style={step(starts[g])} className="nav-fade [@media(max-height:719px)]:pt-2 group-data-[collapsible=icon]:[@media(max-height:719px)]:pt-3.5">
+            <SidebarGroupLabel
+              style={step(starts[g])}
+              className="nav-fade [@media(max-height:719px)]:pt-2 group-data-[collapsible=icon]:[@media(max-height:719px)]:pt-3.5"
+            >
               {group.label}
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {group.items.map((node, i) => (
-                  <SidebarNavItem key={node.path} node={node} pathname={pathname} tooltip={!sheet} tall={sheet} onNavigate={onNavigate} index={starts[g] + 1 + i} />
+                  <SidebarNavItem
+                    key={node.path}
+                    node={node}
+                    pathname={pathname}
+                    tooltip={!sheet}
+                    tall={sheet}
+                    onNavigate={onNavigate}
+                    index={starts[g] + 1 + i}
+                  />
                 ))}
               </SidebarMenu>
             </SidebarGroupContent>
@@ -323,7 +368,10 @@ function NavBody({ variant, groups, toggle, onClose, onNavigate, onReplay }: Nav
           the account the super admin invited (Users and access); the card keeps the sample-data notice only. */}
       <SidebarFooter className={cn('gap-2 p-0 pt-3 group-data-[collapsible=icon]:items-center', !hasTour && 'group-data-[collapsible=icon]:hidden')}>
         {hasTour && <ReplayTour rail={!sheet && !!toggle?.rail} onReplay={onReplay} index={rows} />}
-        <div style={step(rows + 1)} className="nav-fade material-light flex flex-col gap-1 rounded-lg p-2.5 group-data-[collapsible=icon]:hidden [@media(max-height:719px)]:hidden">
+        <div
+          style={step(rows + 1)}
+          className="nav-fade material-light flex flex-col gap-1 rounded-lg p-2.5 group-data-[collapsible=icon]:hidden [@media(max-height:719px)]:hidden"
+        >
           <span className="t-ui-strong">{t('Prototype', 'نموذج أولي')}</span>
           <span className="text-sm text-muted-foreground">{t('Sample data only', 'بيانات تجريبية فقط')}</span>
         </div>
@@ -428,10 +476,7 @@ export function AppSidebar({ mode, expanded, onToggle, sheetOpen, onSheetOpenCha
             e.preventDefault()
             startTour()
           }}
-          className={cn(
-            'gap-0 bg-sidebar p-0',
-            phone ? 'inset-0! h-full! w-full! max-w-none! rounded-none!' : 'w-[calc(100%-1.25rem)] sm:max-w-[18rem]',
-          )}
+          className={cn('gap-0 bg-sidebar p-0', phone ? 'inset-0! h-full! w-full! max-w-none! rounded-none!' : 'w-[calc(100%-1.25rem)] sm:max-w-[18rem]')}
         >
           <SheetTitle className="sr-only">{t('Navigation menu', 'قائمة التنقل')}</SheetTitle>
           <nav

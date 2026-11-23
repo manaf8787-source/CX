@@ -222,7 +222,7 @@ export interface SurveyQuestionSet {
 // --- My inbox (F20) ----------------------------------------------------------
 
 /** `caud` = "Clear or send back: N campaigns waiting", `caud2` = "Audit after the run: N finished" (v42.1 F33, the prototype's own kinds). */
-export type InboxKind = 'approve' | 'do' | 'verify' | 'call' | 'inv' | 'sample' | 'caud' | 'caud2' | 'mention'
+export type InboxKind = 'approve' | 'do' | 'verify' | 'call' | 'inv' | 'sample' | 'caud' | 'caud2' | 'mention' | 'gift'
 
 export interface InboxItem {
   id: string

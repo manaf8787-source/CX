@@ -29,6 +29,8 @@ export const PRIMARY_NAV: NavGroup[] = [
       { path: '/actions', label: { en: '2–4 · Signals and fixes', ar: '2–4 · الإشارات والحلول' } },
       { path: '/close-the-loop', label: { en: '5 · Close the loop', ar: '5 · إغلاق الحلقة' } },
       { path: '/overview', label: { en: '6 · CX indicators', ar: '6 · مؤشرات تجربة العملاء' } },
+      // 23 Nov (owner): gifts to customers, emailed to the Administration team, with the stock and the history (CX manager and CX team).
+      { path: '/gifts', label: { en: 'Gifts', ar: 'الهدايا' } },
       // 22 Nov: the CX manager's team performance report (appraisal), exportable.
       { path: '/performance', label: { en: 'Team performance', ar: 'أداء الفريق' } },
       // 22 Nov: the counts-only summary for the Reporting viewer (custom roles only; no other role lists it, see `blocked`).
@@ -137,4 +139,3 @@ export function pageTitleFor(pathname: string): Bi {
   if (product) return { en: `Product page: ${product[1]}`, ar: `صفحة المنتج: ${product[1]}` }
   return { en: pathname, ar: pathname }
 }
-
