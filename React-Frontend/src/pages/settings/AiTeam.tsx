@@ -3,6 +3,7 @@ import { useI18n } from '@/i18n'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import IntelligentCxTeam from '@/pages/IntelligentCxTeam'
 import WatchTeam from './WatchTeam'
+import AiAssessment from './AiAssessment'
 import { SubPageHeader } from './SubPageHeader'
 
 /**
@@ -12,7 +13,8 @@ import { SubPageHeader } from './SubPageHeader'
 export default function AiTeam() {
   const { t } = useI18n()
   const [params, setParams] = useSearchParams()
-  const tab = params.get('tab') === 'watch' ? 'watch' : 'how'
+  const raw = params.get('tab')
+  const tab = raw === 'watch' || raw === 'results' ? raw : 'how'
   return (
     <section className="flex flex-col gap-4">
       <SubPageHeader
@@ -26,6 +28,8 @@ export default function AiTeam() {
         <TabsList aria-label={t('The AI team', 'فريق الذكاء الاصطناعي')}>
           <TabsTrigger value="how">{t('How it works', 'كيف يعمل')}</TabsTrigger>
           <TabsTrigger value="watch">{t('Watch it work', 'شاهده يعمل')}</TabsTrigger>
+          {/* 23 Nov (owner): how well the campaign AI agent and the QA layers perform */}
+          <TabsTrigger value="results">{t('Results and assessment', 'النتائج والتقييم')}</TabsTrigger>
         </TabsList>
         <TabsContent value="how">
           <IntelligentCxTeam />
@@ -33,8 +37,10 @@ export default function AiTeam() {
         <TabsContent value="watch">
           <WatchTeam />
         </TabsContent>
+        <TabsContent value="results">
+          <AiAssessment />
+        </TabsContent>
       </Tabs>
     </section>
   )
 }
-
