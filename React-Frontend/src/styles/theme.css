@@ -1285,12 +1285,12 @@
   }
   .brand-logo[data-animated] .brand-point-orbit {
     transform-box: view-box;
-    transform-origin: 163px 163px;
+    transform-origin: 172px 174px;
     animation: brand-point-orbit 5.6s cubic-bezier(0.65, 0, 0.35, 1) infinite;
   }
   .brand-logo[data-animated] .brand-point {
     transform-box: view-box;
-    transform-origin: 281.6px 114px;
+    transform-origin: 300px 121px;
     animation: brand-point-land 5.6s ease-in-out infinite;
   }
   .cx-orbit {

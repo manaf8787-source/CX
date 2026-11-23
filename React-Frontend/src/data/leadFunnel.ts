@@ -291,14 +291,14 @@ function build(nowMs: number): LeadRec[] {
       opp.reached = 'confirmed'
     }
     const steps: [OppStage, number][] = [
-      ['viewing', 0.72],
-      ['offer', 0.56],
-      ['booking', 0.62],
-      ['won', 0.78],
+      ['viewing', 0.8],
+      ['offer', 0.66],
+      ['booking', 0.7],
+      ['won', 0.85],
     ]
     for (const [stage, p] of steps) {
       // recent deals have not had the time to move on
-      const room = ageDays > 10 + OPP_STAGES.indexOf(stage) * 8
+      const room = ageDays > 4 + OPP_STAGES.indexOf(stage) * 4
       if (room && r() < p) {
         opp.reached = stage
         continue

@@ -20,8 +20,8 @@ export default function AiTeam() {
       <SubPageHeader
         title={t('The AI team', 'فريق الذكاء الاصطناعي')}
         description={t(
-          'Who the AI agents are and what each one does, and a replay of them working on a real-looking case, step by step.',
-          'من هم وكلاء الذكاء الاصطناعي وماذا يفعل كل منهم، وإعادة تشغيل لعملهم على حالة تشبه الحقيقية، خطوة بخطوة.',
+          'Who the AI agents are and what each one does, a replay of them working on a real-looking case, and how well the campaign AI agent and the QA layers perform.',
+          'من هم وكلاء الذكاء الاصطناعي وماذا يفعل كل منهم، وإعادة تشغيل لعملهم على حالة تشبه الحقيقية، ومدى جودة أداء وكيل حملات الذكاء الاصطناعي وطبقات QA.',
         )}
       />
       <Tabs value={tab} onValueChange={(v) => setParams({ tab: v }, { replace: true })} className="gap-4">
