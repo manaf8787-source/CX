@@ -62,7 +62,7 @@ const DECISIONS: { n: number; title: Bi; ids: string[]; note?: Bi }[] = [
   {
     n: 5,
     title: { en: 'Decision 5 · Feedback coverage', ar: 'القرار 5 · تغطية الملاحظات' },
-    ids: ['rule_public_reply'],
+    ids: ['rule_public_reply', 'rule_public_reminder'],
     note: {
       en: 'Inside the CSAT/CES window the most important touchpoint is kept: viewing > offer > call. Public channels are never surveyed; each product has its own line; website and app are two named sources.',
       ar: 'ضمن نافذة CSAT/CES تُحفظ أهم نقطة تواصل: المعاينة > العرض > المكالمة. القنوات العامة لا تُستبين أبداً؛ لكل منتج خطه؛ الموقع والتطبيق مصدران منفصلان.',
@@ -347,4 +347,3 @@ function RulesBody() {
     </section>
   )
 }
-

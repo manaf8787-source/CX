@@ -1,5 +1,10 @@
 import { lazy, Suspense } from 'react'
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, MemoryRouter, Navigate, Route, Routes } from 'react-router-dom'
+import type { ReactNode } from 'react'
+
+/** A shared review copy (built with VITE_ROUTER=memory) runs inside a host page whose address it cannot own: routes live in memory. */
+const Router = ({ children }: { children: ReactNode }) =>
+  import.meta.env.VITE_ROUTER === 'memory' ? <MemoryRouter initialEntries={['/']}>{children}</MemoryRouter> : <BrowserRouter>{children}</BrowserRouter>
 import { I18nProvider } from './i18n'
 import { ThemeProvider } from './theme/ThemeContext'
 import { RoleProvider } from './auth/RoleContext'
@@ -74,7 +79,7 @@ export default function App() {
         <UiProviders>
           <RoleProvider>
             <EnvScopeProvider>
-            <BrowserRouter>
+            <Router>
               <AuthProvider>
               <Routes>
                 <Route
@@ -158,7 +163,7 @@ export default function App() {
                 </Route>
               </Routes>
               </AuthProvider>
-            </BrowserRouter>
+            </Router>
             </EnvScopeProvider>
           </RoleProvider>
         </UiProviders>

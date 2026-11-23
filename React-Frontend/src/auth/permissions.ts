@@ -20,7 +20,20 @@ export function canViewConversationText(role: RoleId): boolean {
  * management / team leads / After-Sales lead are "own management" for their
  * product; HR, L&D, Marketing, Audit, executives and the shopper sign-in
  * never see a real name, only a title. */
-const AGENT_NAME_ROLES: ReadonlySet<RoleId> = new Set(['cxmgr', 'cxteam', 'envmgmt', 'teamlead', 'aslead', 'ld', 'hrspec', 'hrmgr', 'marketing', 'auditmkt', 'exec', 'custom'])
+const AGENT_NAME_ROLES: ReadonlySet<RoleId> = new Set([
+  'cxmgr',
+  'cxteam',
+  'envmgmt',
+  'teamlead',
+  'aslead',
+  'ld',
+  'hrspec',
+  'hrmgr',
+  'marketing',
+  'auditmkt',
+  'exec',
+  'custom',
+])
 
 export function canViewAgentNames(role: RoleId): boolean {
   return AGENT_NAME_ROLES.has(role)
@@ -37,7 +50,8 @@ export function isInformedOnly(role: RoleId): boolean {
 /** KB §1 / §17: the receiver of a case or action is the person who can fix
  * it, never top management — heads and C-level are informed only. Used to
  * refuse an owner title that names a head, a chief or the board. */
-const TOP_MANAGEMENT_TITLE = /\b(head of|chief|ceo|coo|cfo|cto|c-level|chairman|board|managing director|general manager|vice president|vp)\b|رئيس|المدير العام|الرئيس التنفيذي|مجلس الإدارة/i
+const TOP_MANAGEMENT_TITLE =
+  /\b(head of|chief|ceo|coo|cfo|cto|c-level|chairman|board|managing director|general manager|vice president|vp)\b|رئيس|المدير العام|الرئيس التنفيذي|مجلس الإدارة/i
 
 export function isTopManagementTitle(title: string): boolean {
   return TOP_MANAGEMENT_TITLE.test(title)
@@ -147,8 +161,14 @@ export function canViewNamesInSample(role: RoleId): boolean {
 }
 
 /** v40 (F30): "Mark replied" on a public mention: CX roles and Marketing. */
+/** 23 Nov (owner): a human from the CX team replies to public comments (the human touch first; the AI does not reply). Marketing reads. */
 export function canMarkMentionReplied(role: RoleId): boolean {
-  return role === 'cxmgr' || role === 'cxteam' || role === 'marketing'
+  return role === 'cxmgr' || role === 'cxteam'
+}
+
+/** 23 Nov: the reply scripts and common questions of Public mentions are edited by the CX manager only; everyone who opens the page reads them. */
+export function canEditReplyLibrary(role: RoleId): boolean {
+  return role === 'cxmgr'
 }
 
 /** v40 (F27): recording a call attempt ("No answer") is a CX action. */

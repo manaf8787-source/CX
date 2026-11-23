@@ -150,7 +150,16 @@ function buildAgentDirectory(): AgentDirectoryEntry[] {
   })
 }
 
-const PROBLEM_FLAGS: ProblemFlag[] = ['promise_not_kept', 'forced_channel_switch', 'repeat_contact', 'slow_reply', 'wrong_language', 'hand_off', 'silence', 'detractor']
+const PROBLEM_FLAGS: ProblemFlag[] = [
+  'promise_not_kept',
+  'forced_channel_switch',
+  'repeat_contact',
+  'slow_reply',
+  'wrong_language',
+  'hand_off',
+  'silence',
+  'detractor',
+]
 
 // Patterns are counted in a rolling 30-day window (Rules Decision 1), so most problem
 // contacts sit in the last month; the rest, and every other contact, keep the older
@@ -160,9 +169,7 @@ const RECENT_PROBLEM_SHARE = 0.9
 function problemOccurredAt(): string {
   const u = rng()
   const days =
-    u < RECENT_PROBLEM_SHARE
-      ? Math.floor((u / RECENT_PROBLEM_SHARE) * 29)
-      : 30 + Math.floor(((u - RECENT_PROBLEM_SHARE) / (1 - RECENT_PROBLEM_SHARE)) * 151)
+    u < RECENT_PROBLEM_SHARE ? Math.floor((u / RECENT_PROBLEM_SHARE) * 29) : 30 + Math.floor(((u - RECENT_PROBLEM_SHARE) / (1 - RECENT_PROBLEM_SHARE)) * 151)
   const d = new Date()
   d.setDate(d.getDate() - days)
   return d.toISOString()
@@ -260,7 +267,12 @@ function secondEvent(i: Interaction, byPerson: Map<string, Interaction[]>): Inte
   const t = Date.parse(i.occurredAt)
   return (byPerson.get(i.personKey) ?? [])
     .filter((x) => x.id !== i.id && x.envId === i.envId && x.product === i.product)
-    .sort((a, b) => Number(b.problemFlags.length > 0) - Number(a.problemFlags.length > 0) || Math.abs(Date.parse(a.occurredAt) - t) - Math.abs(Date.parse(b.occurredAt) - t) || a.id.localeCompare(b.id))[0]
+    .sort(
+      (a, b) =>
+        Number(b.problemFlags.length > 0) - Number(a.problemFlags.length > 0) ||
+        Math.abs(Date.parse(a.occurredAt) - t) - Math.abs(Date.parse(b.occurredAt) - t) ||
+        a.id.localeCompare(b.id),
+    )[0]
 }
 
 function buildSignals(interactions: Interaction[]): Signal[] {
@@ -296,7 +308,16 @@ function buildSignals(interactions: Interaction[]): Signal[] {
     })
 }
 
-const CORRECTIVE_KINDS: CorrectiveActionKind[] = ['employee', 'service_behaviour', 'training_gap', 'product_app', 'process', 'environment', 'legal_privacy', 'marketing']
+const CORRECTIVE_KINDS: CorrectiveActionKind[] = [
+  'employee',
+  'service_behaviour',
+  'training_gap',
+  'product_app',
+  'process',
+  'environment',
+  'legal_privacy',
+  'marketing',
+]
 const MINIMUM_SAMPLE = 10
 
 function recoverySentence(tried: number, recovered: number): { en: string; ar: string } {
@@ -407,10 +428,23 @@ function buildCorrectiveRationales(actions: CorrectiveAction[], patterns: Patter
       subjectType: 'corrective_action',
       subjectId: a.id,
       payload: {
-        whyThisTeam: { en: `${pattern?.sampleSize ?? 0} signals in this category trace back to this team within the last ${pattern?.windowDays ?? 30} days.`, ar: `${pattern?.sampleSize ?? 0} إشارة من هذه الفئة تعود لهذا الفريق خلال ${pattern?.windowDays ?? 30} يوماً.` },
-        whatAiDidNotDo: { en: 'Did not contact the customer, did not change any system record, did not assign blame to a named individual.', ar: 'لم يتم التواصل مع العميل، ولم يُغيَّر أي سجل في النظام، ولم تُنسب المسؤولية لشخص بعينه.' },
+        whyThisTeam: {
+          en: `${pattern?.sampleSize ?? 0} signals in this category trace back to this team within the last ${pattern?.windowDays ?? 30} days.`,
+          ar: `${pattern?.sampleSize ?? 0} إشارة من هذه الفئة تعود لهذا الفريق خلال ${pattern?.windowDays ?? 30} يوماً.`,
+        },
+        whatAiDidNotDo: {
+          en: 'Did not contact the customer, did not change any system record, did not assign blame to a named individual.',
+          ar: 'لم يتم التواصل مع العميل، ولم يُغيَّر أي سجل في النظام، ولم تُنسب المسؤولية لشخص بعينه.',
+        },
       },
-      evidence: (pattern?.signalIds ?? []).slice(0, 5).map((sid, i) => ({ sourceType: 'signal', sourceId: sid, occurredAt: daysAgoIso(rng, 30), summary: { en: `Signal #${i + 1} in the pattern window.`, ar: `إشارة رقم ${i + 1} ضمن نافذة النمط.` } })),
+      evidence: (pattern?.signalIds ?? [])
+        .slice(0, 5)
+        .map((sid, i) => ({
+          sourceType: 'signal',
+          sourceId: sid,
+          occurredAt: daysAgoIso(rng, 30),
+          summary: { en: `Signal #${i + 1} in the pattern window.`, ar: `إشارة رقم ${i + 1} ضمن نافذة النمط.` },
+        })),
       confidence: pattern?.hasMinimumSample ? 0.78 : 0.42,
       rulesApplied: pattern ? [`signals.${pattern.thresholdKind}`] : [],
       model: 'mock-agent-5',
@@ -483,9 +517,15 @@ function buildInvestigations(patterns: Pattern[]): Investigation[] {
       environment: p.team,
       scenario: kind === 'mystery_shopper_check' ? { en: `${p.category.replace(/_/g, ' ')} scenario, ${p.team}`, ar: `سيناريو ${p.team}` } : undefined,
       status,
-      resultSummary: status === 'returned' ? { en: 'Evidence returned: root cause confirmed, ready to propose an action.', ar: 'عادت الأدلة: تم تأكيد السبب الجذري، جاهز لاقتراح إجراء.' } : undefined,
+      resultSummary:
+        status === 'returned'
+          ? { en: 'Evidence returned: root cause confirmed, ready to propose an action.', ar: 'عادت الأدلة: تم تأكيد السبب الجذري، جاهز لاقتراح إجراء.' }
+          : undefined,
       // v40 (F26): the recorded result is the evidence on the pattern; interviews done count up to the request.
-      result: status === 'returned' ? { en: 'Evidence returned: root cause confirmed, ready to propose an action.', ar: 'عادت الأدلة: تم تأكيد السبب الجذري، جاهز لاقتراح إجراء.' } : undefined,
+      result:
+        status === 'returned'
+          ? { en: 'Evidence returned: root cause confirmed, ready to propose an action.', ar: 'عادت الأدلة: تم تأكيد السبب الجذري، جاهز لاقتراح إجراء.' }
+          : undefined,
       doneCount: kind === 'customer_interviews' ? (status === 'returned' ? 5 : status === 'in_progress' ? 3 : 0) : undefined,
     }
   })
@@ -537,14 +577,23 @@ export const SHOPPER_TO_INSIGHT_CATEGORY: Record<string, InsightCategory> = {
 }
 
 function buildAiInsightEnvelopes(shopperCases: ShopperCase[]): AgentOutputEnvelope<AiInsightPayload>[] {
-  const openCaseFor = (category: InsightCategory) =>
-    shopperCases.find((c) => SHOPPER_TO_INSIGHT_CATEGORY[c.category] === category && c.status !== 'closed')
+  const openCaseFor = (category: InsightCategory) => shopperCases.find((c) => SHOPPER_TO_INSIGHT_CATEGORY[c.category] === category && c.status !== 'closed')
   // Same number of rng() draws per insight as before, so the rest of the seeded sample is unchanged.
   const scored = INSIGHT_SCORED_CATEGORIES.map((category, idx): AgentOutputEnvelope<AiInsightPayload> => {
     const environment = pick(rng, ENVIRONMENTS)
     const sampleSize = intBetween(rng, 4, 22)
     const recovered = Math.max(1, Math.round(sampleSize * (0.5 + rng() * 0.3)))
-    return insightEnvelope(idx, category, environment, pick(rng, AI_INSIGHT_SERVICE_BANDS), sampleSize, recovered, openCaseFor(category)?.id, daysAgoIso(rng, 30), daysAgoIso(rng, 3))
+    return insightEnvelope(
+      idx,
+      category,
+      environment,
+      pick(rng, AI_INSIGHT_SERVICE_BANDS),
+      sampleSize,
+      recovered,
+      openCaseFor(category)?.id,
+      daysAgoIso(rng, 30),
+      daysAgoIso(rng, 3),
+    )
   })
   // The app category (prototype: Abu Dhabi rent, any time band) is fixed, no rng draws.
   const appDay = new Date(Date.now() - 6 * 86_400_000).toISOString()
@@ -580,7 +629,14 @@ function insightEnvelope(
       ],
       sendToCaseEligibleCaseId: caseId,
     },
-    evidence: [{ sourceType: 'survey_response', sourceId: `svy-${idx + 1}`, occurredAt: evidenceAt, summary: { en: `Scored record below threshold for ${category}.`, ar: 'سجل مُقيَّم دون الحد المطلوب.' } }],
+    evidence: [
+      {
+        sourceType: 'survey_response',
+        sourceId: `svy-${idx + 1}`,
+        occurredAt: evidenceAt,
+        summary: { en: `Scored record below threshold for ${category}.`, ar: 'سجل مُقيَّم دون الحد المطلوب.' },
+      },
+    ],
     confidence: sampleSize >= MINIMUM_SAMPLE ? 0.74 : 0.38,
     rulesApplied: ['ai_insights.scored_record_pattern'],
     model: 'mock-agent-4',
@@ -608,7 +664,10 @@ const DETRACTOR_FOLLOW_UPS: [number, Omit<RecoveryEvent, 'at'>][][] = [
   [[30, { kind: 'transaction' }]],
   [[10, { kind: 'contact', complaint: true }]],
   [],
-  [[15, { kind: 'rating', instrument: 'csat', score: 5 }], [40, { kind: 'rating', instrument: 'csat', score: 1 }]],
+  [
+    [15, { kind: 'rating', instrument: 'csat', score: 5 }],
+    [40, { kind: 'rating', instrument: 'csat', score: 1 }],
+  ],
   [[45, { kind: 'renewal' }]],
 ]
 
@@ -616,50 +675,178 @@ const INSTRUMENT_CYCLE: FeedbackInstrument[] = ['nps', 'csat', 'ces']
 
 function buildDetractorCallItems(persons: Person[]): DetractorCallItem[] {
   // A person on the do-not-call register is never callable, so never on this list (v40, F24).
-  return persons.filter((p) => !p.consent.dncr).slice(0, 12).map((p, idx) => {
-    const severity = pick(rng, ['critical', 'medium', 'low'] as const)
-    const rawScore = intBetween(rng, 0, 6)
-    const channel: DetractorCallItem['channel'] = rng() > 0.5 ? 'human' : 'ai_campaign'
-    const outcome = pick(rng, ['reached', 'resolved_on_call', 'declined', 'callback_requested'] as const)
-    // Derived, no extra rng draws: NPS detractors score 0 to 6, CSAT and CES detractors 1 or 2.
-    const instrument = INSTRUMENT_CYCLE[idx % 3]
-    const firstScore = instrument === 'nps' ? rawScore : 1 + (rawScore % 2)
-    const daysAgo = DETRACTOR_INCIDENT_DAYS_AGO[idx]
-    const incidentMs = Date.now() - daysAgo * 86_400_000
-    const followUps: RecoveryEvent[] = DETRACTOR_FOLLOW_UPS[idx].map(([after, e]) => ({
-      ...e,
-      at: new Date(incidentMs + after * 86_400_000).toISOString(),
-    }))
-    // A third of the month's list is still waiting for its call, so the interview flow has work to do.
-    const open = idx % 3 === 2
-    return {
-      id: `dcl-${idx + 1}`,
-      personId: p.id,
-      product: p.products[0],
-      environment: p.environment,
-      envId: p.envId,
-      severity,
-      firstScore,
-      channel,
-      outcome: open ? undefined : outcome,
-      instrument,
-      incidentAt: new Date(incidentMs).toISOString(),
-      followUps,
-      // An AI campaign row hands over after its 2 no-answers (decided 18 Nov), the CX team's own list after 3.
-      ...seedCallAttempts(idx, open, channel === 'ai_campaign' ? 2 : 3),
-    }
-  })
+  return persons
+    .filter((p) => !p.consent.dncr)
+    .slice(0, 12)
+    .map((p, idx) => {
+      const severity = pick(rng, ['critical', 'medium', 'low'] as const)
+      const rawScore = intBetween(rng, 0, 6)
+      const channel: DetractorCallItem['channel'] = rng() > 0.5 ? 'human' : 'ai_campaign'
+      const outcome = pick(rng, ['reached', 'resolved_on_call', 'declined', 'callback_requested'] as const)
+      // Derived, no extra rng draws: NPS detractors score 0 to 6, CSAT and CES detractors 1 or 2.
+      const instrument = INSTRUMENT_CYCLE[idx % 3]
+      const firstScore = instrument === 'nps' ? rawScore : 1 + (rawScore % 2)
+      const daysAgo = DETRACTOR_INCIDENT_DAYS_AGO[idx]
+      const incidentMs = Date.now() - daysAgo * 86_400_000
+      const followUps: RecoveryEvent[] = DETRACTOR_FOLLOW_UPS[idx].map(([after, e]) => ({
+        ...e,
+        at: new Date(incidentMs + after * 86_400_000).toISOString(),
+      }))
+      // A third of the month's list is still waiting for its call, so the interview flow has work to do.
+      const open = idx % 3 === 2
+      return {
+        id: `dcl-${idx + 1}`,
+        personId: p.id,
+        product: p.products[0],
+        environment: p.environment,
+        envId: p.envId,
+        severity,
+        firstScore,
+        channel,
+        outcome: open ? undefined : outcome,
+        instrument,
+        incidentAt: new Date(incidentMs).toISOString(),
+        followUps,
+        // An AI campaign row hands over after its 2 no-answers (decided 18 Nov), the CX team's own list after 3.
+        ...seedCallAttempts(idx, open, channel === 'ai_campaign' ? 2 : 3),
+      }
+    })
 }
 
 // KB §8 table (who, main pain, channels) and the prototype's recommendation to
 // Marketing for each persona (v38 export, PERSONAS) — transcribed, not invented.
 const PERSONA_SEED: Omit<Persona, 'runawayCount' | 'segmentSize'>[] = [
-  { id: 'overseas_investor', name: { en: 'Overseas investor', ar: 'مستثمر من الخارج' }, who: { en: 'Lives abroad, business owner, buys off-plan for yield. Few contacts, each one matters. Wants construction updates and payment plan clarity, in writing.', ar: 'يعيش في الخارج، صاحب أعمال، يشتري على الخارطة للعائد. تواصل قليل لكن كل اتصال مهم. يريد تحديثات الإنشاء ووضوح خطة الدفع كتابةً.' }, mainPain: { en: 'Wrong payment plan details; silence between milestones', ar: 'تفاصيل خطة دفع خاطئة؛ صمت بين المراحل' }, channelsUsed: ['wallet', 'whatsapp', 'email'], recommendation: { targetWho: { en: 'Owners abroad with one unit and no second deal in 18 months', ar: 'مالكون في الخارج بوحدة واحدة ولا صفقة ثانية منذ 18 شهراً' }, channelAndWhen: { en: 'WhatsApp template plus email, Tuesday to Thursday 18:00 to 21:00 their time', ar: 'قالب واتساب مع بريد، الثلاثاء إلى الخميس 18:00 إلى 21:00 بتوقيتهم' }, campaignType: { en: 'Portfolio update with a named relationship manager and one new launch', ar: 'تحديث محفظة مع مدير علاقات بالاسم وإطلاق واحد جديد' }, whatNotToDo: { en: 'No discount pushes; no cold calls at their night', ar: 'لا ضغط بخصومات؛ لا مكالمات باردة في ليلهم' } }, approvedByCxManager: true },
-  { id: 'first_time_expat_buyer', name: { en: 'First-time expat buyer', ar: 'مشترٍ مغترب لأول مرة' }, who: { en: 'Salaried, works in the UAE, buying a home not an asset. Many questions, uses the app and calls, price and payment sensitive, needs handover guidance.', ar: 'موظف براتب، يعمل في الإمارات، يشتري منزلاً لا أصلاً. أسئلة كثيرة، يستخدم التطبيق والمكالمات، حساس للسعر والدفع، يحتاج إرشاداً عند التسليم.' }, mainPain: { en: 'Handover date slipped with no call; repeat questions unanswered', ar: 'تأخر موعد التسليم دون اتصال؛ أسئلة متكررة بلا إجابة' }, channelsUsed: ['app', 'call', 'whatsapp'], recommendation: { targetWho: { en: 'Salaried leads 28 to 40 who viewed twice and asked about payment plans', ar: 'عملاء محتملون براتب بين 28 و40 شاهدوا مرتين وسألوا عن خطط الدفع' }, channelAndWhen: { en: 'App notification plus WhatsApp, weekday evenings', ar: 'إشعار التطبيق مع واتساب، مساء أيام الأسبوع' }, campaignType: { en: 'Ready-to-move units with a clear payment plan calculator and a handover guarantee', ar: 'وحدات جاهزة مع حاسبة خطة دفع واضحة وضمان تسليم' }, whatNotToDo: { en: 'No off-plan launches; no jargon', ar: 'لا إطلاقات على الخارطة؛ لا مصطلحات' } }, approvedByCxManager: true },
-  { id: 'local_family_renter', name: { en: 'Local family renter', ar: 'عائلة مستأجرة محلية' }, who: { en: 'Tenant in PSI Assets, salaried, uses the app for maintenance. Renews when maintenance is fast; leaves when a request is lost.', ar: 'مستأجر في PSI للأصول، موظف براتب، يستخدم التطبيق للصيانة. يجدد عندما تكون الصيانة سريعة ويغادر عندما يضيع طلب.' }, mainPain: { en: 'Maintenance request lost between teams; app request not visible', ar: 'طلب صيانة ضاع بين الفرق؛ طلب التطبيق لا يظهر' }, channelsUsed: ['app', 'call'], recommendation: { targetWho: { en: 'Tenants with a lease ending in 90 days and at least one open maintenance request', ar: 'مستأجرون ينتهي عقدهم خلال 90 يوماً ولديهم طلب صيانة مفتوح واحد على الأقل' }, channelAndWhen: { en: 'App message first, then a call from the leasing manager', ar: 'رسالة التطبيق أولاً ثم مكالمة من مدير التأجير' }, campaignType: { en: 'Renewal offer tied to closing the open request, 60 days before the lease ends', ar: 'عرض تجديد مرتبط بإغلاق الطلب المفتوح قبل 60 يوماً من انتهاء العقد' }, whatNotToDo: { en: 'No renewal letter before the request is closed', ar: 'لا رسالة تجديد قبل إغلاق الطلب' } }, approvedByCxManager: true },
-  { id: 'portfolio_owner', name: { en: 'Portfolio owner', ar: 'مالك محفظة' }, who: { en: 'Several units, business owner, delegates to an assistant. Wants rental management and zero friction. Low tolerance for delays and for being passed between teams.', ar: 'عدة وحدات، صاحب أعمال، يفوّض مساعداً. يريد إدارة تأجير وبلا احتكاك. تحمّل منخفض للتأخير وللتنقل بين الفرق.' }, mainPain: { en: 'Passed between After-Sales and Assets; statement errors', ar: 'يُحوَّل بين ما بعد البيع والأصول؛ أخطاء في كشف الحساب' }, channelsUsed: ['wallet', 'email', 'call'], recommendation: { targetWho: { en: 'Owners with 3 or more units and no referral in 12 months', ar: 'مالكون بثلاث وحدات أو أكثر ولا إحالة منذ 12 شهراً' }, channelAndWhen: { en: 'Account manager call, then PSI Club invitation by email', ar: 'مكالمة مدير الحساب ثم دعوة نادي PSI بالبريد' }, campaignType: { en: 'PSI Club referral programme and a single point of contact', ar: 'برنامج إحالة نادي PSI ونقطة تواصل واحدة' }, whatNotToDo: { en: 'No generic launch mailers', ar: 'لا رسائل إطلاق عامة' } }, approvedByCxManager: false, auditNote: { en: 'Segment criteria rely on PSI Wallet data that is still pilot-only — recheck segment size once Wallet exits pilot.', ar: 'معايير الشريحة تعتمد على بيانات محفظة PSI التي ما زالت تجريبية — يُعاد التحقق من حجم الشريحة بعد خروج المحفظة من مرحلة التجربة.' } },
-  { id: 'comparison_shopper', name: { en: 'Comparison shopper', ar: 'مقارِن العروض' }, who: { en: 'Lead talking to several brokers at once, WhatsApp heavy, asks for the best price and a discount. Goes where the reply is fastest and clearest.', ar: 'عميل محتمل يتحدث مع عدة وسطاء في آن، يعتمد واتساب، يطلب أفضل سعر وخصماً. يذهب حيث الرد أسرع وأوضح.' }, mainPain: { en: 'Slow WhatsApp reply; reply in the wrong language; discount promised then withdrawn', ar: 'رد واتساب بطيء؛ رد بلغة غير مناسبة؛ خصم وُعد به ثم سُحب' }, channelsUsed: ['whatsapp', 'website'], recommendation: { targetWho: { en: 'Leads who asked for a price on WhatsApp and got no reply within 2 hours', ar: 'عملاء محتملون طلبوا سعراً على واتساب ولم يُردّ عليهم خلال ساعتين' }, channelAndWhen: { en: 'WhatsApp within the same hour, from the assigned agent', ar: 'واتساب خلال نفس الساعة من الموظف المعيّن' }, campaignType: { en: 'Transparent price sheet and viewing slot, no discount games', ar: 'ورقة أسعار شفافة وموعد معاينة، بلا ألعاب خصومات' }, whatNotToDo: { en: 'No "call me for the price"', ar: 'لا "اتصل بي لمعرفة السعر"' } }, approvedByCxManager: true, auditNote: { en: 'Criteria checked against the lead funnel’s "why they stopped" reasons — consistent for two reviews running.', ar: 'جرى فحص المعايير مقابل أسباب "لماذا توقفوا" في قمع العملاء المحتملين — متسقة لمراجعتين متتاليتين.' } },
-  { id: 'referral_driven_member', name: { en: 'Referral-driven member', ar: 'عضو يعتمد الإحالة' }, who: { en: 'PSI Club member, refers friends and family, wants to see progress and get paid on time. Talks about PSI to others; the loudest promoter or detractor.', ar: 'عضو نادي PSI، يحيل الأصدقاء والعائلة، يريد رؤية التقدم والدفع في موعده. يتحدث عن PSI للآخرين؛ أعلى مروّج أو منتقد.' }, mainPain: { en: 'No update on a nominated lead; commission late', ar: 'لا تحديث عن عميل مرشَّح؛ عمولة متأخرة' }, channelsUsed: ['club', 'whatsapp'], recommendation: { targetWho: { en: 'Members with one closed referral and none in 6 months', ar: 'أعضاء لهم إحالة واحدة مغلقة ولا شيء منذ 6 أشهر' }, channelAndWhen: { en: 'Club app milestone push plus a personal WhatsApp from the admin', ar: 'إشعار المراحل في تطبيق النادي مع واتساب شخصي من المسؤول' }, campaignType: { en: 'Referral season with visible tracking and a recognition moment', ar: 'موسم إحالات مع تتبع مرئي ولحظة تقدير' }, whatNotToDo: { en: 'No referral asks while a commission is unpaid', ar: 'لا طلب إحالات وعمولة غير مدفوعة' } }, approvedByCxManager: true },
+  {
+    id: 'overseas_investor',
+    name: { en: 'Overseas investor', ar: 'مستثمر من الخارج' },
+    who: {
+      en: 'Lives abroad, business owner, buys off-plan for yield. Few contacts, each one matters. Wants construction updates and payment plan clarity, in writing.',
+      ar: 'يعيش في الخارج، صاحب أعمال، يشتري على الخارطة للعائد. تواصل قليل لكن كل اتصال مهم. يريد تحديثات الإنشاء ووضوح خطة الدفع كتابةً.',
+    },
+    mainPain: { en: 'Wrong payment plan details; silence between milestones', ar: 'تفاصيل خطة دفع خاطئة؛ صمت بين المراحل' },
+    channelsUsed: ['wallet', 'whatsapp', 'email'],
+    recommendation: {
+      targetWho: { en: 'Owners abroad with one unit and no second deal in 18 months', ar: 'مالكون في الخارج بوحدة واحدة ولا صفقة ثانية منذ 18 شهراً' },
+      channelAndWhen: {
+        en: 'WhatsApp template plus email, Tuesday to Thursday 18:00 to 21:00 their time',
+        ar: 'قالب واتساب مع بريد، الثلاثاء إلى الخميس 18:00 إلى 21:00 بتوقيتهم',
+      },
+      campaignType: { en: 'Portfolio update with a named relationship manager and one new launch', ar: 'تحديث محفظة مع مدير علاقات بالاسم وإطلاق واحد جديد' },
+      whatNotToDo: { en: 'No discount pushes; no cold calls at their night', ar: 'لا ضغط بخصومات؛ لا مكالمات باردة في ليلهم' },
+    },
+    approvedByCxManager: true,
+  },
+  {
+    id: 'first_time_expat_buyer',
+    name: { en: 'First-time expat buyer', ar: 'مشترٍ مغترب لأول مرة' },
+    who: {
+      en: 'Salaried, works in the UAE, buying a home not an asset. Many questions, uses the app and calls, price and payment sensitive, needs handover guidance.',
+      ar: 'موظف براتب، يعمل في الإمارات، يشتري منزلاً لا أصلاً. أسئلة كثيرة، يستخدم التطبيق والمكالمات، حساس للسعر والدفع، يحتاج إرشاداً عند التسليم.',
+    },
+    mainPain: { en: 'Handover date slipped with no call; repeat questions unanswered', ar: 'تأخر موعد التسليم دون اتصال؛ أسئلة متكررة بلا إجابة' },
+    channelsUsed: ['app', 'call', 'whatsapp'],
+    recommendation: {
+      targetWho: {
+        en: 'Salaried leads 28 to 40 who viewed twice and asked about payment plans',
+        ar: 'عملاء محتملون براتب بين 28 و40 شاهدوا مرتين وسألوا عن خطط الدفع',
+      },
+      channelAndWhen: { en: 'App notification plus WhatsApp, weekday evenings', ar: 'إشعار التطبيق مع واتساب، مساء أيام الأسبوع' },
+      campaignType: {
+        en: 'Ready-to-move units with a clear payment plan calculator and a handover guarantee',
+        ar: 'وحدات جاهزة مع حاسبة خطة دفع واضحة وضمان تسليم',
+      },
+      whatNotToDo: { en: 'No off-plan launches; no jargon', ar: 'لا إطلاقات على الخارطة؛ لا مصطلحات' },
+    },
+    approvedByCxManager: true,
+  },
+  {
+    id: 'local_family_renter',
+    name: { en: 'Local family renter', ar: 'عائلة مستأجرة محلية' },
+    who: {
+      en: 'Tenant in PSI Assets, salaried, uses the app for maintenance. Renews when maintenance is fast; leaves when a request is lost.',
+      ar: 'مستأجر في PSI للأصول، موظف براتب، يستخدم التطبيق للصيانة. يجدد عندما تكون الصيانة سريعة ويغادر عندما يضيع طلب.',
+    },
+    mainPain: { en: 'Maintenance request lost between teams; app request not visible', ar: 'طلب صيانة ضاع بين الفرق؛ طلب التطبيق لا يظهر' },
+    channelsUsed: ['app', 'call'],
+    recommendation: {
+      targetWho: {
+        en: 'Tenants with a lease ending in 90 days and at least one open maintenance request',
+        ar: 'مستأجرون ينتهي عقدهم خلال 90 يوماً ولديهم طلب صيانة مفتوح واحد على الأقل',
+      },
+      channelAndWhen: { en: 'App message first, then a call from the leasing manager', ar: 'رسالة التطبيق أولاً ثم مكالمة من مدير التأجير' },
+      campaignType: {
+        en: 'Renewal offer tied to closing the open request, 60 days before the lease ends',
+        ar: 'عرض تجديد مرتبط بإغلاق الطلب المفتوح قبل 60 يوماً من انتهاء العقد',
+      },
+      whatNotToDo: { en: 'No renewal letter before the request is closed', ar: 'لا رسالة تجديد قبل إغلاق الطلب' },
+    },
+    approvedByCxManager: true,
+  },
+  {
+    id: 'portfolio_owner',
+    name: { en: 'Portfolio owner', ar: 'مالك محفظة' },
+    who: {
+      en: 'Several units, business owner, delegates to an assistant. Wants rental management and zero friction. Low tolerance for delays and for being passed between teams.',
+      ar: 'عدة وحدات، صاحب أعمال، يفوّض مساعداً. يريد إدارة تأجير وبلا احتكاك. تحمّل منخفض للتأخير وللتنقل بين الفرق.',
+    },
+    mainPain: { en: 'Passed between After-Sales and Assets; statement errors', ar: 'يُحوَّل بين ما بعد البيع والأصول؛ أخطاء في كشف الحساب' },
+    channelsUsed: ['wallet', 'email', 'call'],
+    recommendation: {
+      targetWho: { en: 'Owners with 3 or more units and no referral in 12 months', ar: 'مالكون بثلاث وحدات أو أكثر ولا إحالة منذ 12 شهراً' },
+      channelAndWhen: { en: 'Account manager call, then PSI Club invitation by email', ar: 'مكالمة مدير الحساب ثم دعوة نادي PSI بالبريد' },
+      campaignType: { en: 'PSI Club referral programme and a single point of contact', ar: 'برنامج إحالة نادي PSI ونقطة تواصل واحدة' },
+      whatNotToDo: { en: 'No generic launch mailers', ar: 'لا رسائل إطلاق عامة' },
+    },
+    approvedByCxManager: false,
+    auditNote: {
+      en: 'Segment criteria rely on PSI Wallet data that is still pilot-only — recheck segment size once Wallet exits pilot.',
+      ar: 'معايير الشريحة تعتمد على بيانات محفظة PSI التي ما زالت تجريبية — يُعاد التحقق من حجم الشريحة بعد خروج المحفظة من مرحلة التجربة.',
+    },
+  },
+  {
+    id: 'comparison_shopper',
+    name: { en: 'Comparison shopper', ar: 'مقارِن العروض' },
+    who: {
+      en: 'Lead talking to several brokers at once, WhatsApp heavy, asks for the best price and a discount. Goes where the reply is fastest and clearest.',
+      ar: 'عميل محتمل يتحدث مع عدة وسطاء في آن، يعتمد واتساب، يطلب أفضل سعر وخصماً. يذهب حيث الرد أسرع وأوضح.',
+    },
+    mainPain: {
+      en: 'Slow WhatsApp reply; reply in the wrong language; discount promised then withdrawn',
+      ar: 'رد واتساب بطيء؛ رد بلغة غير مناسبة؛ خصم وُعد به ثم سُحب',
+    },
+    channelsUsed: ['whatsapp', 'website'],
+    recommendation: {
+      targetWho: {
+        en: 'Leads who asked for a price on WhatsApp and got no reply within 2 hours',
+        ar: 'عملاء محتملون طلبوا سعراً على واتساب ولم يُردّ عليهم خلال ساعتين',
+      },
+      channelAndWhen: { en: 'WhatsApp within the same hour, from the assigned agent', ar: 'واتساب خلال نفس الساعة من الموظف المعيّن' },
+      campaignType: { en: 'Transparent price sheet and viewing slot, no discount games', ar: 'ورقة أسعار شفافة وموعد معاينة، بلا ألعاب خصومات' },
+      whatNotToDo: { en: 'No "call me for the price"', ar: 'لا "اتصل بي لمعرفة السعر"' },
+    },
+    approvedByCxManager: true,
+    auditNote: {
+      en: 'Criteria checked against the lead funnel’s "why they stopped" reasons — consistent for two reviews running.',
+      ar: 'جرى فحص المعايير مقابل أسباب "لماذا توقفوا" في قمع العملاء المحتملين — متسقة لمراجعتين متتاليتين.',
+    },
+  },
+  {
+    id: 'referral_driven_member',
+    name: { en: 'Referral-driven member', ar: 'عضو يعتمد الإحالة' },
+    who: {
+      en: 'PSI Club member, refers friends and family, wants to see progress and get paid on time. Talks about PSI to others; the loudest promoter or detractor.',
+      ar: 'عضو نادي PSI، يحيل الأصدقاء والعائلة، يريد رؤية التقدم والدفع في موعده. يتحدث عن PSI للآخرين؛ أعلى مروّج أو منتقد.',
+    },
+    mainPain: { en: 'No update on a nominated lead; commission late', ar: 'لا تحديث عن عميل مرشَّح؛ عمولة متأخرة' },
+    channelsUsed: ['club', 'whatsapp'],
+    recommendation: {
+      targetWho: { en: 'Members with one closed referral and none in 6 months', ar: 'أعضاء لهم إحالة واحدة مغلقة ولا شيء منذ 6 أشهر' },
+      channelAndWhen: { en: 'Club app milestone push plus a personal WhatsApp from the admin', ar: 'إشعار المراحل في تطبيق النادي مع واتساب شخصي من المسؤول' },
+      campaignType: { en: 'Referral season with visible tracking and a recognition moment', ar: 'موسم إحالات مع تتبع مرئي ولحظة تقدير' },
+      whatNotToDo: { en: 'No referral asks while a commission is unpaid', ar: 'لا طلب إحالات وعمولة غير مدفوعة' },
+    },
+    approvedByCxManager: true,
+  },
 ]
 
 function buildPersonas(): Persona[] {
@@ -681,7 +868,23 @@ function buildCampaignRecommendations(personas: Persona[]): CampaignRecommendati
  * reading and the Runaway page agree on the same classification instead of
  * carrying two independent guesses. */
 const CHANNEL_NAME: Record<string, { en: string; ar: string }> = {
-  website: { en: 'the website', ar: 'الموقع' }, app: { en: 'the app', ar: 'التطبيق' }, whatsapp: { en: 'WhatsApp', ar: 'واتساب' }, call: { en: 'phone calls', ar: 'الاتصال' }, ivr: { en: 'the phone menu (IVR)', ar: 'الرد الآلي' }, branch: { en: 'a branch visit', ar: 'زيارة فرع' }, email: { en: 'email', ar: 'البريد' }, survey: { en: 'a survey', ar: 'استبيان' }, shopper: { en: 'a mystery shopper visit', ar: 'تسوق سري' }, club: { en: 'PSI Club', ar: 'نادي PSI' }, wallet: { en: 'PSI Wallet', ar: 'محفظة PSI' }, events: { en: 'an event', ar: 'فعالية' }, tours: { en: 'Tour Estate', ar: 'تور إستيت' }, facebook: { en: 'Facebook', ar: 'فيسبوك' }, instagram: { en: 'Instagram', ar: 'إنستغرام' }, linkedin: { en: 'LinkedIn', ar: 'لينكد إن' }, google: { en: 'Google', ar: 'غوغل' },
+  website: { en: 'the website', ar: 'الموقع' },
+  app: { en: 'the app', ar: 'التطبيق' },
+  whatsapp: { en: 'WhatsApp', ar: 'واتساب' },
+  call: { en: 'phone calls', ar: 'الاتصال' },
+  ivr: { en: 'the phone menu (IVR)', ar: 'الرد الآلي' },
+  branch: { en: 'a branch visit', ar: 'زيارة فرع' },
+  email: { en: 'email', ar: 'البريد' },
+  survey: { en: 'a survey', ar: 'استبيان' },
+  shopper: { en: 'a mystery shopper visit', ar: 'تسوق سري' },
+  club: { en: 'PSI Club', ar: 'نادي PSI' },
+  wallet: { en: 'PSI Wallet', ar: 'محفظة PSI' },
+  events: { en: 'an event', ar: 'فعالية' },
+  tours: { en: 'Tour Estate', ar: 'تور إستيت' },
+  facebook: { en: 'Facebook', ar: 'فيسبوك' },
+  instagram: { en: 'Instagram', ar: 'إنستغرام' },
+  linkedin: { en: 'LinkedIn', ar: 'لينكد إن' },
+  google: { en: 'Google', ar: 'غوغل' },
 }
 
 function buildAiJourneyReadings(persons: Person[], interactions: Interaction[], effortSummaries: EffortSummary[]): AiJourneyReading[] {
@@ -690,11 +893,7 @@ function buildAiJourneyReadings(persons: Person[], interactions: Interaction[], 
     const effort = effortSummaries.find((e) => e.personId === p.id)
     const classification = classifyRunaway(p, effort, mine)
     const problemEvents = mine.filter((i) => i.problemFlags.length > 0)
-    const verdict: AiJourneyReading['verdict'] = classification
-      ? classification.type
-      : effort && effort.problemsFound >= 2
-        ? 'high_effort'
-        : 'healthy'
+    const verdict: AiJourneyReading['verdict'] = classification ? classification.type : effort && effort.problemsFound >= 2 ? 'high_effort' : 'healthy'
     const years = Math.max(1, Math.round((Date.now() - new Date(p.createdAt).getTime()) / (365 * 86_400_000)))
     const channelsUsed = [...new Set(mine.map((i) => i.channel))]
 
@@ -717,7 +916,10 @@ function buildAiJourneyReadings(persons: Person[], interactions: Interaction[], 
       whatToDoNext: classification
         ? classification.reason
         : verdict === 'high_effort'
-          ? { en: 'Send a short check-in (a call or a message) to confirm everything is solved, then go back to the normal rhythm.', ar: 'أرسل متابعة قصيرة (اتصال أو رسالة) للتأكد أن كل شيء انحلّ، ثم عد إلى الإيقاع المعتاد.' }
+          ? {
+              en: 'Send a short check-in (a call or a message) to confirm everything is solved, then go back to the normal rhythm.',
+              ar: 'أرسل متابعة قصيرة (اتصال أو رسالة) للتأكد أن كل شيء انحلّ، ثم عد إلى الإيقاع المعتاد.',
+            }
           : { en: 'Nothing to do now. Keep the normal rhythm.', ar: 'لا شيء مطلوب الآن. استمر بالإيقاع المعتاد.' },
       evidence: problemEvents.slice(0, 5).map((e) => ({ eventId: e.id, occurredAt: e.occurredAt })),
     }
@@ -734,7 +936,10 @@ function buildAiCampaigns(items: DetractorCallItem[]): AiInterviewCampaign[] {
     {
       id: 'camp-ai-1',
       name: { en: 'Silent renters — WhatsApp recovery', ar: 'مستأجرون صامتون — استرداد عبر واتساب' },
-      segmentDescription: { en: 'Medium/low-severity detractors, WhatsApp-reachable, not critical.', ar: 'منتقدون بخطورة متوسطة/منخفضة، قابلون للتواصل عبر واتساب، غير حرجين.' },
+      segmentDescription: {
+        en: 'Medium/low-severity detractors, WhatsApp-reachable, not critical.',
+        ar: 'منتقدون بخطورة متوسطة/منخفضة، قابلون للتواصل عبر واتساب، غير حرجين.',
+      },
       script: {
         en: 'Hello, this is PSI following up on your recent experience. What happened, and what would have made it right?',
         ar: 'مرحباً، معك فريق PSI للمتابعة بخصوص تجربتك الأخيرة. ماذا حدث، وما الذي كان سيصلح الأمر؟',
@@ -751,13 +956,76 @@ function buildAiCampaigns(items: DetractorCallItem[]): AiInterviewCampaign[] {
  * (FR-7.4) are `MOCK_PRODUCT_SURVEY_MOMENTS` below, not a second copy of
  * this table per product. */
 const SURVEY_TRIGGERS: SurveyTrigger[] = [
-  { id: 'st-csat-call', product: 're', instrument: 'csat_ces', triggerDescription: { en: 'Agent call over 2 minutes, a viewing, or an offer — CSAT + CES on one screen. Inside the 30-day window the portal keeps the most important touchpoint: viewing over offer over call.', ar: 'مكالمة وكيل تتجاوز دقيقتين، أو معاينة، أو عرض — CSAT وCES على شاشة واحدة. ضمن نافذة الثلاثين يوماً يحتفظ النظام بأهم نقطة تواصل: المعاينة قبل العرض قبل المكالمة.' }, capDays: 30 },
-  { id: 'st-stopped', product: 're', instrument: 'what_stopped_you', triggerDescription: { en: 'Lead silent for 14 days — "What stopped you?", once, then never again for that enquiry.', ar: 'عميل محتمل صامت لمدة 14 يوماً — "ما الذي أوقفك؟"، مرة واحدة، ثم لا يُعاد طرحه لهذا الاستفسار.' }, capDays: null },
-  { id: 'st-abandoned', product: 're', instrument: 'abandoned_ces', triggerDescription: { en: 'Abandoned digital step (upload, booking, payment) — CES, identified users only, never on the public site.', ar: 'التخلي عن خطوة رقمية (رفع مستند، حجز، دفع) — CES، للمستخدمين المعرَّفين فقط، وليس على الموقع العام.' }, capDays: null },
-  { id: 'st-nps-milestone', product: 're', instrument: 'nps', triggerDescription: { en: 'Deal completed, lease signed, handover done — transactional NPS, only after a completed milestone, once per 90 days per person.', ar: 'إتمام صفقة، توقيع عقد إيجار، تسليم منجز — مؤشر NPS معاملاتي، فقط بعد إتمام مرحلة رئيسية، مرة كل 90 يوماً للشخص الواحد.' }, capDays: 90 },
-  { id: 'st-closed-ticket', product: 're', instrument: 'abandoned_ces', triggerDescription: { en: 'Maintenance or complaint ticket closed — CES, sent after the closure message.', ar: 'إغلاق تذكرة صيانة أو شكوى — CES، تُرسل بعد رسالة الإغلاق.' }, capDays: null },
-  { id: 'st-nps-relationship', product: 're', instrument: 'nps', triggerDescription: { en: 'Owner or investor, yearly — relationship NPS, once a year, never inside the 90-day window of a transactional NPS.', ar: 'مالك أو مستثمر، سنوياً — مؤشر NPS العلائقي، مرة في السنة، وليس ضمن نافذة الـ90 يوماً لمؤشر NPS المعاملاتي.' }, capDays: 365 },
-  { id: 'st-resurvey', product: 're', instrument: 're_survey', triggerDescription: { en: 'Detractor, 7 to 14 days after resolution — the same question again, exempt from the caps, reports the recovery delta.', ar: 'منتقد، بعد 7 إلى 14 يوماً من الحل — السؤال نفسه مجدداً، مستثنى من الحدود، يقرّر فارق التعافي.' }, capDays: null },
+  {
+    id: 'st-csat-call',
+    product: 're',
+    instrument: 'csat_ces',
+    triggerDescription: {
+      en: 'Agent call over 2 minutes, a viewing, or an offer — CSAT + CES on one screen. Inside the 30-day window the portal keeps the most important touchpoint: viewing over offer over call.',
+      ar: 'مكالمة وكيل تتجاوز دقيقتين، أو معاينة، أو عرض — CSAT وCES على شاشة واحدة. ضمن نافذة الثلاثين يوماً يحتفظ النظام بأهم نقطة تواصل: المعاينة قبل العرض قبل المكالمة.',
+    },
+    capDays: 30,
+  },
+  {
+    id: 'st-stopped',
+    product: 're',
+    instrument: 'what_stopped_you',
+    triggerDescription: {
+      en: 'Lead silent for 14 days — "What stopped you?", once, then never again for that enquiry.',
+      ar: 'عميل محتمل صامت لمدة 14 يوماً — "ما الذي أوقفك؟"، مرة واحدة، ثم لا يُعاد طرحه لهذا الاستفسار.',
+    },
+    capDays: null,
+  },
+  {
+    id: 'st-abandoned',
+    product: 're',
+    instrument: 'abandoned_ces',
+    triggerDescription: {
+      en: 'Abandoned digital step (upload, booking, payment) — CES, identified users only, never on the public site.',
+      ar: 'التخلي عن خطوة رقمية (رفع مستند، حجز، دفع) — CES، للمستخدمين المعرَّفين فقط، وليس على الموقع العام.',
+    },
+    capDays: null,
+  },
+  {
+    id: 'st-nps-milestone',
+    product: 're',
+    instrument: 'nps',
+    triggerDescription: {
+      en: 'Deal completed, lease signed, handover done — transactional NPS, only after a completed milestone, once per 90 days per person.',
+      ar: 'إتمام صفقة، توقيع عقد إيجار، تسليم منجز — مؤشر NPS معاملاتي، فقط بعد إتمام مرحلة رئيسية، مرة كل 90 يوماً للشخص الواحد.',
+    },
+    capDays: 90,
+  },
+  {
+    id: 'st-closed-ticket',
+    product: 're',
+    instrument: 'abandoned_ces',
+    triggerDescription: {
+      en: 'Maintenance or complaint ticket closed — CES, sent after the closure message.',
+      ar: 'إغلاق تذكرة صيانة أو شكوى — CES، تُرسل بعد رسالة الإغلاق.',
+    },
+    capDays: null,
+  },
+  {
+    id: 'st-nps-relationship',
+    product: 're',
+    instrument: 'nps',
+    triggerDescription: {
+      en: 'Owner or investor, yearly — relationship NPS, once a year, never inside the 90-day window of a transactional NPS.',
+      ar: 'مالك أو مستثمر، سنوياً — مؤشر NPS العلائقي، مرة في السنة، وليس ضمن نافذة الـ90 يوماً لمؤشر NPS المعاملاتي.',
+    },
+    capDays: 365,
+  },
+  {
+    id: 'st-resurvey',
+    product: 're',
+    instrument: 're_survey',
+    triggerDescription: {
+      en: 'Detractor, 7 to 14 days after resolution — the same question again, exempt from the caps, reports the recovery delta.',
+      ar: 'منتقد، بعد 7 إلى 14 يوماً من الحل — السؤال نفسه مجدداً، مستثنى من الحدود، يقرّر فارق التعافي.',
+    },
+    capDays: null,
+  },
 ]
 
 const FUNNEL_SOURCES: Bi[] = [
@@ -817,13 +1085,52 @@ function buildLeadFunnel(): LeadFunnelPoint[] {
  * five-instrument shape — PSI Events explicitly has no NPS at all. */
 function buildProductSurveyMoments(): ProductSurveyMoments[] {
   return [
-    { product: 're', hasNps: true, momentsSummary: { en: 'Asks after the call, the viewing, the offer and the signed deal.', ar: 'يُستبين بعد المكالمة، والمعاينة، والعرض، والصفقة الموقعة.' } },
-    { product: 'af', hasNps: true, momentsSummary: { en: 'Asks after handover, a closed ticket, and renewal.', ar: 'يُستبين بعد التسليم، وإغلاق التذكرة، والتجديد.' } },
-    { product: 'cl', hasNps: true, momentsSummary: { en: 'Club leads ride the Real Estate journey with a VIP tag; members get a member NPS at the end of a nomination cycle.', ar: 'يسير عملاء النادي المحتملون ضمن رحلة العقارية بعلامة كبار الشخصيات؛ ويحصل الأعضاء على مؤشر NPS خاص بالعضوية في نهاية دورة الترشيح.' } },
-    { product: 'to', hasNps: true, momentsSummary: { en: 'End-of-tour survey only, after a completed tour (driver, guide, ride, car, cleanliness, then NPS). The stop survey goes to the commercial team, not the portal.', ar: 'استبيان نهاية الجولة فقط، بعد جولة مكتملة (السائق، المرشد، الرحلة، السيارة، النظافة، ثم NPS). استبيان التوقف يذهب للفريق التجاري، وليس للبوابة.' } },
-    { product: 'ev', hasNps: false, momentsSummary: { en: 'No NPS: an external QR rating at the booth and an internal staff evaluation.', ar: 'لا يوجد مؤشر NPS: تقييم خارجي عبر رمز QR عند الجناح وتقييم داخلي للموظفين.' } },
+    {
+      product: 're',
+      hasNps: true,
+      momentsSummary: {
+        en: 'Asks after the call, the viewing, the offer and the signed deal.',
+        ar: 'يُستبين بعد المكالمة، والمعاينة، والعرض، والصفقة الموقعة.',
+      },
+    },
+    {
+      product: 'af',
+      hasNps: true,
+      momentsSummary: { en: 'Asks after handover, a closed ticket, and renewal.', ar: 'يُستبين بعد التسليم، وإغلاق التذكرة، والتجديد.' },
+    },
+    {
+      product: 'cl',
+      hasNps: true,
+      momentsSummary: {
+        en: 'Club leads ride the Real Estate journey with a VIP tag; members get a member NPS at the end of a nomination cycle.',
+        ar: 'يسير عملاء النادي المحتملون ضمن رحلة العقارية بعلامة كبار الشخصيات؛ ويحصل الأعضاء على مؤشر NPS خاص بالعضوية في نهاية دورة الترشيح.',
+      },
+    },
+    {
+      product: 'to',
+      hasNps: true,
+      momentsSummary: {
+        en: 'End-of-tour survey only, after a completed tour (driver, guide, ride, car, cleanliness, then NPS). The stop survey goes to the commercial team, not the portal.',
+        ar: 'استبيان نهاية الجولة فقط، بعد جولة مكتملة (السائق، المرشد، الرحلة، السيارة، النظافة، ثم NPS). استبيان التوقف يذهب للفريق التجاري، وليس للبوابة.',
+      },
+    },
+    {
+      product: 'ev',
+      hasNps: false,
+      momentsSummary: {
+        en: 'No NPS: an external QR rating at the booth and an internal staff evaluation.',
+        ar: 'لا يوجد مؤشر NPS: تقييم خارجي عبر رمز QR عند الجناح وتقييم داخلي للموظفين.',
+      },
+    },
     // v42.3 (F35): the Wallet review of 19 Nov replaced the pilot line; the sentence is the Modules KB's, the Arabic is put together from the prototype's own wording (docs/V42_WALLET.md).
-    { product: 'wl', hasNps: true, momentsSummary: { en: 'One question per touchpoint: CES after the wallet is created, CSAT after the call with the advisor, CES after a property is added. NPS only on the Dashboard about 30 days after, then yearly.', ar: 'سؤال واحد لكل نقطة تماس: CES بعد إنشاء المحفظة، CSAT بعد المكالمة مع المستشار، CES بعد إضافة عقار. NPS فقط على لوحة المعلومات بعد نحو 30 يوماً من إنشاء المحفظة ثم سنوياً.' } },
+    {
+      product: 'wl',
+      hasNps: true,
+      momentsSummary: {
+        en: 'One question per touchpoint: CES after the wallet is created, CSAT after the call with the advisor, CES after a property is added. NPS only on the Dashboard about 30 days after, then yearly.',
+        ar: 'سؤال واحد لكل نقطة تماس: CES بعد إنشاء المحفظة، CSAT بعد المكالمة مع المستشار، CES بعد إضافة عقار. NPS فقط على لوحة المعلومات بعد نحو 30 يوماً من إنشاء المحفظة ثم سنوياً.',
+      },
+    },
   ]
 }
 
@@ -857,7 +1164,10 @@ function buildAgentActivity(
     id: 'act-intake-1',
     agentKey: 'intake',
     runId: 'run-intake-nightly',
-    subjectSummary: { en: `Reconciled ${interactions.length} interactions across every feed; matched to a person or kept in the unmatched queue.`, ar: `جرت مطابقة ${interactions.length} تفاعلاً عبر كل التغذيات؛ إما لشخص محدد أو في قائمة غير المطابق.` },
+    subjectSummary: {
+      en: `Reconciled ${interactions.length} interactions across every feed; matched to a person or kept in the unmatched queue.`,
+      ar: `جرت مطابقة ${interactions.length} تفاعلاً عبر كل التغذيات؛ إما لشخص محدد أو في قائمة غير المطابق.`,
+    },
     supervisorVerdict: verdict(),
     createdAt: daysAgoIso(rng, 0.2),
   })
@@ -865,7 +1175,10 @@ function buildAgentActivity(
     id: 'act-classify-1',
     agentKey: 'classify',
     runId: 'run-classify-latest',
-    subjectSummary: { en: `Classified ${interactions.filter((i) => i.problemFlags.length > 0).length} events with a problem flag into one category and reason code each.`, ar: `تصنيف ${interactions.filter((i) => i.problemFlags.length > 0).length} حدثاً يحمل علامة مشكلة إلى فئة ورمز سبب واحد لكل منها.` },
+    subjectSummary: {
+      en: `Classified ${interactions.filter((i) => i.problemFlags.length > 0).length} events with a problem flag into one category and reason code each.`,
+      ar: `تصنيف ${interactions.filter((i) => i.problemFlags.length > 0).length} حدثاً يحمل علامة مشكلة إلى فئة ورمز سبب واحد لكل منها.`,
+    },
     supervisorVerdict: verdict(),
     createdAt: daysAgoIso(rng, 0.3),
   })
@@ -873,26 +1186,37 @@ function buildAgentActivity(
     id: 'act-signals-1',
     agentKey: 'signals',
     runId: 'run-signals-nightly',
-    subjectSummary: { en: `Nightly recount: ${signals.length} signals counted, ${patterns.length} past threshold and published as patterns.`, ar: `إعادة عد ليلية: ${signals.length} إشارة مُحتسبة، ${patterns.length} تجاوزت الحد ونُشرت كأنماط.` },
+    subjectSummary: {
+      en: `Nightly recount: ${signals.length} signals counted, ${patterns.length} past threshold and published as patterns.`,
+      ar: `إعادة عد ليلية: ${signals.length} إشارة مُحتسبة، ${patterns.length} تجاوزت الحد ونُشرت كأنماط.`,
+    },
     supervisorVerdict: verdict(),
     createdAt: daysAgoIso(rng, 1),
   })
-  Object.values(correctiveRationales).slice(0, 4).forEach((env, idx) => {
-    out.push({
-      id: `act-actions-${idx + 1}`,
-      agentKey: 'actions',
-      runId: env.runId,
-      subjectSummary: { en: `Proposed a corrective action for pattern ${env.subjectId}, with its basis from past actions.`, ar: `اقتراح إجراء تصحيحي للنمط ${env.subjectId}، بالاستناد إلى إجراءات سابقة.` },
-      supervisorVerdict: env.supervisorVerdict === 'approved' ? 'approved' : 'returned',
-      createdAt: env.createdAt,
+  Object.values(correctiveRationales)
+    .slice(0, 4)
+    .forEach((env, idx) => {
+      out.push({
+        id: `act-actions-${idx + 1}`,
+        agentKey: 'actions',
+        runId: env.runId,
+        subjectSummary: {
+          en: `Proposed a corrective action for pattern ${env.subjectId}, with its basis from past actions.`,
+          ar: `اقتراح إجراء تصحيحي للنمط ${env.subjectId}، بالاستناد إلى إجراءات سابقة.`,
+        },
+        supervisorVerdict: env.supervisorVerdict === 'approved' ? 'approved' : 'returned',
+        createdAt: env.createdAt,
+      })
     })
-  })
   const verified = correctiveActions.filter((a) => a.verificationResult)
   out.push({
     id: 'act-verify-1',
     agentKey: 'verify',
     runId: 'run-verify-daily',
-    subjectSummary: { en: `Ran the daily 06:00 clock: ${verified.length} actions carry a verification verdict (effective, partial or failed).`, ar: `تشغيل الساعة اليومية 06:00: ${verified.length} إجراءً يحمل نتيجة تحقق (فعّال أو جزئي أو فاشل).` },
+    subjectSummary: {
+      en: `Ran the daily 06:00 clock: ${verified.length} actions carry a verification verdict (effective, partial or failed).`,
+      ar: `تشغيل الساعة اليومية 06:00: ${verified.length} إجراءً يحمل نتيجة تحقق (فعّال أو جزئي أو فاشل).`,
+    },
     supervisorVerdict: verdict(),
     createdAt: daysAgoIso(rng, 0.1),
   })
@@ -901,7 +1225,10 @@ function buildAgentActivity(
     id: 'act-journey-1',
     agentKey: 'journey',
     runId: 'run-journey-nightly',
-    subjectSummary: { en: `Refreshed ${readings.length} journey readings overnight; ${runaway.length} now carry a runaway type.`, ar: `تحديث ${readings.length} قراءة رحلة ليلاً؛ ${runaway.length} منها تحمل الآن نوع هروب.` },
+    subjectSummary: {
+      en: `Refreshed ${readings.length} journey readings overnight; ${runaway.length} now carry a runaway type.`,
+      ar: `تحديث ${readings.length} قراءة رحلة ليلاً؛ ${runaway.length} منها تحمل الآن نوع هروب.`,
+    },
     supervisorVerdict: verdict(),
     createdAt: daysAgoIso(rng, 0.4),
   })
@@ -909,7 +1236,10 @@ function buildAgentActivity(
     id: 'act-loop-1',
     agentKey: 'loop',
     runId: 'run-loop-monthly-capacity',
-    subjectSummary: { en: `Monthly capacity run: ${callItems.length} detractors listed, ${campaigns.reduce((n, c) => n + c.memberIds.length, 0)} routed to a running AI interview campaign.`, ar: `تشغيل السعة الشهري: ${callItems.length} منتقداً مُدرجاً، ${campaigns.reduce((n, c) => n + c.memberIds.length, 0)} منهم ضمن حملة مقابلات ذكاء اصطناعي قائمة.` },
+    subjectSummary: {
+      en: `Monthly capacity run: ${callItems.length} detractors listed, ${campaigns.reduce((n, c) => n + c.memberIds.length, 0)} routed to a running AI interview campaign.`,
+      ar: `تشغيل السعة الشهري: ${callItems.length} منتقداً مُدرجاً، ${campaigns.reduce((n, c) => n + c.memberIds.length, 0)} منهم ضمن حملة مقابلات ذكاء اصطناعي قائمة.`,
+    },
     supervisorVerdict: verdict(),
     createdAt: daysAgoIso(rng, 2),
   })
@@ -917,7 +1247,10 @@ function buildAgentActivity(
     id: 'act-report-1',
     agentKey: 'report',
     runId: 'run-report-month',
-    subjectSummary: { en: 'Drafted the monthly management report from the metric store — held for the CX manager to release.', ar: 'إعداد مسودة التقرير الإداري الشهري من مخزن المؤشرات — بانتظار إصدار مدير تجربة العملاء.' },
+    subjectSummary: {
+      en: 'Drafted the monthly management report from the metric store — held for the CX manager to release.',
+      ar: 'إعداد مسودة التقرير الإداري الشهري من مخزن المؤشرات — بانتظار إصدار مدير تجربة العملاء.',
+    },
     supervisorVerdict: 'approved',
     createdAt: daysAgoIso(rng, 5),
   })
@@ -925,7 +1258,10 @@ function buildAgentActivity(
     id: 'act-survey-1',
     agentKey: 'survey_triggers',
     runId: 'run-survey-0900',
-    subjectSummary: { en: `09:00 run: checked every person against ${surveyTriggers.length} trigger/cap rules; sends and skips logged by reason.`, ar: `تشغيل الساعة 09:00: فحص كل شخص مقابل ${surveyTriggers.length} قاعدة محفّز/حد؛ تم تسجيل الإرسال والتخطي مع السبب.` },
+    subjectSummary: {
+      en: `09:00 run: checked every person against ${surveyTriggers.length} trigger/cap rules; sends and skips logged by reason.`,
+      ar: `تشغيل الساعة 09:00: فحص كل شخص مقابل ${surveyTriggers.length} قاعدة محفّز/حد؛ تم تسجيل الإرسال والتخطي مع السبب.`,
+    },
     supervisorVerdict: verdict(),
     createdAt: daysAgoIso(rng, 0.05),
   })
@@ -933,7 +1269,10 @@ function buildAgentActivity(
     id: 'act-supervisor-1',
     agentKey: 'supervisor',
     runId: 'run-supervisor-weekly-sample',
-    subjectSummary: { en: 'Weekly calibration: sampled 50 approved outputs for the CX team and Internal Audit and Marketing Lead to review.', ar: 'معايرة أسبوعية: أخذ عينة من 50 مخرجاً معتمداً لمراجعة فريق تجربة العملاء ومسؤول التدقيق الداخلي والتسويق.' },
+    subjectSummary: {
+      en: 'Weekly calibration: sampled 50 approved outputs for the CX team and Internal Audit and Marketing Lead to review.',
+      ar: 'معايرة أسبوعية: أخذ عينة من 50 مخرجاً معتمداً لمراجعة فريق تجربة العملاء ومسؤول التدقيق الداخلي والتسويق.',
+    },
     supervisorVerdict: 'approved',
     createdAt: daysAgoIso(rng, 3),
   })
@@ -950,19 +1289,162 @@ function buildAgentActivity(
 
 function buildStandards(): Standard[] {
   const platformRules: Standard[] = [
-    { id: 'std_hr_procedures', code: 'M-01', source: 'platform_rule', group: { en: 'Platform rules', ar: 'قواعد المنصة' }, title: { en: 'HR mystery-shopper procedures', ar: 'إجراءات الموارد البشرية للتسوق السري' }, writer: { en: 'HR', ar: 'الموارد البشرية' }, readBy: { en: 'HR', ar: 'الموارد البشرية' }, owner: 'HR', linkedItems: 0, status: 'not_started' },
-    { id: 'std_sla_targets', code: 'M-02', source: 'platform_rule', group: { en: 'Platform rules', ar: 'قواعد المنصة' }, title: { en: 'Agreed SLA targets by complaint type', ar: 'أهداف اتفاقية مستوى الخدمة حسب نوع الشكوى' }, writer: { en: 'CX manager', ar: 'مدير تجربة العملاء' }, readBy: { en: 'CX, signals, Actions', ar: 'تجربة العملاء، الإشارات، الإجراءات' }, owner: 'CX manager', linkedItems: 27, status: 'drafted' },
-    { id: 'std_as_script', code: 'M-03', source: 'platform_rule', group: { en: 'Platform rules', ar: 'قواعد المنصة' }, title: { en: 'After-Sales real call script', ar: 'نص مكالمة ما بعد البيع الفعلي' }, writer: { en: 'After-Sales lead', ar: 'قائد ما بعد البيع' }, readBy: { en: 'After-Sales', ar: 'ما بعد البيع' }, owner: 'After-Sales lead', linkedItems: 0, status: 'not_started' },
-    { id: 'std_legal_calling', code: 'M-04', source: 'platform_rule', group: { en: 'Platform rules', ar: 'قواعد المنصة' }, title: { en: 'Calling hours, consent and recording policy', ar: 'سياسة ساعات الاتصال والموافقة والتسجيل' }, writer: { en: 'Legal', ar: 'القانونية' }, readBy: { en: 'Legal, call center', ar: 'القانونية، مركز الاتصال' }, owner: 'Legal', linkedItems: 0, status: 'legal_review' },
-    { id: 'std_shopper_rubric', code: 'M-05', source: 'platform_rule', group: { en: 'Platform rules', ar: 'قواعد المنصة' }, title: { en: 'Mystery shopper scoring rubric', ar: 'معايير تقييم التسوق السري' }, writer: { en: 'CX team', ar: 'فريق تجربة العملاء' }, readBy: { en: 'CX, mystery shopper', ar: 'تجربة العملاء، التسوق السري' }, owner: 'CX team', linkedItems: 6, status: 'drafted' },
-    { id: 'std_ai_rubric', code: 'M-06', source: 'platform_rule', group: { en: 'Platform rules', ar: 'قواعد المنصة' }, title: { en: 'AI call evaluator rubric', ar: 'معايير تقييم مُقيّم المكالمات الذكي' }, writer: { en: 'CX team', ar: 'فريق تجربة العملاء' }, readBy: { en: 'AI call center', ar: 'مركز الاتصال الذكي' }, owner: 'CX team', linkedItems: 8, status: 'drafted' },
-    { id: 'std_whatsapp_policy', code: 'M-07', source: 'platform_rule', group: { en: 'Platform rules', ar: 'قواعد المنصة' }, title: { en: 'WhatsApp messaging and Meta template policy', ar: 'سياسة رسائل واتساب وقوالب ميتا' }, writer: { en: 'CX manager', ar: 'مدير تجربة العملاء' }, readBy: { en: 'CX', ar: 'تجربة العملاء' }, owner: 'CX manager', linkedItems: 6, status: 'drafted' },
-    { id: 'std_escalation_policy', code: 'M-08', source: 'platform_rule', group: { en: 'Platform rules', ar: 'قواعد المنصة' }, title: { en: 'Complaint escalation and routing policy', ar: 'سياسة تصعيد وتوجيه الشكاوى' }, writer: { en: 'CX manager', ar: 'مدير تجربة العملاء' }, readBy: { en: 'CX, Actions', ar: 'تجربة العملاء، الإجراءات' }, owner: 'CX manager', linkedItems: 27, status: 'drafted' },
-    { id: 'std_branch_checklist', code: 'M-09', source: 'platform_rule', group: { en: 'Platform rules', ar: 'قواعد المنصة' }, title: { en: 'Branch and gallery visit standard', ar: 'معيار زيارة الفرع والمعرض' }, writer: { en: 'CX team', ar: 'فريق تجربة العملاء' }, readBy: { en: 'Mystery shopper', ar: 'التسوق السري' }, owner: 'CX team', linkedItems: 4, status: 'drafted' },
-    { id: 'std_re_sales_script', code: 'M-10', source: 'platform_rule', group: { en: 'Platform rules', ar: 'قواعد المنصة' }, title: { en: 'Real Estate sales script', ar: 'نص مبيعات العقارات' }, writer: { en: 'Head of Sales', ar: 'رئيس المبيعات' }, readBy: { en: 'Sales', ar: 'المبيعات' }, owner: 'Head of Sales', linkedItems: 0, status: 'not_started' },
-    { id: 'std_club_policy', code: 'M-11', source: 'platform_rule', group: { en: 'Platform rules', ar: 'قواعد المنصة' }, title: { en: 'PSI Club VIP nomination policy', ar: 'سياسة ترشيح أعضاء نادي بي إس آي المميزين' }, writer: { en: 'Club lead', ar: 'قائد النادي' }, readBy: { en: 'Club', ar: 'النادي' }, owner: 'Club lead', linkedItems: 0, status: 'not_started' },
-    { id: 'std_tour_safety', code: 'M-12', source: 'platform_rule', group: { en: 'Platform rules', ar: 'قواعد المنصة' }, title: { en: 'Tour Estate safety and conduct standard', ar: 'معيار السلامة والسلوك في تور إستيت' }, writer: { en: 'Tour operations', ar: 'عمليات الجولات' }, readBy: { en: 'Tour Estate', ar: 'تور إستيت' }, owner: 'Tour operations', linkedItems: 0, status: 'not_started' },
-    { id: 'std_events_registration', code: 'M-13', source: 'platform_rule', group: { en: 'Platform rules', ar: 'قواعد المنصة' }, title: { en: 'Events registration and follow-up standard', ar: 'معيار تسجيل ومتابعة الفعاليات' }, writer: { en: 'Events lead', ar: 'قائد الفعاليات' }, readBy: { en: 'PSI Events', ar: 'فعاليات بي إس آي' }, owner: 'Events lead', linkedItems: 0, status: 'not_started' },
+    {
+      id: 'std_hr_procedures',
+      code: 'M-01',
+      source: 'platform_rule',
+      group: { en: 'Platform rules', ar: 'قواعد المنصة' },
+      title: { en: 'HR mystery-shopper procedures', ar: 'إجراءات الموارد البشرية للتسوق السري' },
+      writer: { en: 'HR', ar: 'الموارد البشرية' },
+      readBy: { en: 'HR', ar: 'الموارد البشرية' },
+      owner: 'HR',
+      linkedItems: 0,
+      status: 'not_started',
+    },
+    {
+      id: 'std_sla_targets',
+      code: 'M-02',
+      source: 'platform_rule',
+      group: { en: 'Platform rules', ar: 'قواعد المنصة' },
+      title: { en: 'Agreed SLA targets by complaint type', ar: 'أهداف اتفاقية مستوى الخدمة حسب نوع الشكوى' },
+      writer: { en: 'CX manager', ar: 'مدير تجربة العملاء' },
+      readBy: { en: 'CX, signals, Actions', ar: 'تجربة العملاء، الإشارات، الإجراءات' },
+      owner: 'CX manager',
+      linkedItems: 27,
+      status: 'drafted',
+    },
+    {
+      id: 'std_as_script',
+      code: 'M-03',
+      source: 'platform_rule',
+      group: { en: 'Platform rules', ar: 'قواعد المنصة' },
+      title: { en: 'After-Sales real call script', ar: 'نص مكالمة ما بعد البيع الفعلي' },
+      writer: { en: 'After-Sales lead', ar: 'قائد ما بعد البيع' },
+      readBy: { en: 'After-Sales', ar: 'ما بعد البيع' },
+      owner: 'After-Sales lead',
+      linkedItems: 0,
+      status: 'not_started',
+    },
+    {
+      id: 'std_legal_calling',
+      code: 'M-04',
+      source: 'platform_rule',
+      group: { en: 'Platform rules', ar: 'قواعد المنصة' },
+      title: { en: 'Calling hours, consent and recording policy', ar: 'سياسة ساعات الاتصال والموافقة والتسجيل' },
+      writer: { en: 'Legal', ar: 'القانونية' },
+      readBy: { en: 'Legal, call center', ar: 'القانونية، مركز الاتصال' },
+      owner: 'Legal',
+      linkedItems: 0,
+      status: 'legal_review',
+    },
+    {
+      id: 'std_shopper_rubric',
+      code: 'M-05',
+      source: 'platform_rule',
+      group: { en: 'Platform rules', ar: 'قواعد المنصة' },
+      title: { en: 'Mystery shopper scoring rubric', ar: 'معايير تقييم التسوق السري' },
+      writer: { en: 'CX team', ar: 'فريق تجربة العملاء' },
+      readBy: { en: 'CX, mystery shopper', ar: 'تجربة العملاء، التسوق السري' },
+      owner: 'CX team',
+      linkedItems: 6,
+      status: 'drafted',
+    },
+    {
+      id: 'std_ai_rubric',
+      code: 'M-06',
+      source: 'platform_rule',
+      group: { en: 'Platform rules', ar: 'قواعد المنصة' },
+      title: { en: 'AI call evaluator rubric', ar: 'معايير تقييم مُقيّم المكالمات الذكي' },
+      writer: { en: 'CX team', ar: 'فريق تجربة العملاء' },
+      readBy: { en: 'AI call center', ar: 'مركز الاتصال الذكي' },
+      owner: 'CX team',
+      linkedItems: 8,
+      status: 'drafted',
+    },
+    {
+      id: 'std_whatsapp_policy',
+      code: 'M-07',
+      source: 'platform_rule',
+      group: { en: 'Platform rules', ar: 'قواعد المنصة' },
+      title: { en: 'WhatsApp messaging and Meta template policy', ar: 'سياسة رسائل واتساب وقوالب ميتا' },
+      writer: { en: 'CX manager', ar: 'مدير تجربة العملاء' },
+      readBy: { en: 'CX', ar: 'تجربة العملاء' },
+      owner: 'CX manager',
+      linkedItems: 6,
+      status: 'drafted',
+    },
+    {
+      id: 'std_escalation_policy',
+      code: 'M-08',
+      source: 'platform_rule',
+      group: { en: 'Platform rules', ar: 'قواعد المنصة' },
+      title: { en: 'Complaint escalation and routing policy', ar: 'سياسة تصعيد وتوجيه الشكاوى' },
+      writer: { en: 'CX manager', ar: 'مدير تجربة العملاء' },
+      readBy: { en: 'CX, Actions', ar: 'تجربة العملاء، الإجراءات' },
+      owner: 'CX manager',
+      linkedItems: 27,
+      status: 'drafted',
+    },
+    {
+      id: 'std_branch_checklist',
+      code: 'M-09',
+      source: 'platform_rule',
+      group: { en: 'Platform rules', ar: 'قواعد المنصة' },
+      title: { en: 'Branch and gallery visit standard', ar: 'معيار زيارة الفرع والمعرض' },
+      writer: { en: 'CX team', ar: 'فريق تجربة العملاء' },
+      readBy: { en: 'Mystery shopper', ar: 'التسوق السري' },
+      owner: 'CX team',
+      linkedItems: 4,
+      status: 'drafted',
+    },
+    {
+      id: 'std_re_sales_script',
+      code: 'M-10',
+      source: 'platform_rule',
+      group: { en: 'Platform rules', ar: 'قواعد المنصة' },
+      title: { en: 'Real Estate sales script', ar: 'نص مبيعات العقارات' },
+      writer: { en: 'Head of Sales', ar: 'رئيس المبيعات' },
+      readBy: { en: 'Sales', ar: 'المبيعات' },
+      owner: 'Head of Sales',
+      linkedItems: 0,
+      status: 'not_started',
+    },
+    {
+      id: 'std_club_policy',
+      code: 'M-11',
+      source: 'platform_rule',
+      group: { en: 'Platform rules', ar: 'قواعد المنصة' },
+      title: { en: 'PSI Club VIP nomination policy', ar: 'سياسة ترشيح أعضاء نادي بي إس آي المميزين' },
+      writer: { en: 'Club lead', ar: 'قائد النادي' },
+      readBy: { en: 'Club', ar: 'النادي' },
+      owner: 'Club lead',
+      linkedItems: 0,
+      status: 'not_started',
+    },
+    {
+      id: 'std_tour_safety',
+      code: 'M-12',
+      source: 'platform_rule',
+      group: { en: 'Platform rules', ar: 'قواعد المنصة' },
+      title: { en: 'Tour Estate safety and conduct standard', ar: 'معيار السلامة والسلوك في تور إستيت' },
+      writer: { en: 'Tour operations', ar: 'عمليات الجولات' },
+      readBy: { en: 'Tour Estate', ar: 'تور إستيت' },
+      owner: 'Tour operations',
+      linkedItems: 0,
+      status: 'not_started',
+    },
+    {
+      id: 'std_events_registration',
+      code: 'M-13',
+      source: 'platform_rule',
+      group: { en: 'Platform rules', ar: 'قواعد المنصة' },
+      title: { en: 'Events registration and follow-up standard', ar: 'معيار تسجيل ومتابعة الفعاليات' },
+      writer: { en: 'Events lead', ar: 'قائد الفعاليات' },
+      readBy: { en: 'PSI Events', ar: 'فعاليات بي إس آي' },
+      owner: 'Events lead',
+      linkedItems: 0,
+      status: 'not_started',
+    },
   ]
 
   const g1: Bi = { en: '1. Frontline and branch', ar: '١. الواجهة والفرع' }
@@ -975,44 +1457,341 @@ function buildStandards(): Standard[] {
 
   type LdRow = [string, Bi, Bi, Bi, Bi, Bi | undefined, 1 | 2 | 3 | 4 | 5, 'not_started' | 'drafted' | 'legal_review']
   const ldRows: LdRow[] = [
-    ['std_branch_presentation', g1, ld('Branch and gallery presentation standard', 'معيار عرض الفرع والمعرض'), ld('Operations with the environment champions', 'العمليات مع أبطال البيئات'), ld('Shopper, survey (branch visit)', 'المتسوق، الاستبيان'), ld('Assets: leasing offices/show units instead of galleries', 'أسيتس: مكاتب التأجير بدل المعارض'), 1, 'drafted'],
-    ['std_meeting_room', g1, ld('Meeting room and privacy standard', 'معيار غرفة الاجتماعات والخصوصية'), ld('L&D with Legal', 'التعلم والتطوير مع القانونية'), ld('Shopper, survey', 'المتسوق، الاستبيان'), ld('Assets: tenant documents raise the bar', 'أسيتس: مستندات المستأجر ترفع السقف'), 5, 'not_started'],
-    ['std_dress_code', g1, ld('Appearance and dress code', 'المظهر والزي'), ld('L&D with HR', 'التعلم والتطوير مع الموارد البشرية'), ld('Shopper, L&D', 'المتسوق، التعلم والتطوير'), ld('Assets: field dress code for site/maintenance staff', 'أسيتس: زي ميداني لموظفي الصيانة'), 1, 'drafted'],
-    ['std_reception_greeting', g1, ld('Reception and greeting standard', 'معيار الاستقبال والترحيب'), ld('L&D', 'التعلم والتطوير'), ld('Shopper, survey', 'المتسوق، الاستبيان'), undefined, 1, 'drafted'],
-    ['std_waiting', g1, ld('Waiting standard', 'معيار الانتظار'), ld('L&D with the environment managers', 'التعلم والتطوير مع مديري البيئات'), ld('Shopper, survey, CRM', 'المتسوق، الاستبيان، نظام العملاء'), ld('Assets: complaining walk-in tenants take priority', 'أسيتس: أولوية للمستأجرين ذوي الشكاوى'), 5, 'not_started'],
+    [
+      'std_branch_presentation',
+      g1,
+      ld('Branch and gallery presentation standard', 'معيار عرض الفرع والمعرض'),
+      ld('Operations with the environment champions', 'العمليات مع أبطال البيئات'),
+      ld('Shopper, survey (branch visit)', 'المتسوق، الاستبيان'),
+      ld('Assets: leasing offices/show units instead of galleries', 'أسيتس: مكاتب التأجير بدل المعارض'),
+      1,
+      'drafted',
+    ],
+    [
+      'std_meeting_room',
+      g1,
+      ld('Meeting room and privacy standard', 'معيار غرفة الاجتماعات والخصوصية'),
+      ld('L&D with Legal', 'التعلم والتطوير مع القانونية'),
+      ld('Shopper, survey', 'المتسوق، الاستبيان'),
+      ld('Assets: tenant documents raise the bar', 'أسيتس: مستندات المستأجر ترفع السقف'),
+      5,
+      'not_started',
+    ],
+    [
+      'std_dress_code',
+      g1,
+      ld('Appearance and dress code', 'المظهر والزي'),
+      ld('L&D with HR', 'التعلم والتطوير مع الموارد البشرية'),
+      ld('Shopper, L&D', 'المتسوق، التعلم والتطوير'),
+      ld('Assets: field dress code for site/maintenance staff', 'أسيتس: زي ميداني لموظفي الصيانة'),
+      1,
+      'drafted',
+    ],
+    [
+      'std_reception_greeting',
+      g1,
+      ld('Reception and greeting standard', 'معيار الاستقبال والترحيب'),
+      ld('L&D', 'التعلم والتطوير'),
+      ld('Shopper, survey', 'المتسوق، الاستبيان'),
+      undefined,
+      1,
+      'drafted',
+    ],
+    [
+      'std_waiting',
+      g1,
+      ld('Waiting standard', 'معيار الانتظار'),
+      ld('L&D with the environment managers', 'التعلم والتطوير مع مديري البيئات'),
+      ld('Shopper, survey, CRM', 'المتسوق، الاستبيان، نظام العملاء'),
+      ld('Assets: complaining walk-in tenants take priority', 'أسيتس: أولوية للمستأجرين ذوي الشكاوى'),
+      5,
+      'not_started',
+    ],
 
-    ['std_communication', g2, ld('Communication standard', 'معيار التواصل'), ld('L&D', 'التعلم والتطوير'), ld('Shopper, chat signals, survey, AI reading', 'المتسوق، إشارات المحادثة، الاستبيان، قراءة الذكاء الاصطناعي'), undefined, 1, 'drafted'],
-    ['std_needs_discovery', g2, ld('Needs discovery and qualification', 'اكتشاف الاحتياجات والتأهيل'), ld('L&D with sales managers', 'التعلم والتطوير مع مديري المبيعات'), ld('Shopper, CRM notes', 'المتسوق، ملاحظات نظام العملاء'), ld('Assets: tenant needs replace buyer needs', 'أسيتس: احتياجات المستأجر بدل المشتري'), 5, 'not_started'],
-    ['std_accurate_info', g2, ld('Accurate information standard', 'معيار دقة المعلومات'), ld('Sales support with L&D', 'دعم المبيعات مع التعلم والتطوير'), ld('Shopper (critical), AI call center, signals', 'المتسوق (حرج)، مركز الاتصال الذكي، الإشارات'), ld('Assets: rent/deposit/fees sheet instead of price sheet', 'أسيتس: جدول الإيجار والرسوم بدل جدول السعر'), 1, 'drafted'],
-    ['std_promises_discounts', g2, ld('Approved promises and discounts', 'الوعود والخصومات المعتمدة'), ld('Sales management with L&D', 'إدارة المبيعات مع التعلم والتطوير'), ld('Shopper (critical), chat signals, journey', 'المتسوق (حرج)، إشارات المحادثة، الرحلة'), ld('Assets: rent negotiation and fee waivers have their own path', 'أسيتس: مسار خاص للتفاوض على الإيجار'), 1, 'drafted'],
-    ['std_presenting_closing', g2, ld('Presenting a unit and closing', 'عرض الوحدة والإغلاق'), ld('L&D with the sales managers', 'التعلم والتطوير مع مديري المبيعات'), ld('Shopper, survey', 'المتسوق، الاستبيان'), ld('Assets: viewing and the move-in condition report', 'أسيتس: المعاينة وتقرير حالة الانتقال'), 5, 'not_started'],
-    ['std_scripts_objections', g2, ld('Scripts and objection handling', 'النصوص ومعالجة الاعتراضات'), ld('L&D with the call center and product owners', 'التعلم والتطوير مع مركز الاتصال وأصحاب المنتجات'), ld('Shopper, AI call center, chat signals', 'المتسوق، مركز الاتصال الذكي، إشارات المحادثة'), ld('Per product: Real Estate sales, After-Sales, Assets leasing', 'حسب المنتج'), 5, 'not_started'],
+    [
+      'std_communication',
+      g2,
+      ld('Communication standard', 'معيار التواصل'),
+      ld('L&D', 'التعلم والتطوير'),
+      ld('Shopper, chat signals, survey, AI reading', 'المتسوق، إشارات المحادثة، الاستبيان، قراءة الذكاء الاصطناعي'),
+      undefined,
+      1,
+      'drafted',
+    ],
+    [
+      'std_needs_discovery',
+      g2,
+      ld('Needs discovery and qualification', 'اكتشاف الاحتياجات والتأهيل'),
+      ld('L&D with sales managers', 'التعلم والتطوير مع مديري المبيعات'),
+      ld('Shopper, CRM notes', 'المتسوق، ملاحظات نظام العملاء'),
+      ld('Assets: tenant needs replace buyer needs', 'أسيتس: احتياجات المستأجر بدل المشتري'),
+      5,
+      'not_started',
+    ],
+    [
+      'std_accurate_info',
+      g2,
+      ld('Accurate information standard', 'معيار دقة المعلومات'),
+      ld('Sales support with L&D', 'دعم المبيعات مع التعلم والتطوير'),
+      ld('Shopper (critical), AI call center, signals', 'المتسوق (حرج)، مركز الاتصال الذكي، الإشارات'),
+      ld('Assets: rent/deposit/fees sheet instead of price sheet', 'أسيتس: جدول الإيجار والرسوم بدل جدول السعر'),
+      1,
+      'drafted',
+    ],
+    [
+      'std_promises_discounts',
+      g2,
+      ld('Approved promises and discounts', 'الوعود والخصومات المعتمدة'),
+      ld('Sales management with L&D', 'إدارة المبيعات مع التعلم والتطوير'),
+      ld('Shopper (critical), chat signals, journey', 'المتسوق (حرج)، إشارات المحادثة، الرحلة'),
+      ld('Assets: rent negotiation and fee waivers have their own path', 'أسيتس: مسار خاص للتفاوض على الإيجار'),
+      1,
+      'drafted',
+    ],
+    [
+      'std_presenting_closing',
+      g2,
+      ld('Presenting a unit and closing', 'عرض الوحدة والإغلاق'),
+      ld('L&D with the sales managers', 'التعلم والتطوير مع مديري المبيعات'),
+      ld('Shopper, survey', 'المتسوق، الاستبيان'),
+      ld('Assets: viewing and the move-in condition report', 'أسيتس: المعاينة وتقرير حالة الانتقال'),
+      5,
+      'not_started',
+    ],
+    [
+      'std_scripts_objections',
+      g2,
+      ld('Scripts and objection handling', 'النصوص ومعالجة الاعتراضات'),
+      ld('L&D with the call center and product owners', 'التعلم والتطوير مع مركز الاتصال وأصحاب المنتجات'),
+      ld('Shopper, AI call center, chat signals', 'المتسوق، مركز الاتصال الذكي، إشارات المحادثة'),
+      ld('Per product: Real Estate sales, After-Sales, Assets leasing', 'حسب المنتج'),
+      5,
+      'not_started',
+    ],
 
-    ['std_official_channels', g3, ld('Official channels policy', 'سياسة القنوات الرسمية'), ld('Sales operations with IT and Legal', 'عمليات المبيعات مع تقنية المعلومات والقانونية'), ld('Shopper (critical), signals', 'المتسوق (حرج)، الإشارات'), ld('None: a group rule', 'لا يوجد: قاعدة جماعية'), 1, 'legal_review'],
-    ['std_reply_time', g3, ld('Reply time standard per channel', 'معيار زمن الرد لكل قناة'), ld('Sales operations with L&D', 'عمليات المبيعات مع التعلم والتطوير'), ld('Chat signals (slow reply), journey, shopper, survey', 'إشارات المحادثة، الرحلة، المتسوق، الاستبيان'), ld('Assets: maintenance requests have their own target', 'أسيتس: هدف خاص لطلبات الصيانة'), 2, 'not_started'],
-    ['std_chat_conduct', g3, ld('Chat conduct and language', 'سلوك المحادثة واللغة'), ld('L&D', 'التعلم والتطوير'), ld('Chat signals (language), AI reading, shopper', 'إشارات المحادثة (اللغة)، قراءة الذكاء الاصطناعي، المتسوق'), undefined, 2, 'not_started'],
-    ['std_digital_lead', g3, ld('Digital lead handling', 'التعامل مع العميل المحتمل الرقمي'), ld('Sales operations with the CRM owner', 'عمليات المبيعات مع مالك نظام العملاء'), ld('Journey, CRM, shopper', 'الرحلة، نظام العملاء، المتسوق'), ld('Assets: a rental enquiry becomes a viewing request, not a lead', 'أسيتس: الاستفسار يصبح طلب معاينة'), 5, 'not_started'],
-    ['std_app_portal', g3, ld('App and portal service standard', 'معيار خدمة التطبيق والبوابة'), ld('App product teams with CX', 'فرق منتج التطبيق مع تجربة العملاء'), ld('App ratings, signals, journey', 'تقييمات التطبيق، الإشارات، الرحلة'), ld('Assets: the tenant app is the main channel; Wallet: investors', 'أسيتس: تطبيق المستأجر القناة الرئيسية'), 5, 'not_started'],
+    [
+      'std_official_channels',
+      g3,
+      ld('Official channels policy', 'سياسة القنوات الرسمية'),
+      ld('Sales operations with IT and Legal', 'عمليات المبيعات مع تقنية المعلومات والقانونية'),
+      ld('Shopper (critical), signals', 'المتسوق (حرج)، الإشارات'),
+      ld('None: a group rule', 'لا يوجد: قاعدة جماعية'),
+      1,
+      'legal_review',
+    ],
+    [
+      'std_reply_time',
+      g3,
+      ld('Reply time standard per channel', 'معيار زمن الرد لكل قناة'),
+      ld('Sales operations with L&D', 'عمليات المبيعات مع التعلم والتطوير'),
+      ld('Chat signals (slow reply), journey, shopper, survey', 'إشارات المحادثة، الرحلة، المتسوق، الاستبيان'),
+      ld('Assets: maintenance requests have their own target', 'أسيتس: هدف خاص لطلبات الصيانة'),
+      2,
+      'not_started',
+    ],
+    [
+      'std_chat_conduct',
+      g3,
+      ld('Chat conduct and language', 'سلوك المحادثة واللغة'),
+      ld('L&D', 'التعلم والتطوير'),
+      ld('Chat signals (language), AI reading, shopper', 'إشارات المحادثة (اللغة)، قراءة الذكاء الاصطناعي، المتسوق'),
+      undefined,
+      2,
+      'not_started',
+    ],
+    [
+      'std_digital_lead',
+      g3,
+      ld('Digital lead handling', 'التعامل مع العميل المحتمل الرقمي'),
+      ld('Sales operations with the CRM owner', 'عمليات المبيعات مع مالك نظام العملاء'),
+      ld('Journey, CRM, shopper', 'الرحلة، نظام العملاء، المتسوق'),
+      ld('Assets: a rental enquiry becomes a viewing request, not a lead', 'أسيتس: الاستفسار يصبح طلب معاينة'),
+      5,
+      'not_started',
+    ],
+    [
+      'std_app_portal',
+      g3,
+      ld('App and portal service standard', 'معيار خدمة التطبيق والبوابة'),
+      ld('App product teams with CX', 'فرق منتج التطبيق مع تجربة العملاء'),
+      ld('App ratings, signals, journey', 'تقييمات التطبيق، الإشارات، الرحلة'),
+      ld('Assets: the tenant app is the main channel; Wallet: investors', 'أسيتس: تطبيق المستأجر القناة الرئيسية'),
+      5,
+      'not_started',
+    ],
 
-    ['std_inbound_call', g4, ld('Inbound call standard', 'معيار المكالمات الواردة'), ld('Call center lead with L&D', 'قائد مركز الاتصال مع التعلم والتطوير'), ld('Shopper (call scenario), CRM activity, journey', 'المتسوق، نشاط نظام العملاء، الرحلة'), ld('Per product section', 'حسب قسم المنتج'), 4, 'not_started'],
-    ['std_outbound_ai_caller', g4, ld('Outbound and AI caller standard', 'معيار المكالمات الصادرة والمتصل الذكي'), ld('Call center lead with the AI vendor and Legal', 'قائد مركز الاتصال مع مزوّد الذكاء الاصطناعي والقانونية'), ld('AI call center log, signals (call timing), journey, shopper', 'سجل مركز الاتصال الذكي، الإشارات، الرحلة، المتسوق'), ld('None: a group rule', 'لا يوجد: قاعدة جماعية'), 4, 'not_started'],
-    ['std_ivr_wording', g4, ld('IVR wording and routing', 'نصوص وتوجيه الرد الصوتي التفاعلي'), ld('Call center lead with CX', 'قائد مركز الاتصال مع تجربة العملاء'), ld('IVR log, signals', 'سجل الرد الصوتي، الإشارات'), undefined, 4, 'not_started'],
-    ['std_complaint_intake', g4, ld('Complaint intake standard', 'معيار استقبال الشكاوى'), ld('CX with L&D', 'تجربة العملاء مع التعلم والتطوير'), ld('Shopper cases, signals, corrective actions', 'حالات المتسوق، الإشارات، الإجراءات التصحيحية'), ld('Assets: tenant complaints have their own owners', 'أسيتس: شكاوى المستأجر لها مالكون خاصون'), 4, 'not_started'],
-    ['std_call_quality', g4, ld('Call quality criteria', 'معايير جودة المكالمة'), ld('L&D with the call center lead', 'التعلم والتطوير مع قائد مركز الاتصال'), ld('AI call center, L&D', 'مركز الاتصال الذكي، التعلم والتطوير'), undefined, 4, 'not_started'],
+    [
+      'std_inbound_call',
+      g4,
+      ld('Inbound call standard', 'معيار المكالمات الواردة'),
+      ld('Call center lead with L&D', 'قائد مركز الاتصال مع التعلم والتطوير'),
+      ld('Shopper (call scenario), CRM activity, journey', 'المتسوق، نشاط نظام العملاء، الرحلة'),
+      ld('Per product section', 'حسب قسم المنتج'),
+      4,
+      'not_started',
+    ],
+    [
+      'std_outbound_ai_caller',
+      g4,
+      ld('Outbound and AI caller standard', 'معيار المكالمات الصادرة والمتصل الذكي'),
+      ld('Call center lead with the AI vendor and Legal', 'قائد مركز الاتصال مع مزوّد الذكاء الاصطناعي والقانونية'),
+      ld('AI call center log, signals (call timing), journey, shopper', 'سجل مركز الاتصال الذكي، الإشارات، الرحلة، المتسوق'),
+      ld('None: a group rule', 'لا يوجد: قاعدة جماعية'),
+      4,
+      'not_started',
+    ],
+    [
+      'std_ivr_wording',
+      g4,
+      ld('IVR wording and routing', 'نصوص وتوجيه الرد الصوتي التفاعلي'),
+      ld('Call center lead with CX', 'قائد مركز الاتصال مع تجربة العملاء'),
+      ld('IVR log, signals', 'سجل الرد الصوتي، الإشارات'),
+      undefined,
+      4,
+      'not_started',
+    ],
+    [
+      'std_complaint_intake',
+      g4,
+      ld('Complaint intake standard', 'معيار استقبال الشكاوى'),
+      ld('CX with L&D', 'تجربة العملاء مع التعلم والتطوير'),
+      ld('Shopper cases, signals, corrective actions', 'حالات المتسوق، الإشارات، الإجراءات التصحيحية'),
+      ld('Assets: tenant complaints have their own owners', 'أسيتس: شكاوى المستأجر لها مالكون خاصون'),
+      4,
+      'not_started',
+    ],
+    [
+      'std_call_quality',
+      g4,
+      ld('Call quality criteria', 'معايير جودة المكالمة'),
+      ld('L&D with the call center lead', 'التعلم والتطوير مع قائد مركز الاتصال'),
+      ld('AI call center, L&D', 'مركز الاتصال الذكي، التعلم والتطوير'),
+      undefined,
+      4,
+      'not_started',
+    ],
 
-    ['std_handover', g5, ld('Handover standard', 'معيار التسليم'), ld('After-Sales lead with L&D', 'قائد ما بعد البيع مع التعلم والتطوير'), ld('Signals (handover missed), survey, journey', 'الإشارات، الاستبيان، الرحلة'), ld('After-Sales only', 'ما بعد البيع فقط'), 3, 'not_started'],
-    ['std_snagging', g5, ld('Snagging standard', 'معيار ملاحظات التشطيب'), ld('After-Sales lead with the developer liaison', 'قائد ما بعد البيع مع منسّق المطوّر'), ld('Signals, survey, journey', 'الإشارات، الاستبيان، الرحلة'), ld('After-Sales only', 'ما بعد البيع فقط'), 5, 'not_started'],
-    ['std_maintenance_request', g5, ld('Maintenance request standard', 'معيار طلب الصيانة'), ld('Assets leasing and maintenance leads with L&D', 'قادة التأجير والصيانة في أسيتس مع التعلم والتطوير'), ld('App signals, journey (repeat contact), survey', 'إشارات التطبيق، الرحلة، الاستبيان'), ld('Assets only', 'أسيتس فقط'), 5, 'not_started'],
-    ['std_move_in_out', g5, ld('Move-in and move-out standard', 'معيار الانتقال والإخلاء'), ld('Assets leasing lead with Legal', 'قائد التأجير في أسيتس مع القانونية'), ld('Survey, signals (deposit disputes), shopper', 'الاستبيان، الإشارات، المتسوق'), ld('Assets only', 'أسيتس فقط'), 5, 'not_started'],
-    ['std_renewal', g5, ld('Renewal standard', 'معيار التجديد'), ld('Assets leasing lead with CX', 'قائد التأجير في أسيتس مع تجربة العملاء'), ld('Runaway (did not renew), journey, survey', 'العملاء الهاربون، الرحلة، الاستبيان'), ld('Assets only', 'أسيتس فقط'), 3, 'not_started'],
-    ['std_payment_statement', g5, ld('Payment and statement standard', 'معيار الدفع وكشف الحساب'), ld('Finance with After-Sales and Assets', 'المالية مع ما بعد البيع وأسيتس'), ld('Signals, survey', 'الإشارات، الاستبيان'), ld('Both, with product sections', 'كلاهما'), 5, 'not_started'],
-    ['std_offplan_updates', g5, ld('Off-plan construction updates', 'تحديثات البناء على الخارطة'), ld('After-Sales lead with the product owner', 'قائد ما بعد البيع مع مالك المنتج'), ld('Survey (confidence), signals, journey', 'الاستبيان، الإشارات، الرحلة'), ld('After-Sales only', 'ما بعد البيع فقط'), 5, 'not_started'],
+    [
+      'std_handover',
+      g5,
+      ld('Handover standard', 'معيار التسليم'),
+      ld('After-Sales lead with L&D', 'قائد ما بعد البيع مع التعلم والتطوير'),
+      ld('Signals (handover missed), survey, journey', 'الإشارات، الاستبيان، الرحلة'),
+      ld('After-Sales only', 'ما بعد البيع فقط'),
+      3,
+      'not_started',
+    ],
+    [
+      'std_snagging',
+      g5,
+      ld('Snagging standard', 'معيار ملاحظات التشطيب'),
+      ld('After-Sales lead with the developer liaison', 'قائد ما بعد البيع مع منسّق المطوّر'),
+      ld('Signals, survey, journey', 'الإشارات، الاستبيان، الرحلة'),
+      ld('After-Sales only', 'ما بعد البيع فقط'),
+      5,
+      'not_started',
+    ],
+    [
+      'std_maintenance_request',
+      g5,
+      ld('Maintenance request standard', 'معيار طلب الصيانة'),
+      ld('Assets leasing and maintenance leads with L&D', 'قادة التأجير والصيانة في أسيتس مع التعلم والتطوير'),
+      ld('App signals, journey (repeat contact), survey', 'إشارات التطبيق، الرحلة، الاستبيان'),
+      ld('Assets only', 'أسيتس فقط'),
+      5,
+      'not_started',
+    ],
+    [
+      'std_move_in_out',
+      g5,
+      ld('Move-in and move-out standard', 'معيار الانتقال والإخلاء'),
+      ld('Assets leasing lead with Legal', 'قائد التأجير في أسيتس مع القانونية'),
+      ld('Survey, signals (deposit disputes), shopper', 'الاستبيان، الإشارات، المتسوق'),
+      ld('Assets only', 'أسيتس فقط'),
+      5,
+      'not_started',
+    ],
+    [
+      'std_renewal',
+      g5,
+      ld('Renewal standard', 'معيار التجديد'),
+      ld('Assets leasing lead with CX', 'قائد التأجير في أسيتس مع تجربة العملاء'),
+      ld('Runaway (did not renew), journey, survey', 'العملاء الهاربون، الرحلة، الاستبيان'),
+      ld('Assets only', 'أسيتس فقط'),
+      3,
+      'not_started',
+    ],
+    [
+      'std_payment_statement',
+      g5,
+      ld('Payment and statement standard', 'معيار الدفع وكشف الحساب'),
+      ld('Finance with After-Sales and Assets', 'المالية مع ما بعد البيع وأسيتس'),
+      ld('Signals, survey', 'الإشارات، الاستبيان'),
+      ld('Both, with product sections', 'كلاهما'),
+      5,
+      'not_started',
+    ],
+    [
+      'std_offplan_updates',
+      g5,
+      ld('Off-plan construction updates', 'تحديثات البناء على الخارطة'),
+      ld('After-Sales lead with the product owner', 'قائد ما بعد البيع مع مالك المنتج'),
+      ld('Survey (confidence), signals, journey', 'الاستبيان، الإشارات، الرحلة'),
+      ld('After-Sales only', 'ما بعد البيع فقط'),
+      5,
+      'not_started',
+    ],
 
-    ['std_lead_followup', g6, ld('Lead follow-up standard', 'معيار متابعة العميل المحتمل'), ld('Sales management with L&D', 'إدارة المبيعات مع التعلم والتطوير'), ld('Journey (silence, promise), shopper, CRM activity', 'الرحلة، المتسوق، نشاط نظام العملاء'), ld('Assets: shorter viewing follow-up/application chase cycle', 'أسيتس: دورة متابعة أقصر'), 3, 'not_started'],
-    ['std_promise_callback', g6, ld('Promise and callback standard', 'معيار الوعد والاتصال التالي'), ld('L&D with the CRM owner', 'التعلم والتطوير مع مالك نظام العملاء'), ld('Journey (promise not kept), signals, shopper', 'الرحلة، الإشارات، المتسوق'), undefined, 2, 'not_started'],
-    ['std_ownership_handoff', g6, ld('Customer ownership and hand-off', 'ملكية العميل والتسليم بين الفرق'), ld('CX with the environment managers', 'تجربة العملاء مع مديري البيئات'), ld('Journey (hand-off), runaway (dormant owner)', 'الرحلة، العملاء الهاربون'), ld('Assets and After-Sales share owners for tenant-owners', 'أسيتس وما بعد البيع يتشاركان الملاك'), 3, 'not_started'],
-    ['std_conduct', g6, ld('Conduct standard', 'معيار السلوك'), ld('HR with L&D', 'الموارد البشرية مع التعلم والتطوير'), ld('Shopper (critical conduct), signals (attitude), HR pool', 'المتسوق، الإشارات، مجموعة الموارد البشرية'), ld('None: a group rule', 'لا يوجد: قاعدة جماعية'), 5, 'not_started'],
-    ['std_privacy', g6, ld('Data and privacy in customer contact', 'البيانات والخصوصية في التواصل مع العميل'), ld('Legal with IT and L&D', 'القانونية مع تقنية المعلومات والتعلم والتطوير'), ld('Shopper (privacy items), signals', 'المتسوق، الإشارات'), ld('Assets: tenant documents', 'أسيتس: مستندات المستأجر'), 5, 'legal_review'],
+    [
+      'std_lead_followup',
+      g6,
+      ld('Lead follow-up standard', 'معيار متابعة العميل المحتمل'),
+      ld('Sales management with L&D', 'إدارة المبيعات مع التعلم والتطوير'),
+      ld('Journey (silence, promise), shopper, CRM activity', 'الرحلة، المتسوق، نشاط نظام العملاء'),
+      ld('Assets: shorter viewing follow-up/application chase cycle', 'أسيتس: دورة متابعة أقصر'),
+      3,
+      'not_started',
+    ],
+    [
+      'std_promise_callback',
+      g6,
+      ld('Promise and callback standard', 'معيار الوعد والاتصال التالي'),
+      ld('L&D with the CRM owner', 'التعلم والتطوير مع مالك نظام العملاء'),
+      ld('Journey (promise not kept), signals, shopper', 'الرحلة، الإشارات، المتسوق'),
+      undefined,
+      2,
+      'not_started',
+    ],
+    [
+      'std_ownership_handoff',
+      g6,
+      ld('Customer ownership and hand-off', 'ملكية العميل والتسليم بين الفرق'),
+      ld('CX with the environment managers', 'تجربة العملاء مع مديري البيئات'),
+      ld('Journey (hand-off), runaway (dormant owner)', 'الرحلة، العملاء الهاربون'),
+      ld('Assets and After-Sales share owners for tenant-owners', 'أسيتس وما بعد البيع يتشاركان الملاك'),
+      3,
+      'not_started',
+    ],
+    [
+      'std_conduct',
+      g6,
+      ld('Conduct standard', 'معيار السلوك'),
+      ld('HR with L&D', 'الموارد البشرية مع التعلم والتطوير'),
+      ld('Shopper (critical conduct), signals (attitude), HR pool', 'المتسوق، الإشارات، مجموعة الموارد البشرية'),
+      ld('None: a group rule', 'لا يوجد: قاعدة جماعية'),
+      5,
+      'not_started',
+    ],
+    [
+      'std_privacy',
+      g6,
+      ld('Data and privacy in customer contact', 'البيانات والخصوصية في التواصل مع العميل'),
+      ld('Legal with IT and L&D', 'القانونية مع تقنية المعلومات والتعلم والتطوير'),
+      ld('Shopper (privacy items), signals', 'المتسوق، الإشارات'),
+      ld('Assets: tenant documents', 'أسيتس: مستندات المستأجر'),
+      5,
+      'legal_review',
+    ],
   ]
 
   const ldDocuments: Standard[] = ldRows.map(([id, group, title, writer, readBy, environmentVariant, priorityTier, status], i) => ({
@@ -1039,13 +1818,31 @@ function buildMsChecklists(): MsChecklist[] {
   const INFO = 'Information accuracy'
   const CLOSE = 'Closing and follow-up'
   let seq = 0
-  const ci = (text: Bi, section: string, weight: number, opts: Partial<{ type: 'passfail' | 'scale' | 'text'; critical: boolean; evidence: 'none' | 'optional' | 'required' }> = {}) => {
+  const ci = (
+    text: Bi,
+    section: string,
+    weight: number,
+    opts: Partial<{ type: 'passfail' | 'scale' | 'text'; critical: boolean; evidence: 'none' | 'optional' | 'required' }> = {},
+  ) => {
     seq++
-    return { id: `item${seq}`, text, section, weight, type: opts.type ?? ('passfail' as const), critical: !!opts.critical, evidence: opts.evidence ?? ('none' as const) }
+    return {
+      id: `item${seq}`,
+      text,
+      section,
+      weight,
+      type: opts.type ?? ('passfail' as const),
+      critical: !!opts.critical,
+      evidence: opts.evidence ?? ('none' as const),
+    }
   }
   return [
     {
-      id: 'cl_re_digital', name: { en: 'Real Estate: digital lead (WhatsApp/web/social)', ar: 'العقارات: عميل محتمل رقمي' }, product: 're', channel: 'digital', status: 'published', version: 3,
+      id: 'cl_re_digital',
+      name: { en: 'Real Estate: digital lead (WhatsApp/web/social)', ar: 'العقارات: عميل محتمل رقمي' },
+      product: 're',
+      channel: 'digital',
+      status: 'published',
+      version: 3,
       items: [
         ci({ en: 'Responded within 5 minutes', ar: 'تم الرد خلال 5 دقائق' }, GREETING, 20, { critical: true, evidence: 'required' }),
         ci({ en: 'Greeted professionally and gave their name', ar: 'رحّب باحترافية وذكر اسمه' }, GREETING, 10),
@@ -1056,7 +1853,12 @@ function buildMsChecklists(): MsChecklist[] {
       ],
     },
     {
-      id: 'cl_re_call', name: { en: 'Real Estate: AI call center lead', ar: 'العقارات: عميل محتمل عبر مركز الاتصال الذكي' }, product: 're', channel: 'call', status: 'published', version: 2,
+      id: 'cl_re_call',
+      name: { en: 'Real Estate: AI call center lead', ar: 'العقارات: عميل محتمل عبر مركز الاتصال الذكي' },
+      product: 're',
+      channel: 'call',
+      status: 'published',
+      version: 2,
       items: [
         ci({ en: 'Called within the allowed hours', ar: 'تم الاتصال ضمن الساعات المسموحة' }, GREETING, 20, { critical: true }),
         ci({ en: 'Disclosed it is an AI assistant', ar: 'أفصح أنه مساعد ذكاء اصطناعي' }, GREETING, 15, { critical: true }),
@@ -1066,7 +1868,12 @@ function buildMsChecklists(): MsChecklist[] {
       ],
     },
     {
-      id: 'cl_re_branch', name: { en: 'Real Estate: branch / gallery visit', ar: 'العقارات: زيارة فرع / معرض' }, product: 're', channel: 'branch', status: 'published', version: 4,
+      id: 'cl_re_branch',
+      name: { en: 'Real Estate: branch / gallery visit', ar: 'العقارات: زيارة فرع / معرض' },
+      product: 're',
+      channel: 'branch',
+      status: 'published',
+      version: 4,
       items: [
         ci({ en: 'Greeted within 2 minutes of arrival', ar: 'تم الترحيب خلال دقيقتين من الوصول' }, GREETING, 15, { evidence: 'required' }),
         ci({ en: 'Gallery was staffed and tidy', ar: 'المعرض كان مجهزاً بالموظفين ومرتباً' }, GREETING, 15, { critical: true, evidence: 'required' }),
@@ -1076,7 +1883,12 @@ function buildMsChecklists(): MsChecklist[] {
       ],
     },
     {
-      id: 'cl_af_call', name: { en: 'After-Sales: outbound call quality', ar: 'ما بعد البيع: جودة المكالمة الصادرة' }, product: 'af', channel: 'call', status: 'draft', version: 1,
+      id: 'cl_af_call',
+      name: { en: 'After-Sales: outbound call quality', ar: 'ما بعد البيع: جودة المكالمة الصادرة' },
+      product: 'af',
+      channel: 'call',
+      status: 'draft',
+      version: 1,
       items: [
         ci({ en: 'Called within allowed hours (09:00–20:00)', ar: 'تم الاتصال ضمن الساعات المسموحة' }, GREETING, 25, { critical: true }),
         ci({ en: 'Used the correct survey version for unit status', ar: 'استخدم نسخة الاستبيان الصحيحة' }, INFO, 35, { critical: true }),
@@ -1088,9 +1900,21 @@ function buildMsChecklists(): MsChecklist[] {
 
 function buildMsScenarios(): MsScenario[] {
   return [
-    { id: 'sc_digital_buy', title: { en: 'Looking to buy a 2-bedroom unit', ar: 'يبحث عن شراء وحدة غرفتي نوم' }, tests: { en: 'Response time, qualification, pricing accuracy', ar: 'وقت الاستجابة، التأهيل، دقة الأسعار' } },
-    { id: 'sc_call_general', title: { en: 'General project enquiry by phone', ar: 'استفسار عام عن المشروع عبر الهاتف' }, tests: { en: 'AI disclosure, allowed hours, handover', ar: 'الإفصاح، الساعات المسموحة، التحويل' } },
-    { id: 'sc_branch_walkin', title: { en: 'Walk-in couple comparing two projects', ar: 'زوجان يزوران المعرض لمقارنة مشروعين' }, tests: { en: 'Staffing, greeting time, discount discipline', ar: 'التوظيف، وقت الترحيب، الانضباط في الخصومات' } },
+    {
+      id: 'sc_digital_buy',
+      title: { en: 'Looking to buy a 2-bedroom unit', ar: 'يبحث عن شراء وحدة غرفتي نوم' },
+      tests: { en: 'Response time, qualification, pricing accuracy', ar: 'وقت الاستجابة، التأهيل، دقة الأسعار' },
+    },
+    {
+      id: 'sc_call_general',
+      title: { en: 'General project enquiry by phone', ar: 'استفسار عام عن المشروع عبر الهاتف' },
+      tests: { en: 'AI disclosure, allowed hours, handover', ar: 'الإفصاح، الساعات المسموحة، التحويل' },
+    },
+    {
+      id: 'sc_branch_walkin',
+      title: { en: 'Walk-in couple comparing two projects', ar: 'زوجان يزوران المعرض لمقارنة مشروعين' },
+      tests: { en: 'Staffing, greeting time, discount discipline', ar: 'التوظيف، وقت الترحيب، الانضباط في الخصومات' },
+    },
   ]
 }
 
@@ -1098,19 +1922,97 @@ function buildMsShoppers(): MsShopper[] {
   return [
     { id: 'sh1', name: 'Lina K.', type: 'internal', email: 'lina.k@psi.example', shopsCompleted: 14, reliability: 96, active: true },
     { id: 'sh2', name: 'Omar R.', type: 'internal', email: 'omar.r@psi.example', shopsCompleted: 9, reliability: 91, active: true },
-    { id: 'sh3', name: 'Fatima S.', type: 'external', agency: 'Gulf Mystery Shoppers', email: 'fatima.s@gms.example', shopsCompleted: 22, reliability: 98, active: true },
-    { id: 'sh4', name: 'James T.', type: 'external', agency: 'Gulf Mystery Shoppers', email: 'james.t@gms.example', shopsCompleted: 6, reliability: 83, active: true },
+    {
+      id: 'sh3',
+      name: 'Fatima S.',
+      type: 'external',
+      agency: 'Gulf Mystery Shoppers',
+      email: 'fatima.s@gms.example',
+      shopsCompleted: 22,
+      reliability: 98,
+      active: true,
+    },
+    {
+      id: 'sh4',
+      name: 'James T.',
+      type: 'external',
+      agency: 'Gulf Mystery Shoppers',
+      email: 'james.t@gms.example',
+      shopsCompleted: 6,
+      reliability: 83,
+      active: true,
+    },
   ]
 }
 
 function buildMsAssignments(): MsAssignment[] {
   return [
-    { id: 'asg1', checklistId: 'cl_re_digital', scenarioId: 'sc_digital_buy', shopperId: 'sh1', via: 'wa', sentAt: '2026-10-20T09:00:00', dueAt: '2026-10-23T18:00:00', status: 'approved', score: 88, criticalFails: 0 },
-    { id: 'asg2', checklistId: 'cl_re_call', scenarioId: 'sc_call_general', shopperId: 'sh2', via: 'email', sentAt: '2026-10-21T09:00:00', dueAt: '2026-10-24T18:00:00', status: 'review', score: 52, criticalFails: 1 },
-    { id: 'asg3', checklistId: 'cl_re_branch', scenarioId: 'sc_branch_walkin', shopperId: 'sh3', via: 'email', sentAt: '2026-10-22T09:00:00', dueAt: '2026-10-25T18:00:00', status: 'submitted', score: 58, criticalFails: 0 },
-    { id: 'asg4', checklistId: 'cl_af_call', scenarioId: 'sc_call_general', shopperId: 'sh4', via: 'sms', sentAt: '2026-10-22T09:00:00', dueAt: '2026-10-26T18:00:00', status: 'progress' },
-    { id: 'asg5', checklistId: 'cl_re_digital', scenarioId: 'sc_digital_buy', shopperId: 'sh2', via: 'wa', sentAt: '2026-10-23T09:00:00', dueAt: '2026-10-26T18:00:00', status: 'opened' },
-    { id: 'asg6', checklistId: 'cl_re_branch', scenarioId: 'sc_branch_walkin', shopperId: 'sh1', via: 'email', sentAt: '2026-10-24T09:00:00', dueAt: '2026-10-27T18:00:00', status: 'sent' },
+    {
+      id: 'asg1',
+      checklistId: 'cl_re_digital',
+      scenarioId: 'sc_digital_buy',
+      shopperId: 'sh1',
+      via: 'wa',
+      sentAt: '2026-10-20T09:00:00',
+      dueAt: '2026-10-23T18:00:00',
+      status: 'approved',
+      score: 88,
+      criticalFails: 0,
+    },
+    {
+      id: 'asg2',
+      checklistId: 'cl_re_call',
+      scenarioId: 'sc_call_general',
+      shopperId: 'sh2',
+      via: 'email',
+      sentAt: '2026-10-21T09:00:00',
+      dueAt: '2026-10-24T18:00:00',
+      status: 'review',
+      score: 52,
+      criticalFails: 1,
+    },
+    {
+      id: 'asg3',
+      checklistId: 'cl_re_branch',
+      scenarioId: 'sc_branch_walkin',
+      shopperId: 'sh3',
+      via: 'email',
+      sentAt: '2026-10-22T09:00:00',
+      dueAt: '2026-10-25T18:00:00',
+      status: 'submitted',
+      score: 58,
+      criticalFails: 0,
+    },
+    {
+      id: 'asg4',
+      checklistId: 'cl_af_call',
+      scenarioId: 'sc_call_general',
+      shopperId: 'sh4',
+      via: 'sms',
+      sentAt: '2026-10-22T09:00:00',
+      dueAt: '2026-10-26T18:00:00',
+      status: 'progress',
+    },
+    {
+      id: 'asg5',
+      checklistId: 'cl_re_digital',
+      scenarioId: 'sc_digital_buy',
+      shopperId: 'sh2',
+      via: 'wa',
+      sentAt: '2026-10-23T09:00:00',
+      dueAt: '2026-10-26T18:00:00',
+      status: 'opened',
+    },
+    {
+      id: 'asg6',
+      checklistId: 'cl_re_branch',
+      scenarioId: 'sc_branch_walkin',
+      shopperId: 'sh1',
+      via: 'email',
+      sentAt: '2026-10-24T09:00:00',
+      dueAt: '2026-10-27T18:00:00',
+      status: 'sent',
+    },
   ]
 }
 
@@ -1129,49 +2031,301 @@ function buildVocRows(): VocRow[] {
 
 function buildVocComments(): VocComment[] {
   return [
-    { product: 're', channel: 'app', sentiment: 'positive', theme: { en: 'Agent responsiveness', ar: 'استجابة الوكيل' }, text: { en: 'The agent answered every question within minutes, very impressed.', ar: 'أجاب الوكيل على كل الأسئلة خلال دقائق، انطباع رائع.' } },
-    { product: 're', channel: 'branch', sentiment: 'negative', theme: { en: 'Staffing', ar: 'التوظيف' }, text: { en: 'No one at the gallery desk for almost 10 minutes.', ar: 'لا أحد عند مكتب المعرض لمدة 10 دقائق تقريباً.' } },
-    { product: 'af', channel: 'call', sentiment: 'negative', theme: { en: 'Handover delay', ar: 'تأخر التسليم' }, text: { en: 'Three weeks late and nobody called to explain why.', ar: 'تأخر ثلاثة أسابيع ولم يتصل أحد لشرح السبب.' } },
-    { product: 'af', channel: 'digital', sentiment: 'positive', theme: { en: 'Maintenance', ar: 'الصيانة' }, text: { en: 'Maintenance request was handled the same day, thank you.', ar: 'تمت معالجة طلب الصيانة في نفس اليوم، شكراً.' } },
+    {
+      product: 're',
+      channel: 'app',
+      sentiment: 'positive',
+      theme: { en: 'Agent responsiveness', ar: 'استجابة الوكيل' },
+      text: { en: 'The agent answered every question within minutes, very impressed.', ar: 'أجاب الوكيل على كل الأسئلة خلال دقائق، انطباع رائع.' },
+    },
+    {
+      product: 're',
+      channel: 'branch',
+      sentiment: 'negative',
+      theme: { en: 'Staffing', ar: 'التوظيف' },
+      text: { en: 'No one at the gallery desk for almost 10 minutes.', ar: 'لا أحد عند مكتب المعرض لمدة 10 دقائق تقريباً.' },
+    },
+    {
+      product: 'af',
+      channel: 'call',
+      sentiment: 'negative',
+      theme: { en: 'Handover delay', ar: 'تأخر التسليم' },
+      text: { en: 'Three weeks late and nobody called to explain why.', ar: 'تأخر ثلاثة أسابيع ولم يتصل أحد لشرح السبب.' },
+    },
+    {
+      product: 'af',
+      channel: 'digital',
+      sentiment: 'positive',
+      theme: { en: 'Maintenance', ar: 'الصيانة' },
+      text: { en: 'Maintenance request was handled the same day, thank you.', ar: 'تمت معالجة طلب الصيانة في نفس اليوم، شكراً.' },
+    },
   ]
 }
 
 function buildRulesConfig(): RuleConfigItem[] {
   const bi = (en: string, ar: string): Bi => ({ en, ar })
   return [
-    { id: 'rule_pattern_same_agent', area: bi('Signals & patterns', 'الإشارات والأنماط'), label: bi('Same-agent threshold', 'حد نفس الوكيل'), value: 3, unit: bi('occurrences', 'مرات'), source: 'FR-4.6' },
-    { id: 'rule_pattern_same_issue', area: bi('Signals & patterns', 'الإشارات والأنماط'), label: bi('Same-issue threshold', 'حد نفس المشكلة'), value: 5, unit: bi('occurrences', 'مرات'), source: 'FR-4.6' },
-    { id: 'rule_pattern_env_concentration', area: bi('Signals & patterns', 'الإشارات والأنماط'), label: bi('Environment-concentration threshold', 'حد تركّز البيئة'), value: 50, unit: bi('%', '%'), source: 'FR-4.6' },
-    { id: 'rule_pattern_window', area: bi('Signals & patterns', 'الإشارات والأنماط'), label: bi('Pattern window', 'نافذة النمط'), value: 30, unit: bi('days', 'يوم'), source: 'FR-4.6' },
-    { id: 'rule_pattern_min_sample', area: bi('Signals & patterns', 'الإشارات والأنماط'), label: bi('Minimum sample before a fix is proposed', 'الحد الأدنى للعيّنة قبل اقتراح إصلاح'), value: 10, unit: bi('records', 'سجل'), source: 'FR-4.16' },
-    { id: 'rule_verification_days', area: bi('Corrective actions', 'الإجراءات التصحيحية'), label: bi('Effectiveness verification window', 'نافذة التحقق من الفعالية'), value: 60, unit: bi('days', 'يوم'), source: 'FR-4.1' },
-    { id: 'rule_approval_days', area: bi('Corrective actions', 'الإجراءات التصحيحية'), label: bi('Approval and assignment window', 'نافذة الاعتماد والإسناد'), value: 5, unit: bi('working days', 'يوم عمل'), source: 'FR-4.1' },
-    { id: 'rule_shopper_respond', area: bi('Shopper cases', 'حالات المتسوق'), label: bi('Critical case respond clock', 'ساعة الرد على الحالة الحرجة'), value: 1, unit: bi('working day', 'يوم عمل'), source: 'FR-4.14' },
-    { id: 'rule_shopper_resolve', area: bi('Shopper cases', 'حالات المتسوق'), label: bi('Critical case resolve clock', 'ساعة حل الحالة الحرجة'), value: 5, unit: bi('working days', 'يوم عمل'), source: 'FR-4.14' },
-    { id: 'rule_shopper_floor', area: bi('Shopper cases', 'حالات المتسوق'), label: bi('Visit-score severity floor', 'حد الخطورة لنتيجة الزيارة'), value: 60, unit: bi('%', '%'), source: 'FR-4.14' },
-    { id: 'rule_resurvey_min', area: bi('Close the loop', 'إغلاق الحلقة'), label: bi('Re-survey window (min)', 'نافذة إعادة الاستبيان (الأدنى)'), value: 7, unit: bi('days', 'يوم'), source: 'FR-5.4' },
-    { id: 'rule_resurvey_max', area: bi('Close the loop', 'إغلاق الحلقة'), label: bi('Re-survey window (max)', 'نافذة إعادة الاستبيان (الأقصى)'), value: 14, unit: bi('days', 'يوم'), source: 'FR-5.4' },
-    { id: 'rule_recovered_days', area: bi('Close the loop', 'إغلاق الحلقة'), label: bi('"Recovered" window', 'نافذة "تعافى"'), value: 60, unit: bi('days', 'يوم'), source: 'FR-5.5' },
-    { id: 'rule_silence_lead', area: bi('Runaway customers', 'العملاء الهاربون'), label: bi('Silent-lead threshold', 'حد العميل المحتمل الصامت'), value: 30, unit: bi('days', 'يوم'), source: 'FR-3.1' },
-    { id: 'rule_silence_owner', area: bi('Runaway customers', 'العملاء الهاربون'), label: bi('Dormant-owner threshold', 'حد المالك الخامل'), value: 12, unit: bi('months', 'شهر'), source: 'FR-3.1' },
-    { id: 'rule_public_reply', area: bi('Signals & patterns', 'الإشارات والأنماط'), label: bi('Public-mention reply clock', 'ساعة الرد على الإشارة العامة'), value: 48, unit: bi('hours', 'ساعة'), source: 'FR-4.8' },
-    { id: 'rule_survey_nps_cap', area: bi('Surveys and triggers', 'الاستبيانات والمحفزات'), label: bi('NPS cap', 'حد مؤشر NPS'), value: 90, unit: bi('days', 'يوم'), source: 'FR-7.2' },
-    { id: 'rule_survey_csat_cap', area: bi('Surveys and triggers', 'الاستبيانات والمحفزات'), label: bi('CSAT+CES cap', 'حد CSAT+CES'), value: 30, unit: bi('days', 'يوم'), source: 'FR-7.2' },
+    {
+      id: 'rule_pattern_same_agent',
+      area: bi('Signals & patterns', 'الإشارات والأنماط'),
+      label: bi('Same-agent threshold', 'حد نفس الوكيل'),
+      value: 3,
+      unit: bi('occurrences', 'مرات'),
+      source: 'FR-4.6',
+    },
+    {
+      id: 'rule_pattern_same_issue',
+      area: bi('Signals & patterns', 'الإشارات والأنماط'),
+      label: bi('Same-issue threshold', 'حد نفس المشكلة'),
+      value: 5,
+      unit: bi('occurrences', 'مرات'),
+      source: 'FR-4.6',
+    },
+    {
+      id: 'rule_pattern_env_concentration',
+      area: bi('Signals & patterns', 'الإشارات والأنماط'),
+      label: bi('Environment-concentration threshold', 'حد تركّز البيئة'),
+      value: 50,
+      unit: bi('%', '%'),
+      source: 'FR-4.6',
+    },
+    {
+      id: 'rule_pattern_window',
+      area: bi('Signals & patterns', 'الإشارات والأنماط'),
+      label: bi('Pattern window', 'نافذة النمط'),
+      value: 30,
+      unit: bi('days', 'يوم'),
+      source: 'FR-4.6',
+    },
+    {
+      id: 'rule_pattern_min_sample',
+      area: bi('Signals & patterns', 'الإشارات والأنماط'),
+      label: bi('Minimum sample before a fix is proposed', 'الحد الأدنى للعيّنة قبل اقتراح إصلاح'),
+      value: 10,
+      unit: bi('records', 'سجل'),
+      source: 'FR-4.16',
+    },
+    {
+      id: 'rule_verification_days',
+      area: bi('Corrective actions', 'الإجراءات التصحيحية'),
+      label: bi('Effectiveness verification window', 'نافذة التحقق من الفعالية'),
+      value: 60,
+      unit: bi('days', 'يوم'),
+      source: 'FR-4.1',
+    },
+    {
+      id: 'rule_approval_days',
+      area: bi('Corrective actions', 'الإجراءات التصحيحية'),
+      label: bi('Approval and assignment window', 'نافذة الاعتماد والإسناد'),
+      value: 5,
+      unit: bi('working days', 'يوم عمل'),
+      source: 'FR-4.1',
+    },
+    {
+      id: 'rule_shopper_respond',
+      area: bi('Shopper cases', 'حالات المتسوق'),
+      label: bi('Critical case respond clock', 'ساعة الرد على الحالة الحرجة'),
+      value: 1,
+      unit: bi('working day', 'يوم عمل'),
+      source: 'FR-4.14',
+    },
+    {
+      id: 'rule_shopper_resolve',
+      area: bi('Shopper cases', 'حالات المتسوق'),
+      label: bi('Critical case resolve clock', 'ساعة حل الحالة الحرجة'),
+      value: 5,
+      unit: bi('working days', 'يوم عمل'),
+      source: 'FR-4.14',
+    },
+    {
+      id: 'rule_shopper_floor',
+      area: bi('Shopper cases', 'حالات المتسوق'),
+      label: bi('Visit-score severity floor', 'حد الخطورة لنتيجة الزيارة'),
+      value: 60,
+      unit: bi('%', '%'),
+      source: 'FR-4.14',
+    },
+    {
+      id: 'rule_resurvey_min',
+      area: bi('Close the loop', 'إغلاق الحلقة'),
+      label: bi('Re-survey window (min)', 'نافذة إعادة الاستبيان (الأدنى)'),
+      value: 7,
+      unit: bi('days', 'يوم'),
+      source: 'FR-5.4',
+    },
+    {
+      id: 'rule_resurvey_max',
+      area: bi('Close the loop', 'إغلاق الحلقة'),
+      label: bi('Re-survey window (max)', 'نافذة إعادة الاستبيان (الأقصى)'),
+      value: 14,
+      unit: bi('days', 'يوم'),
+      source: 'FR-5.4',
+    },
+    {
+      id: 'rule_recovered_days',
+      area: bi('Close the loop', 'إغلاق الحلقة'),
+      label: bi('"Recovered" window', 'نافذة "تعافى"'),
+      value: 60,
+      unit: bi('days', 'يوم'),
+      source: 'FR-5.5',
+    },
+    {
+      id: 'rule_silence_lead',
+      area: bi('Runaway customers', 'العملاء الهاربون'),
+      label: bi('Silent-lead threshold', 'حد العميل المحتمل الصامت'),
+      value: 30,
+      unit: bi('days', 'يوم'),
+      source: 'FR-3.1',
+    },
+    {
+      id: 'rule_silence_owner',
+      area: bi('Runaway customers', 'العملاء الهاربون'),
+      label: bi('Dormant-owner threshold', 'حد المالك الخامل'),
+      value: 12,
+      unit: bi('months', 'شهر'),
+      source: 'FR-3.1',
+    },
+    {
+      id: 'rule_public_reply',
+      area: bi('Signals & patterns', 'الإشارات والأنماط'),
+      label: bi('Public comment reply SLA (CX team); past it, escalated to the CX manager', 'مهلة الرد على التعليق العام (فريق CX)؛ بعدها يُصعَّد لمدير CX'),
+      value: 48,
+      unit: bi('hours', 'ساعة'),
+      source: 'FR-4.8',
+    },
+    {
+      id: 'rule_public_reminder',
+      area: bi('Signals & patterns', 'الإشارات والأنماط'),
+      label: bi('Public comment: remind the CX team member after', 'التعليق العام: تذكير موظف فريق CX بعد'),
+      value: 24,
+      unit: bi('hours', 'ساعة'),
+      source: 'Owner 23 Nov',
+    },
+    {
+      id: 'rule_survey_nps_cap',
+      area: bi('Surveys and triggers', 'الاستبيانات والمحفزات'),
+      label: bi('NPS cap', 'حد مؤشر NPS'),
+      value: 90,
+      unit: bi('days', 'يوم'),
+      source: 'FR-7.2',
+    },
+    {
+      id: 'rule_survey_csat_cap',
+      area: bi('Surveys and triggers', 'الاستبيانات والمحفزات'),
+      label: bi('CSAT+CES cap', 'حد CSAT+CES'),
+      value: 30,
+      unit: bi('days', 'يوم'),
+      source: 'FR-7.2',
+    },
     // The remaining values of the five decisions (Modules KB §12).
-    { id: 'rule_legal_once', area: bi('Signals & patterns', 'الإشارات والأنماط'), label: bi('Legal, privacy and safety: occurrences before a case', 'القانوني والخصوصية والسلامة: عدد المرات قبل فتح حالة'), value: 1, unit: bi('occurrence', 'مرة'), source: 'KB §12 D1' },
-    { id: 'rule_effective_drop', area: bi('Corrective actions', 'الإجراءات التصحيحية'), label: bi('Effective when the signals drop by', 'فعّال عندما تنخفض الإشارات بنسبة'), value: 50, unit: bi('%', '%'), source: 'KB §12 D3' },
-    { id: 'rule_effective_hold', area: bi('Corrective actions', 'الإجراءات التصحيحية'), label: bi('… and do not return for', '… ولا تعود خلال'), value: 90, unit: bi('days', 'يوم'), source: 'KB §12 D3' },
-    { id: 'rule_calls_per_hour', area: bi('Close the loop', 'إغلاق الحلقة'), label: bi('Calls per hour in the capacity formula', 'المكالمات في الساعة في معادلة السعة'), value: 4, unit: bi('calls', 'مكالمات'), source: 'KB §12 D3' },
+    {
+      id: 'rule_legal_once',
+      area: bi('Signals & patterns', 'الإشارات والأنماط'),
+      label: bi('Legal, privacy and safety: occurrences before a case', 'القانوني والخصوصية والسلامة: عدد المرات قبل فتح حالة'),
+      value: 1,
+      unit: bi('occurrence', 'مرة'),
+      source: 'KB §12 D1',
+    },
+    {
+      id: 'rule_effective_drop',
+      area: bi('Corrective actions', 'الإجراءات التصحيحية'),
+      label: bi('Effective when the signals drop by', 'فعّال عندما تنخفض الإشارات بنسبة'),
+      value: 50,
+      unit: bi('%', '%'),
+      source: 'KB §12 D3',
+    },
+    {
+      id: 'rule_effective_hold',
+      area: bi('Corrective actions', 'الإجراءات التصحيحية'),
+      label: bi('… and do not return for', '… ولا تعود خلال'),
+      value: 90,
+      unit: bi('days', 'يوم'),
+      source: 'KB §12 D3',
+    },
+    {
+      id: 'rule_calls_per_hour',
+      area: bi('Close the loop', 'إغلاق الحلقة'),
+      label: bi('Calls per hour in the capacity formula', 'المكالمات في الساعة في معادلة السعة'),
+      value: 4,
+      unit: bi('calls', 'مكالمات'),
+      source: 'KB §12 D3',
+    },
     // v40 (decided 18 Nov): the working week, the working day, the calling rules and the AI-campaign hand-off are settings, not constants.
-    { id: RULE_IDS.workingDays, area: bi('Close the loop', 'إغلاق الحلقة'), label: bi('Working days per week (Monday to Friday)', 'أيام العمل في الأسبوع (من الإثنين إلى الجمعة)'), value: MON_FRI.length, days: [...MON_FRI], unit: bi('days', 'أيام'), source: 'Decisions 18 Nov, 1' },
-    { id: RULE_IDS.workStart, area: bi('Corrective actions', 'الإجراءات التصحيحية'), label: bi('Working day starts (hour, working hours clock)', 'بداية يوم العمل (الساعة، ساعة العمل)'), value: 9, unit: bi('o’clock', 'الساعة'), source: 'KB 09:00 to 18:00' },
-    { id: RULE_IDS.workEnd, area: bi('Corrective actions', 'الإجراءات التصحيحية'), label: bi('Working day ends (hour, working hours clock)', 'نهاية يوم العمل (الساعة، ساعة العمل)'), value: 18, unit: bi('o’clock', 'الساعة'), source: 'KB 09:00 to 18:00' },
-    { id: RULE_IDS.fixFallbackDays, area: bi('Corrective actions', 'الإجراءات التصحيحية'), label: bi('Fix due date when the matrix cell is empty', 'موعد الحل عندما تكون خلية المصفوفة فارغة'), value: 14, unit: bi('days', 'يوم'), source: 'Decisions 18 Nov, 3' },
-    { id: RULE_IDS.callFrom, area: bi('Close the loop', 'إغلاق الحلقة'), label: bi('Calling hours start (hour of day, UAE time)', 'بداية ساعات الاتصال (الساعة، توقيت الإمارات)'), value: 9, unit: bi('o’clock', 'الساعة'), source: 'Decisions 18 Nov, 5', note: { en: 'Legal to confirm the hours', ar: 'القانونية تؤكد الساعات' } },
-    { id: RULE_IDS.callTo, area: bi('Close the loop', 'إغلاق الحلقة'), label: bi('Calling hours end (hour of day, UAE time)', 'نهاية ساعات الاتصال (الساعة، توقيت الإمارات)'), value: 18, unit: bi('o’clock', 'الساعة'), source: 'Decisions 18 Nov, 5', note: { en: 'Legal to confirm the hours', ar: 'القانونية تؤكد الساعات' } },
-    { id: RULE_IDS.callTries, area: bi('Close the loop', 'إغلاق الحلقة'), label: bi('Call attempts before "needs a human" (CX team list)', 'محاولات الاتصال قبل "يحتاج إنساناً" (قائمة فريق CX)'), value: 3, unit: bi('attempts', 'محاولات'), source: 'Decisions 18 Nov, 5' },
-    { id: RULE_IDS.aiNoAnswers, area: bi('Close the loop', 'إغلاق الحلقة'), label: bi('No-answers before an AI campaign hands over to a person', 'عدد عدم الرد قبل أن تسلّم حملة الذكاء الاصطناعي لشخص'), value: 2, unit: bi('no-answers', 'مرات عدم رد'), source: 'Decisions 18 Nov, 5' },
-    { id: 'rule_silence_why', area: bi('Surveys and triggers', 'الاستبيانات والمحفزات'), label: bi('"What stopped you?" after silence of', '"ما الذي أوقفك؟" بعد صمت لمدة'), value: 14, unit: bi('days', 'يوم'), source: 'KB §12 D5' },
+    {
+      id: RULE_IDS.workingDays,
+      area: bi('Close the loop', 'إغلاق الحلقة'),
+      label: bi('Working days per week (Monday to Friday)', 'أيام العمل في الأسبوع (من الإثنين إلى الجمعة)'),
+      value: MON_FRI.length,
+      days: [...MON_FRI],
+      unit: bi('days', 'أيام'),
+      source: 'Decisions 18 Nov, 1',
+    },
+    {
+      id: RULE_IDS.workStart,
+      area: bi('Corrective actions', 'الإجراءات التصحيحية'),
+      label: bi('Working day starts (hour, working hours clock)', 'بداية يوم العمل (الساعة، ساعة العمل)'),
+      value: 9,
+      unit: bi('o’clock', 'الساعة'),
+      source: 'KB 09:00 to 18:00',
+    },
+    {
+      id: RULE_IDS.workEnd,
+      area: bi('Corrective actions', 'الإجراءات التصحيحية'),
+      label: bi('Working day ends (hour, working hours clock)', 'نهاية يوم العمل (الساعة، ساعة العمل)'),
+      value: 18,
+      unit: bi('o’clock', 'الساعة'),
+      source: 'KB 09:00 to 18:00',
+    },
+    {
+      id: RULE_IDS.fixFallbackDays,
+      area: bi('Corrective actions', 'الإجراءات التصحيحية'),
+      label: bi('Fix due date when the matrix cell is empty', 'موعد الحل عندما تكون خلية المصفوفة فارغة'),
+      value: 14,
+      unit: bi('days', 'يوم'),
+      source: 'Decisions 18 Nov, 3',
+    },
+    {
+      id: RULE_IDS.callFrom,
+      area: bi('Close the loop', 'إغلاق الحلقة'),
+      label: bi('Calling hours start (hour of day, UAE time)', 'بداية ساعات الاتصال (الساعة، توقيت الإمارات)'),
+      value: 9,
+      unit: bi('o’clock', 'الساعة'),
+      source: 'Decisions 18 Nov, 5',
+      note: { en: 'Legal to confirm the hours', ar: 'القانونية تؤكد الساعات' },
+    },
+    {
+      id: RULE_IDS.callTo,
+      area: bi('Close the loop', 'إغلاق الحلقة'),
+      label: bi('Calling hours end (hour of day, UAE time)', 'نهاية ساعات الاتصال (الساعة، توقيت الإمارات)'),
+      value: 18,
+      unit: bi('o’clock', 'الساعة'),
+      source: 'Decisions 18 Nov, 5',
+      note: { en: 'Legal to confirm the hours', ar: 'القانونية تؤكد الساعات' },
+    },
+    {
+      id: RULE_IDS.callTries,
+      area: bi('Close the loop', 'إغلاق الحلقة'),
+      label: bi('Call attempts before "needs a human" (CX team list)', 'محاولات الاتصال قبل "يحتاج إنساناً" (قائمة فريق CX)'),
+      value: 3,
+      unit: bi('attempts', 'محاولات'),
+      source: 'Decisions 18 Nov, 5',
+    },
+    {
+      id: RULE_IDS.aiNoAnswers,
+      area: bi('Close the loop', 'إغلاق الحلقة'),
+      label: bi('No-answers before an AI campaign hands over to a person', 'عدد عدم الرد قبل أن تسلّم حملة الذكاء الاصطناعي لشخص'),
+      value: 2,
+      unit: bi('no-answers', 'مرات عدم رد'),
+      source: 'Decisions 18 Nov, 5',
+    },
+    {
+      id: 'rule_silence_why',
+      area: bi('Surveys and triggers', 'الاستبيانات والمحفزات'),
+      label: bi('"What stopped you?" after silence of', '"ما الذي أوقفك؟" بعد صمت لمدة'),
+      value: 14,
+      unit: bi('days', 'يوم'),
+      source: 'KB §12 D5',
+    },
   ]
 }
 
@@ -1181,7 +2335,9 @@ function aiAccessRow(group: Bi, label: Bi, symbols: string): AiAccessRow {
   const chars = symbols.trim().split(/\s+/)
   const map: Record<string, Access> = { '●': 'full', '◐': 'own', '○': 'view', '✉': 'informed', '✔': 'approve', '–': 'none' }
   const values = {} as Record<RoleId, Access>
-  AI_ACCESS_ROLE_ORDER.forEach((id, i) => { values[id] = map[chars[i]] ?? 'none' })
+  AI_ACCESS_ROLE_ORDER.forEach((id, i) => {
+    values[id] = map[chars[i]] ?? 'none'
+  })
   return { group, label, values }
 }
 
@@ -1206,9 +2362,29 @@ function buildAiAccessMatrix(): AiAccessRow[] {
 
 function buildLdRequests(): LdRequest[] {
   return [
-    { id: 'ldreq-1', title: { en: 'Refresher: accurate information standard', ar: 'تدريب تنشيطي: معيار دقة المعلومات' }, requestedBy: 'Environment manager, Dubai', environment: 'Dubai', status: 'scheduled', linkedStandardId: 'std_accurate_info' },
-    { id: 'ldreq-2', title: { en: 'New-hire induction: communication standard', ar: 'تهيئة الموظف الجديد: معيار التواصل' }, requestedBy: 'After-Sales lead', status: 'requested', linkedStandardId: 'std_communication' },
-    { id: 'ldreq-3', title: { en: 'Coaching: reply-time breaches, digital channel', ar: 'تدريب: تجاوزات زمن الرد في القناة الرقمية' }, requestedBy: 'CX team', environment: 'Abu Dhabi', status: 'delivered', linkedStandardId: 'std_reply_time' },
+    {
+      id: 'ldreq-1',
+      title: { en: 'Refresher: accurate information standard', ar: 'تدريب تنشيطي: معيار دقة المعلومات' },
+      requestedBy: 'Environment manager, Dubai',
+      environment: 'Dubai',
+      status: 'scheduled',
+      linkedStandardId: 'std_accurate_info',
+    },
+    {
+      id: 'ldreq-2',
+      title: { en: 'New-hire induction: communication standard', ar: 'تهيئة الموظف الجديد: معيار التواصل' },
+      requestedBy: 'After-Sales lead',
+      status: 'requested',
+      linkedStandardId: 'std_communication',
+    },
+    {
+      id: 'ldreq-3',
+      title: { en: 'Coaching: reply-time breaches, digital channel', ar: 'تدريب: تجاوزات زمن الرد في القناة الرقمية' },
+      requestedBy: 'CX team',
+      environment: 'Abu Dhabi',
+      status: 'delivered',
+      linkedStandardId: 'std_reply_time',
+    },
   ]
 }
 
@@ -1280,6 +2456,3 @@ export const MOCK_AI_ACCESS_MATRIX = buildAiAccessMatrix()
 export const MOCK_LD_REQUESTS = buildLdRequests()
 export const MOCK_HR_POOL = buildHrPool()
 export const MOCK_GLOSSARY_TERMS: GlossaryTerm[] = GLOSSARY_TERMS
-
-
-

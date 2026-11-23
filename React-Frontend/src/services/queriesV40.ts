@@ -29,7 +29,8 @@ import { sampleReaderOf } from '../auth/permissions'
 import { canAccessPath } from '../auth/access'
 import { useNow } from '../hooks/useNow'
 import { AGENT_JDS, CES_SAMPLE } from '../data/v38Reference'
-import { publicReplyBreaches } from '../data/publicMentions'
+import { mentionInboxItems, publicReplyBreaches } from '../data/publicMentions'
+import { useAuth } from '../auth/session'
 import { applyApprovalClock, applyDoneClock } from './fixClockStore'
 import { useCampaignAuditSummary } from './campaignAuditQueries'
 import { fixDue } from '../utils/fixClock'
@@ -409,6 +410,9 @@ export function useInbox(): {
   const { data: campaigns, isLoading: l5, dataUpdatedAt: t5 } = useAiCampaigns()
   const { data: persons, isLoading: l6 } = usePersonsAll()
   const { data: sample, isLoading: l7 } = useWeeklySample()
+  // 23 Nov (owner): public comments assigned to a CX team member, and the ones escalated to the CX manager.
+  const { session } = useAuth()
+  const { data: mentions, dataUpdatedAt: t9 } = usePublicMentions()
   // Campaign audit rows (v42.1 F33): the Internal Audit and Marketing Lead only, so no other role waits for the audit.
   const auditLead = role.id === 'auditmkt'
   const { data: campaignAudit, isLoading: l8 } = useCampaignAuditSummary({
@@ -419,7 +423,7 @@ export function useInbox(): {
   const data = useMemo(() => {
     if (!fixes || !patterns || !loop || !investigations || !campaigns || !persons || !sample) return undefined
     if (auditLead && !campaignAudit) return undefined
-    return buildInbox({
+    const base = buildInbox({
       role: role.id,
       today: new Date(now),
       rules,
@@ -435,8 +439,28 @@ export function useInbox(): {
       sampleDue: sample.due,
       campaignAudit: auditLead && campaignAudit ? { waiting: campaignAudit.waiting, finished: campaignAudit.finished } : undefined,
     })
+    const extra = mentionInboxItems(role.id, session?.userId, mentions ?? [], now, rules)
+    return extra.length ? [...extra, ...base].sort((a, b) => b.priority - a.priority || (a.daysLeft ?? Infinity) - (b.daysLeft ?? Infinity)) : base
     // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, [role.id, role.environment, now, rules, fixes, patterns, loop, investigations, campaigns, persons, sample, stamp, auditLead, campaignAudit])
+  }, [
+    role.id,
+    role.environment,
+    now,
+    rules,
+    fixes,
+    patterns,
+    loop,
+    investigations,
+    campaigns,
+    persons,
+    sample,
+    stamp,
+    auditLead,
+    campaignAudit,
+    mentions,
+    t9,
+    session?.userId,
+  ])
   const stats = useMemo(() => workTodayStats(data ?? []), [data])
   return {
     data,
@@ -752,7 +776,7 @@ export function usePublicReplyBreaches() {
 export function useMarkReplied() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async (input: { id: string }) => {
+    mutationFn: async (input: { id: string; text?: string; by?: Bi }) => {
       await latency(LATENCY_MS)
       const { PUBLIC_MENTIONS } = await import('../data/v38Reference')
       const m = PUBLIC_MENTIONS.find((x) => x.id === input.id)
@@ -761,6 +785,24 @@ export function useMarkReplied() {
       m.replied = true
       m.replyHours = Math.max(1, days * 24)
       m.repliedAt = new Date().toISOString()
+      if (input.text) m.replyText = input.text
+      if (input.by) m.repliedBy = input.by
+      return { ...m }
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['public-mentions'] }),
+  })
+}
+
+/** 23 Nov (owner): the CX manager gives a public comment to another CX team member. */
+export function useAssignMention() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (input: { id: string; userId: string }) => {
+      await latency(LATENCY_MS)
+      const { PUBLIC_MENTIONS } = await import('../data/v38Reference')
+      const m = PUBLIC_MENTIONS.find((x) => x.id === input.id)
+      if (!m) throw new Error('Public mention not found')
+      m.assignee = input.userId
       return { ...m }
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['public-mentions'] }),
@@ -799,4 +841,3 @@ export function useRecordNoAnswer() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['detractor-call-items'] }),
   })
 }
-

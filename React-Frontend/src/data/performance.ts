@@ -4,6 +4,7 @@ import { seededRandom } from '../utils/random'
 import type { CorrectiveAction, DetractorCallItem } from '../types'
 import type { PortalUser } from './users'
 import type { CallAssignment } from './callAssignments'
+import type { PublicMention } from './v38Reference'
 
 /**
  * Performance of the people who receive work in the portal (owner's request, 22 Nov): the CX manager sees his own team for appraisal,
@@ -17,7 +18,8 @@ import type { CallAssignment } from './callAssignments'
  * sample (the same on every reload), and today's work is read live (assignments on Close the loop, the fixes register). In the real
  * platform every number comes from the timestamps on the case record: received, first reply, closed, due.
  */
-export type CaseKind = 'call' | 'fix'
+/** 23 Nov (owner): 'mention' is a public comment on Facebook, Instagram, LinkedIn or Google the member had to reply to. */
+export type CaseKind = 'call' | 'fix' | 'mention'
 
 export interface PerfCase {
   id: string
@@ -125,11 +127,12 @@ export function sampleHistory(userId: string, nowMs: number): PerfCase[] {
       const received = new Date(start.getFullYear(), start.getMonth(), 1 + Math.floor(rng() * lastDay), 8 + Math.floor(rng() * 9))
       const due = new Date(received.getTime() + 5 * DAY)
       const responded = rng() < p.respond
-      const respHours = responded ? Math.max(0.5, Math.round((p.hours * (0.4 + rng() * 1.4)) * 10) / 10) : undefined
+      const respHours = responded ? Math.max(0.5, Math.round(p.hours * (0.4 + rng() * 1.4) * 10) / 10) : undefined
       // work from the current month may still be open; older work is closed
       const stillOpen = due.getTime() > nowMs && rng() < 0.55
       const wasOnTime = rng() < p.onTime
-      const closedAt = stillOpen || !responded ? undefined : new Date(wasOnTime ? received.getTime() + (1 + rng() * 3.8) * DAY : due.getTime() + (0.5 + rng() * 4) * DAY)
+      const closedAt =
+        stillOpen || !responded ? undefined : new Date(wasOnTime ? received.getTime() + (1 + rng() * 3.8) * DAY : due.getTime() + (0.5 + rng() * 4) * DAY)
       const closed = closedAt && closedAt.getTime() <= nowMs ? closedAt : undefined
       out.push({
         id: `s-${userId}-${m}-${i}`,
@@ -176,6 +179,34 @@ export function liveCalls(items: readonly DetractorCallItem[], assignments: Reco
     })
   }
   return out
+}
+
+/**
+ * Public comments (owner, 23 Nov): each is a case for the CX team member it is assigned to. Due = posted + the reply SLA (48 h by default);
+ * closed when replied; past the SLA with no reply it is breached and escalated to the CX manager.
+ */
+export function mentionCases(mentions: readonly PublicMention[], slaHours: number, nowMs: number): PerfCase[] {
+  return mentions
+    .filter((m) => m.assignee)
+    .map((m) => {
+      const received = Date.parse(`${m.date}T09:00:00`)
+      const due = received + slaHours * 3_600_000
+      const closed = m.replied ? Math.min(nowMs, received + (m.replyHours ?? 1) * 3_600_000) : undefined
+      return {
+        id: `mention-${m.id}`,
+        userId: m.assignee!,
+        kind: 'mention' as const,
+        ref: m.id,
+        receivedAt: new Date(received).toISOString(),
+        dueAt: new Date(due).toISOString(),
+        responded: m.replied,
+        responseHours: m.replied ? (m.replyHours ?? undefined) : undefined,
+        closedAt: closed ? new Date(closed).toISOString() : undefined,
+        resolved: m.replied ? m.sentiment >= 0 || m.becameIdentified : undefined,
+        escalated: m.replied ? (m.replyHours ?? 0) > slaHours : nowMs > due,
+        sample: false,
+      }
+    })
 }
 
 /** Who a fix's owner title maps to in the directory: by the role the title names. Anything else is an owner with no portal user yet. */
@@ -230,13 +261,20 @@ export function useAllPerfCases(args: {
   items: readonly DetractorCallItem[] | undefined
   assignments: Record<string, CallAssignment>
   fixes: readonly CorrectiveAction[] | undefined
+  mentions?: readonly PublicMention[]
+  replySlaHours?: number
   nowMs: number
 }): PerfCase[] {
-  const { users, items, assignments, fixes, nowMs } = args
+  const { users, items, assignments, fixes, mentions, replySlaHours = 48, nowMs } = args
   return useMemo(() => {
     const team = users.filter((u) => u.roleId === 'cxteam')
-    return [...team.flatMap((u) => sampleHistory(u.id, nowMs)), ...liveCalls(items ?? [], assignments, nowMs), ...fixCases(fixes ?? [], users, nowMs)]
-  }, [users, items, assignments, fixes, nowMs])
+    return [
+      ...team.flatMap((u) => sampleHistory(u.id, nowMs)),
+      ...liveCalls(items ?? [], assignments, nowMs),
+      ...fixCases(fixes ?? [], users, nowMs),
+      ...mentionCases(mentions ?? [], replySlaHours, nowMs),
+    ]
+  }, [users, items, assignments, fixes, mentions, replySlaHours, nowMs])
 }
 
 // --- date range helpers shared by the two pages ----------------------------------------------------------------------
@@ -252,4 +290,3 @@ export function presetRange(p: Exclude<RangePreset, 'custom'>, nowMs: number): {
   if (p === 'last_90') return { from: ymd(new Date(nowMs - 89 * DAY)), to: ymd(now) }
   return { from: ymd(new Date(now.getFullYear(), 0, 1)), to: ymd(now) }
 }
-

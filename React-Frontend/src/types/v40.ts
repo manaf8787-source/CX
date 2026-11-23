@@ -145,18 +145,7 @@ export interface CrmMapping {
 
 /** The twelve rows of the matrix (v42, set 19 Nov): eight fix kinds, two case types, a data-exposure row, and `vip`, which is a rule and not a receiver. */
 export type MatrixKind =
-  | 'employee'
-  | 'service'
-  | 'training'
-  | 'process'
-  | 'product'
-  | 'environment'
-  | 'legal'
-  | 'marketing'
-  | 'shopper_critical'
-  | 'legal_case'
-  | 'infosec'
-  | 'vip'
+  'employee' | 'service' | 'training' | 'process' | 'product' | 'environment' | 'legal' | 'marketing' | 'shopper_critical' | 'legal_case' | 'infosec' | 'vip'
 
 /** The eleven rows that hold cells (everything but the `vip` rule row). */
 export type MatrixCellKind = Exclude<MatrixKind, 'vip'>
@@ -233,7 +222,7 @@ export interface SurveyQuestionSet {
 // --- My inbox (F20) ----------------------------------------------------------
 
 /** `caud` = "Clear or send back: N campaigns waiting", `caud2` = "Audit after the run: N finished" (v42.1 F33, the prototype's own kinds). */
-export type InboxKind = 'approve' | 'do' | 'verify' | 'call' | 'inv' | 'sample' | 'caud' | 'caud2'
+export type InboxKind = 'approve' | 'do' | 'verify' | 'call' | 'inv' | 'sample' | 'caud' | 'caud2' | 'mention'
 
 export interface InboxItem {
   id: string

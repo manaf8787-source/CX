@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Bar, BarChart, CartesianGrid, Tooltip, XAxis, YAxis } from 'recharts'
-import { AlertTriangle, CheckCircle2, Clock, Download, Inbox, Reply, ShieldAlert, TrendingUp } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Clock, Download, Inbox, MessageCircle, Reply, ShieldAlert, TrendingUp } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { useNow } from '@/hooks/useNow'
 import { useAuditActor } from '@/auth/useAuditActor'
@@ -11,6 +11,9 @@ import { useCallAssignments } from '@/data/callAssignments'
 import { computeMetrics, fixOwnerKey, inRange, presetRange, useAllPerfCases, ymd, type PerfCase, type RangePreset } from '@/data/performance'
 import { ownerTitle } from '@/data/ownerTitles'
 import { useCorrectiveActionsAll, useDetractorCallItems } from '@/services/queries'
+import { usePublicMentions } from '@/services/referenceQueries'
+import { useRules } from '@/services/queriesV40'
+import { SourceBadge } from '@/components/customers/SourceBadge'
 import { downloadCsv } from '@/utils/csv'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -46,7 +49,15 @@ export function PerformanceReport({ scope, canExport }: Props) {
   const assignments = useCallAssignments()
   const { data: items } = useDetractorCallItems()
   const { data: fixes } = useCorrectiveActionsAll()
-  const all = useAllPerfCases({ users, items, assignments, fixes, nowMs: now })
+  const { data: mentions, dataUpdatedAt: mentionsAt } = usePublicMentions()
+  const rules = useRules()
+  // the mentions register is edited in place (a reply, a reassignment): a fresh array when it changes
+  // oxlint-disable-next-line react-hooks/exhaustive-deps
+  const mentionList = useMemo(() => [...(mentions ?? [])], [mentions, mentionsAt])
+  const allCases = useAllPerfCases({ users, items, assignments, fixes, mentions: mentionList, replySlaHours: rules.publicReplyHours, nowMs: now })
+  /** 23 Nov (owner): the work filter, so public comments (social media) can be read on their own, or left out. */
+  const [work, setWork] = useState<'all' | 'social' | 'other'>('all')
+  const all = useMemo(() => (work === 'all' ? allCases : allCases.filter((c) => (c.kind === 'mention') === (work === 'social'))), [allCases, work])
 
   const [preset, setPreset] = useState<RangePreset>('last_90')
   const initial = presetRange('last_90', now)
@@ -73,10 +84,21 @@ export function PerformanceReport({ scope, canExport }: Props) {
       for (const c of all) {
         if (list.has(c.userId)) continue
         const u = users.find((x) => x.id === c.userId)
-        if (u) list.set(u.id, { id: u.id, name: u.name || u.email, role: u.roleId === 'envmgmt' ? `${L(envName(u.envId ?? 'dub'))} – CEO` : roleText(u.roleId, L), external: false })
+        if (u)
+          list.set(u.id, {
+            id: u.id,
+            name: u.name || u.email,
+            role: u.roleId === 'envmgmt' ? `${L(envName(u.envId ?? 'dub'))} – CEO` : roleText(u.roleId, L),
+            external: false,
+          })
         else if (c.userId.startsWith('ext:')) {
           const label = c.userId.slice(4)
-          list.set(c.userId, { id: c.userId, name: L(ownerTitle(label)), role: t('Owner with no portal user yet', 'مسؤول بلا مستخدم في البوابة بعد'), external: true })
+          list.set(c.userId, {
+            id: c.userId,
+            name: L(ownerTitle(label)),
+            role: t('Owner with no portal user yet', 'مسؤول بلا مستخدم في البوابة بعد'),
+            external: true,
+          })
         }
       }
     }
@@ -89,7 +111,13 @@ export function PerformanceReport({ scope, canExport }: Props) {
   const rows = useMemo(
     () =>
       people
-        .map((p) => ({ person: p, m: computeMetrics(scoped.filter((c) => c.userId === p.id), now) }))
+        .map((p) => ({
+          person: p,
+          m: computeMetrics(
+            scoped.filter((c) => c.userId === p.id),
+            now,
+          ),
+        }))
         .filter((r) => scope === 'team' || r.m.received > 0)
         .sort((a, b) => b.m.breached - a.m.breached || b.m.received - a.m.received),
     [people, scoped, now, scope],
@@ -107,7 +135,11 @@ export function PerformanceReport({ scope, canExport }: Props) {
       .map(([month, cs]) => {
         const m = computeMetrics(cs, now)
         const d = new Date(`${month}-01T00:00:00`)
-        return { month: new Intl.DateTimeFormat(lang === 'ar' ? 'ar-AE' : 'en-GB', { month: 'short', year: '2-digit' }).format(d), received: m.received, breached: m.breached }
+        return {
+          month: new Intl.DateTimeFormat(lang === 'ar' ? 'ar-AE' : 'en-GB', { month: 'short', year: '2-digit' }).format(d),
+          received: m.received,
+          breached: m.breached,
+        }
       })
   }, [selected, now, lang])
 
@@ -122,6 +154,19 @@ export function PerformanceReport({ scope, canExport }: Props) {
   )
 
   const nameOf = (id: string) => people.find((p) => p.id === id)?.name ?? id
+
+  // public comments still without a reply, for the people in view (owner, 23 Nov): each opens the comment on Public mentions
+  const unanswered = useMemo(
+    () =>
+      mentionList
+        .filter((m) => !m.replied && m.assignee && people.some((p) => p.id === m.assignee) && (personId === 'all' || m.assignee === personId))
+        .map((m) => {
+          const hoursWaiting = Math.max(1, Math.round((now - Date.parse(`${m.date}T09:00:00`)) / 3_600_000))
+          return { m, hoursWaiting, late: hoursWaiting > rules.publicReplyHours }
+        })
+        .sort((a, b) => b.hoursWaiting - a.hoursWaiting),
+    [mentionList, people, personId, now, rules.publicReplyHours],
+  )
   const dayFmt = new Intl.DateTimeFormat(lang === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
 
   const baseName = scope === 'team' ? 'team-performance' : 'user-performance'
@@ -161,7 +206,10 @@ export function PerformanceReport({ scope, canExport }: Props) {
         [c.to]: to,
       })),
     )
-    log('action', { en: `Exported the ${scope === 'team' ? 'team' : 'user'} performance summary, ${from} to ${to}`, ar: `صدّر ملخص الأداء، من ${from} إلى ${to}` })
+    log('action', {
+      en: `Exported the ${scope === 'team' ? 'team' : 'user'} performance summary, ${from} to ${to}`,
+      ar: `صدّر ملخص الأداء، من ${from} إلى ${to}`,
+    })
   }
 
   function exportCases() {
@@ -188,12 +236,23 @@ export function PerformanceReport({ scope, canExport }: Props) {
         .sort((a, b) => a.receivedAt.localeCompare(b.receivedAt))
         .map((k) => ({
           [c.person]: nameOf(k.userId),
-          [c.kind]: k.kind === 'call' ? t('Customer call', 'مكالمة عميل') : t('Corrective action', 'إجراء تصحيحي'),
+          [c.kind]:
+            k.kind === 'call'
+              ? t('Customer call', 'مكالمة عميل')
+              : k.kind === 'mention'
+                ? t('Public comment', 'تعليق عام')
+                : t('Corrective action', 'إجراء تصحيحي'),
           [c.ref]: k.ref,
           [c.received]: k.receivedAt.slice(0, 10),
           [c.due]: k.dueAt.slice(0, 10),
           [c.closed]: k.closedAt?.slice(0, 10) ?? '',
-          [c.status]: k.closedAt ? (k.closedAt <= k.dueAt ? t('Closed on time', 'أُغلقت في موعدها') : t('Closed late', 'أُغلقت متأخرة')) : new Date(k.dueAt).getTime() < now ? t('Open, breached', 'مفتوحة، متجاوزة') : t('Open', 'مفتوحة'),
+          [c.status]: k.closedAt
+            ? k.closedAt <= k.dueAt
+              ? t('Closed on time', 'أُغلقت في موعدها')
+              : t('Closed late', 'أُغلقت متأخرة')
+            : new Date(k.dueAt).getTime() < now
+              ? t('Open, breached', 'مفتوحة، متجاوزة')
+              : t('Open', 'مفتوحة'),
           [c.replied]: k.responded ? yes : no,
           [c.hours]: k.responseHours ?? '',
           [c.resolved]: k.closedAt ? (k.resolved ? yes : no) : '',
@@ -201,7 +260,10 @@ export function PerformanceReport({ scope, canExport }: Props) {
           [c.source]: k.sample ? t('Sample history', 'سجل تجريبي') : t('Live', 'مباشر'),
         })),
     )
-    log('action', { en: `Exported every case behind the ${scope === 'team' ? 'team' : 'user'} performance report, ${from} to ${to}`, ar: `صدّر كل الحالات خلف تقرير الأداء، من ${from} إلى ${to}` })
+    log('action', {
+      en: `Exported every case behind the ${scope === 'team' ? 'team' : 'user'} performance report, ${from} to ${to}`,
+      ar: `صدّر كل الحالات خلف تقرير الأداء، من ${from} إلى ${to}`,
+    })
   }
 
   const title = scope === 'team' ? t('Team performance', 'أداء الفريق') : t('User performance dashboard', 'لوحة أداء المستخدمين')
@@ -236,7 +298,11 @@ export function PerformanceReport({ scope, canExport }: Props) {
           )
         }
       />
-      {!canExport && <ViewOnlyNotice>{t('You can read this dashboard. Exporting is for the Super admin and the CX manager.', 'يمكنك قراءة هذه اللوحة. التصدير للمدير العام ومدير CX.')}</ViewOnlyNotice>}
+      {!canExport && (
+        <ViewOnlyNotice>
+          {t('You can read this dashboard. Exporting is for the Super admin and the CX manager.', 'يمكنك قراءة هذه اللوحة. التصدير للمدير العام ومدير CX.')}
+        </ViewOnlyNotice>
+      )}
 
       {lateFixes.length > 0 && (
         <SectionCard
@@ -332,6 +398,17 @@ export function PerformanceReport({ scope, canExport }: Props) {
               }}
             />
           </label>
+          <Segmented<'all' | 'social' | 'other'>
+            label={t('Work', 'نوع العمل')}
+            variant="pressed"
+            value={work}
+            onValueChange={setWork}
+            options={[
+              { value: 'all', label: t('All work', 'كل العمل') },
+              { value: 'social', label: t('Public comments (social media)', 'التعليقات العامة (السوشيال ميديا)') },
+              { value: 'other', label: t('Calls and fixes', 'المكالمات والإجراءات') },
+            ]}
+          />
           <label className="flex flex-col gap-1 text-xs text-muted-foreground">
             {t('Person', 'الشخص')}
             <Select value={personId} onValueChange={setPersonId}>
@@ -353,15 +430,87 @@ export function PerformanceReport({ scope, canExport }: Props) {
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4" data-testid="perf-tiles">
         <KpiTile label={t('Received', 'المستلمة')} value={total.received} icon={<Inbox />} sub={t(`${total.open} open now`, `${total.open} مفتوحة الآن`)} />
-        <KpiTile label={t('Closed on time', 'في موعدها')} value={fmtPct(total.onTimeRate)} icon={<CheckCircle2 />} sub={t(`${total.closedOnTime} of ${total.closed} closed`, `${total.closedOnTime} من ${total.closed} مغلقة`)} />
-        <KpiTile label={t('Breached', 'متجاوزة')} value={total.breached} icon={<ShieldAlert />} accent={total.breached ? 'var(--destructive)' : undefined} sub={t(`${total.breachedOpen} still open`, `${total.breachedOpen} ما زالت مفتوحة`)} />
+        <KpiTile
+          label={t('Closed on time', 'في موعدها')}
+          value={fmtPct(total.onTimeRate)}
+          icon={<CheckCircle2 />}
+          sub={t(`${total.closedOnTime} of ${total.closed} closed`, `${total.closedOnTime} من ${total.closed} مغلقة`)}
+        />
+        <KpiTile
+          label={t('Breached', 'متجاوزة')}
+          value={total.breached}
+          icon={<ShieldAlert />}
+          accent={total.breached ? 'var(--destructive)' : undefined}
+          sub={t(`${total.breachedOpen} still open`, `${total.breachedOpen} ما زالت مفتوحة`)}
+        />
         <KpiTile label={t('Response rate', 'نسبة الاستجابة')} value={fmtPct(total.responseRate)} icon={<Reply />} />
         <KpiTile label={t('Resolving rate', 'نسبة الحل')} value={fmtPct(total.resolveRate)} icon={<TrendingUp />} sub={t('of closed cases', 'من المغلقة')} />
         <KpiTile label={t('Escalated', 'المصعّدة')} value={total.escalated} icon={<AlertTriangle />} />
-        <KpiTile label={t('First reply', 'أول رد')} value={total.avgResponseHours === null ? '—' : total.avgResponseHours} unit={total.avgResponseHours === null ? undefined : t('h avg', 'س')} icon={<Clock />} />
+        <KpiTile
+          label={t('First reply', 'أول رد')}
+          value={total.avgResponseHours === null ? '—' : total.avgResponseHours}
+          unit={total.avgResponseHours === null ? undefined : t('h avg', 'س')}
+          icon={<Clock />}
+        />
       </div>
 
-      <SectionCard title={scope === 'team' ? t('By team member', 'حسب الموظف') : t('By user', 'حسب المستخدم')} description={t('Sorted by most breached first. Click a name to look at one person.', 'مرتبة بالأكثر تجاوزاً أولاً. اضغط على اسم لعرض شخص واحد.')}>
+      {work !== 'other' && unanswered.length > 0 && (
+        <SectionCard
+          className="border-s-4"
+          title={
+            <span className="inline-flex items-center gap-2">
+              <MessageCircle aria-hidden className="size-4" />
+              {t(
+                `${unanswered.length} public ${unanswered.length === 1 ? 'comment has' : 'comments have'} no reply yet`,
+                `${unanswered.length} تعليق عام بلا رد بعد`,
+              )}
+            </span>
+          }
+          description={t(
+            'Facebook, Instagram, LinkedIn and Google. Open one to see the post, the other comments and reply. Past the SLA they are escalated to the CX manager.',
+            'فيسبوك وإنستغرام ولينكد إن وGoogle. افتح أياً منها لترى المنشور والتعليقات الأخرى وترد. بعد المهلة تُصعَّد لمدير CX.',
+          )}
+        >
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t('Comment', 'التعليق')}</TableHead>
+                <TableHead>{t('Platform', 'المنصة')}</TableHead>
+                <TableHead>{t('Assigned to', 'مُسند إلى')}</TableHead>
+                <TableHead>{t('Waiting', 'ينتظر')}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {unanswered.map(({ m, hoursWaiting, late }) => (
+                <TableRow key={m.id}>
+                  <TableCell className="max-w-96 whitespace-normal">
+                    <Link to={`/settings/public-mentions?open=${m.id}`} className="font-medium text-foreground underline-offset-2 hover:underline">
+                      {m.text}
+                    </Link>
+                  </TableCell>
+                  <TableCell>
+                    <SourceBadge channel={m.platform} />
+                  </TableCell>
+                  <TableCell>{nameOf(m.assignee ?? '')}</TableCell>
+                  <TableCell>
+                    <StatusBadge tone={late ? 'danger' : 'warning'} dot>
+                      {hoursWaiting >= 48
+                        ? t(`${Math.round(hoursWaiting / 24)} days`, `${Math.round(hoursWaiting / 24)} يوم`)
+                        : t(`${hoursWaiting} h`, `${hoursWaiting} س`)}
+                      {late ? t(' · escalated', ' · مُصعَّد') : ''}
+                    </StatusBadge>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </SectionCard>
+      )}
+
+      <SectionCard
+        title={scope === 'team' ? t('By team member', 'حسب الموظف') : t('By user', 'حسب المستخدم')}
+        description={t('Sorted by most breached first. Click a name to look at one person.', 'مرتبة بالأكثر تجاوزاً أولاً. اضغط على اسم لعرض شخص واحد.')}
+      >
         <Table>
           <TableHeader>
             <TableRow>
@@ -388,14 +537,26 @@ export function PerformanceReport({ scope, canExport }: Props) {
             {rows.map(({ person, m }) => (
               <TableRow key={person.id} data-state={personId === person.id ? 'selected' : undefined}>
                 <TableCell>
-                  <button type="button" className="flex flex-col items-start text-start outline-hidden focus-visible:ring-2" onClick={() => setPersonId(personId === person.id ? 'all' : person.id)}>
+                  <button
+                    type="button"
+                    className="flex flex-col items-start text-start outline-hidden focus-visible:ring-2"
+                    onClick={() => setPersonId(personId === person.id ? 'all' : person.id)}
+                  >
                     <span className="font-medium text-foreground">{person.name}</span>
                     <span className="text-xs text-muted-foreground">{person.role}</span>
                   </button>
                 </TableCell>
                 <TableCell className="tabular text-end">{m.received}</TableCell>
                 <TableCell className="tabular text-end">{m.closedOnTime}</TableCell>
-                <TableCell className="tabular text-end">{m.breached > 0 ? <StatusBadge tone="danger" dot>{m.breached}</StatusBadge> : 0}</TableCell>
+                <TableCell className="tabular text-end">
+                  {m.breached > 0 ? (
+                    <StatusBadge tone="danger" dot>
+                      {m.breached}
+                    </StatusBadge>
+                  ) : (
+                    0
+                  )}
+                </TableCell>
                 <TableCell className="tabular text-end">{fmtPct(m.onTimeRate)}</TableCell>
                 <TableCell className="tabular text-end">{fmtPct(m.responseRate)}</TableCell>
                 <TableCell className="tabular text-end">{fmtPct(m.resolveRate)}</TableCell>
@@ -414,14 +575,24 @@ export function PerformanceReport({ scope, canExport }: Props) {
         </InlineNote>
       </SectionCard>
 
-      <SectionCard title={t('Month by month', 'شهراً بشهر')} description={personId === 'all' ? (scope === 'team' ? t('The whole team', 'الفريق كله') : t('Everyone', 'الجميع')) : nameOf(personId)}>
+      <SectionCard
+        title={t('Month by month', 'شهراً بشهر')}
+        description={personId === 'all' ? (scope === 'team' ? t('The whole team', 'الفريق كله') : t('Everyone', 'الجميع')) : nameOf(personId)}
+      >
         {trend.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t('Nothing to chart in this period.', 'لا شيء للعرض في هذه الفترة.')}</p>
         ) : (
           <ChartWell
             height={220}
             label={t('Cases received and breached per month', 'الحالات المستلمة والمتجاوزة شهرياً')}
-            legend={<ChartLegend items={[{ label: t('Received', 'المستلمة'), color: chartColor(0) }, { label: t('Breached', 'المتجاوزة'), color: chartColor(1) }]} />}
+            legend={
+              <ChartLegend
+                items={[
+                  { label: t('Received', 'المستلمة'), color: chartColor(0) },
+                  { label: t('Breached', 'المتجاوزة'), color: chartColor(1) },
+                ]}
+              />
+            }
           >
             <BarChart data={trend}>
               <CartesianGrid {...chartGrid} />
@@ -448,5 +619,3 @@ function roleText(roleId: string, L: (b: { en: string; ar: string }) => string):
   }
   return names[roleId] ? L(names[roleId]) : roleId
 }
-
-
