@@ -50,6 +50,29 @@ export const AGENTS: Agent[] = [
   { id: 'ag-huda', name: 'Huda Wael', kind: 'support', product: 'wl', channel: 'chat', crm: false },
   { id: 'ag-faris', name: 'Faris Adel', kind: 'support', product: 'wl', channel: 'chat', crm: false },
   { id: 'ag-dalia', name: 'Dalia Younes', kind: 'support', product: 'cl', envId: 'dub', channel: 'whatsapp', crm: false },
+  // 23 Nov (owner): an Excellence team in every environment, so each environment's CEO sees their own
+  { id: 'ag-lina', name: 'Lina Haddad', kind: 'support', product: 're', envId: 'dub', channel: 'chat', crm: false },
+  { id: 'ag-samer', name: 'Samer Aziz', kind: 'support', product: 're', envId: 'auh', channel: 'whatsapp', crm: false },
+  { id: 'ag-maya', name: 'Maya Fouad', kind: 'support', product: 're', envId: 'auh', channel: 'chat', crm: false },
+  { id: 'ag-karim', name: 'Karim Salem', kind: 'support', product: 'af', envId: 'auh', channel: 'whatsapp', crm: false },
+  { id: 'ag-rana', name: 'Rana Jaber', kind: 'support', product: 'af', envId: 'ast', channel: 'whatsapp', crm: false },
+  { id: 'ag-bilal', name: 'Bilal Mousa', kind: 'support', product: 'af', envId: 'ast', channel: 'chat', crm: false },
+  { id: 'ag-nadine', name: 'Nadine Saad', kind: 'support', product: 're', envId: 'ai', channel: 'chat', crm: false },
+  // 23 Nov (owner): "add more": fuller teams, so the comparisons mean something
+  { id: 'ag-hala', name: 'Hala Nimer', kind: 'support', product: 're', envId: 'dub', channel: 'whatsapp', crm: false },
+  { id: 'ag-tamer', name: 'Tamer Odeh', kind: 'support', product: 'af', envId: 'dub', channel: 'whatsapp', crm: false },
+  { id: 'ag-ruba', name: 'Ruba Khalil', kind: 'support', product: 'af', envId: 'dub', channel: 'chat', crm: false },
+  { id: 'ag-yara', name: 'Yara Hamdan', kind: 'support', product: 'cl', envId: 'auh', channel: 'whatsapp', crm: false },
+  { id: 'ag-fadi', name: 'Fadi Shami', kind: 'support', product: 'af', envId: 'auh', channel: 'chat', crm: false },
+  { id: 'ag-mona', name: 'Mona Sabbagh', kind: 'support', product: 're', envId: 'ast', channel: 'whatsapp', crm: false },
+  { id: 'ag-zaid', name: 'Zaid Qasem', kind: 'support', product: 'af', envId: 'ast', channel: 'whatsapp', crm: false },
+  { id: 'ag-dina-s', name: 'Dina Saleh', kind: 'support', product: 're', envId: 'ai', channel: 'whatsapp', crm: false },
+  { id: 'ag-jad', name: 'Jad Halabi', kind: 'support', product: 'af', envId: 'ai', channel: 'chat', crm: false },
+  { id: 'ag-ahmad', name: 'Ahmad Zuabi', kind: 'sales', product: 're', envId: 'dub', crm: true },
+  { id: 'ag-salma', name: 'Salma Nasr', kind: 'sales', product: 're', envId: 'auh', crm: true },
+  { id: 'ag-wael', name: 'Wael Ghanem', kind: 'sales', product: 're', envId: 'ast', crm: true },
+  { id: 'ag-lara', name: 'Lara Haddad', kind: 'sales', product: 're', envId: 'ai', crm: true },
+  { id: 'ag-nizar', name: 'Nizar Taha', kind: 'sales', product: 'cl', envId: 'ast', crm: true },
 ]
 
 const PROFILES: Record<string, Profile> = {
@@ -67,6 +90,28 @@ const PROFILES: Record<string, Profile> = {
   'ag-huda': { perMonth: [70, 90], sla: 0.92, convert: 0, score: 4.5 },
   'ag-faris': { perMonth: [60, 80], sla: 0.76, convert: 0, score: 3.9 },
   'ag-dalia': { perMonth: [30, 44], sla: 0.84, convert: 0, score: 4.3 },
+  'ag-reem': { perMonth: [22, 32], sla: 0.88, convert: 0.21, score: 4.4 },
+  'ag-lina': { perMonth: [50, 66], sla: 0.9, convert: 0, score: 4.5 },
+  'ag-samer': { perMonth: [44, 60], sla: 0.86, convert: 0, score: 4.3 },
+  'ag-maya': { perMonth: [52, 70], sla: 0.72, convert: 0, score: 3.8 },
+  'ag-karim': { perMonth: [36, 50], sla: 0.8, convert: 0, score: 4.1 },
+  'ag-rana': { perMonth: [40, 56], sla: 0.91, convert: 0, score: 4.6 },
+  'ag-bilal': { perMonth: [34, 48], sla: 0.66, convert: 0, score: 3.6 },
+  'ag-nadine': { perMonth: [30, 42], sla: 0.94, convert: 0, score: 4.7 },
+  'ag-hala': { perMonth: [46, 62], sla: 0.83, convert: 0, score: 4.2 },
+  'ag-tamer': { perMonth: [38, 52], sla: 0.69, convert: 0, score: 3.7 },
+  'ag-ruba': { perMonth: [42, 58], sla: 0.93, convert: 0, score: 4.6 },
+  'ag-yara': { perMonth: [26, 38], sla: 0.87, convert: 0, score: 4.4 },
+  'ag-fadi': { perMonth: [34, 48], sla: 0.75, convert: 0, score: 3.9 },
+  'ag-mona': { perMonth: [36, 50], sla: 0.85, convert: 0, score: 4.2 },
+  'ag-zaid': { perMonth: [32, 46], sla: 0.78, convert: 0, score: 4.0 },
+  'ag-dina-s': { perMonth: [28, 40], sla: 0.81, convert: 0, score: 4.1 },
+  'ag-jad': { perMonth: [24, 36], sla: 0.7, convert: 0, score: 3.7 },
+  'ag-ahmad': { perMonth: [30, 42], sla: 0.84, convert: 0.19, score: 4.2 },
+  'ag-salma': { perMonth: [26, 38], sla: 0.92, convert: 0.24, score: 4.6 },
+  'ag-wael': { perMonth: [18, 28], sla: 0.71, convert: 0.13, score: 3.7 },
+  'ag-lara': { perMonth: [20, 30], sla: 0.86, convert: 0.2, score: 4.3 },
+  'ag-nizar': { perMonth: [10, 16], sla: 0.8, convert: 0.27, score: 4.2 },
 }
 
 /** One lead (sales) or one conversation (support), with the time stamps the SLAs are checked against. */
@@ -240,6 +285,13 @@ export const PRODUCT_SOURCES: Partial<Record<ProductId, { ready: boolean; text: 
       ar: 'نادي بي إس آي: الطريقة نفسها كالعقارية، من مهل العملاء المحتملين والأنشطة في CRM.',
     },
   },
+  af: {
+    ready: false,
+    text: {
+      en: 'After-Sales: WhatsApp and in-app chat with owners and tenants (maintenance, handover, service charges). Needs the chat tool’s API; until then the figures are sample data.',
+      ar: 'ما بعد البيع: واتساب ودردشة التطبيق مع الملاك والمستأجرين (الصيانة، التسليم، رسوم الخدمة). يحتاج واجهة أداة الدردشة؛ إلى ذلك الحين الأرقام تجريبية.',
+    },
+  },
   to: {
     ready: false,
     text: {
@@ -255,4 +307,3 @@ export const PRODUCT_SOURCES: Partial<Record<ProductId, { ready: boolean; text: 
     },
   },
 }
-
