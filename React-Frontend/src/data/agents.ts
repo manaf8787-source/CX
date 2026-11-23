@@ -133,7 +133,15 @@ export interface AgentRecord {
   escalated?: boolean
   /** The customer's 1 to 5 score linked to the agent, when the customer gave one. */
   score?: number
+  /**
+   * 23 Nov (owner): the lead was taken from this agent and given to another because there was no first response within the
+   * reassignment window (REASSIGN_AFTER_MIN). The agent lost it; the id is the agent who received it.
+   */
+  reassignedTo?: string
 }
+
+/** Sales: with no first response this many minutes after the lead arrived, the CRM gives the lead to another agent [Proposed]. */
+export const REASSIGN_AFTER_MIN = 60
 
 const hash = (s: string) => {
   let h = 2166136261
@@ -151,6 +159,7 @@ export function agentHistory(agent: Agent, nowMs: number): AgentRecord[] {
   if (hit) return hit
   const p = PROFILES[agent.id]
   const rng = seededRandom(hash(agent.id))
+  const rr = seededRandom(hash(`${agent.id}|reassign`))
   const now = new Date(nowMs)
   const out: AgentRecord[] = []
   for (let m = 5; m >= 0; m--) {
@@ -170,6 +179,16 @@ export function agentHistory(agent: Agent, nowMs: number): AgentRecord[] {
         rec.acts = 2 + Math.floor(rng() * 4)
         rec.actsOnTime = Math.round(rec.acts * Math.min(1, p.sla + (rng() - 0.5) * 0.3))
         rec.converted = rng() < p.convert
+        // its own random stream, so the other figures stay as they were
+        if (rec.firstMin > REASSIGN_AFTER_MIN && rr() < 0.8) {
+          const peers = AGENTS.filter((a) => a.kind === 'sales' && a.crm && a.id !== agent.id && a.product === agent.product)
+          const same = peers.filter((a) => a.envId === agent.envId)
+          const pool = same.length ? same : peers
+          if (pool.length) {
+            rec.reassignedTo = pool[Math.floor(rr() * pool.length)].id
+            rec.converted = false
+          }
+        }
       }
       if (agent.kind === 'support') {
         const whatsapp = agent.channel === 'whatsapp'
@@ -206,6 +225,9 @@ export interface AgentMetrics {
   escalated: number
   scored: number
   avgScore: number | null
+  /** Leads taken from the agent for no first response in time, and their share of the leads received. */
+  lostToReassign: number
+  lostToReassignPct: number | null
 }
 
 const pct = (a: number, b: number) => (b === 0 ? null : Math.round((a / b) * 100))
@@ -225,7 +247,9 @@ export function agentMetrics(list: readonly AgentRecord[]): AgentMetrics {
   let escalated = 0
   let scored = 0
   let scoreSum = 0
+  let lost = 0
   for (const r of list) {
+    if (r.reassignedTo) lost++
     if (r.firstMin !== undefined && r.firstSlaMin !== undefined) {
       firstMeasured++
       firstSum += r.firstMin
@@ -266,6 +290,8 @@ export function agentMetrics(list: readonly AgentRecord[]): AgentMetrics {
     escalated,
     scored,
     avgScore: avg(scoreSum, scored),
+    lostToReassign: lost,
+    lostToReassignPct: pct(lost, list.length),
   }
 }
 

@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react'
 import { Bar, BarChart, CartesianGrid, Tooltip, XAxis, YAxis } from 'recharts'
-import { CheckCircle2, Clock, Download, Headset, Percent, ShieldAlert, Star, TrendingUp, Users } from 'lucide-react'
+import { CheckCircle2, Clock, Download, Headset, Percent, ShieldAlert, Star, TrendingUp, UserX, Users } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { useNow } from '@/hooks/useNow'
 import { useAuditActor } from '@/auth/useAuditActor'
-import { AGENTS, PRODUCT_SOURCES, agentHistory, agentMetrics, type Agent, type AgentKind, type AgentRecord } from '@/data/agents'
+import { AGENTS, PRODUCT_SOURCES, REASSIGN_AFTER_MIN, agentHistory, agentMetrics, type Agent, type AgentKind, type AgentRecord } from '@/data/agents'
 import { ENVIRONMENTS, envName } from '@/data/environments'
 import { PRODUCTS } from '@/data/products'
 import { presetRange, ymd, type RangePreset } from '@/data/performance'
@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { PageHeader } from '@/components/common/PageHeader'
 import { KpiTile } from '@/components/common/KpiTile'
+import { Bad, Good } from '@/components/common/Trend'
 import { SectionCard } from '@/components/common/SectionCard'
 import { StatusBadge } from '@/components/common/StatusBadge'
 import { InlineNote } from '@/components/common/InlineNote'
@@ -61,15 +62,25 @@ export function AgentReport({ kind, canExport, envId }: Props) {
   // the agents this report may show: this kind, and for a single-environment viewer only agents of that environment
   const allowed = useMemo(() => AGENTS.filter((a) => a.kind === kind && (!envId || a.envId === envId)), [kind, envId])
   const products = useMemo(() => PRODUCTS.filter((p) => allowed.some((a) => a.product === p.id)), [allowed])
-  const agents = useMemo(() => allowed.filter((a) => (product === 'all' || a.product === product) && (env === 'all' || a.envId === env)), [allowed, product, env])
+  const agents = useMemo(
+    () => allowed.filter((a) => (product === 'all' || a.product === product) && (env === 'all' || a.envId === env)),
+    [allowed, product, env],
+  )
 
   const records = useMemo(() => {
     const byAgent = new Map<string, AgentRecord[]>()
-    for (const a of agents) byAgent.set(a.id, agentHistory(a, now).filter((r) => r.at >= from && r.at <= to))
+    for (const a of agents)
+      byAgent.set(
+        a.id,
+        agentHistory(a, now).filter((r) => r.at >= from && r.at <= to),
+      )
     return byAgent
   }, [agents, now, from, to])
 
-  const rows = useMemo(() => agents.map((a) => ({ agent: a, m: agentMetrics(records.get(a.id) ?? []) })).sort((x, y) => y.m.records - x.m.records), [agents, records])
+  const rows = useMemo(
+    () => agents.map((a) => ({ agent: a, m: agentMetrics(records.get(a.id) ?? []) })).sort((x, y) => y.m.records - x.m.records),
+    [agents, records],
+  )
 
   const selectedAgents = agentId === 'all' ? agents : agents.filter((a) => a.id === agentId)
   const selected = useMemo(() => selectedAgents.flatMap((a) => records.get(a.id) ?? []), [selectedAgents, records])
@@ -83,7 +94,11 @@ export function AgentReport({ kind, canExport, envId }: Props) {
       .map(([month, rs]) => {
         const m = agentMetrics(rs)
         const d = new Date(`${month}-01T00:00:00`)
-        return { month: new Intl.DateTimeFormat(lang === 'ar' ? 'ar-AE' : 'en-GB', { month: 'short', year: '2-digit' }).format(d), handled: m.records, late: m.firstMeasured - m.firstOnTime }
+        return {
+          month: new Intl.DateTimeFormat(lang === 'ar' ? 'ar-AE' : 'en-GB', { month: 'short', year: '2-digit' }).format(d),
+          handled: m.records,
+          late: m.firstMeasured - m.firstOnTime,
+        }
       })
   }, [selected, lang])
 
@@ -105,6 +120,11 @@ export function AgentReport({ kind, canExport, envId }: Props) {
         'كيف يتعامل كل عضو في فريق التميّز مع العملاء عبر واتساب ودردشة التطبيق: أول رد والحل مقابل المهلة، والحل من أول تواصل، والتصعيد، وتقييم العميل.',
       )
 
+  // leads each agent received because another agent did not reply in time, and how many agents lost at least one
+  const receivedBy = new Map<string, number>()
+  for (const a of agents) for (const r of records.get(a.id) ?? []) if (r.reassignedTo) receivedBy.set(r.reassignedTo, (receivedBy.get(r.reassignedTo) ?? 0) + 1)
+  const agentsWhoLost = rows.filter(({ m }) => m.lostToReassign > 0).length
+
   function exportSummary() {
     downloadCsv(
       `${baseName}-summary-${rangeTag}.csv`,
@@ -121,6 +141,9 @@ export function AgentReport({ kind, canExport, envId }: Props) {
               [t('Activities on time %', 'الأنشطة في الموعد %')]: m.actsOnTimePct ?? '',
               [t('Converted', 'المحوّلون')]: m.converted,
               [t('Conversion %', 'التحويل %')]: m.conversionPct ?? '',
+              [t('Lost to another agent (no reply in time)', 'خسرها لوكيل آخر (لا رد في الموعد)')]: m.lostToReassign,
+              [t('Lost to another agent %', 'خسرها لوكيل آخر %')]: m.lostToReassignPct ?? '',
+              [t('Received from other agents', 'استلمها من وكلاء آخرين')]: receivedBy.get(agent.id) ?? 0,
             }
           : {
               [t('Channel', 'القناة')]: channelName(agent),
@@ -137,7 +160,10 @@ export function AgentReport({ kind, canExport, envId }: Props) {
         [t('To', 'إلى')]: to,
       })),
     )
-    log('action', { en: `Exported the ${sales ? 'sales agents' : 'Excellence team'} summary, ${from} to ${to}`, ar: `صدّر ملخص ${sales ? 'وكلاء المبيعات' : 'فريق التميّز'}، من ${from} إلى ${to}` })
+    log('action', {
+      en: `Exported the ${sales ? 'sales agents' : 'Excellence team'} summary, ${from} to ${to}`,
+      ar: `صدّر ملخص ${sales ? 'وكلاء المبيعات' : 'فريق التميّز'}، من ${from} إلى ${to}`,
+    })
   }
 
   function exportRecords() {
@@ -153,7 +179,12 @@ export function AgentReport({ kind, canExport, envId }: Props) {
           [t('Minutes to first response', 'دقائق أول رد')]: r.firstMin ?? '',
           [t('First response SLA (min)', 'مهلة أول رد (دقيقة)')]: r.firstSlaMin ?? '',
           ...(sales
-            ? { [t('Activities', 'الأنشطة')]: r.acts ?? '', [t('Activities on time', 'الأنشطة في الموعد')]: r.actsOnTime ?? '', [t('Converted', 'محوّل')]: r.converted === undefined ? '' : r.converted ? t('yes', 'نعم') : t('no', 'لا') }
+            ? {
+                [t('Activities', 'الأنشطة')]: r.acts ?? '',
+                [t('Activities on time', 'الأنشطة في الموعد')]: r.actsOnTime ?? '',
+                [t('Converted', 'محوّل')]: r.converted === undefined ? '' : r.converted ? t('yes', 'نعم') : t('no', 'لا'),
+                [t('Reassigned to (no reply in time)', 'أُعيد إسناده إلى (لا رد في الموعد)')]: r.reassignedTo ? name(r.reassignedTo) : '',
+              }
             : {
                 [t('Hours to resolve', 'ساعات الحل')]: r.resolveHrs ?? '',
                 [t('Resolve SLA (h)', 'مهلة الحل (ساعة)')]: r.resolveSlaHrs ?? '',
@@ -164,7 +195,10 @@ export function AgentReport({ kind, canExport, envId }: Props) {
           [t('Source', 'المصدر')]: t('Sample history', 'سجل تجريبي'),
         })),
     )
-    log('action', { en: `Exported every record behind the ${sales ? 'sales agents' : 'Excellence team'} report, ${from} to ${to}`, ar: `صدّر كل السجلات خلف تقرير ${sales ? 'وكلاء المبيعات' : 'فريق التميّز'}، من ${from} إلى ${to}` })
+    log('action', {
+      en: `Exported every record behind the ${sales ? 'sales agents' : 'Excellence team'} report, ${from} to ${to}`,
+      ar: `صدّر كل السجلات خلف تقرير ${sales ? 'وكلاء المبيعات' : 'فريق التميّز'}، من ${from} إلى ${to}`,
+    })
   }
 
   return (
@@ -188,13 +222,13 @@ export function AgentReport({ kind, canExport, envId }: Props) {
         }
       />
 
-      {!canExport && <InlineNote tone="info">{t('You can read this report. Exporting is not part of your role.', 'يمكنك قراءة هذا التقرير. التصدير ليس ضمن دورك.')}</InlineNote>}
-
-      {envId && (
+      {!canExport && (
         <InlineNote tone="info">
-          {t(`You see the agents of ${L(envName(envId))} only.`, `ترى وكلاء ${L(envName(envId))} فقط.`)}
+          {t('You can read this report. Exporting is not part of your role.', 'يمكنك قراءة هذا التقرير. التصدير ليس ضمن دورك.')}
         </InlineNote>
       )}
+
+      {envId && <InlineNote tone="info">{t(`You see the agents of ${L(envName(envId))} only.`, `ترى وكلاء ${L(envName(envId))} فقط.`)}</InlineNote>}
 
       <SectionCard>
         <div className="flex flex-wrap items-end gap-x-4 gap-y-3">
@@ -304,7 +338,13 @@ export function AgentReport({ kind, canExport, envId }: Props) {
       </SectionCard>
 
       {sources.length > 0 && (
-        <SectionCard title={t('Where these numbers come from', 'من أين تأتي هذه الأرقام')} description={t('One source per product. “API needed” means the data is not connected yet.', 'مصدر لكل منتج. «يحتاج واجهة» يعني أن البيانات غير موصولة بعد.')}>
+        <SectionCard
+          title={t('Where these numbers come from', 'من أين تأتي هذه الأرقام')}
+          description={t(
+            'One source per product. “API needed” means the data is not connected yet.',
+            'مصدر لكل منتج. «يحتاج واجهة» يعني أن البيانات غير موصولة بعد.',
+          )}
+        >
           <ul className="flex flex-col gap-2" data-testid="agent-sources">
             {sources.map((id) => {
               const s = PRODUCT_SOURCES[id]!
@@ -322,12 +362,42 @@ export function AgentReport({ kind, canExport, envId }: Props) {
       )}
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4" data-testid="agent-tiles">
-        <KpiTile label={sales ? t('Leads handled', 'العملاء المعالجون') : t('Conversations', 'المحادثات')} value={total.records} icon={sales ? <Users /> : <Headset />} sub={t(`${selectedAgents.length} ${selectedAgents.length === 1 ? 'agent' : 'agents'}`, `${selectedAgents.length} وكلاء`)} />
-        <KpiTile label={t('First response on time', 'أول رد في الموعد')} value={fmtPct(total.firstOnTimePct)} icon={<Clock />} sub={total.avgFirstMin === null ? undefined : t(`${total.avgFirstMin} min on average`, `${total.avgFirstMin} دقيقة في المتوسط`)} />
+        <KpiTile
+          label={sales ? t('Leads handled', 'العملاء المعالجون') : t('Conversations', 'المحادثات')}
+          value={total.records}
+          icon={sales ? <Users /> : <Headset />}
+          sub={t(`${selectedAgents.length} ${selectedAgents.length === 1 ? 'agent' : 'agents'}`, `${selectedAgents.length} وكلاء`)}
+        />
+        <KpiTile
+          label={t('First response on time', 'أول رد في الموعد')}
+          value={fmtPct(total.firstOnTimePct)}
+          icon={<Clock />}
+          sub={total.avgFirstMin === null ? undefined : t(`${total.avgFirstMin} min on average`, `${total.avgFirstMin} دقيقة في المتوسط`)}
+        />
         {sales ? (
           <>
-            <KpiTile label={t('Activities on time', 'الأنشطة في الموعد')} value={fmtPct(total.actsOnTimePct)} icon={<CheckCircle2 />} sub={t(`${total.actsOnTime} of ${total.acts}`, `${total.actsOnTime} من ${total.acts}`)} />
-            <KpiTile label={t('Conversion', 'التحويل')} value={fmtPct(total.conversionPct)} icon={<TrendingUp />} sub={t(`${total.converted} converted`, `${total.converted} محوّل`)} />
+            <KpiTile
+              label={t('Activities on time', 'الأنشطة في الموعد')}
+              value={fmtPct(total.actsOnTimePct)}
+              icon={<CheckCircle2 />}
+              sub={t(`${total.actsOnTime} of ${total.acts}`, `${total.actsOnTime} من ${total.acts}`)}
+            />
+            <KpiTile
+              label={t('Conversion', 'التحويل')}
+              value={fmtPct(total.conversionPct)}
+              icon={<TrendingUp />}
+              sub={t(`${total.converted} converted`, `${total.converted} محوّل`)}
+            />
+            {/* 23 Nov (owner): leads taken from an agent for no first response in time and given to another */}
+            <KpiTile
+              label={t('Lost to another agent', 'خسرها لوكيل آخر')}
+              value={total.lostToReassign ? <Bad>{total.lostToReassign}</Bad> : <Good>0</Good>}
+              icon={<UserX />}
+              sub={t(
+                `${fmtPct(total.lostToReassignPct)} of leads · ${agentsWhoLost} of ${selectedAgents.filter((a) => a.crm).length} agents · no reply within ${REASSIGN_AFTER_MIN} min`,
+                `${fmtPct(total.lostToReassignPct)} من العملاء · ${agentsWhoLost} من ${selectedAgents.filter((a) => a.crm).length} وكلاء · لا رد خلال ${REASSIGN_AFTER_MIN} دقيقة`,
+              )}
+            />
           </>
         ) : (
           <>
@@ -336,10 +406,19 @@ export function AgentReport({ kind, canExport, envId }: Props) {
             <KpiTile label={t('Escalated', 'المصعّدة')} value={total.escalated} icon={<ShieldAlert />} />
           </>
         )}
-        <KpiTile label={t('Customer score', 'تقييم العملاء')} value={total.avgScore === null ? '—' : total.avgScore} unit={total.avgScore === null ? undefined : '/5'} icon={<Star />} sub={t(`${total.scored} customers scored`, `${total.scored} عميل قيّم`)} />
+        <KpiTile
+          label={t('Customer score', 'تقييم العملاء')}
+          value={total.avgScore === null ? '—' : total.avgScore}
+          unit={total.avgScore === null ? undefined : '/5'}
+          icon={<Star />}
+          sub={t(`${total.scored} customers scored`, `${total.scored} عميل قيّم`)}
+        />
       </div>
 
-      <SectionCard title={t('By agent', 'حسب الوكيل')} description={t('Most handled first. Click a name to look at one agent.', 'الأكثر معالجة أولاً. اضغط على اسم لعرض وكيل واحد.')}>
+      <SectionCard
+        title={t('By agent', 'حسب الوكيل')}
+        description={t('Most handled first. Click a name to look at one agent.', 'الأكثر معالجة أولاً. اضغط على اسم لعرض وكيل واحد.')}
+      >
         <Table>
           <TableHeader>
             <TableRow>
@@ -352,6 +431,8 @@ export function AgentReport({ kind, canExport, envId }: Props) {
                   <TableHead className="text-end">{t('Activities on time %', 'الأنشطة في الموعد %')}</TableHead>
                   <TableHead className="text-end">{t('Converted', 'المحوّلون')}</TableHead>
                   <TableHead className="text-end">{t('Conversion %', 'التحويل %')}</TableHead>
+                  <TableHead className="text-end">{t('Lost to another agent', 'خسرها لوكيل آخر')}</TableHead>
+                  <TableHead className="text-end">{t('Received from others', 'استلمها من غيره')}</TableHead>
                 </>
               ) : (
                 <>
@@ -366,7 +447,7 @@ export function AgentReport({ kind, canExport, envId }: Props) {
           <TableBody>
             {rows.length === 0 && (
               <TableRow>
-                <TableCell colSpan={9} className="text-muted-foreground">
+                <TableCell colSpan={11} className="text-muted-foreground">
                   {t('No agents match these filters.', 'لا يوجد وكلاء يطابقون هذه المرشحات.')}
                 </TableCell>
               </TableRow>
@@ -374,7 +455,11 @@ export function AgentReport({ kind, canExport, envId }: Props) {
             {rows.map(({ agent, m }) => (
               <TableRow key={agent.id} data-state={agentId === agent.id ? 'selected' : undefined}>
                 <TableCell>
-                  <button type="button" className="flex flex-col items-start text-start outline-hidden focus-visible:ring-2" onClick={() => setAgentId(agentId === agent.id ? 'all' : agent.id)}>
+                  <button
+                    type="button"
+                    className="flex flex-col items-start text-start outline-hidden focus-visible:ring-2"
+                    onClick={() => setAgentId(agentId === agent.id ? 'all' : agent.id)}
+                  >
                     <span className="font-medium text-foreground">{agent.name}</span>
                     <span className="text-xs text-muted-foreground">
                       {productName(agent.product)}
@@ -384,13 +469,29 @@ export function AgentReport({ kind, canExport, envId }: Props) {
                   </button>
                 </TableCell>
                 <TableCell className="tabular text-end">{m.records}</TableCell>
-                <TableCell className="tabular text-end">{agent.crm || !sales ? fmtPct(m.firstOnTimePct) : <span className="text-muted-foreground">{t('API needed', 'يحتاج واجهة')}</span>}</TableCell>
+                <TableCell className="tabular text-end">
+                  {agent.crm || !sales ? fmtPct(m.firstOnTimePct) : <span className="text-muted-foreground">{t('API needed', 'يحتاج واجهة')}</span>}
+                </TableCell>
                 <TableCell className="tabular text-end">{m.avgFirstMin ?? '—'}</TableCell>
                 {sales ? (
                   <>
                     <TableCell className="tabular text-end">{fmtPct(m.actsOnTimePct)}</TableCell>
                     <TableCell className="tabular text-end">{agent.crm ? m.converted : '—'}</TableCell>
                     <TableCell className="tabular text-end">{fmtPct(m.conversionPct)}</TableCell>
+                    <TableCell className="tabular text-end">
+                      {agent.crm ? (
+                        m.lostToReassign ? (
+                          <Bad>
+                            {m.lostToReassign} <span className="text-xs">({fmtPct(m.lostToReassignPct)})</span>
+                          </Bad>
+                        ) : (
+                          '0 (0%)'
+                        )
+                      ) : (
+                        '—'
+                      )}
+                    </TableCell>
+                    <TableCell className="tabular text-end">{agent.crm ? (receivedBy.get(agent.id) ?? 0) : '—'}</TableCell>
                   </>
                 ) : (
                   <>
@@ -412,21 +513,37 @@ export function AgentReport({ kind, canExport, envId }: Props) {
         </InlineNote>
       </SectionCard>
 
-      <SectionCard title={t('Month by month', 'شهراً بشهر')} description={agentId === 'all' ? t('All agents shown', 'كل الوكلاء المعروضين') : (agents.find((a) => a.id === agentId)?.name ?? '')}>
+      <SectionCard
+        title={t('Month by month', 'شهراً بشهر')}
+        description={agentId === 'all' ? t('All agents shown', 'كل الوكلاء المعروضين') : (agents.find((a) => a.id === agentId)?.name ?? '')}
+      >
         {trend.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t('Nothing to chart in this period.', 'لا شيء للعرض في هذه الفترة.')}</p>
         ) : (
           <ChartWell
             height={220}
             label={t('Handled and late first responses per month', 'المعالَج وأول الردود المتأخرة شهرياً')}
-            legend={<ChartLegend items={[{ label: sales ? t('Leads handled', 'العملاء المعالجون') : t('Conversations', 'المحادثات'), color: chartColor(0) }, { label: t('First response late', 'أول رد متأخر'), color: chartColor(1) }]} />}
+            legend={
+              <ChartLegend
+                items={[
+                  { label: sales ? t('Leads handled', 'العملاء المعالجون') : t('Conversations', 'المحادثات'), color: chartColor(0) },
+                  { label: t('First response late', 'أول رد متأخر'), color: chartColor(1) },
+                ]}
+              />
+            }
           >
             <BarChart data={trend}>
               <CartesianGrid {...chartGrid} />
               <XAxis dataKey="month" {...chartAxis} />
               <YAxis {...chartAxis} width={32} allowDecimals={false} />
               <Tooltip content={<ChartTooltip />} cursor={chartCursorBar} />
-              <Bar dataKey="handled" name={sales ? t('Leads handled', 'العملاء المعالجون') : t('Conversations', 'المحادثات')} {...chartBar} radius={[6, 6, 0, 0]} fill="var(--chart-1)" />
+              <Bar
+                dataKey="handled"
+                name={sales ? t('Leads handled', 'العملاء المعالجون') : t('Conversations', 'المحادثات')}
+                {...chartBar}
+                radius={[6, 6, 0, 0]}
+                fill="var(--chart-1)"
+              />
               <Bar dataKey="late" name={t('First response late', 'أول رد متأخر')} {...chartBarMuted} radius={[6, 6, 0, 0]} />
             </BarChart>
           </ChartWell>
@@ -435,4 +552,3 @@ export function AgentReport({ kind, canExport, envId }: Props) {
     </div>
   )
 }
-
