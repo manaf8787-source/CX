@@ -31,7 +31,7 @@ export function HowAiFoundThis({ actionId, pattern, aiMade = true }: { actionId:
   const [open, setOpen] = useState(false)
   const { data: envelope } = useCorrectiveRationale(actionId)
   const { data: directory } = useAgentDirectory()
-  const canSeeTeam = canAccessPath(role.id, '/intelligent-cx-team')
+  const canSeeTeam = canAccessPath(role.id, '/settings/ai-team')
 
   const agentDisplay = pattern?.agentRef && directory
     ? resolveAgentDisplay(pattern.agentRef, role.id, directory, { en: 'Agent (name withheld)', ar: 'وكيل (الاسم محجوب)' }, lang)
@@ -52,7 +52,7 @@ export function HowAiFoundThis({ actionId, pattern, aiMade = true }: { actionId:
         <AgentChip agent="supervisor" />
         {canSeeTeam && (
           <Button variant="outline" size="xs" asChild>
-            <Link to="/intelligent-cx-team">{L(WHO_DOES_WHAT)}</Link>
+            <Link to="/settings/ai-team?tab=how">{L(WHO_DOES_WHAT)}</Link>
           </Button>
         )}
       </div>
@@ -94,3 +94,4 @@ function Row({ label, value, code }: { label: string; value: string; code?: bool
     </>
   )
 }
+

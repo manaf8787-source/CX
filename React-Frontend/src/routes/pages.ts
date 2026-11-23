@@ -11,7 +11,6 @@ export const pageLoaders = {
   closeTheLoop: () => import('../pages/CloseTheLoop'),
   personas: () => import('../pages/Personas'),
   surveys: () => import('../pages/settings/SurveysHub'),
-  intelligentCxTeam: () => import('../pages/IntelligentCxTeam'),
   productPage: () => import('../pages/ProductPage'),
   actionsLayout: () => import('../pages/actions/ActionsLayout'),
   corrective: () => import('../pages/actions/Corrective'),
@@ -41,7 +40,7 @@ export const pageLoaders = {
   settingsGlossary: () => import('../pages/settings/Glossary'),
   adminSettings: () => import('../pages/settings/AdminSettings'),
   // v42 (F31): the replay page under Settings and reference.
-  watchTeam: () => import('../pages/settings/WatchTeam'),
+  watchTeam: () => import('../pages/settings/AiTeam'),
   // v42.1 (F33): the campaign audit, right after the weekly sample in the Settings menu.
   // 23 Nov: the campaign audit page became Marketing campaigns (results, audit, criteria, clearance, sources)
   campaignAudit: () => import('../pages/settings/MarketingCampaigns'),
@@ -63,12 +62,11 @@ const PATH_LOADERS: [prefix: string, keys: LoaderKey[]][] = [
   ['/overview', ['overview']],
   ['/personas', ['personas']],
   ['/surveys', ['surveys']],
-  ['/intelligent-cx-team', ['intelligentCxTeam']],
   ['/products/', ['productPage']],
   ['/admin/users', ['users']],
   ['/admin/audit', ['auditLog']],
   // before '/settings', which would match it first
-  ['/settings/watch-ai-team', ['settingsLayout', 'watchTeam']],
+  ['/settings/ai-team', ['settingsLayout', 'watchTeam']],
   ['/settings/campaign-audit', ['settingsLayout', 'campaignAudit']],
   ['/settings', ['settingsLayout']],
 ]

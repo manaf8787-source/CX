@@ -31,7 +31,7 @@ const REGISTER_PAGES = ['/settings/feeds', '/settings/crm-mapping', '/settings/e
  * (`/intelligent-cx-team`). The prototype adds it for every role that sees its agents page, which there includes the team lead and the
  * After-Sales lead; here those two cannot open the agents page, so they do not get it [Proposed].
  */
-const WATCH_PAGE = '/settings/watch-ai-team'
+const WATCH_PAGE = '/settings/ai-team'
 
 /**
  * v42.1 (F33): the campaign audit is open to the Internal Audit and Marketing Lead and the CX manager (who mark the checks and decide, see
@@ -62,7 +62,6 @@ export const ROLE_PATHS: Record<RoleId, string[] | null> = {
   auditmkt: [
     '/overview',
     '/customers',
-    '/intelligent-cx-team',
     '/personas',
     '/runaway',
     '/inbox',

@@ -1,7 +1,7 @@
 import type { InboxItem, RoleId } from '../types'
 import { CAMPAIGN_AUDIT_PATH, belowTargetingLine, pct, type CheckId } from '../data/campaignAudit'
 import type { AuditCampaignView } from '../services/mockCampaignAudit'
-import { CAMPAIGNS, auditWindow, readAuditState } from '../data/marketingCampaigns'
+import { auditWindow, listCampaigns, readAuditState } from '../data/marketingCampaigns'
 
 /**
  * What the campaign audit hands to the rest of the portal (v42.1, F33): the counts of the inbox and of the Daily brief, the targeting
@@ -55,7 +55,7 @@ export function targetingSignals(views: readonly AuditCampaignView[]): Targeting
 export function campaignAuditInboxItems(role: RoleId, _summary?: Pick<CampaignAuditSummary, 'waiting' | 'finished'>): InboxItem[] {
   if (role !== 'auditmkt') return []
   const st = readAuditState()
-  const ready = CAMPAIGNS.filter((c) => {
+  const ready = listCampaigns().filter((c) => {
     const w = auditWindow(c, st.settings)
     return (w.phase === 'open' || w.phase === 'overdue') && !st.audits[c.id]?.verdict
   })

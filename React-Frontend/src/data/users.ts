@@ -34,7 +34,7 @@ const STORAGE_KEY = 'psicx.users'
 
 /** The sample directory on first run: one super admin plus one account per main role, so the demo still works end to end. */
 const SEED_DATE = '2026-11-19T07:00:00.000Z'
-const ADDED_SEED_IDS = ['u-cxteam2', 'u-cxteam3', 'u-admin2', 'u-viewer', 'u-env2', 'u-env3', 'u-salessupport', 'u-hrdir', 'u-hrspec']
+const ADDED_SEED_IDS = ['u-cxteam2', 'u-cxteam3', 'u-admin2', 'u-viewer', 'u-env2', 'u-env3', 'u-env4', 'u-salessupport', 'u-hrdir', 'u-hrspec']
 
 export const SEED_USERS: PortalUser[] = [
   { id: 'u-admin', email: 'admin@psi.sample', name: 'Super admin', roleId: 'admin', status: 'active', invitedAt: SEED_DATE, activatedAt: SEED_DATE },
@@ -127,6 +127,18 @@ export const SEED_USERS: PortalUser[] = [
     name: 'Niveen',
     roleId: 'envmgmt',
     envId: 'ast',
+    status: 'active',
+    invitedAt: SEED_DATE,
+    activatedAt: SEED_DATE,
+    invitedBy: 'u-admin',
+  },
+  // 23 Nov: the fourth environment, PSI-AI; its CEO's name is still to come
+  {
+    id: 'u-env4',
+    email: 'env.manager.ai@psi.sample',
+    name: 'PSI-AI CEO',
+    roleId: 'envmgmt',
+    envId: 'ai',
     status: 'active',
     invitedAt: SEED_DATE,
     activatedAt: SEED_DATE,

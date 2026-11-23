@@ -27,7 +27,7 @@ function rng(seed: number) {
 const pick = <T>(r: () => number, xs: readonly T[]) => xs[Math.floor(r() * xs.length)]
 const HOUR = 3_600_000
 const DAY = 24 * HOUR
-const ENVS: EnvId[] = ['dub', 'auh', 'ast']
+const ENVS: EnvId[] = ['dub', 'auh', 'ast', 'ai']
 /** Fixed reference "now" so the sample does not drift between loads: the seed is 22 Nov 2026, 12:00 Gulf time. */
 const NOW = Date.parse('2026-11-22T08:00:00Z')
 

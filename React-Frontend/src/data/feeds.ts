@@ -74,6 +74,16 @@ const SEEDS: FeedSeed[] = [
     note: b('Separate database, same business', 'قاعدة بيانات منفصلة، نفس العمل'),
   },
   {
+    id: 'crm_ai',
+    env: 'ai',
+    name: b('CRM · PSI-AI', 'CRM · PSI-AI'),
+    daysAgo: 0,
+    at: [6, 15],
+    status: 'ok',
+    rows: 214_550,
+    note: b('Separate database, its own CRM', 'قاعدة بيانات منفصلة، CRM خاص بها'),
+  },
+  {
     id: 'crm_ast',
     env: 'ast',
     name: b('CRM · PSI Assets (rental)', 'CRM · PSI للأصول (التأجير)'),

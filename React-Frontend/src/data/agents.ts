@@ -40,6 +40,7 @@ export const AGENTS: Agent[] = [
   { id: 'ag-rania', name: 'Rania Khoury', kind: 'sales', product: 're', envId: 'auh', crm: true },
   { id: 'ag-tariq', name: 'Tariq Mansour', kind: 'sales', product: 're', envId: 'auh', crm: true },
   { id: 'ag-hadi', name: 'Hadi Nasser', kind: 'sales', product: 're', envId: 'ast', crm: true },
+  { id: 'ag-reem', name: 'Reem Odeh', kind: 'sales', product: 're', envId: 'ai', crm: true },
   { id: 'ag-sara', name: 'Sara Idris', kind: 'sales', product: 'cl', envId: 'dub', crm: true },
   { id: 'ag-yousef', name: 'Yousef Karam', kind: 'sales', product: 'cl', envId: 'auh', crm: true },
   { id: 'ag-khalid', name: 'Khalid Rahman (tour guide)', kind: 'sales', product: 'to', envId: 'dub', crm: false },

@@ -73,9 +73,10 @@ const envFields = (e: Environment) => ({ environment: e.short, envId: e.id })
 // Sample people are not spread evenly: the largest market holds the most customers.
 // One rng() draw, same as a uniform pick.
 const ENVIRONMENT_WEIGHTS: [EnvId, number][] = [
-  ['dub', 0.45],
-  ['auh', 0.3],
-  ['ast', 0.25],
+  ['dub', 0.4],
+  ['auh', 0.27],
+  ['ast', 0.23],
+  ['ai', 0.1],
 ]
 
 function pickPersonEnvironment(): Environment {
@@ -1279,4 +1280,6 @@ export const MOCK_AI_ACCESS_MATRIX = buildAiAccessMatrix()
 export const MOCK_LD_REQUESTS = buildLdRequests()
 export const MOCK_HR_POOL = buildHrPool()
 export const MOCK_GLOSSARY_TERMS: GlossaryTerm[] = GLOSSARY_TERMS
+
+
 

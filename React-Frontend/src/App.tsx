@@ -17,7 +17,6 @@ const Runaway = lazy(pageLoaders.runaway)
 const CloseTheLoop = lazy(pageLoaders.closeTheLoop)
 const Personas = lazy(pageLoaders.personas)
 const SurveysHub = lazy(pageLoaders.surveys)
-const IntelligentCxTeam = lazy(pageLoaders.intelligentCxTeam)
 const ProductPage = lazy(pageLoaders.productPage)
 
 const ActionsLayout = lazy(pageLoaders.actionsLayout)
@@ -115,7 +114,7 @@ export default function App() {
                   <Route path="/overview" element={<OverviewPage />} />
                   {/* Old URLs keep working (AccessGuard redirects them before the role check; these keep the routes matched). */}
                   <Route path="/surveys" element={<Navigate to="/settings/surveys" replace />} />
-                  <Route path="/intelligent-cx-team" element={<IntelligentCxTeam />} />
+                  <Route path="/intelligent-cx-team" element={<Navigate to="/settings/ai-team?tab=how" replace />} />
                   <Route path="/products/:productId" element={<ProductPage />} />
                   {/* v43: the super admin's user directory (the CX manager reads it). */}
                   <Route path="/admin/users" element={<Users />} />
@@ -136,7 +135,7 @@ export default function App() {
                     <Route path="crm-mapping" element={<CrmMapping />} />
                     <Route path="escalation-matrix" element={<EscalationMatrix />} />
                     <Route path="survey-questions" element={<Navigate to="/settings/surveys?tab=questions" replace />} />
-                    <Route path="watch-ai-team" element={<WatchTeam />} />
+                    <Route path="ai-team" element={<WatchTeam />} />
                     <Route path="weekly-sample" element={<WeeklySample />} />
                     <Route path="campaign-audit" element={<CampaignAudit />} />
                     <Route path="public-mentions" element={<PublicMentions />} />

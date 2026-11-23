@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react'
-import type { Bi } from '../types'
+import type { Bi, EnvId } from '../types'
 
 /**
  * Marketing campaigns, their results and their audit (owner's and Chairman's request, 23 Nov).
@@ -48,6 +48,11 @@ export interface MarketingCampaign {
   clicked: number
   /** Share of recipients who match the segment on the record (from the platform's list against the CRM). */
   segmentMatchPct: number
+  /** The CRM environments the campaign's leads land in. One campaign can bring leads to several environments (each has its own CRM). */
+  envIds: EnvId[]
+  /** Where the campaign came from: the marketing platform's sync, or registered by hand in the portal until the platform is connected. */
+  source?: 'platform' | 'manual'
+  registeredBy?: string
 }
 
 /** What the CRM says about the leads tagged with the campaign code. */
@@ -67,6 +72,8 @@ export interface CrmTracking {
   /** Leads won per week since the start. */
   weekly: { week: string; leads: number; won: number }[]
   lastReadAt: string
+  /** Share of the budget counted against these leads (1 for the whole campaign, the environment's share for one environment). */
+  budgetShare?: number
 }
 
 const NOW = Date.parse('2026-11-23T08:00:00Z')
@@ -91,6 +98,7 @@ export const CAMPAIGNS: MarketingCampaign[] = [
     opened: 0,
     clicked: 9_800,
     segmentMatchPct: 86,
+    envIds: ['auh', 'dub'],
   },
   {
     id: 'mk-2',
@@ -110,6 +118,7 @@ export const CAMPAIGNS: MarketingCampaign[] = [
     opened: 7_900,
     clicked: 1_240,
     segmentMatchPct: 93,
+    envIds: ['dub'],
   },
   {
     id: 'mk-3',
@@ -129,6 +138,7 @@ export const CAMPAIGNS: MarketingCampaign[] = [
     opened: 2_640,
     clicked: 610,
     segmentMatchPct: 97,
+    envIds: ['ast'],
   },
   {
     id: 'mk-4',
@@ -148,6 +158,7 @@ export const CAMPAIGNS: MarketingCampaign[] = [
     opened: 0,
     clicked: 2_100,
     segmentMatchPct: 71,
+    envIds: ['auh', 'dub', 'ai'],
   },
   {
     id: 'mk-5',
@@ -167,6 +178,7 @@ export const CAMPAIGNS: MarketingCampaign[] = [
     opened: 0,
     clicked: 5_300,
     segmentMatchPct: 0,
+    envIds: ['dub', 'ai'],
   },
 ]
 
@@ -183,7 +195,9 @@ function rng(seed: string) {
 /** Sample CRM picture of one campaign, the same on every load. */
 export function trackingOf(c: MarketingCampaign): CrmTracking {
   const r = rng(c.code)
-  const base = c.type === 'email' ? c.clicked * 0.35 : c.type === 'whatsapp' ? c.clicked * 0.6 : c.type === 'event' ? c.clicked * 0.55 : c.clicked * 0.18
+  const fromClicks = c.type === 'email' ? c.clicked * 0.35 : c.type === 'whatsapp' ? c.clicked * 0.6 : c.type === 'event' ? c.clicked * 0.55 : c.clicked * 0.18
+  // a campaign registered by hand has no platform numbers yet: in the real platform its leads still come from the CRM tag
+  const base = fromClicks || c.budget / 150
   const leads = Math.round(base * (0.8 + r() * 0.4))
   const notContacted = Math.round(leads * (0.04 + r() * 0.14))
   const contacted = leads - notContacted
@@ -224,8 +238,43 @@ export function trackingOf(c: MarketingCampaign): CrmTracking {
   }
 }
 
+/**
+ * How a campaign's leads split over its environments (each environment's CRM is read on its own). The real split comes from which CRM
+ * each tagged lead sits in; here it is a fixed sample share per environment.
+ */
+export function envShares(c: MarketingCampaign): { envId: EnvId; share: number }[] {
+  const ids = c.envIds?.length ? c.envIds : (['dub'] as EnvId[])
+  const r = rng(`${c.code}-env`)
+  const w = ids.map((_, i) => (i === 0 ? 1.6 : 0.5 + r()))
+  const sum = w.reduce((a, b) => a + b, 0)
+  return ids.map((envId, i) => ({ envId, share: w[i] / sum }))
+}
+
+/** The CRM picture of a campaign in one environment (or in all of them). */
+export function trackingIn(c: MarketingCampaign, env: EnvId | 'all'): CrmTracking {
+  const all = trackingOf(c)
+  if (env === 'all') return all
+  const share = envShares(c).find((x) => x.envId === env)?.share ?? 0
+  const k = (n: number) => Math.round(n * share)
+  return {
+    ...all,
+    budgetShare: share,
+    leads: k(all.leads),
+    contacted: k(all.contacted),
+    contactedIn24h: k(all.contactedIn24h),
+    notContacted: k(all.notContacted),
+    noAnswer: k(all.noAnswer),
+    inProgress: k(all.inProgress),
+    won: k(all.won),
+    lost: k(all.lost),
+    byMethod: all.byMethod.map((m) => ({ ...m, count: k(m.count) })),
+    weekly: all.weekly.map((w) => ({ ...w, leads: k(w.leads), won: k(w.won) })),
+  }
+}
+
 export const conversionPct = (t: CrmTracking) => (t.leads ? Math.round((t.won / t.leads) * 1000) / 10 : 0)
-export const costPerLead = (c: MarketingCampaign, t: CrmTracking) => (t.leads ? Math.round(c.budget / t.leads) : 0)
+/** Budget per lead; in one environment, that environment's share of the budget. */
+export const costPerLead = (c: MarketingCampaign, t: CrmTracking) => (t.leads ? Math.round((c.budget * (t.budgetShare ?? 1)) / t.leads) : 0)
 
 // --- Audit ----------------------------------------------------------------------------------------------------------
 
@@ -327,6 +376,27 @@ export interface CampaignAudit {
   decidedAt?: string
 }
 
+/** One verdict, frozen at the moment it was given: the numbers and each criterion as they stood, so it reads the same a year later. */
+export interface AuditRecord {
+  id: string
+  campaignId: string
+  code: string
+  name: string
+  product: string
+  type: CampaignType
+  startDate: string
+  endDate: string
+  decidedAt: string
+  decidedBy: string
+  verdict: 'success' | 'fail'
+  note?: string
+  met: number
+  total: number
+  snapshot: { leads: number; won: number; conversion: number; costPerLead: number; notContacted: number }
+  criteria: { name: Bi; measured?: number; target?: number; unit?: '%' | 'AED'; dir?: 'min' | 'max'; pass?: boolean }[]
+  sample?: boolean
+}
+
 export interface AuditSettings {
   /** Days the CRM keeps being read after the campaign ends. */
   trackingDays: number
@@ -341,19 +411,121 @@ interface State {
   criteria: Criterion[]
   audits: Record<string, CampaignAudit>
   settings: AuditSettings
+  /** Every verdict ever given, newest last. A campaign judged twice has two records. */
+  history: AuditRecord[]
+  /** Campaigns registered by hand in the portal (until the marketing platform is connected). */
+  custom: MarketingCampaign[]
 }
+
+/** Two audits of last year, so the history shows what a year of records looks like (sample data). */
+const SAMPLE_HISTORY: AuditRecord[] = [
+  {
+    id: 'ar-2025-1',
+    campaignId: 'mk-2025-1',
+    code: 'MKT-2025-012',
+    name: 'Ramadan offers, Dubai off-plan',
+    product: 're',
+    type: 'paid_social',
+    startDate: '2025-03-01',
+    endDate: '2025-03-30',
+    decidedAt: '2025-05-12',
+    decidedBy: 'audit@psi.sample',
+    verdict: 'success',
+    note: 'Strong conversion; follow-up speed to improve.',
+    met: 5,
+    total: 7,
+    snapshot: { leads: 1840, won: 61, conversion: 3.3, costPerLead: 98, notContacted: 7 },
+    criteria: [
+      { name: { en: 'Converts', ar: 'تحقق تحويلاً' }, measured: 3.3, target: 2, unit: '%', dir: 'min', pass: true },
+      { name: { en: 'Leads were followed up fast', ar: 'تمت متابعة الليدز بسرعة' }, measured: 74, target: 85, unit: '%', dir: 'min', pass: false },
+      { name: { en: 'No lead was left behind', ar: 'لم تُترك ليدز بلا متابعة' }, measured: 7, target: 10, unit: '%', dir: 'max', pass: true },
+      { name: { en: 'Within the cost limit', ar: 'ضمن حد التكلفة' }, measured: 98, target: 400, unit: 'AED', dir: 'max', pass: true },
+      { name: { en: 'Reached the right people', ar: 'وصلت للأشخاص الصحيحين' }, measured: 82, target: 80, unit: '%', dir: 'min', pass: true },
+      { name: { en: 'Traceable in the CRM', ar: 'قابلة للتتبع في CRM' }, measured: 90, target: 95, unit: '%', dir: 'min', pass: false },
+      { name: { en: 'Message as approved', ar: 'الرسالة كما اعتُمدت' }, pass: true },
+    ],
+    sample: true,
+  },
+  {
+    id: 'ar-2025-2',
+    campaignId: 'mk-2025-2',
+    code: 'MKT-2025-027',
+    name: 'Summer rentals, PSI Assets SMS',
+    product: 'af',
+    type: 'sms',
+    startDate: '2025-06-10',
+    endDate: '2025-06-24',
+    decidedAt: '2025-08-04',
+    decidedBy: 'audit@psi.sample',
+    verdict: 'fail',
+    note: 'A third of the leads were never called.',
+    met: 2,
+    total: 6,
+    snapshot: { leads: 420, won: 4, conversion: 1, costPerLead: 21, notContacted: 33 },
+    criteria: [
+      { name: { en: 'Converts', ar: 'تحقق تحويلاً' }, measured: 1, target: 2, unit: '%', dir: 'min', pass: false },
+      { name: { en: 'Leads were followed up fast', ar: 'تمت متابعة الليدز بسرعة' }, measured: 51, target: 85, unit: '%', dir: 'min', pass: false },
+      { name: { en: 'No lead was left behind', ar: 'لم تُترك ليدز بلا متابعة' }, measured: 33, target: 10, unit: '%', dir: 'max', pass: false },
+      { name: { en: 'Within the cost limit', ar: 'ضمن حد التكلفة' }, measured: 21, target: 400, unit: 'AED', dir: 'max', pass: true },
+      { name: { en: 'Reached the right people', ar: 'وصلت للأشخاص الصحيحين' }, measured: 88, target: 80, unit: '%', dir: 'min', pass: true },
+      { name: { en: 'Traceable in the CRM', ar: 'قابلة للتتبع في CRM' }, measured: 79, target: 95, unit: '%', dir: 'min', pass: false },
+    ],
+    sample: true,
+  },
+]
+
+/** Campaign codes found on leads in the CRM that no campaign in the list carries (sample): someone must register them. */
+export const UNKNOWN_CRM_TAGS: { code: string; leads: number; firstSeen: string }[] = [{ code: 'MKT-2026-045', leads: 37, firstSeen: '2026-11-18' }]
 
 const KEY = 'psicx.marketingAudit'
 const DEFAULT_STATE: State = {
   criteria: DEFAULT_CRITERIA,
   audits: {},
   settings: { trackingDays: 90, auditOpensAfterDays: 30, auditDueDays: 14, refresh: 'hourly' },
+  history: SAMPLE_HISTORY,
+  custom: [],
 }
 
 function read(): State {
   try {
     const raw = localStorage.getItem(KEY)
-    if (raw) return { ...DEFAULT_STATE, ...(JSON.parse(raw) as State) }
+    if (raw) {
+      const parsed = JSON.parse(raw) as Partial<State>
+      const history = parsed.history ?? SAMPLE_HISTORY
+      const custom = parsed.custom ?? []
+      // a verdict given before the history existed (23 Nov): keep it as a record, with the numbers as they read now
+      for (const [id, a] of Object.entries(parsed.audits ?? {})) {
+        if (!a.verdict || history.some((r) => r.campaignId === id)) continue
+        const c = [...CAMPAIGNS, ...custom].find((x) => x.id === id)
+        if (!c) continue
+        const tr = trackingOf(c)
+        history.push({
+          id: `ar-${id}`,
+          campaignId: id,
+          code: c.code,
+          name: c.name,
+          product: c.product,
+          type: c.type,
+          startDate: c.startDate,
+          endDate: c.endDate,
+          decidedAt: a.decidedAt ?? '',
+          decidedBy: '',
+          verdict: a.verdict,
+          note: a.note,
+          met: 0,
+          total: 0,
+          snapshot: {
+            leads: tr.leads,
+            won: tr.won,
+            conversion: conversionPct(tr),
+            costPerLead: costPerLead(c, tr),
+            notContacted: tr.leads ? Math.round((tr.notContacted / tr.leads) * 100) : 0,
+          },
+          criteria: [],
+        })
+      }
+      return { ...DEFAULT_STATE, ...parsed, history, custom }
+    }
   } catch {
     /* storage unavailable */
   }
@@ -386,6 +558,31 @@ export function useAuditState(): State {
 
 /** The current audit state, outside React (the inbox reads it). */
 export const readAuditState = (): State => state
+
+/** The campaigns: from the marketing platform (here the sample list) plus the ones registered by hand. */
+export const listCampaigns = (): MarketingCampaign[] => [...CAMPAIGNS, ...state.custom]
+export function useCampaignList(): MarketingCampaign[] {
+  const st = useAuditState()
+  return [...CAMPAIGNS, ...st.custom]
+}
+
+export function registerCampaign(c: MarketingCampaign) {
+  write({ ...state, custom: [...state.custom, c] })
+}
+
+export const codeTaken = (code: string) => listCampaigns().some((c) => c.code.trim().toLowerCase() === code.trim().toLowerCase())
+
+/** Freezes the verdict with its numbers into the history and marks the campaign judged. */
+export function recordVerdict(rec: AuditRecord) {
+  write({
+    ...state,
+    history: [...state.history, rec],
+    audits: { ...state.audits, [rec.campaignId]: { ...auditOf(rec.campaignId), verdict: rec.verdict, decidedAt: rec.decidedAt, note: rec.note } },
+  })
+}
+
+/** The latest verdict of a campaign, if any. */
+export const latestRecord = (history: AuditRecord[], campaignId: string) => [...history].reverse().find((r) => r.campaignId === campaignId)
 
 export const auditOf = (id: string): CampaignAudit => state.audits[id] ?? { targets: {}, skipped: [], manual: {} }
 

@@ -19,7 +19,7 @@ export function WatchTeamButton() {
   return (
     <div className="-mt-4 flex justify-end">
       <Button asChild size="sm" variant="outline">
-        <Link to={WATCH_PATH} onPointerEnter={() => prefetchPath(WATCH_PATH)} onFocus={() => prefetchPath(WATCH_PATH)}>
+        <Link to={`${WATCH_PATH}?tab=watch`} onPointerEnter={() => prefetchPath(WATCH_PATH)} onFocus={() => prefetchPath(WATCH_PATH)}>
           <Play aria-hidden className="fill-current" />
           {L(WATCH_COPY.title)}
         </Link>
@@ -27,3 +27,4 @@ export function WatchTeamButton() {
     </div>
   )
 }
+

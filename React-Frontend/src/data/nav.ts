@@ -63,6 +63,8 @@ export const CUSTOMERS_TABS: NavLeaf[] = [
 
 /** Old URLs that still work: the page moved, the old path redirects (F08, F18). Search and hash are kept. */
 export const LEGACY_REDIRECTS: Record<string, string> = {
+  '/intelligent-cx-team': '/settings/ai-team?tab=how',
+  '/settings/watch-ai-team': '/settings/ai-team?tab=watch',
   '/surveys': '/settings/surveys',
   // 23 Nov: Teams and structure was split: routing went to Who handles what, the CRM fields to Integrations, the rest was removed
   '/settings/teams-structure': '/settings/escalation-matrix?view=routing',
@@ -94,8 +96,8 @@ export const ACTIONS_TABS: NavLeaf[] = [
  * (weekly sample, public mentions), then the older pages and the new data and configuration pages.
  * The Overview is no longer here: it is "6 · CX indicators" at /overview. */
 export const SETTINGS_NAV: NavLeaf[] = [
-  { path: '/intelligent-cx-team', label: { en: 'How the portal works (the AI team)', ar: 'كيف تعمل البوابة (فريق الذكاء الاصطناعي)' } },
-  { path: '/settings/watch-ai-team', label: { en: 'Watch the AI team work', ar: 'شاهد فريق الذكاء يعمل' }, skipLanding: true },
+  // 23 Nov: How the portal works and Watch the AI team work are one page with two tabs
+  { path: '/settings/ai-team', label: { en: 'The AI team', ar: 'فريق الذكاء الاصطناعي' } },
   { path: '/settings/weekly-sample', label: { en: 'Weekly sample', ar: 'العينة الأسبوعية' } },
   // v42.1 (F33): right after the weekly sample. skipLanding: listed there, it would become Marketing's landing page (its first allowed page under /settings).
   { path: '/settings/campaign-audit', label: { en: 'Marketing campaigns', ar: 'الحملات التسويقية' }, skipLanding: true },

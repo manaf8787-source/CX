@@ -42,7 +42,7 @@ export type StatusLevel = 'good' | 'warn' | 'crit' | 'neutral'
 
 /** The three CRM environments (v40): separate databases, same business.
  * dub = Dubai, auh = Abu Dhabi, ast = PSI Assets (rental). */
-export type EnvId = 'dub' | 'auh' | 'ast'
+export type EnvId = 'dub' | 'auh' | 'ast' | 'ai'
 
 /** What the "Environment" switch holds: one environment or all of them. */
 export type EnvScope = EnvId | 'all'
@@ -69,3 +69,4 @@ export interface ConsentFlags {
   sms: boolean
   email: boolean
 }
+

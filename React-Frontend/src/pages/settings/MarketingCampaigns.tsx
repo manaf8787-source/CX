@@ -6,8 +6,18 @@ import { Plus, RotateCcw, Trash2 } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { useRole } from '@/auth/RoleContext'
 import { useAuditActor } from '@/auth/useAuditActor'
+import { useAuth } from '@/auth/session'
 import {
-  CAMPAIGNS,
+  UNKNOWN_CRM_TAGS,
+  codeTaken,
+  latestRecord,
+  envShares,
+  trackingIn,
+  recordVerdict,
+  registerCampaign,
+  useCampaignList,
+  type AuditRecord,
+  type CampaignType,
   CAMPAIGN_NOW,
   METRIC_LABEL,
   TYPE_LABEL,
@@ -43,6 +53,8 @@ import { ProductTag } from '@/components/common/Chip'
 import { ChartTooltip, ChartWell, RankedBars } from '@/components/common/charts'
 import { chartAxis, chartBar, chartCursorBar, chartGrid } from '@/components/common/chartTheme'
 import { SubPageHeader } from './SubPageHeader'
+import { ENVIRONMENTS, environmentById } from '@/data/environments'
+import type { EnvId } from '@/types'
 
 /**
  * Marketing campaigns (owner's and Chairman's request, 23 Nov): one page for Marketing and the Internal Audit and Marketing Lead.
@@ -51,7 +63,7 @@ import { SubPageHeader } from './SubPageHeader'
  * criteria and targets per campaign, judged only after a long tracking window. 23 Nov: no clearance before a run (removed by the owner): everything here is after the campaign.
  * Sources: where each number comes from and what must exist in the CRM (the campaign tag).
  */
-const TABS = ['results', 'audit', 'criteria', 'sources'] as const
+const TABS = ['results', 'history', 'audit', 'criteria', 'sources'] as const
 type Tab = (typeof TABS)[number]
 const ALL = 'all'
 
@@ -61,7 +73,7 @@ export default function MarketingCampaigns() {
   const isAuditor = role.id === 'auditmkt'
   const [params, setParams] = useSearchParams()
   const asked = params.get('tab') as Tab | null
-  const allowed: Tab[] = isAuditor ? [...TABS] : ['results', 'sources']
+  const allowed: Tab[] = isAuditor ? [...TABS] : ['results', 'history', 'sources']
   const tab: Tab = asked && allowed.includes(asked) ? asked : 'results'
   const [picked, setPicked] = useState<string>(params.get('campaign') ?? ALL)
   const pick = (id: string) => {
@@ -92,6 +104,7 @@ export default function MarketingCampaigns() {
         <div className="-m-1 overflow-x-auto p-1">
           <TabsList className="min-w-max" aria-label={t('Marketing campaigns', 'الحملات التسويقية')}>
             <TabsTrigger value="results">{t('Results', 'النتائج')}</TabsTrigger>
+            <TabsTrigger value="history">{t('Audit history', 'سجل التدقيق')}</TabsTrigger>
             {isAuditor && <TabsTrigger value="audit">{t('Audit after the run', 'التدقيق بعد التشغيل')}</TabsTrigger>}
             {isAuditor && <TabsTrigger value="criteria">{t('Criteria', 'المعايير')}</TabsTrigger>}
             <TabsTrigger value="sources">{t('Where the numbers come from', 'من أين تأتي الأرقام')}</TabsTrigger>
@@ -99,6 +112,13 @@ export default function MarketingCampaigns() {
         </div>
         <TabsContent value="results">
           <Results picked={picked} onPick={pick} />
+        </TabsContent>
+        <TabsContent value="history">
+          <HistoryTab
+            onOpen={(id) => {
+              pick(id)
+            }}
+          />
         </TabsContent>
         {isAuditor && (
           <TabsContent value="audit">
@@ -124,6 +144,7 @@ const day = (iso: string, lang: 'en' | 'ar') =>
 
 function CampaignPicker({ picked, onPick, allowAll = true }: { picked: string; onPick: (id: string) => void; allowAll?: boolean }) {
   const { t } = useI18n()
+  const campaigns = useCampaignList()
   return (
     <label className="flex min-w-72 flex-col gap-1.5 text-sm">
       <span className="font-medium text-muted-foreground">{t('Campaign', 'الحملة')}</span>
@@ -133,7 +154,7 @@ function CampaignPicker({ picked, onPick, allowAll = true }: { picked: string; o
         </SelectTrigger>
         <SelectContent>
           {allowAll && <SelectItem value={ALL}>{t('All campaigns', 'كل الحملات')}</SelectItem>}
-          {CAMPAIGNS.map((c) => (
+          {campaigns.map((c) => (
             <SelectItem key={c.id} value={c.id}>
               {c.name} · {c.code}
             </SelectItem>
@@ -148,7 +169,12 @@ function CampaignPicker({ picked, onPick, allowAll = true }: { picked: string; o
 
 function Results({ picked, onPick }: { picked: string; onPick: (id: string) => void }) {
   const { t, L, lang } = useI18n()
-  const rows = useMemo(() => CAMPAIGNS.map((c) => ({ c, tr: trackingOf(c) })), [])
+  const campaigns = useCampaignList()
+  const st = useAuditState()
+  const [registering, setRegistering] = useState<string | null>(null)
+  const [env, setEnv] = useState<EnvId | 'all'>('all')
+  const rows = useMemo(() => campaigns.filter((c) => env === 'all' || c.envIds?.includes(env)).map((c) => ({ c, tr: trackingIn(c, env) })), [campaigns, env])
+  const unknown = UNKNOWN_CRM_TAGS.filter((u) => !codeTaken(u.code))
   const current = rows.find((x) => x.c.id === picked)
   const lastRead = rows.reduce((m, x) => (x.tr.lastReadAt > m ? x.tr.lastReadAt : m), '')
 
@@ -156,6 +182,11 @@ function Results({ picked, onPick }: { picked: string; onPick: (id: string) => v
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <CampaignPicker picked={picked} onPick={onPick} />
+        <EnvFilter value={env} onChange={setEnv} />
+        <Button size="sm" variant="outline" onClick={() => setRegistering('')}>
+          <Plus aria-hidden />
+          {t('Register a campaign', 'سجّل حملة')}
+        </Button>
         <StatusBadge tone="info">
           {t('CRM read', 'قُرئ CRM')} {new Date(lastRead).toLocaleTimeString(lang === 'ar' ? 'ar-AE' : 'en-GB', { hour: '2-digit', minute: '2-digit' })} ·{' '}
           {t('every hour', 'كل ساعة')}
@@ -167,8 +198,38 @@ function Results({ picked, onPick }: { picked: string; onPick: (id: string) => v
           'حملات وأرقام تجريبية حتى يتم ربط منصة التسويق ووسم الحملات في CRM.',
         )}
       </InlineNote>
+      {unknown.map((u) => (
+        <InlineNote
+          key={u.code}
+          tone="warning"
+          title={t(
+            `${u.leads} leads in the CRM carry the code ${u.code}, but no campaign has it`,
+            `${u.leads} ليد في CRM تحمل الرمز ${u.code} ولا توجد حملة بهذا الرمز`,
+          )}
+          action={
+            <Button size="sm" variant="outline" onClick={() => setRegistering(u.code)}>
+              {t('Register it', 'سجّلها')}
+            </Button>
+          }
+        >
+          {t(
+            `Seen since ${u.firstSeen}. Either Marketing adds it to the marketing platform (it then arrives here by itself), or register it now.`,
+            `ظهرت منذ ${u.firstSeen}. إما أن يضيفها التسويق إلى منصة التسويق (فتصل هنا تلقائياً)، أو سجّلها الآن.`,
+          )}
+        </InlineNote>
+      ))}
+      {registering !== null && (
+        <RegisterForm
+          code={registering}
+          onCancel={() => setRegistering(null)}
+          onSaved={(id) => {
+            setRegistering(null)
+            onPick(id)
+          }}
+        />
+      )}
       {current ? (
-        <One c={current.c} />
+        <One c={current.c} env={env} record={latestRecord(st.history, current.c.id)} />
       ) : (
         <>
           <div className="grid grid-cols-2 gap-(--grid-gap) lg:grid-cols-4">
@@ -212,6 +273,7 @@ function Results({ picked, onPick }: { picked: string; onPick: (id: string) => v
                     <TableHead className="text-end">{t('Won', 'مغلقة')}</TableHead>
                     <TableHead className="text-end">{t('Conversion', 'التحويل')}</TableHead>
                     <TableHead className="text-end">{t('Cost per lead', 'تكلفة الليد')}</TableHead>
+                    <TableHead>{t('Audit', 'التدقيق')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -236,6 +298,9 @@ function Results({ picked, onPick }: { picked: string; onPick: (id: string) => v
                       <TableCell className="text-end tabular">{fmt(tr.won, lang)}</TableCell>
                       <TableCell className="text-end tabular font-medium text-foreground">{conversionPct(tr)}%</TableCell>
                       <TableCell className="text-end tabular">AED {fmt(costPerLead(c, tr), lang)}</TableCell>
+                      <TableCell>
+                        <VerdictBadge record={latestRecord(st.history, c.id)} />
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -257,9 +322,9 @@ function Results({ picked, onPick }: { picked: string; onPick: (id: string) => v
   )
 }
 
-function One({ c }: { c: MarketingCampaign }) {
+function One({ c, env, record }: { c: MarketingCampaign; env: EnvId | 'all'; record?: AuditRecord }) {
   const { t, L, lang } = useI18n()
-  const tr = trackingOf(c)
+  const tr = trackingIn(c, env)
   const exportCsv = () =>
     downloadCsv(`campaign-${c.code}.csv`, [
       {
@@ -288,6 +353,28 @@ function One({ c }: { c: MarketingCampaign }) {
         }
       >
         <dl className="grid grid-cols-1 gap-x-6 gap-y-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
+          <Fact
+            label={t('Audit', 'التدقيق')}
+            value={
+              <span className="flex flex-wrap items-center gap-2">
+                <VerdictBadge record={record} />
+                {record && (
+                  <span className="text-xs text-muted-foreground">
+                    {record.decidedAt} · {record.met}/{record.total} {t('criteria met', 'معايير متحققة')}
+                    {record.note ? ` · “${record.note}”` : ''}
+                  </span>
+                )}
+              </span>
+            }
+          />
+          <Fact
+            label={t('Came from', 'المصدر')}
+            value={
+              c.source === 'manual'
+                ? t(`Registered by hand (${c.registeredBy ?? ''})`, `سُجّلت يدوياً (${c.registeredBy ?? ''})`)
+                : t('The marketing platform', 'منصة التسويق')
+            }
+          />
           <Fact label={t('Product', 'المنتج')} value={<ProductTag productId={c.product} lang={lang} />} />
           <Fact label={t('Target segment', 'الشريحة المستهدفة')} value={c.segment} />
           <Fact label={t('Persona', 'الشخصية')} value={c.persona} />
@@ -310,6 +397,15 @@ function One({ c }: { c: MarketingCampaign }) {
         <KpiTile label={t('Cost per lead', 'تكلفة الليد')} value={`AED ${fmt(costPerLead(c, tr), lang)}`} />
         <KpiTile label={t('First contact, on average', 'أول تواصل، بالمتوسط')} value={t(`${tr.avgFirstContactHours} h`, `${tr.avgFirstContactHours} ساعة`)} />
       </div>
+      {env !== 'all' && (
+        <InlineNote>
+          {t(
+            `Showing the leads that landed in ${L(environmentById(env).name)} only. What the platform sent is the whole campaign.`,
+            `تُعرض الليدز التي وصلت إلى ${L(environmentById(env).name)} فقط. ما أرسلته المنصة هو للحملة كاملة.`,
+          )}
+        </InlineNote>
+      )}
+      <EnvBreakdown c={c} />
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <SectionCard title={t('What the marketing platform sent', 'ماذا أرسلت منصة التسويق')}>
           <RankedBars
@@ -377,7 +473,9 @@ function AuditTab({ picked, onPick }: { picked: string; onPick: (id: string) => 
   const { t, L, lang } = useI18n()
   const { log } = useAuditActor()
   const st = useAuditState()
-  const c = CAMPAIGNS.find((x) => x.id === picked) ?? CAMPAIGNS[0]
+  const { session } = useAuth()
+  const campaigns = useCampaignList()
+  const c = campaigns.find((x) => x.id === picked) ?? campaigns[0]
   const tr = trackingOf(c)
   const a = st.audits[c.id] ?? auditOf(c.id)
   const w = auditWindow(c, st.settings)
@@ -395,6 +493,7 @@ function AuditTab({ picked, onPick }: { picked: string; onPick: (id: string) => 
   return (
     <div className="flex flex-col gap-4">
       <CampaignPicker picked={c.id} onPick={onPick} allowAll={false} />
+      <EnvBreakdown c={c} />
       <InlineNote
         tone={w.phase === 'overdue' ? 'warning' : 'info'}
         title={
@@ -501,7 +600,30 @@ function AuditTab({ picked, onPick }: { picked: string; onPick: (id: string) => 
                 disabled={!open}
                 onClick={() => {
                   const at = new Date(CAMPAIGN_NOW).toISOString().slice(0, 10)
-                  updateAudit(c.id, { verdict: v, decidedAt: at })
+                  recordVerdict({
+                    id: `ar-${Date.now().toString(36)}`,
+                    campaignId: c.id,
+                    code: c.code,
+                    name: c.name,
+                    product: c.product,
+                    type: c.type,
+                    startDate: c.startDate,
+                    endDate: c.endDate,
+                    decidedAt: at,
+                    decidedBy: session?.email ?? '',
+                    verdict: v,
+                    note: a.note?.trim() || undefined,
+                    met: passed,
+                    total: active.length,
+                    snapshot: {
+                      leads: tr.leads,
+                      won: tr.won,
+                      conversion: conversionPct(tr),
+                      costPerLead: costPerLead(c, tr),
+                      notContacted: tr.leads ? Math.round((tr.notContacted / tr.leads) * 100) : 0,
+                    },
+                    criteria: results.map((x) => ({ name: x.k.name, measured: x.value, target: x.target, unit: x.k.unit, dir: x.k.dir, pass: x.pass })),
+                  })
                   log(
                     'action',
                     {
@@ -730,6 +852,40 @@ function SourcesTab() {
           </div>
         </div>
       </SectionCard>
+      <SectionCard title={t('How a new campaign arrives', 'كيف تصل حملة جديدة')}>
+        <ol className="flex list-decimal flex-col gap-2 ps-5 text-sm text-foreground">
+          <li>
+            {t(
+              'Marketing creates the campaign on the marketing platform, with a code (e.g. MKT-2026-046).',
+              'ينشئ التسويق الحملة على منصة التسويق برمز (مثل MKT-2026-046).',
+            )}
+          </li>
+          <li>
+            {t(
+              'Within the hour the portal reads it from the platform and it appears in the list, with what it sent.',
+              'خلال ساعة يقرأها البورتال من المنصة وتظهر في القائمة مع ما أرسلته.',
+            )}
+          </li>
+          <li>
+            {t(
+              'Every lead it brings is created in the CRM with that code as its tag; the portal counts and follows them every hour.',
+              'كل ليد تجلبه يُنشأ في CRM بهذا الرمز كوسم؛ ويعدّها البورتال ويتابعها كل ساعة.',
+            )}
+          </li>
+          <li>
+            {t(
+              'A code found on CRM leads that no campaign carries is flagged on the Results tab, to be registered.',
+              'الرمز الموجود على ليدز CRM دون حملة تحمله يُنبَّه إليه في تبويب النتائج ليُسجَّل.',
+            )}
+          </li>
+          <li>
+            {t(
+              'Until the platform is connected, Marketing or the auditor registers a campaign by hand ("Register a campaign").',
+              'حتى تُربط المنصة، يسجّل التسويق أو المدقق الحملة يدوياً («سجّل حملة»).',
+            )}
+          </li>
+        </ol>
+      </SectionCard>
       <InlineNote tone="warning" title={t('What must exist in the CRM (Chairman’s rule)', 'ما يجب أن يوجد في CRM (قاعدة رئيس مجلس الإدارة)')}>
         {t(
           'Every lead that comes from a campaign carries the campaign’s code as a tag in the CRM, from the moment it is created, for the whole campaign period. Without the tag a lead cannot be traced back to its campaign and the conversion rate is wrong. Status: not verified yet in the live CRM (to be checked in each environment, read-only).',
@@ -746,6 +902,361 @@ function SourcesTab() {
         <span />
       </SectionCard>
     </div>
+  )
+}
+
+// --- Verdict badge, history, register -----------------------------------------------------------------------------------
+
+function VerdictBadge({ record }: { record?: AuditRecord }) {
+  const { t } = useI18n()
+  if (!record) return <span className="text-xs text-muted-foreground">{t('Not audited yet', 'لم تُدقَّق بعد')}</span>
+  return (
+    <StatusBadge tone={record.verdict === 'success' ? 'success' : 'danger'}>
+      {record.verdict === 'success' ? t('Successful', 'ناجحة') : t('Not successful', 'غير ناجحة')}
+    </StatusBadge>
+  )
+}
+
+/** 23 Nov (owner): every verdict, frozen with its numbers, so a campaign can be looked up a year later. Marketing and the auditor read it. */
+function HistoryTab({ onOpen }: { onOpen: (id: string) => void }) {
+  const { t, L, lang } = useI18n()
+  const st = useAuditState()
+  const [year, setYear] = useState<string>(ALL)
+  const [verdict, setVerdict] = useState<string>(ALL)
+  const [openId, setOpenId] = useState<string | null>(null)
+  const years = [...new Set(st.history.map((r) => r.decidedAt.slice(0, 4)))].sort().reverse()
+  const rows = [...st.history].reverse().filter((r) => (year === ALL || r.decidedAt.startsWith(year)) && (verdict === ALL || r.verdict === verdict))
+  const exportCsv = () =>
+    downloadCsv(
+      'campaign-audit-history.csv',
+      rows.map((r) => ({
+        audited_on: r.decidedAt,
+        audited_by: r.decidedBy,
+        campaign: r.name,
+        code: r.code,
+        product: r.product,
+        start: r.startDate,
+        end: r.endDate,
+        verdict: r.verdict === 'success' ? 'Successful' : 'Not successful',
+        criteria_met: `${r.met}/${r.total}`,
+        leads: r.snapshot.leads,
+        won: r.snapshot.won,
+        conversion_pct: r.snapshot.conversion,
+        cost_per_lead_aed: r.snapshot.costPerLead,
+        note: r.note ?? '',
+      })),
+    )
+  const show = (n: number | undefined, unit?: string) => (n === undefined ? '—' : unit === 'AED' ? `AED ${fmt(n, lang)}` : `${n}${unit ?? ''}`)
+
+  return (
+    <div className="flex flex-col gap-4">
+      <InlineNote>
+        {t(
+          'Every verdict is kept here with the numbers as they were on the day it was given, so it reads the same a year later even if the CRM changes. A campaign judged twice has two lines.',
+          'كل حكم محفوظ هنا مع الأرقام كما كانت يوم صدوره، فيُقرأ كما هو بعد سنة حتى لو تغيّر CRM. الحملة التي حُكم عليها مرتين لها سطران.',
+        )}
+      </InlineNote>
+      <div className="flex flex-wrap items-end gap-3">
+        <label className="flex min-w-36 flex-col gap-1.5 text-sm">
+          <span className="font-medium text-muted-foreground">{t('Year', 'السنة')}</span>
+          <Select value={year} onValueChange={setYear}>
+            <SelectTrigger aria-label={t('Year', 'السنة')}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL}>{t('All years', 'كل السنوات')}</SelectItem>
+              {years.map((y) => (
+                <SelectItem key={y} value={y}>
+                  {y}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </label>
+        <label className="flex min-w-44 flex-col gap-1.5 text-sm">
+          <span className="font-medium text-muted-foreground">{t('Verdict', 'الحكم')}</span>
+          <Select value={verdict} onValueChange={setVerdict}>
+            <SelectTrigger aria-label={t('Verdict', 'الحكم')}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL}>{t('All verdicts', 'كل الأحكام')}</SelectItem>
+              <SelectItem value="success">{t('Successful', 'ناجحة')}</SelectItem>
+              <SelectItem value="fail">{t('Not successful', 'غير ناجحة')}</SelectItem>
+            </SelectContent>
+          </Select>
+        </label>
+        <Button size="sm" variant="outline" className="ms-auto" onClick={exportCsv}>
+          {t('Export CSV', 'تصدير CSV')}
+        </Button>
+      </div>
+      <ul className="flex flex-col gap-2">
+        {rows.length === 0 && <li className="text-sm text-muted-foreground">{t('No audit yet for this choice.', 'لا تدقيق بعد لهذا الاختيار.')}</li>}
+        {rows.map((r) => {
+          const open = openId === r.id
+          return (
+            <li key={r.id} className="well flex flex-col gap-3 p-3">
+              <button
+                type="button"
+                aria-expanded={open}
+                onClick={() => setOpenId(open ? null : r.id)}
+                className="flex w-full flex-wrap items-center justify-between gap-2 text-start outline-hidden focus-visible:ring-2"
+              >
+                <span className="flex min-w-0 flex-col gap-0.5">
+                  <span className="font-medium text-foreground">{r.name}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {r.code} · {L(TYPE_LABEL[r.type])} · {r.startDate} – {r.endDate}
+                  </span>
+                </span>
+                <span className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                  {t(`audited ${r.decidedAt} by ${r.decidedBy}`, `دُقّقت ${r.decidedAt} بواسطة ${r.decidedBy}`)}
+                  <span className="tabular">
+                    {r.met}/{r.total}
+                  </span>
+                  <VerdictBadge record={r} />
+                  {r.sample && <StatusBadge>{t('Sample', 'تجريبي')}</StatusBadge>}
+                </span>
+              </button>
+              {open && (
+                <div className="flex flex-col gap-3 border-t border-line pt-3 text-sm">
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+                    <Fact label={t('Leads', 'الليدز')} value={fmt(r.snapshot.leads, lang)} />
+                    <Fact label={t('Won', 'مغلقة')} value={fmt(r.snapshot.won, lang)} />
+                    <Fact label={t('Conversion', 'التحويل')} value={`${r.snapshot.conversion}%`} />
+                    <Fact label={t('Cost per lead', 'تكلفة الليد')} value={`AED ${fmt(r.snapshot.costPerLead, lang)}`} />
+                    <Fact label={t('Not contacted', 'بلا تواصل')} value={`${r.snapshot.notContacted}%`} />
+                  </div>
+                  <ul className="flex flex-col gap-1">
+                    {r.criteria.map((k, i) => (
+                      <li key={i} className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="text-foreground">{L(k.name)}</span>
+                        <span className="flex items-center gap-2 text-xs text-muted-foreground">
+                          {k.measured !== undefined && (
+                            <>
+                              {show(k.measured, k.unit)} · {k.dir === 'max' ? '≤' : '≥'} {show(k.target, k.unit)}
+                            </>
+                          )}
+                          <StatusBadge tone={k.pass ? 'success' : k.pass === false ? 'danger' : 'neutral'}>
+                            {k.pass ? t('Met', 'متحقق') : k.pass === false ? t('Not met', 'غير متحقق') : '—'}
+                          </StatusBadge>
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                  {r.note && <p className="text-foreground">“{r.note}”</p>}
+                  {!r.sample && (
+                    <div className="flex justify-end">
+                      <Button size="sm" variant="outline" onClick={() => onOpen(r.campaignId)}>
+                        {t('Open the campaign’s results today', 'افتح نتائج الحملة اليوم')}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </li>
+          )
+        })}
+      </ul>
+    </div>
+  )
+}
+
+/** Until the marketing platform is connected: register a campaign by hand. Its code must be the tag Marketing puts on the leads in the CRM. */
+function RegisterForm({ code, onCancel, onSaved }: { code: string; onCancel: () => void; onSaved: (id: string) => void }) {
+  const { t, L } = useI18n()
+  const { log } = useAuditActor()
+  const { session } = useAuth()
+  const today = new Date(CAMPAIGN_NOW).toISOString().slice(0, 10)
+  const [v, setV] = useState({
+    name: '',
+    code,
+    type: 'paid_social' as CampaignType,
+    product: 're' as MarketingCampaign['product'],
+    segment: '',
+    persona: '',
+    owner: '',
+    channels: '',
+    startDate: today,
+    endDate: today,
+    budget: 0,
+    envIds: ['dub'] as EnvId[],
+  })
+  const set = (p: Partial<typeof v>) => setV((x) => ({ ...x, ...p }))
+  const dup = v.code.trim() !== '' && codeTaken(v.code)
+  const ok = v.name.trim() && v.code.trim() && !dup && v.endDate >= v.startDate && v.envIds.length > 0
+  const field = (label: string, el: React.ReactNode) => (
+    <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+      {label}
+      {el}
+    </label>
+  )
+  return (
+    <SectionCard
+      title={t('Register a campaign', 'سجّل حملة')}
+      description={t(
+        'Until the marketing platform is connected, a campaign can be entered by hand. Its code must be exactly the tag on its leads in the CRM, so the leads are counted.',
+        'حتى تُربط منصة التسويق يمكن إدخال الحملة يدوياً. يجب أن يكون رمزها نفس الوسم على ليدزها في CRM تماماً ليتم عدّها.',
+      )}
+    >
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+        {field(t('Campaign name', 'اسم الحملة'), <Input value={v.name} onChange={(e) => set({ name: e.target.value })} />)}
+        {field(
+          t('Code (the CRM tag)', 'الرمز (وسم CRM)'),
+          <>
+            <Input dir="ltr" value={v.code} onChange={(e) => set({ code: e.target.value.toUpperCase() })} placeholder="MKT-2026-046" aria-invalid={dup} />
+            {dup && <span className="text-(--status-error-text)">{t('This code is already used.', 'هذا الرمز مستخدم.')}</span>}
+          </>,
+        )}
+        {field(
+          t('Type', 'النوع'),
+          <Select value={v.type} onValueChange={(x) => set({ type: x as CampaignType })}>
+            <SelectTrigger aria-label={t('Type', 'النوع')}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {(Object.keys(TYPE_LABEL) as CampaignType[]).map((k) => (
+                <SelectItem key={k} value={k}>
+                  {L(TYPE_LABEL[k])}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>,
+        )}
+        {field(t('Starts', 'تبدأ'), <Input type="date" value={v.startDate} onChange={(e) => set({ startDate: e.target.value })} />)}
+        {field(t('Ends', 'تنتهي'), <Input type="date" value={v.endDate} onChange={(e) => set({ endDate: e.target.value })} />)}
+        {field(
+          t('Budget (AED)', 'الميزانية (درهم)'),
+          <Input type="number" min={0} value={v.budget} onChange={(e) => set({ budget: Number(e.target.value) })} />,
+        )}
+        {field(t('Target segment', 'الشريحة المستهدفة'), <Input value={v.segment} onChange={(e) => set({ segment: e.target.value })} />)}
+        {field(t('Persona', 'الشخصية'), <Input value={v.persona} onChange={(e) => set({ persona: e.target.value })} />)}
+        {field(t('Responsible (title)', 'المسؤول (المسمى)'), <Input value={v.owner} onChange={(e) => set({ owner: e.target.value })} />)}
+        {field(t('Channels (comma separated)', 'القنوات (مفصولة بفاصلة)'), <Input value={v.channels} onChange={(e) => set({ channels: e.target.value })} />)}
+        <fieldset className="flex flex-col gap-1 text-xs text-muted-foreground md:col-span-3">
+          <legend className="mb-1">{t('Environments its leads land in (one or more)', 'البيئات التي تصل إليها ليدزها (واحدة أو أكثر)')}</legend>
+          <div className="flex flex-wrap gap-3">
+            {ENVIRONMENTS.map((e) => (
+              <label key={e.id} className="flex items-center gap-2 text-sm text-foreground">
+                <input
+                  type="checkbox"
+                  className="size-4 accent-primary"
+                  checked={v.envIds.includes(e.id)}
+                  onChange={(ev) => set({ envIds: ev.target.checked ? [...v.envIds, e.id] : v.envIds.filter((x) => x !== e.id) })}
+                />
+                {L(e.name)}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      </div>
+      <div className="mt-3 flex justify-end gap-2">
+        <Button size="sm" variant="ghost" onClick={onCancel}>
+          {t('Cancel', 'إلغاء')}
+        </Button>
+        <Button
+          size="sm"
+          disabled={!ok}
+          onClick={() => {
+            const id = `mk-${Date.now().toString(36)}`
+            registerCampaign({
+              id,
+              code: v.code.trim(),
+              name: v.name.trim(),
+              type: v.type,
+              product: v.product,
+              segment: v.segment.trim(),
+              persona: v.persona.trim(),
+              owner: v.owner.trim(),
+              channels: v.channels
+                .split(',')
+                .map((x) => x.trim())
+                .filter(Boolean),
+              startDate: v.startDate,
+              endDate: v.endDate,
+              budget: v.budget,
+              sent: 0,
+              delivered: 0,
+              opened: 0,
+              clicked: 0,
+              segmentMatchPct: 0,
+              envIds: v.envIds,
+              source: 'manual',
+              registeredBy: session?.email ?? '',
+            })
+            log(
+              'action',
+              { en: `Registered the campaign "${v.name.trim()}" (${v.code.trim()}) by hand`, ar: `سجّل الحملة "${v.name.trim()}" (${v.code.trim()}) يدوياً` },
+              '/settings/campaign-audit',
+            )
+            toast.success(t('Registered. Its leads are counted from the CRM tag.', 'سُجّلت. تُعدّ ليدزها من وسم CRM.'))
+            onSaved(id)
+          }}
+        >
+          {t('Register', 'سجّل')}
+        </Button>
+      </div>
+    </SectionCard>
+  )
+}
+
+/** All environments or one; each environment has its own CRM. */
+function EnvFilter({ value, onChange }: { value: EnvId | 'all'; onChange: (v: EnvId | 'all') => void }) {
+  const { t, L } = useI18n()
+  return (
+    <label className="flex min-w-48 flex-col gap-1.5 text-sm">
+      <span className="font-medium text-muted-foreground">{t('Environment', 'البيئة')}</span>
+      <Select value={value} onValueChange={(v) => onChange(v as EnvId | 'all')}>
+        <SelectTrigger aria-label={t('Environment', 'البيئة')}>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">{t('All environments', 'كل البيئات')}</SelectItem>
+          {ENVIRONMENTS.map((e) => (
+            <SelectItem key={e.id} value={e.id}>
+              {L(e.name)}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </label>
+  )
+}
+
+/** One campaign, environment by environment: its leads can land in several CRMs. */
+function EnvBreakdown({ c }: { c: MarketingCampaign }) {
+  const { t, L, lang } = useI18n()
+  const shares = envShares(c)
+  return (
+    <SectionCard
+      title={t('By environment', 'حسب البيئة')}
+      description={t('Each environment has its own CRM; the campaign’s leads are counted in each one.', 'لكل بيئة CRM خاص بها؛ تُعدّ ليدز الحملة في كل واحدة.')}
+    >
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>{t('Environment', 'البيئة')}</TableHead>
+            <TableHead className="text-end">{t('Leads', 'الليدز')}</TableHead>
+            <TableHead className="text-end">{t('Not contacted', 'بلا تواصل')}</TableHead>
+            <TableHead className="text-end">{t('Won', 'مغلقة')}</TableHead>
+            <TableHead className="text-end">{t('Conversion', 'التحويل')}</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {shares.map(({ envId }) => {
+            const tr = trackingIn(c, envId)
+            return (
+              <TableRow key={envId}>
+                <TableCell className="font-medium text-foreground">{L(environmentById(envId).name)}</TableCell>
+                <TableCell className="text-end tabular">{fmt(tr.leads, lang)}</TableCell>
+                <TableCell className="text-end tabular">{fmt(tr.notContacted, lang)}</TableCell>
+                <TableCell className="text-end tabular">{fmt(tr.won, lang)}</TableCell>
+                <TableCell className="text-end tabular">{conversionPct(tr)}%</TableCell>
+              </TableRow>
+            )
+          })}
+        </TableBody>
+      </Table>
+    </SectionCard>
   )
 }
 

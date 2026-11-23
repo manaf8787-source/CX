@@ -1,7 +1,7 @@
 import type { Bi, EnvId, EnvScope, Environment } from '../types'
 
 /**
- * The three CRM environments (v40, F13/F14): separate databases, same business.
+ * The CRM environments (v40, F13/F14): separate databases, each with its own CRM. 23 Nov (owner): PSI-AI added as the fourth.
  * Names are placeholders to confirm with the owner (Programme KB 43.8).
  * `short` is the English label stored in the legacy `environment: string` fields
  * of Person, Interaction, Signal and the rest; `id` is the canonical key.
@@ -10,6 +10,7 @@ export const ENVIRONMENTS: Environment[] = [
   { id: 'dub', name: { en: 'Dubai', ar: 'دبي' }, short: 'Dubai' },
   { id: 'auh', name: { en: 'Abu Dhabi', ar: 'أبوظبي' }, short: 'Abu Dhabi' },
   { id: 'ast', name: { en: 'PSI Assets (rental)', ar: 'PSI للأصول (التأجير)' }, short: 'PSI Assets' },
+  { id: 'ai', name: { en: 'PSI-AI', ar: 'PSI-AI' }, short: 'PSI-AI' },
 ]
 
 export const ENV_IDS: EnvId[] = ENVIRONMENTS.map((e) => e.id)
@@ -41,3 +42,4 @@ export function envNameFromShort(short: string): Bi {
 export function inEnvScope(scope: EnvScope, envId: EnvId): boolean {
   return scope === 'all' || scope === envId
 }
+

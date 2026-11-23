@@ -10,7 +10,7 @@ const b = (en: string, ar: string): Bi => ({ en, ar })
  */
 
 /** The page's path under Settings and reference, listed right after "How the portal works (the AI team)". */
-export const WATCH_PATH = '/settings/watch-ai-team'
+export const WATCH_PATH = '/settings/ai-team'
 
 /** Play advances one step every 750 ms: nine steps, eight advances, 6 seconds from the first step to the last. */
 export const WATCH_STEP_MS = 750
@@ -203,3 +203,4 @@ export const WATCH_COUNTER_LABELS: Record<WatchCounterId, Bi> = {
   handedOver: b('Handed to a person', 'أُحيلت لشخص'),
   briefs: b('Briefs written', 'ملخصات كُتبت'),
 }
+
