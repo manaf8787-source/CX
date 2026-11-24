@@ -13,6 +13,7 @@ import { detectPatternsCached } from '../utils/patterns'
 import { rulesFromConfig } from '../utils/ruleValues'
 import { invId } from '../utils/trace'
 import { useEnvScope } from './envScope'
+import { saveShopperCases } from '../data/shopperSample'
 import type {
   Access,
   AiInterviewCampaign,
@@ -310,13 +311,55 @@ async function createActionFromPattern(input: { pattern: Pattern; kind: Correcti
   return action
 }
 
-async function decideShopperCaseAction(input: { caseId: string; n: number; decision: 'confirmed' | 'modified' | 'rejected' }) {
+async function decideShopperCaseAction(input: {
+  caseId: string
+  n: number
+  decision: 'confirmed' | 'modified' | 'rejected'
+  note?: string
+  plannedFor?: string
+  by?: string
+}) {
   await latency(LATENCY_MS)
   const c = mock.MOCK_SHOPPER_CASES.find((x) => x.id === input.caseId)
   if (!c) throw new Error('Shopper case not found')
   const line = c.proposedActions.find((p) => p.n === input.n)
-  if (line) line.decision = input.decision
-  if (input.decision !== 'confirmed') c.status = 'owner_decision'
+  if (line) {
+    line.decision = input.decision
+    line.decisionNote = input.note
+    line.plannedFor = input.decision === 'rejected' ? undefined : input.plannedFor
+    line.decidedBy = input.by
+    line.decidedAt = new Date().toISOString()
+  }
+  saveShopperCases(mock.MOCK_SHOPPER_CASES)
+  return c
+}
+
+/** 24 Nov (owner): the CX manager checks the evidence; approved, the case goes to its owner. Returned, it waits for more evidence. */
+async function reviewShopperCase(input: { caseId: string; approve: boolean; note?: string; by: string }) {
+  await latency(LATENCY_MS)
+  const c = mock.MOCK_SHOPPER_CASES.find((x) => x.id === input.caseId)
+  if (!c) throw new Error('Shopper case not found')
+  const nowIso = new Date().toISOString()
+  c.cxReview = { by: input.by, at: nowIso, note: input.note, returned: !input.approve }
+  if (input.approve) {
+    c.status = 'owner_decision'
+    if (!c.respondedAt) c.respondedAt = nowIso
+  }
+  saveShopperCases(mock.MOCK_SHOPPER_CASES)
+  return c
+}
+
+/** 24 Nov (owner): the owner marks an approved action done and says what was done, so the CX manager can see it happened. */
+async function markShopperActionDone(input: { caseId: string; n: number; note: string }) {
+  await latency(LATENCY_MS)
+  const c = mock.MOCK_SHOPPER_CASES.find((x) => x.id === input.caseId)
+  if (!c) throw new Error('Shopper case not found')
+  const line = c.proposedActions.find((p) => p.n === input.n)
+  if (line) {
+    line.doneAt = new Date().toISOString()
+    line.doneNote = input.note
+  }
+  saveShopperCases(mock.MOCK_SHOPPER_CASES)
   return c
 }
 
@@ -328,6 +371,7 @@ async function advanceShopperCase(input: { caseId: string; status: ShopperCase['
   c.status = input.status
   if (input.status !== 'open' && !c.respondedAt) c.respondedAt = nowIso
   if (input.status === 'closed' && !c.closedAt) c.closedAt = nowIso
+  saveShopperCases(mock.MOCK_SHOPPER_CASES)
   return c
 }
 
@@ -714,6 +758,22 @@ export function useDecideShopperCaseAction() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: decideShopperCaseAction,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['shopper-cases'] }),
+  })
+}
+
+export function useReviewShopperCase() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: reviewShopperCase,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['shopper-cases'] }),
+  })
+}
+
+export function useMarkShopperActionDone() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: markShopperActionDone,
     onSuccess: () => qc.invalidateQueries({ queryKey: ['shopper-cases'] }),
   })
 }

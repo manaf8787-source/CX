@@ -35,7 +35,6 @@ import { ChartTooltip, ChartWell } from '@/components/common/charts'
 import { chartActiveDot, chartArea, chartAxis, chartCursorLine, chartGrid } from '@/components/common/chartTheme'
 import { TraceId } from '@/components/common/TraceId'
 import { useScrollToTarget } from '@/components/trace/useScrollToTarget'
-import { WhatIfCard } from '@/components/signals/WhatIfCard'
 import { RulesPointer } from '@/components/signals/RulesPointer'
 import { SignalsTable } from './components/SignalsTable'
 import { EmptyState } from '@/components/common/EmptyState'
@@ -117,11 +116,10 @@ export default function Signals() {
         m.environment &&
         (m.environment === envShort || envName.startsWith(envNameFromShort(m.environment).en.toLowerCase()) || envName.startsWith(m.environment.toLowerCase())),
     )
-    const pool = sameEnv.filter((m) => m.sentiment < 0).length
-      ? sameEnv.filter((m) => m.sentiment < 0)
-      : sameEnv.length
-        ? sameEnv
-        : list.filter((m) => m.sentiment < 0)
+    const neg = (l: PublicMention[]) => l.filter((m) => m.sentiment < 0)
+    const open = (l: PublicMention[]) => l.filter((m) => !m.replied)
+    // a breached reply clock means nobody replied: unreplied negative comments of the same environment first
+    const pool = [open(neg(sameEnv)), neg(sameEnv), sameEnv, open(neg(list)), list].find((l) => l.length) ?? list
     const n = Number(signalId.replace(/\D/g, '')) || 0
     return pool[n % pool.length]
   }
@@ -307,7 +305,6 @@ export default function Signals() {
 
       <section id="rules" aria-label={t('Rules for patterns', 'قواعد الأنماط')} className="flex scroll-mt-24 flex-col gap-(--grid-gap)">
         <RulesPointer />
-        <WhatIfCard />
       </section>
 
       {creatingFor && (

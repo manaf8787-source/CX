@@ -31,6 +31,8 @@ import { useNow } from '../hooks/useNow'
 import { AGENT_JDS, CES_SAMPLE } from '../data/v38Reference'
 import { mentionInboxItems, publicReplyBreaches } from '../data/publicMentions'
 import { giftInboxItems, useGifts } from '../data/gifts'
+import { shopperInboxItems } from '../data/shopperInbox'
+import { useShopperWorkflow } from '../data/shopperWorkflow'
 import { useAuth } from '../auth/session'
 import { applyApprovalClock, applyDoneClock } from './fixClockStore'
 import { useCampaignAuditSummary } from './campaignAuditQueries'
@@ -415,6 +417,9 @@ export function useInbox(): {
   const { session } = useAuth()
   const { data: mentions, dataUpdatedAt: t9 } = usePublicMentions()
   const gifts = useGifts()
+  // 24 Nov (owner): mystery shopper cases that wait for this person (CX manager: evidence, close; owner: decide, mark done)
+  const { data: shopperCases, dataUpdatedAt: t10 } = useShopperCases()
+  const { config: shopperCfg } = useShopperWorkflow()
   // Campaign audit rows (v42.1 F33): the Internal Audit and Marketing Lead only, so no other role waits for the audit.
   const auditLead = role.id === 'auditmkt'
   const { data: campaignAudit, isLoading: l8 } = useCampaignAuditSummary({
@@ -441,7 +446,11 @@ export function useInbox(): {
       sampleDue: sample.due,
       campaignAudit: auditLead && campaignAudit ? { waiting: campaignAudit.waiting, finished: campaignAudit.finished } : undefined,
     })
-    const extra = [...mentionInboxItems(role.id, session?.userId, mentions ?? [], now, rules), ...giftInboxItems(role.id, session?.userId, gifts)]
+    const extra = [
+      ...mentionInboxItems(role.id, session?.userId, mentions ?? [], now, rules),
+      ...giftInboxItems(role.id, session?.userId, gifts),
+      ...shopperInboxItems(role.id, role.environment, shopperCases ?? [], shopperCfg, now),
+    ]
     return extra.length ? [...extra, ...base].sort((a, b) => b.priority - a.priority || (a.daysLeft ?? Infinity) - (b.daysLeft ?? Infinity)) : base
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -463,6 +472,9 @@ export function useInbox(): {
     t9,
     session?.userId,
     gifts,
+    shopperCases,
+    t10,
+    shopperCfg,
   ])
   const stats = useMemo(() => workTodayStats(data ?? []), [data])
   return {

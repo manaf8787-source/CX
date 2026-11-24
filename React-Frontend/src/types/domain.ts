@@ -48,13 +48,7 @@ export interface EffortSummary {
   daysSinceLastContact: number
 }
 
-export type RunawayType =
-  | 'went_to_competitor'
-  | 'silent_lead'
-  | 'frozen_deal'
-  | 'did_not_renew'
-  | 'dormant_owner'
-  | 'complained_then_left'
+export type RunawayType = 'went_to_competitor' | 'silent_lead' | 'frozen_deal' | 'did_not_renew' | 'dormant_owner' | 'complained_then_left'
 
 /** FR-2.4 — exactly four parts, every sentence citing a dated timeline event via `evidence`. */
 export interface AiJourneyReading {
@@ -161,24 +155,9 @@ export interface Pattern {
   hasMinimumSample: boolean
 }
 
-export type CorrectiveActionKind =
-  | 'employee'
-  | 'service_behaviour'
-  | 'training_gap'
-  | 'product_app'
-  | 'process'
-  | 'environment'
-  | 'legal_privacy'
-  | 'marketing'
+export type CorrectiveActionKind = 'employee' | 'service_behaviour' | 'training_gap' | 'product_app' | 'process' | 'environment' | 'legal_privacy' | 'marketing'
 
-export type CorrectiveActionStatus =
-  | 'proposed'
-  | 'approved'
-  | 'in_progress'
-  | 'verification'
-  | 'effective'
-  | 'partial'
-  | 'failed'
+export type CorrectiveActionStatus = 'proposed' | 'approved' | 'in_progress' | 'verification' | 'effective' | 'partial' | 'failed'
 
 /** FR-4.1/4.4 — one proposed fix, never auto-applied; the responsible manager must say yes. */
 /** v40 (F21): one line of a fix's audit trail. `byRole` is a role, never a person; 'system' when no role acted. */
@@ -265,7 +244,7 @@ export interface ShopperCase {
   respondDueAt: string
   resolveDueAt: string
   status: ShopperCaseStatus
-  proposedActions: { n: number; text: Bi; decision: 'pending' | 'confirmed' | 'modified' | 'rejected' }[]
+  proposedActions: ShopperProposedAction[]
   /** Checklist category, e.g. "greeting", "pricing_disclosure" — used by
    * FR-4.12's hard constraint: an AI Insight may "send to a case" only when
    * a case in the same category is open. */
@@ -279,6 +258,44 @@ export interface ShopperCase {
   respondedAt?: string
   /** Stops the resolve clock. Set when the case is closed. */
   closedAt?: string
+  /** 24 Nov (owner): what the shopper found, so the person deciding can see the evidence. */
+  visit?: ShopperVisit
+  /** 24 Nov (owner): the CX manager checks the evidence before the case reaches its owner. */
+  cxReview?: { by: string; at: string; note?: string; returned?: boolean }
+}
+
+/** The kind of a proposed action decides what the owner must give when approving: a training date, a session date, a deadline. */
+export type ShopperActionKind = 'training' | 'coaching' | 'process' | 'hr' | 'facility'
+
+export interface ShopperProposedAction {
+  n: number
+  text: Bi
+  decision: 'pending' | 'confirmed' | 'modified' | 'rejected'
+  kind?: ShopperActionKind
+  /** Why it is proposed, in one line. */
+  why?: Bi
+  /** The owner's comment, required for every decision (owner, 24 Nov). */
+  decisionNote?: string
+  /** The date the owner commits to: the training, the session, the deadline. */
+  plannedFor?: string
+  decidedBy?: string
+  decidedAt?: string
+  /** Marked done by the owner, with what was done. */
+  doneAt?: string
+  doneNote?: string
+}
+
+export interface ShopperVisit {
+  date: string
+  /** The branch or the line visited. */
+  where: Bi
+  channel: Bi
+  /** A title and a reference, never a name (NFR-2). */
+  staff: Bi
+  scenario: Bi
+  shopperNote: Bi
+  items: { label: Bi; pass: boolean; note?: Bi }[]
+  evidence: { kind: 'recording' | 'photo' | 'form' | 'chat'; label: Bi }[]
 }
 
 /** FR-4.16 — when evidence is thin, request evidence instead of guessing a fix. */
@@ -393,12 +410,7 @@ export interface AiInterviewCampaign {
 // --- Personas and campaigns ----------------------------------------------
 
 export type PersonaKey =
-  | 'overseas_investor'
-  | 'first_time_expat_buyer'
-  | 'local_family_renter'
-  | 'portfolio_owner'
-  | 'comparison_shopper'
-  | 'referral_driven_member'
+  'overseas_investor' | 'first_time_expat_buyer' | 'local_family_renter' | 'portfolio_owner' | 'comparison_shopper' | 'referral_driven_member'
 
 /** FR-6.1/6.2 — exactly six personas, each with a Marketing recommendation. */
 export interface Persona {

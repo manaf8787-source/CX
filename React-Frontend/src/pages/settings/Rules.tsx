@@ -18,6 +18,7 @@ import { ESCALATION_PRINCIPLES } from '@/data/v38Reference'
 import { MATRIX_COPY } from '@/data/escalationDefaults'
 import { RULE_IDS } from '@/utils/ruleValues'
 import { SURVEY_RULE_IDS } from './SurveyCaps'
+import { ShopperWorkflowSettings } from './ShopperWorkflowSettings'
 import type { Bi, RuleConfigItem } from '@/types'
 
 /** Modules KB §12: the rules layer is five decisions; every number is a setting. */
@@ -37,10 +38,10 @@ const DECISIONS: { n: number; title: Bi; ids: string[]; note?: Bi }[] = [
   {
     n: 2,
     title: { en: 'Decision 2 · Mystery shopper', ar: 'القرار 2 · التسوق السري' },
-    ids: ['rule_shopper_respond', 'rule_shopper_resolve', 'rule_shopper_floor'],
+    ids: ['rule_shopper_floor'],
     note: {
-      en: 'Critical opens a case the same day; medium is a signal; low is an L&D statistic; a visit under the floor is medium.',
-      ar: 'الحرج يفتح حالة في نفس اليوم؛ المتوسط إشارة؛ المنخفض إحصاء للتعلم والتطوير؛ والزيارة تحت الحد متوسطة.',
+      en: 'Critical opens a case the same day; medium is a signal; low is an L&D statistic; a visit under the floor is medium. The case flow, owners and clocks are below.',
+      ar: 'الحرج يفتح حالة في نفس اليوم؛ المتوسط إشارة؛ المنخفض إحصاء للتعلم والتطوير؛ والزيارة تحت الحد متوسطة. مسار الحالة والمالكون والمهل في الأسفل.',
     },
   },
   {
@@ -227,7 +228,9 @@ function RulesBody() {
       rows: d.ids.map((id) => (rules ?? []).find((r) => r.id === id)).filter((r) => !!r),
     }))
     // the three survey numbers moved to Surveys > When we ask
-    const other = (rules ?? []).filter((r) => !placed.has(r.id) && !SURVEY_RULE_IDS.includes(r.id))
+    // 24 Nov: the shopper case clocks moved into the Mystery shopper workflow section (per severity)
+    const moved = ['rule_shopper_respond', 'rule_shopper_resolve']
+    const other = (rules ?? []).filter((r) => !placed.has(r.id) && !SURVEY_RULE_IDS.includes(r.id) && !moved.includes(r.id))
     return [
       ...decided,
       ...(other.length
@@ -363,6 +366,7 @@ function RulesBody() {
                 })}
               </ul>
             </SettingsSection>
+            {group.key === 'd2' && <ShopperWorkflowSettings />}
             {group.key === 'd3' && escalation}
           </Fragment>
         )

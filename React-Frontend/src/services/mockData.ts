@@ -54,6 +54,7 @@ import { PATTERN_RULES, detectPatterns } from '../utils/patterns'
 import { classifyRunaway } from '../utils/runaway'
 import { GLOSSARY_TERMS } from '../data/glossary'
 import { ENVIRONMENTS as ENVIRONMENT_LIST, environmentById } from '../data/environments'
+import { loadShopperCases } from '../data/shopperSample'
 import { RULE_IDS } from '../utils/ruleValues'
 import { MON_FRI } from '../utils/workingDays'
 import { MOCK_MATRIX, WEEKLY_SAMPLE_SIZE, buildWeeklySample, seedAuditLog, seedCallAttempts } from './mockDataV40'
@@ -2404,7 +2405,10 @@ export const MOCK_PATTERNS = detectPatterns(MOCK_SIGNALS, { windowDays: PATTERN_
 export const MOCK_CORRECTIVE_ACTIONS = buildCorrectiveActions(MOCK_PATTERNS, MOCK_SIGNALS)
 tagVipOnFirstFix(MOCK_PERSONS, MOCK_SIGNALS, MOCK_PATTERNS, MOCK_CORRECTIVE_ACTIONS)
 export const MOCK_CORRECTIVE_RATIONALES = buildCorrectiveRationales(MOCK_CORRECTIVE_ACTIONS, MOCK_PATTERNS)
-export const MOCK_SHOPPER_CASES = buildShopperCases()
+// 24 Nov (owner): hand-written sample cases with the visit and real proposed actions. The old generator still runs so the seeded
+// random sequence (and every list built after it) stays the same.
+void buildShopperCases()
+export const MOCK_SHOPPER_CASES = loadShopperCases()
 export const MOCK_AI_INSIGHTS = buildAiInsightEnvelopes(MOCK_SHOPPER_CASES)
 export const MOCK_INVESTIGATIONS = buildInvestigations(MOCK_PATTERNS)
 export const MOCK_HANDOFFS = buildHandoffs(MOCK_PERSONS)
