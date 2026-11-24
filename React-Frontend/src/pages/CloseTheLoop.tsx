@@ -74,7 +74,8 @@ function timesAr(n: number) {
  * v40 (F27): calling hours (config), up to three attempts with the next one on the following working day,
  * a "No answer" action, WhatsApp after the last attempt, then "needs a human" for the CX manager. A DNCR person
  * is never on the list. The next-step box says where this page sits in the six steps. */
-export default function CloseTheLoop() {
+/** `only` (24 Nov, owner): the inbox opens one call on its own page: that row with its actions, no capacity, list or campaigns. */
+export default function CloseTheLoop({ only }: { only?: string } = {}) {
   const { t, L, lang } = useI18n()
   const { role } = useRole()
   const rules = useRules()
@@ -511,98 +512,104 @@ export default function CloseTheLoop() {
   }
 
   // `?item=dcl-3` (My inbox "call" rows): show that row first, with its actions, whatever page of the table it is on.
-  const focusId = params.get('item')
+  const focusId = only ?? params.get('item')
   const focusItem = focusId ? sorted.find((i) => i.id === focusId) : undefined
+  // single-item page: the table holds just that row (with its assignee, status, re-survey and call buttons)
+  const tableRows = only ? sorted.filter((i) => i.id === only) : selected
 
   return (
     <div data-density="dense" className="flex flex-col gap-6">
-      <PageHeader
-        title={t('Close the loop', 'إغلاق الحلقة')}
-        term="Close the loop"
-        description={t(
-          'Every detractor gets a human call, a reason code and a re-survey. Critical cases first.',
-          'كل منتقد يحصل على مكالمة بشرية ورمز سبب وإعادة استبيان. الحالات الحرجة أولاً.',
-        )}
-      />
-
-      <NextBox next={CLOSE_LOOP_NEXT} />
-
-      <SectionCard
-        title={t('Monthly capacity', 'السعة الشهرية')}
-        description={t(
-          'Critical detractors are always called; the rest are sampled to fit the team’s hours.',
-          'المنتقدون الحرجون يُتصل بهم دائماً؛ ويُختار الباقون بالعينة بما يتسع له وقت الفريق.',
-        )}
-      >
-        <div className="flex flex-col gap-5">
-          <div className="grid grid-cols-2 items-end gap-4 sm:grid-cols-4">
-            <NumberField id="ctl-people" label={t('CX people', 'عدد موظفي تجربة العملاء')} value={people} min={1} onChange={setPeople} />
-            <NumberField id="ctl-hours" label={t('Hours/day', 'ساعات/يوم')} value={hoursPerDay} min={1} max={12} onChange={setHoursPerDay} />
-            <NumberField id="ctl-days" label={t('Working days', 'أيام العمل')} value={workingDays} min={1} max={31} onChange={setWorkingDays} />
-            {/* the result sits in a well; the number is ink (colour is never a value) */}
-            <div className="well col-span-2 flex items-center justify-between gap-3 px-4 py-2.5 sm:col-span-1">
-              <span className="text-xs text-muted-foreground">{t('= capacity (4 calls/hour)', '= السعة (4 مكالمات/ساعة)')}</span>
-              <span className="t-kpi" aria-live="polite">
-                {capacity}
-              </span>
-            </div>
-          </div>
-          <Progress value={usedPct} aria-label={t('Share of detractors called', 'نسبة المنتقدين الذين سيُتصل بهم')} />
-          <p className="text-sm text-muted-foreground">
-            <bdi dir="ltr" className="tabular font-medium text-foreground">
-              {selected.length} / {sorted.length}
-            </bdi>{' '}
-            {t('detractors called this month', 'منتقد سيُتصل بهم هذا الشهر')}
-            {excluded.length > 0 && (
-              <>
-                {' '}
-                — <span className="tabular">{excluded.length}</span>{' '}
-                {t(
-                  'sampled out (critical always called at 100%, the rest spread across products/environments)',
-                  'مستبعدون من العينة (الحرج دائماً 100%، والباقي موزَّع على المنتجات والبيئات)',
-                )}
-              </>
+      {!only && (
+        <>
+          <PageHeader
+            title={t('Close the loop', 'إغلاق الحلقة')}
+            term="Close the loop"
+            description={t(
+              'Every detractor gets a human call, a reason code and a re-survey. Critical cases first.',
+              'كل منتقد يحصل على مكالمة بشرية ورمز سبب وإعادة استبيان. الحالات الحرجة أولاً.',
             )}
-          </p>
-        </div>
-      </SectionCard>
+          />
+
+          <NextBox next={CLOSE_LOOP_NEXT} />
+
+          <SectionCard
+            title={t('Monthly capacity', 'السعة الشهرية')}
+            description={t(
+              'Critical detractors are always called; the rest are sampled to fit the team’s hours.',
+              'المنتقدون الحرجون يُتصل بهم دائماً؛ ويُختار الباقون بالعينة بما يتسع له وقت الفريق.',
+            )}
+          >
+            <div className="flex flex-col gap-5">
+              <div className="grid grid-cols-2 items-end gap-4 sm:grid-cols-4">
+                <NumberField id="ctl-people" label={t('CX people', 'عدد موظفي تجربة العملاء')} value={people} min={1} onChange={setPeople} />
+                <NumberField id="ctl-hours" label={t('Hours/day', 'ساعات/يوم')} value={hoursPerDay} min={1} max={12} onChange={setHoursPerDay} />
+                <NumberField id="ctl-days" label={t('Working days', 'أيام العمل')} value={workingDays} min={1} max={31} onChange={setWorkingDays} />
+                {/* the result sits in a well; the number is ink (colour is never a value) */}
+                <div className="well col-span-2 flex items-center justify-between gap-3 px-4 py-2.5 sm:col-span-1">
+                  <span className="text-xs text-muted-foreground">{t('= capacity (4 calls/hour)', '= السعة (4 مكالمات/ساعة)')}</span>
+                  <span className="t-kpi" aria-live="polite">
+                    {capacity}
+                  </span>
+                </div>
+              </div>
+              <Progress value={usedPct} aria-label={t('Share of detractors called', 'نسبة المنتقدين الذين سيُتصل بهم')} />
+              <p className="text-sm text-muted-foreground">
+                <bdi dir="ltr" className="tabular font-medium text-foreground">
+                  {selected.length} / {sorted.length}
+                </bdi>{' '}
+                {t('detractors called this month', 'منتقد سيُتصل بهم هذا الشهر')}
+                {excluded.length > 0 && (
+                  <>
+                    {' '}
+                    — <span className="tabular">{excluded.length}</span>{' '}
+                    {t(
+                      'sampled out (critical always called at 100%, the rest spread across products/environments)',
+                      'مستبعدون من العينة (الحرج دائماً 100%، والباقي موزَّع على المنتجات والبيئات)',
+                    )}
+                  </>
+                )}
+              </p>
+            </div>
+          </SectionCard>
+
+          <SectionCard
+            title={t('Recovered within 60 days', 'التعافي خلال 60 يوماً')}
+            term="Recovered"
+            description={t(
+              'Recovered: within 60 days a CSAT or CES of 4 or 5, an NPS promoter or passive, a transaction, renewal or new lead, or a new contact without a complaint. Not recovered: silent, a detractor again, cancelled or a runaway. Before 60 days: too early.',
+              'التعافي: خلال 60 يوماً تقييم CSAT أو CES بـ 4 أو 5، أو مروّج أو محايد في NPS، أو معاملة أو تجديد أو عميل محتمل جديد، أو تواصل دون شكوى. عدم التعافي: الصمت، أو منتقد مجدداً، أو الإلغاء، أو الهروب. قبل 60 يوماً: مبكر.',
+            )}
+          >
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <div className="well col-span-2 flex flex-col gap-2 sm:col-span-1">
+                <span className="t-small-strong text-muted-foreground">{t('Recovered', 'تعافى')}</span>
+                <span className="flex items-baseline gap-1">
+                  <span className="t-kpi">{rate.pct === null ? '–' : rate.pct}</span>
+                  {rate.pct !== null && <span className="t-unit">%</span>}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  <bdi dir="ltr" className="tabular">
+                    {rate.recovered} / {rate.decided}
+                  </bdi>{' '}
+                  {t('whose 60 days are over', 'ممن انقضت أيامهم الستون')}
+                </span>
+              </div>
+              <div className="well flex flex-col gap-2">
+                <span className="t-small-strong text-muted-foreground">{t('Not recovered', 'لم يتعافَ')}</span>
+                <span className="t-kpi">{rate.decided - rate.recovered}</span>
+              </div>
+              <div className="well flex flex-col gap-2">
+                <span className="t-small-strong text-muted-foreground">{t('Too early', 'مبكر')}</span>
+                <span className="t-kpi">{rate.tooEarly}</span>
+              </div>
+            </div>
+          </SectionCard>
+        </>
+      )}
 
       <SectionCard
-        title={t('Recovered within 60 days', 'التعافي خلال 60 يوماً')}
-        term="Recovered"
-        description={t(
-          'Recovered: within 60 days a CSAT or CES of 4 or 5, an NPS promoter or passive, a transaction, renewal or new lead, or a new contact without a complaint. Not recovered: silent, a detractor again, cancelled or a runaway. Before 60 days: too early.',
-          'التعافي: خلال 60 يوماً تقييم CSAT أو CES بـ 4 أو 5، أو مروّج أو محايد في NPS، أو معاملة أو تجديد أو عميل محتمل جديد، أو تواصل دون شكوى. عدم التعافي: الصمت، أو منتقد مجدداً، أو الإلغاء، أو الهروب. قبل 60 يوماً: مبكر.',
-        )}
-      >
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          <div className="well col-span-2 flex flex-col gap-2 sm:col-span-1">
-            <span className="t-small-strong text-muted-foreground">{t('Recovered', 'تعافى')}</span>
-            <span className="flex items-baseline gap-1">
-              <span className="t-kpi">{rate.pct === null ? '–' : rate.pct}</span>
-              {rate.pct !== null && <span className="t-unit">%</span>}
-            </span>
-            <span className="text-xs text-muted-foreground">
-              <bdi dir="ltr" className="tabular">
-                {rate.recovered} / {rate.decided}
-              </bdi>{' '}
-              {t('whose 60 days are over', 'ممن انقضت أيامهم الستون')}
-            </span>
-          </div>
-          <div className="well flex flex-col gap-2">
-            <span className="t-small-strong text-muted-foreground">{t('Not recovered', 'لم يتعافَ')}</span>
-            <span className="t-kpi">{rate.decided - rate.recovered}</span>
-          </div>
-          <div className="well flex flex-col gap-2">
-            <span className="t-small-strong text-muted-foreground">{t('Too early', 'مبكر')}</span>
-            <span className="t-kpi">{rate.tooEarly}</span>
-          </div>
-        </div>
-      </SectionCard>
-
-      <SectionCard
-        title={t("This month's call list", 'قائمة الاتصال لهذا الشهر')}
-        actions={<span className="tabular text-sm text-muted-foreground">{selected.length}</span>}
+        title={only ? t('The call', 'المكالمة') : t("This month's call list", 'قائمة الاتصال لهذا الشهر')}
+        actions={!only && <span className="tabular text-sm text-muted-foreground">{selected.length}</span>}
         contentClassName="flex flex-col gap-4"
       >
         {/* The calling rules (F27): hours, attempts, next attempt, WhatsApp, "needs a human". Configuration, from Settings → Rules. */}
@@ -616,7 +623,7 @@ export default function CloseTheLoop() {
           </p>
         </div>
 
-        {focusId && (
+        {focusId && !only && (
           <div role="region" aria-label={t('From your inbox', 'من صندوقك')} className="well flex flex-wrap items-center gap-3 px-4 py-3 text-sm">
             <span className="t-small-strong flex items-center gap-2">
               <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-foreground" />
@@ -646,73 +653,78 @@ export default function CloseTheLoop() {
                   : t('That row is not on the list in the current scope.', 'هذا السطر ليس في القائمة ضمن النطاق الحالي.')}
               </span>
             )}
-            <Button variant="ghost" size="icon-sm" onClick={() => setParams({}, { replace: true })} aria-label={t('Close this row', 'إغلاق هذا السطر')}>
-              <X aria-hidden />
-            </Button>
+            {!only && (
+              <Button variant="ghost" size="icon-sm" onClick={() => setParams({}, { replace: true })} aria-label={t('Close this row', 'إغلاق هذا السطر')}>
+                <X aria-hidden />
+              </Button>
+            )}
           </div>
         )}
 
-        {canAssign && stranded.length > 0 && (
-          <div role="alert" className="flex flex-col gap-2.5" data-testid="stranded-cases">
-            {stranded.map(([uid, cases]) => {
-              const left = whyOut(uid) === 'left'
-              const urgent = cases.filter((c) => c.severity === 'critical').length
-              return (
-                <div
-                  key={uid}
-                  className="well flex flex-wrap items-center gap-x-3 gap-y-2 border-s-4 px-4 py-3"
-                  style={{ borderColor: 'var(--status-warning-solid)' }}
-                >
-                  <span className="text-sm text-foreground">
-                    <span className="font-medium">
-                      {t(
-                        `${cases.length} open ${cases.length === 1 ? 'case is' : 'cases are'} with ${nameOf(uid)}`,
-                        `${cases.length} حالة مفتوحة لدى ${nameOf(uid)}`,
-                      )}
-                    </span>
-                    {', '}
-                    {left ? t('who has left the company.', 'الذي غادر الشركة.') : t('who is on leave.', 'وهو في إجازة.')}
-                    {urgent > 0 && <span className="ms-1 font-medium text-destructive">{t(`${urgent} urgent.`, `${urgent} عاجلة.`)}</span>}
-                  </span>
-                  <span className="ms-auto flex items-center gap-2">
-                    <Select onValueChange={(v) => moveAll(uid, cases, v)}>
-                      <SelectTrigger size="sm" className="h-8 min-w-44" aria-label={t('Move these cases to…', 'انقل هذه الحالات إلى…')}>
-                        <SelectValue placeholder={t('Move all to…', 'نقل الكل إلى…')} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="spread">{t('Spread across the available team', 'وزّع على الفريق المتاح')}</SelectItem>
-                        {cxTeam.map((u) => (
-                          <SelectItem key={u.id} value={u.id}>
-                            {u.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </span>
-                </div>
-              )
-            })}
-          </div>
+        {!only && (
+          <>
+            {canAssign && stranded.length > 0 && (
+              <div role="alert" className="flex flex-col gap-2.5" data-testid="stranded-cases">
+                {stranded.map(([uid, cases]) => {
+                  const left = whyOut(uid) === 'left'
+                  const urgent = cases.filter((c) => c.severity === 'critical').length
+                  return (
+                    <div
+                      key={uid}
+                      className="well flex flex-wrap items-center gap-x-3 gap-y-2 border-s-4 px-4 py-3"
+                      style={{ borderColor: 'var(--status-warning-solid)' }}
+                    >
+                      <span className="text-sm text-foreground">
+                        <span className="font-medium">
+                          {t(
+                            `${cases.length} open ${cases.length === 1 ? 'case is' : 'cases are'} with ${nameOf(uid)}`,
+                            `${cases.length} حالة مفتوحة لدى ${nameOf(uid)}`,
+                          )}
+                        </span>
+                        {', '}
+                        {left ? t('who has left the company.', 'الذي غادر الشركة.') : t('who is on leave.', 'وهو في إجازة.')}
+                        {urgent > 0 && <span className="ms-1 font-medium text-destructive">{t(`${urgent} urgent.`, `${urgent} عاجلة.`)}</span>}
+                      </span>
+                      <span className="ms-auto flex items-center gap-2">
+                        <Select onValueChange={(v) => moveAll(uid, cases, v)}>
+                          <SelectTrigger size="sm" className="h-8 min-w-44" aria-label={t('Move these cases to…', 'انقل هذه الحالات إلى…')}>
+                            <SelectValue placeholder={t('Move all to…', 'نقل الكل إلى…')} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="spread">{t('Spread across the available team', 'وزّع على الفريق المتاح')}</SelectItem>
+                            {cxTeam.map((u) => (
+                              <SelectItem key={u.id} value={u.id}>
+                                {u.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            <p className="text-sm text-muted-foreground" data-testid="loop-summary">
+              {(() => {
+                const open = selected.filter((i) => !i.outcome && i.status !== 'done')
+                const unassigned = open.filter((i) => !assignments[i.id]).length
+                const today = new Date().toISOString().slice(0, 10)
+                const late = open.filter((i) => (i.nextAttemptOn ?? i.dueOn ?? '9999') < today).length
+                const asked = open.filter((i) => assignments[i.id]?.askedAgain).length
+                return t(
+                  `${open.length} open · ${unassigned} not assigned · ${late} past their date · ${asked} asked to call again`,
+                  `${open.length} مفتوحة · ${unassigned} غير مُسندة · ${late} تجاوزت موعدها · ${asked} طُلب فيها اتصال آخر`,
+                )
+              })()}
+            </p>
+          </>
         )}
-
-        <p className="text-sm text-muted-foreground" data-testid="loop-summary">
-          {(() => {
-            const open = selected.filter((i) => !i.outcome && i.status !== 'done')
-            const unassigned = open.filter((i) => !assignments[i.id]).length
-            const today = new Date().toISOString().slice(0, 10)
-            const late = open.filter((i) => (i.nextAttemptOn ?? i.dueOn ?? '9999') < today).length
-            const asked = open.filter((i) => assignments[i.id]?.askedAgain).length
-            return t(
-              `${open.length} open · ${unassigned} not assigned · ${late} past their date · ${asked} asked to call again`,
-              `${open.length} مفتوحة · ${unassigned} غير مُسندة · ${late} تجاوزت موعدها · ${asked} طُلب فيها اتصال آخر`,
-            )
-          })()}
-        </p>
-
         {/* 24 Nov (owner): no empty pinned column; the Call / No answer column shows only when one of these rows has a button */}
         <DataTable
-          columns={selected.some((i) => rowActions(i) !== null) ? columns : columns.filter((c) => c.id !== 'call')}
-          data={selected}
+          columns={tableRows.some((i) => rowActions(i) !== null) ? columns : columns.filter((c) => c.id !== 'call')}
+          data={tableRows}
           isLoading={itemsLoading}
           getRowId={(i) => i.id}
           pageSize={10}
@@ -727,73 +739,77 @@ export default function CloseTheLoop() {
         />
       </SectionCard>
 
-      <SectionCard
-        term="Close the loop"
-        title={t('AI interview campaigns', 'حملات المقابلات بالذكاء الاصطناعي')}
-        description={t(
-          `Humans call by default. Hand-off rules: ${rules.aiNoAnswers}x no-answer/hang-up → human; asks for a person or says anything critical → human the same day; declines → no retry. Critical detractors are never in a campaign.`,
-          `الاتصال بشري افتراضياً. قواعد التسليم: عدم الرد ${timesAr(rules.aiNoAnswers)} ← بشري؛ طلب شخص أو قول أمر حرج ← بشري بنفس اليوم؛ الرفض ← دون إعادة محاولة. المنتقدون الحرجون لا يُدرجون في أي حملة أبداً.`,
-        )}
-        actions={
-          canCreateCampaign && (
-            <Button variant="outline" size="sm" onClick={() => setCreatingCampaign(true)}>
-              <Plus aria-hidden />
-              {t('Create campaign', 'إنشاء حملة')}
-            </Button>
-          )
-        }
-      >
-        {campaignsLoading ? (
-          <LoadingState rows={2} />
-        ) : !campaigns?.length ? (
-          <EmptyState title={t('No campaigns yet.', 'لا توجد حملات بعد.')} />
-        ) : (
-          <ul className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            {campaigns.map((c) => {
-              const status = CAMPAIGN_STATUS[c.status] ?? { label: { en: c.status, ar: c.status }, tone: 'neutral' as const }
-              return (
-                <li key={c.id} className="well flex min-w-0 flex-col gap-1.5">
-                  <div className="flex items-start justify-between gap-2">
-                    <span className="t-ui-strong inline-flex items-center gap-2">
-                      <Bot aria-hidden className="size-4 text-muted-foreground" />
-                      {L(c.name)}
-                    </span>
-                    <StatusBadge tone={status.tone} dot>
-                      {L(status.label)}
-                    </StatusBadge>
-                  </div>
-                  <span className="text-sm text-muted-foreground">
-                    {L(c.segmentDescription)} · <span className="tabular">{c.memberIds.length}</span> {t('members', 'عضو')}
-                  </span>
-                  {(() => {
-                    // KB §7: results come back as the same reason codes; people the
-                    // hand-off rules sent back are listed as "handed to a human".
-                    const members = (items ?? []).filter((i) => c.memberIds.includes(i.id))
-                    const coded = members.filter((i) => i.reasonCode).length
-                    const toHuman = members.filter((i) => i.outcome === 'callback_requested').length
-                    return (
-                      <span className="text-sm text-muted-foreground">
-                        {t('Coded results', 'نتائج مرمّزة')}: <span className="tabular font-medium text-foreground">{coded}</span> ·{' '}
-                        {t('Handed to a human', 'حُوّلوا إلى شخص')}: <span className="tabular font-medium text-foreground">{toHuman}</span>
-                      </span>
-                    )
-                  })()}
-                  {/* v42.1 (F33): nothing starts before the Internal Audit and Marketing Lead has cleared it */}
-                  <CampaignGate sourceId={c.id} kind="ai" showStage={false} className="mt-1.5" />
-                </li>
+      {!only && (
+        <>
+          <SectionCard
+            term="Close the loop"
+            title={t('AI interview campaigns', 'حملات المقابلات بالذكاء الاصطناعي')}
+            description={t(
+              `Humans call by default. Hand-off rules: ${rules.aiNoAnswers}x no-answer/hang-up → human; asks for a person or says anything critical → human the same day; declines → no retry. Critical detractors are never in a campaign.`,
+              `الاتصال بشري افتراضياً. قواعد التسليم: عدم الرد ${timesAr(rules.aiNoAnswers)} ← بشري؛ طلب شخص أو قول أمر حرج ← بشري بنفس اليوم؛ الرفض ← دون إعادة محاولة. المنتقدون الحرجون لا يُدرجون في أي حملة أبداً.`,
+            )}
+            actions={
+              canCreateCampaign && (
+                <Button variant="outline" size="sm" onClick={() => setCreatingCampaign(true)}>
+                  <Plus aria-hidden />
+                  {t('Create campaign', 'إنشاء حملة')}
+                </Button>
               )
-            })}
-          </ul>
-        )}
-      </SectionCard>
+            }
+          >
+            {campaignsLoading ? (
+              <LoadingState rows={2} />
+            ) : !campaigns?.length ? (
+              <EmptyState title={t('No campaigns yet.', 'لا توجد حملات بعد.')} />
+            ) : (
+              <ul className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                {campaigns.map((c) => {
+                  const status = CAMPAIGN_STATUS[c.status] ?? { label: { en: c.status, ar: c.status }, tone: 'neutral' as const }
+                  return (
+                    <li key={c.id} className="well flex min-w-0 flex-col gap-1.5">
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="t-ui-strong inline-flex items-center gap-2">
+                          <Bot aria-hidden className="size-4 text-muted-foreground" />
+                          {L(c.name)}
+                        </span>
+                        <StatusBadge tone={status.tone} dot>
+                          {L(status.label)}
+                        </StatusBadge>
+                      </div>
+                      <span className="text-sm text-muted-foreground">
+                        {L(c.segmentDescription)} · <span className="tabular">{c.memberIds.length}</span> {t('members', 'عضو')}
+                      </span>
+                      {(() => {
+                        // KB §7: results come back as the same reason codes; people the
+                        // hand-off rules sent back are listed as "handed to a human".
+                        const members = (items ?? []).filter((i) => c.memberIds.includes(i.id))
+                        const coded = members.filter((i) => i.reasonCode).length
+                        const toHuman = members.filter((i) => i.outcome === 'callback_requested').length
+                        return (
+                          <span className="text-sm text-muted-foreground">
+                            {t('Coded results', 'نتائج مرمّزة')}: <span className="tabular font-medium text-foreground">{coded}</span> ·{' '}
+                            {t('Handed to a human', 'حُوّلوا إلى شخص')}: <span className="tabular font-medium text-foreground">{toHuman}</span>
+                          </span>
+                        )
+                      })()}
+                      {/* v42.1 (F33): nothing starts before the Internal Audit and Marketing Lead has cleared it */}
+                      <CampaignGate sourceId={c.id} kind="ai" showStage={false} className="mt-1.5" />
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+          </SectionCard>
 
-      {canAccessPath(role.id, '/settings/rules') && (
-        <p className="text-sm text-muted-foreground">
-          {t('Calling hours, attempts and the working week are configuration:', 'ساعات الاتصال والمحاولات وأسبوع العمل إعدادات:')}{' '}
-          <Link to="/settings/rules" className="text-foreground underline underline-offset-4">
-            {t('Settings → Rules as configuration', 'الإعدادات ← القواعد كإعدادات')}
-          </Link>
-        </p>
+          {canAccessPath(role.id, '/settings/rules') && (
+            <p className="text-sm text-muted-foreground">
+              {t('Calling hours, attempts and the working week are configuration:', 'ساعات الاتصال والمحاولات وأسبوع العمل إعدادات:')}{' '}
+              <Link to="/settings/rules" className="text-foreground underline underline-offset-4">
+                {t('Settings → Rules as configuration', 'الإعدادات ← القواعد كإعدادات')}
+              </Link>
+            </p>
+          )}
+        </>
       )}
 
       {interviewing && (

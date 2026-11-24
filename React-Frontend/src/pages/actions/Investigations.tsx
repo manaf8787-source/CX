@@ -40,7 +40,8 @@ const KIND_LABEL: Record<'customer_interviews' | 'mystery_shopper_check', { en: 
   mystery_shopper_check: { en: 'Mystery shopper check', ar: 'فحص تسوق سري' },
 }
 
-export default function Investigations() {
+/** `only` (24 Nov, owner): the inbox opens one investigation on its own page. */
+export default function Investigations({ only }: { only?: string } = {}) {
   const { t } = useI18n()
   const { data: investigations, isLoading } = useInvestigations()
   const { data: patterns } = usePatterns()
@@ -48,15 +49,21 @@ export default function Investigations() {
   const [returningId, setReturningId] = useState<string | null>(null)
   const [params] = useSearchParams()
   // `?inv=INV-1` (the inbox, a proposed fix's "Evidence" tag): that investigation is highlighted and scrolled to.
-  const selectedInv = params.get('inv')
+  const selectedInv = only ?? params.get('inv')
 
-  const thinPatterns = (patterns ?? []).filter((p) => !p.hasMinimumSample && !investigations?.some((i) => i.patternId === p.id))
+  const shown = only ? (investigations ?? []).filter((i) => invId(i.id) === only || i.id === only) : investigations
+  const thinPatterns = only ? [] : (patterns ?? []).filter((p) => !p.hasMinimumSample && !investigations?.some((i) => i.patternId === p.id))
 
   return (
     <div data-density="dense" className="flex flex-col gap-4">
-      <InlineNote>
-        {t('When pattern evidence is thin, the system does not guess a fix — it requests customer interviews or a mystery shopper check, and only proposes an action once that evidence comes back.', 'عندما تكون أدلة النمط ضعيفة، لا يُخمَّن حل — بل يُطلب إجراء مقابلات مع العملاء أو فحص تسوق سري، ولا يُقترح إجراء إلا بعد عودة تلك الأدلة.')}
-      </InlineNote>
+      {!only && (
+        <InlineNote>
+          {t(
+            'When pattern evidence is thin, the system does not guess a fix — it requests customer interviews or a mystery shopper check, and only proposes an action once that evidence comes back.',
+            'عندما تكون أدلة النمط ضعيفة، لا يُخمَّن حل — بل يُطلب إجراء مقابلات مع العملاء أو فحص تسوق سري، ولا يُقترح إجراء إلا بعد عودة تلك الأدلة.',
+          )}
+        </InlineNote>
+      )}
 
       {thinPatterns.length > 0 && (
         <SectionCard term="Pattern" title={t('Thin-evidence patterns awaiting a request', 'أنماط ذات أدلة ضعيفة بانتظار طلب')}>
@@ -70,14 +77,16 @@ export default function Investigations() {
 
       {isLoading ? (
         <LoadingState rows={4} />
-      ) : !investigations?.length && !thinPatterns.length ? (
-        <EmptyState title={t('No investigations needed right now — every pattern has enough evidence.', 'لا حاجة لتحقيقات الآن — كل الأنماط لديها أدلة كافية.')} />
+      ) : !shown?.length && !thinPatterns.length ? (
+        <EmptyState
+          title={t('No investigations needed right now — every pattern has enough evidence.', 'لا حاجة لتحقيقات الآن — كل الأنماط لديها أدلة كافية.')}
+        />
       ) : (
-        !!investigations?.length && (
+        !!shown?.length && (
           <Card>
             <CardContent>
               <ul className="flex flex-col">
-                {investigations.map((inv) => (
+                {shown.map((inv) => (
                   <InvestigationRow
                     key={inv.id}
                     inv={inv}
@@ -136,7 +145,7 @@ function InvestigationRow({ inv, pattern, selected, onRecord }: { inv: Investiga
       id={`inv-${invId(inv.id)}`}
       data-inv={invId(inv.id)}
       data-selected={selected ? 'true' : undefined}
-      className={cn('row-divider -mx-3 flex min-w-0 scroll-mt-24 flex-col gap-3 rounded-well px-3 py-5 first:pt-3 last:pb-3', selected && 'row-divider-none ring-selected')}
+      className={cn('row-divider -mx-3 flex min-w-0 scroll-mt-24 flex-col gap-3 rounded-well px-3 py-5 first:pt-3 last:pb-3', selected && 'bg-well')}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-start gap-3">
@@ -230,7 +239,11 @@ function RequestRow({ pattern }: { pattern: Pattern }) {
       <span className="text-sm font-medium text-foreground">
         {L(signalCategoryLabel(pattern.category))} — {pattern.team}{' '}
         <span className="font-normal text-muted-foreground">
-          (<bdi dir="ltr" className="tabular">{pattern.sampleSize}</bdi> {t('signals', 'إشارة')})
+          (
+          <bdi dir="ltr" className="tabular">
+            {pattern.sampleSize}
+          </bdi>{' '}
+          {t('signals', 'إشارة')})
         </span>
       </span>
       <div className="flex items-center gap-2">
@@ -255,7 +268,9 @@ function RequestRow({ pattern }: { pattern: Pattern }) {
               return
             }
             request.mutate({ patternId: pattern.id, kind, requestedCount: 5, environment: pattern.team })
-            toast.success(t('Five customer interviews requested — Close the loop picks the people', 'طُلبت خمس مقابلات مع العملاء — صفحة إغلاق الحلقة تختار الأشخاص'))
+            toast.success(
+              t('Five customer interviews requested — Close the loop picks the people', 'طُلبت خمس مقابلات مع العملاء — صفحة إغلاق الحلقة تختار الأشخاص'),
+            )
           }}
         >
           <Send aria-hidden className="rtl:-scale-x-100" />
@@ -281,7 +296,11 @@ const returnSchema = z.object({ summary: z.string().trim().min(5, 'summary') })
 
 function ReturnDialog({ onCancel, onSubmit }: { onCancel: () => void; onSubmit: (summary: string) => void }) {
   const { t } = useI18n()
-  const { register, handleSubmit, formState: { errors } } = useForm<{ summary: string }>({
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<{ summary: string }>({
     resolver: zodResolver(returnSchema),
     defaultValues: { summary: '' },
   })
@@ -291,7 +310,12 @@ function ReturnDialog({ onCancel, onSubmit }: { onCancel: () => void; onSubmit: 
         <form onSubmit={handleSubmit((v) => onSubmit(v.summary.trim()))} className="flex flex-col gap-5">
           <DialogHeader>
             <DialogTitle>{t('Record the result', 'سجّل النتيجة')}</DialogTitle>
-            <DialogDescription>{t('A short summary is enough. It becomes evidence on the pattern, and a fix is proposed for approval when the pattern has none.', 'يكفي ملخص قصير. يصبح دليلاً على النمط، ويُقترح حل للاعتماد إن لم يكن للنمط حل.')}</DialogDescription>
+            <DialogDescription>
+              {t(
+                'A short summary is enough. It becomes evidence on the pattern, and a fix is proposed for approval when the pattern has none.',
+                'يكفي ملخص قصير. يصبح دليلاً على النمط، ويُقترح حل للاعتماد إن لم يكن للنمط حل.',
+              )}
+            </DialogDescription>
           </DialogHeader>
           <Field data-invalid={!!errors.summary}>
             <FieldLabel htmlFor="inv-summary">{t('What came back', 'ما عاد من نتائج')}</FieldLabel>
@@ -326,7 +350,11 @@ type CheckValues = z.infer<typeof checkSchema>
 /** KB §6 [investigate-form]: requesting a mystery shopper check — environment, scenario and what to look for. */
 function ShopperCheckDialog({ pattern, onCancel, onSubmit }: { pattern: Pattern; onCancel: () => void; onSubmit: (v: CheckValues) => void }) {
   const { t, L } = useI18n()
-  const { register, handleSubmit, formState: { errors } } = useForm<CheckValues>({
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<CheckValues>({
     resolver: zodResolver(checkSchema),
     defaultValues: { environment: pattern.team, scenario: '', lookFor: '' },
   })
@@ -337,7 +365,8 @@ function ShopperCheckDialog({ pattern, onCancel, onSubmit }: { pattern: Pattern;
           <DialogHeader>
             <DialogTitle>{t('Request a mystery shopper check', 'طلب فحص تسوق سري')}</DialogTitle>
             <DialogDescription>
-              {L(signalCategoryLabel(pattern.category))} — {pattern.team}. {t('The result comes back as evidence on the pattern; only then is a fix proposed.', 'تعود النتيجة كدليل على النمط؛ وعندها فقط يُقترح إصلاح.')}
+              {L(signalCategoryLabel(pattern.category))} — {pattern.team}.{' '}
+              {t('The result comes back as evidence on the pattern; only then is a fix proposed.', 'تعود النتيجة كدليل على النمط؛ وعندها فقط يُقترح إصلاح.')}
             </DialogDescription>
           </DialogHeader>
           <FieldGroup>
@@ -348,7 +377,12 @@ function ShopperCheckDialog({ pattern, onCancel, onSubmit }: { pattern: Pattern;
             </Field>
             <Field data-invalid={!!errors.scenario}>
               <FieldLabel htmlFor="chk-scenario">{t('Scenario', 'السيناريو')}</FieldLabel>
-              <Input id="chk-scenario" aria-invalid={!!errors.scenario} placeholder={t('e.g. walk-in with no lead', 'مثال: زيارة دون عميل محتمل')} {...register('scenario')} />
+              <Input
+                id="chk-scenario"
+                aria-invalid={!!errors.scenario}
+                placeholder={t('e.g. walk-in with no lead', 'مثال: زيارة دون عميل محتمل')}
+                {...register('scenario')}
+              />
               {errors.scenario && <FieldError>{t('Describe the scenario (at least 5 characters).', 'صف السيناريو (5 أحرف على الأقل).')}</FieldError>}
             </Field>
             <Field data-invalid={!!errors.lookFor}>

@@ -1,3 +1,4 @@
+import { inboxItemHref } from './InboxItem'
 import { Link } from 'react-router-dom'
 import {
   ClipboardCheck,
@@ -138,7 +139,7 @@ export default function Inbox() {
                 ),
                 end: canAccessPath(role.id, path) && (
                   <Button asChild variant="outline" size="sm">
-                    <Link to={item.target}>
+                    <Link to={inboxItemHref(item.target)}>
                       {L(INBOX_COPY.open)}
                       <span className="sr-only"> · {L(item.text)}</span>
                     </Link>
@@ -197,7 +198,7 @@ export default function Inbox() {
                       <TableCell className="text-end">
                         {canAccessPath(role.id, path) && (
                           <Button asChild variant="outline" size="sm">
-                            <Link to={item.target}>
+                            <Link to={inboxItemHref(item.target)}>
                               {L(INBOX_COPY.open)}
                               <span className="sr-only"> · {L(item.text)}</span>
                             </Link>

@@ -194,6 +194,8 @@ export interface CorrectiveAction {
   product: ProductId
   /** v40 (F21): every status change and decision, oldest first in storage (UIs show newest first). Nothing is deleted. */
   auditLog: AuditEntry[]
+  /** 24 Nov (owner): what the owner did, required when marking the fix done; read by CX at the 60-day check. */
+  completion?: { note: string; doneOn: string; evidence?: string; by?: string; byRole: RoleId | 'system'; at: string }
   /** v40 (F26): set when the fix was proposed from a returned investigation. */
   source?: { investigationId: string }
   /** v40 (F26): who proposed it when it was not the standard flow, e.g. "Agent 5, from the investigation". */

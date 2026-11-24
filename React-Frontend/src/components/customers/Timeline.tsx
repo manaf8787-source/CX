@@ -115,7 +115,7 @@ export function Timeline({ interactions }: { interactions: Interaction[] }) {
                 data-highlighted={target ? 'true' : undefined}
                 tabIndex={target ? -1 : undefined}
                 // an event is a well; the one named by ?ev= is the selected row (the 1.5px ink ring), and takes the focus ring when focused
-                className={cn('glass flex scroll-mt-24 gap-3 rounded-well px-4 py-3.5', target && 'ring-selected')}
+                className={cn('glass flex scroll-mt-24 gap-3 rounded-well px-4 py-3.5')}
               >
                 {/* the channel icon in a 30px circle: dark material for an event the rules flagged; a 6px status dot at its corner (red = problem, blue = public channel) */}
                 <span aria-hidden className={cn('relative inline-grid size-[30px] shrink-0 place-items-center rounded-full', hasProblem ? 'material-dark' : 'material-light')}>

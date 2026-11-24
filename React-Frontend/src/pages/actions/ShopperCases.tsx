@@ -72,14 +72,15 @@ function stepsFor(c: ShopperCase, cfg: ShopperWorkflowConfig) {
   return { steps, step: steps.findIndex((s) => s.key === key) }
 }
 
-export default function ShopperCases() {
+/** `only` (24 Nov, owner): the inbox opens one case on its own page. */
+export default function ShopperCases({ only }: { only?: string } = {}) {
   const { t, L, lang } = useI18n()
   const { role } = useRole()
   const { session } = useAuth()
   const users = useUsers()
   const me = users.find((u) => u.id === session?.userId)?.name ?? role.name.en
   const [params] = useSearchParams()
-  const focus = params.get('case')
+  const focus = only ?? params.get('case')
   const { data: cases, isLoading, error, refetch } = useShopperCases()
   const decide = useDecideShopperCaseAction()
   const review = useReviewShopperCase()
@@ -99,7 +100,9 @@ export default function ShopperCases() {
 
   // the owner sees a case only after the CX manager has checked the evidence
   // L&D sees only the cases with a training sent to it
-  const visible = (cases ?? []).filter((c) => (isLd ? c.proposedActions.some((p) => p.deliveredBy === 'ld') : cx || !awaitingCxReview(c, cfg)))
+  const visible = (cases ?? [])
+    .filter((c) => !only || c.id === only)
+    .filter((c) => (isLd ? c.proposedActions.some((p) => p.deliveredBy === 'ld') : cx || !awaitingCxReview(c, cfg)))
 
   useEffect(() => {
     if (!focus || !visible.length) return
@@ -125,7 +128,7 @@ export default function ShopperCases() {
             const failed = v?.items.filter((i) => !i.pass).length ?? 0
             return (
               <li key={c.id} id={`case-${c.id}`} className="scroll-mt-24">
-                <Card className={cn(focus === c.id && 'ring-2 ring-foreground/70')}>
+                <Card>
                   <CardContent className="flex flex-col gap-5">
                     {/* header */}
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">

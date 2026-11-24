@@ -356,7 +356,7 @@ function PatternRow({
       id={`pattern-${p.traceId}`}
       data-pattern={p.traceId}
       data-selected={selected ? 'true' : undefined}
-      className={cn('row-divider -mx-3 min-w-0 scroll-mt-24 rounded-well px-3 py-5 first:pt-3 last:pb-3', selected && 'row-divider-none ring-selected')}
+      className={cn('row-divider -mx-3 min-w-0 scroll-mt-24 rounded-well px-3 py-5 first:pt-3 last:pb-3', selected && 'bg-well')}
     >
       <div className="grid min-w-0 gap-x-8 gap-y-4 lg:grid-cols-2">
         <div className="flex min-w-0 flex-col gap-3">

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { CalendarClock, CheckCheck, ChevronDown, FileSearch, Gavel, Package, Play, Route, Star, UserRound } from 'lucide-react'
 import { toast } from 'sonner'
@@ -27,6 +27,11 @@ import { useScrollToTarget } from '@/components/trace/useScrollToTarget'
 import { cn } from '@/lib/utils'
 import type { Bi, CorrectiveAction, Pattern } from '@/types'
 import { InlineNote } from '@/components/common/InlineNote'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { useAuth } from '@/auth/session'
+import { useUsers } from '@/data/users'
 import { LifecycleStepper } from './LifecycleStepper'
 import { HowAiFoundThis } from './HowAiFoundThis'
 import { MatrixLine } from './MatrixLine'
@@ -76,6 +81,10 @@ export function FixCard({ fix: a, pattern, selected, now, onDecide, open, onOpen
   const itemRef = useRef<HTMLLIElement>(null)
   const headingRef = useRef<HTMLHeadingElement>(null)
   const canAct = canActOnCorrectiveAction(role.id, a.kind)
+  const [finishing, setFinishing] = useState(false)
+  const { session } = useAuth()
+  const users = useUsers()
+  const me = users.find((u) => u.id === session?.userId)?.name
 
   useScrollToTarget(itemRef, selected)
   useEffect(() => {
@@ -116,7 +125,7 @@ export function FixCard({ fix: a, pattern, selected, now, onDecide, open, onOpen
         {t('Start', 'بدء')}
       </Button>
     ) : a.status === 'in_progress' ? (
-      <Button size="sm" disabled={setStatus.isPending} onClick={() => move('verification')}>
+      <Button size="sm" disabled={setStatus.isPending} onClick={() => setFinishing(true)}>
         <CheckCheck aria-hidden />
         {t('Done, start the 60-day check', 'تم، ابدأ فحص 60 يوماً')}
       </Button>
@@ -150,7 +159,7 @@ export function FixCard({ fix: a, pattern, selected, now, onDecide, open, onOpen
       ref={itemRef}
       id={`fix-${caId(a.id)}`}
       data-density="comfortable"
-      className={cn('surface-card flex scroll-mt-24 flex-col gap-5 p-(--card-pad)', selected && 'ring-selected')}
+      className={cn('surface-card flex scroll-mt-24 flex-col gap-5 p-(--card-pad)')}
       data-fix={caId(a.id)}
       data-tour="fix-card"
       data-selected={selected ? 'true' : undefined}
@@ -191,6 +200,39 @@ export function FixCard({ fix: a, pattern, selected, now, onDecide, open, onOpen
       </div>
 
       <FixProblem fix={a} pattern={pattern} />
+      {a.completion && (
+        <section className="well flex flex-col gap-1.5 text-sm" aria-label={t('What was done', 'ما الذي نُفذ')}>
+          <span className="t-body-s inline-flex items-center gap-1.5">
+            <CheckCheck aria-hidden className="size-3.5" />
+            {t('What was done', 'ما الذي نُفذ')}
+          </span>
+          <p className="text-foreground">“{a.completion.note}”</p>
+          <span className="text-muted-foreground">
+            {t('Done on', 'نُفذ في')}{' '}
+            {new Date(a.completion.doneOn).toLocaleDateString(lang === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        {a.completion.by ? ` · ${a.completion.by}` : ''}
+            {a.completion.evidence ? (
+              <>
+                {' · '}
+                {t('Evidence', 'الدليل')}: <span className="text-foreground">{a.completion.evidence}</span>
+              </>
+            ) : null}
+          </span>
+        </section>
+      )}
+      {finishing && (
+        <DoneDialog
+          title={L(a.title)}
+          onCancel={() => setFinishing(false)}
+          onSave={(v) => {
+            setFinishing(false)
+            setStatus.mutate(
+              { id: a.id, status: 'verification', completion: { ...v, by: me } },
+              { onSuccess: () => toast.success(t('Marked done; the 60-day check is scheduled', 'عُلّم منجزاً؛ جُدول فحص الـ60 يوماً')) },
+            )
+          }}
+        />
+      )}
 
       <div className="well flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
         <span className="inline-flex items-center gap-1.5">
@@ -318,4 +360,86 @@ function EvidenceTag({ investigationId }: { investigationId: string }) {
     )
   }
   return <StatusBadge tone="info">{label}</StatusBadge>
+}
+
+/** 24 Nov (owner): "what does done mean?" Marking a fix done needs what was done and when; evidence is optional. */
+function DoneDialog({
+  title,
+  onCancel,
+  onSave,
+}: {
+  title: string
+  onCancel: () => void
+  onSave: (v: { note: string; doneOn: string; evidence?: string }) => void
+}) {
+  const { t } = useI18n()
+  const [note, setNote] = useState('')
+  const [doneOn, setDoneOn] = useState(new Date().toISOString().slice(0, 10))
+  const [evidence, setEvidence] = useState('')
+  const [tried, setTried] = useState(false)
+  const short = note.trim().length < 20
+  return (
+    <Dialog open onOpenChange={(o) => !o && onCancel()}>
+      <DialogContent className="sm:max-w-lg">
+        <form
+          className="flex flex-col gap-5"
+          onSubmit={(e) => {
+            e.preventDefault()
+            setTried(true)
+            if (!short && doneOn) onSave({ note: note.trim(), doneOn, evidence: evidence.trim() || undefined })
+          }}
+        >
+          <DialogHeader>
+            <DialogTitle>{t('Mark the fix done', 'علّم الإجراء كمنجز')}</DialogTitle>
+            <DialogDescription>{title}</DialogDescription>
+          </DialogHeader>
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium text-foreground">
+              {t('What exactly did you do?', 'ماذا فعلت بالضبط؟')} {t('(required)', '(مطلوب)')}
+            </span>
+            <Textarea
+              rows={4}
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder={t(
+                'For example: added a second agent on the Dubai queue from 12:00 to 16:00; set a CRM reminder 30 minutes before the reply time; told the team on 24 Nov.',
+                'مثال: أضفت وكيلاً ثانياً على طابور دبي من 12:00 إلى 16:00؛ وفعّلت تذكيراً في CRM قبل 30 دقيقة من وقت الرد؛ وأبلغت الفريق في 24 نوفمبر.',
+              )}
+              aria-invalid={tried && short}
+            />
+            {tried && short && (
+              <span className="text-xs text-(--status-error-text)">
+                {t('Say what you did, in at least one full sentence.', 'اذكر ما فعلته في جملة كاملة على الأقل.')}
+              </span>
+            )}
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium text-foreground">
+              {t('Done on', 'تاريخ التنفيذ')} {t('(required)', '(مطلوب)')}
+            </span>
+            <Input type="date" value={doneOn} onChange={(e) => setDoneOn(e.target.value)} className="w-48" />
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium text-foreground">
+              {t('Evidence', 'الدليل')} {t('(optional)', '(اختياري)')}
+            </span>
+            <Input
+              value={evidence}
+              onChange={(e) => setEvidence(e.target.value)}
+              placeholder={t('A link, a file name, or where it can be checked', 'رابط أو اسم ملف أو مكان التحقق')}
+            />
+          </label>
+          <p className="text-xs text-muted-foreground">
+            {t('CX reads this at the 60-day check, next to the numbers.', 'يقرأ فريق CX هذا عند فحص الـ60 يوماً بجانب الأرقام.')}
+          </p>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onCancel}>
+              {t('Cancel', 'إلغاء')}
+            </Button>
+            <Button type="submit">{t('Mark done', 'علّم كمنجز')}</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
 }

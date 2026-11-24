@@ -598,7 +598,7 @@ export function useSetFixStatus() {
   const qc = useQueryClient()
   const { role } = useRole()
   return useMutation({
-    mutationFn: async (input: { id: string; status: CorrectiveActionStatus; byRole?: RoleId | 'system' }) => {
+    mutationFn: async (input: { id: string; status: CorrectiveActionStatus; byRole?: RoleId | 'system'; completion?: { note: string; doneOn: string; evidence?: string; by?: string } }) => {
       await latency(LATENCY_MS)
       const fix = mock.MOCK_CORRECTIVE_ACTIONS.find((f) => f.id === input.id)
       if (!fix) throw new Error('Corrective action not found')
@@ -608,6 +608,12 @@ export function useSetFixStatus() {
       if (input.status === 'verification') applyDoneClock(fix)
       if (input.status === 'effective' || input.status === 'partial' || input.status === 'failed') fix.verificationResult = input.status
       fix.auditLog.push(statusAudit(input.status, input.byRole ?? role.id))
+      // 24 Nov (owner): marking done needs what was done; it is kept on the fix and in the audit trail
+      if (input.status === 'verification' && input.completion) {
+        const byRole = input.byRole ?? role.id
+        fix.completion = { ...input.completion, byRole, at: new Date().toISOString() }
+        fix.auditLog.push({ at: new Date().toISOString(), byRole, what: { en: `What was done: ${input.completion.note}`, ar: `ما الذي نُفذ: ${input.completion.note}` } })
+      }
       return fix
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['corrective-actions'] }),

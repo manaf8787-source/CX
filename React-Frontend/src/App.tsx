@@ -35,6 +35,7 @@ const Investigations = lazy(pageLoaders.investigations)
 
 const SettingsLayout = lazy(pageLoaders.settingsLayout)
 const Inbox = lazy(pageLoaders.inbox)
+const InboxItem = lazy(() => import('./pages/inbox/InboxItem'))
 const OverviewPage = lazy(pageLoaders.overview)
 const Feeds = lazy(pageLoaders.feeds)
 const CrmMapping = lazy(pageLoaders.crmMapping)
@@ -118,6 +119,7 @@ export default function App() {
                       <Route path="/close-the-loop" element={<CloseTheLoop />} />
                       <Route path="/personas" element={<Personas />} />
                       <Route path="/inbox" element={<Inbox />} />
+                      <Route path="/inbox/open/*" element={<InboxItem />} />
                       <Route path="/overview" element={<OverviewPage />} />
                       {/* Old URLs keep working (AccessGuard redirects them before the role check; these keep the routes matched). */}
                       <Route path="/surveys" element={<Navigate to="/settings/surveys" replace />} />

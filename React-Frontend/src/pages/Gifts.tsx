@@ -942,7 +942,8 @@ function ItemForm({ by, onClose }: { by: string; onClose: () => void }) {
  * 23 Nov (owner): the requests between the CX team and the CX manager. The CX manager approves or rejects; the member who asked sends the
  * approved ones. Each card is the same workflow as on the comment or the customer, so it can be done from here too.
  */
-function ApprovalsTab() {
+/** `only` (24 Nov, owner): the inbox opens one gift request on its own page. */
+export function ApprovalsTab({ only }: { only?: string } = {}) {
   const { t, L, lang } = useI18n()
   const { role } = useRole()
   const { session } = useAuth()
@@ -960,6 +961,7 @@ function ApprovalsTab() {
   const open = s.gifts
     .filter((x) => x.status === 'pending' || x.status === 'approved' || x.status === 'rejected')
     .filter((x) => isManager || x.requestedById === session?.userId)
+    .filter((x) => !only || x.id === only)
     .sort((a, b) => (a.status === 'pending' ? -1 : 0) - (b.status === 'pending' ? -1 : 0) || b.requestedAt.localeCompare(a.requestedAt))
   const fmt = (d: string) =>
     new Intl.DateTimeFormat(lang === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(d))
@@ -972,13 +974,13 @@ function ApprovalsTab() {
       />
     )
   return (
-    <div className="grid gap-4 lg:grid-cols-2">
+    <div className={cn('grid gap-4', !only && 'lg:grid-cols-2')}>
       {open.map((x) => {
         const person = persons?.find((p) => p.id === x.personId)
         const ref = x.relatedRef ?? x.id
         const fromMention = ref.startsWith('PUB-')
         return (
-          <div key={x.id} id={`gift-${x.id}`} className={cn('scroll-mt-24 rounded-[inherit]', focus === x.id && 'rounded-2xl ring-selected')}>
+          <div key={x.id} id={`gift-${x.id}`} className={cn('scroll-mt-24 rounded-[inherit]')}>
             <SectionCard
               title={x.fullName || (fromMention ? t('A public commenter', 'صاحب تعليق عام') : t('Customer', 'عميل'))}
               description={

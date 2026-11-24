@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { inboxItemHref } from '@/pages/inbox/InboxItem'
 import { ArrowRight } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { useRole } from '@/auth/RoleContext'
@@ -66,7 +67,7 @@ export function WorkToday({ className }: { className?: string }) {
                   <span className="min-w-0 flex-1 basis-56 text-base">{L(item.text)}</span>
                   {canAccessPath(role.id, path) && (
                     <Button asChild variant="outline" size="sm">
-                      <Link to={item.target}>
+                      <Link to={inboxItemHref(item.target)}>
                         {L(INBOX_COPY.open)}
                         <span className="sr-only"> · {L(item.text)}</span>
                       </Link>
