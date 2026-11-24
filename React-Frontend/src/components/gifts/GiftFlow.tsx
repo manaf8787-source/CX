@@ -192,6 +192,31 @@ export function GiftFlow({
         {existing.approvedBy && existing.status !== 'pending' && t(` · approved by ${existing.approvedBy}`, ` · وافق ${existing.approvedBy}`)}
         {item && ` · ${L(item.name)}`}
       </p>
+      {/* 24 Nov (owner): the CX manager decides from the full case and the team member's note */}
+      {(existing.caseTitle || existing.caseFacts?.length) && (
+        <div className="flex flex-col gap-1.5 rounded-lg bg-muted/50 p-2.5 text-sm">
+          <span className="text-xs font-medium text-muted-foreground">
+            {t('The case', 'الحالة')}
+            {existing.where && ` · ${existing.where}`}
+          </span>
+          {existing.caseTitle && <span className="font-medium text-foreground">{L(existing.caseTitle)}</span>}
+          {existing.caseFacts && (
+            <ul className="flex list-disc flex-col gap-1 ps-4">
+              {existing.caseFacts.map((f) => (
+                <li key={f.en}>{L(f)}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+      {existing.teamNote && (
+        <div className="flex flex-col gap-1 rounded-lg border-s-2 border-(--status-info-solid) bg-muted/30 p-2.5 text-sm">
+          <span className="text-xs font-medium text-muted-foreground">
+            {t(`Why ${existing.requestedBy} recommends it`, `ليش ${existing.requestedBy} بيقترحها`)}
+          </span>
+          <span className="whitespace-pre-wrap">{L(existing.teamNote)}</span>
+        </div>
+      )}
       {existing.justification && <p className="whitespace-pre-wrap rounded-lg bg-muted/50 p-2 text-sm">{existing.justification}</p>}
       {existing.decisionNote && <p className="text-xs">{t(`CX manager: “${existing.decisionNote}”`, `مدير CX: “${existing.decisionNote}”`)}</p>}
 

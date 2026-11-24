@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Check, Download, Gift as GiftIcon, Mail, PackagePlus, Plus, Search, X } from 'lucide-react'
@@ -88,7 +88,8 @@ export default function Gifts() {
         <TabsList aria-label={t('Gifts', 'الهدايا')}>
           <TabsTrigger value="send">{t('Send a gift', 'أرسل هدية')}</TabsTrigger>
           <TabsTrigger value="approvals">
-            {t('Approvals', 'الموافقات')}
+            {/* 24 Nov (owner): the CX team sends requests to the CX manager, so for them the tab is "My requests"; the CX manager approves */}
+            {role.id === 'cxmgr' ? t('Approvals', 'الموافقات') : t('My requests', 'طلباتي')}
             {waiting > 0 && <span className="ms-1.5 rounded-full bg-foreground px-1.5 text-xs text-background tabular">{waiting}</span>}
           </TabsTrigger>
           <TabsTrigger value="history">{t('History', 'السجل')}</TabsTrigger>
@@ -951,6 +952,14 @@ function ApprovalsTab() {
   const s = useGifts()
   const { data: persons } = usePersonsAll()
   const isManager = role.id === 'cxmgr'
+  // 24 Nov: an inbox row opens the approvals with that gift (?gift=) scrolled to and ringed
+  const [params] = useSearchParams()
+  const focus = params.get('gift')
+  useEffect(() => {
+    if (!focus) return
+    const id = window.setTimeout(() => document.getElementById(`gift-${focus}`)?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 300)
+    return () => window.clearTimeout(id)
+  }, [focus])
   const open = s.gifts
     .filter((x) => x.status === 'pending' || x.status === 'approved' || x.status === 'rejected')
     .filter((x) => isManager || x.requestedById === session?.userId)
@@ -972,26 +981,27 @@ function ApprovalsTab() {
         const ref = x.relatedRef ?? x.id
         const fromMention = ref.startsWith('PUB-')
         return (
-          <SectionCard
-            key={x.id}
-            title={x.fullName || (fromMention ? t('A public commenter', 'صاحب تعليق عام') : t('Customer', 'عميل'))}
-            description={
-              <span>
-                {fmt(x.requestedAt)} · {L(REASON_LABEL[x.reason])} ·{' '}
-                {fromMention ? (
-                  <Link to={`/settings/public-mentions?open=${ref}`} className="underline underline-offset-2">
-                    {t(`Public comment ${ref}`, `التعليق العام ${ref}`)}
-                  </Link>
-                ) : person ? (
-                  <Link to={`/customers/${person.id}`} className="underline underline-offset-2">
-                    {t('Customer record', 'سجل العميل')}
-                  </Link>
-                ) : null}
-              </span>
-            }
-          >
-            <GiftFlow relatedRef={ref} person={person} fullName={x.fullName} justification={x.justification ?? ''} reason={x.reason} />
-          </SectionCard>
+          <div key={x.id} id={`gift-${x.id}`} className={cn('scroll-mt-24 rounded-[inherit]', focus === x.id && 'rounded-2xl ring-selected')}>
+            <SectionCard
+              title={x.fullName || (fromMention ? t('A public commenter', 'صاحب تعليق عام') : t('Customer', 'عميل'))}
+              description={
+                <span>
+                  {fmt(x.requestedAt)} · {L(REASON_LABEL[x.reason])} ·{' '}
+                  {fromMention ? (
+                    <Link to={`/settings/public-mentions?open=${ref}`} className="underline underline-offset-2">
+                      {t(`Public comment ${ref}`, `التعليق العام ${ref}`)}
+                    </Link>
+                  ) : person ? (
+                    <Link to={`/customers/${person.id}`} className="underline underline-offset-2">
+                      {t('Customer record', 'سجل العميل')}
+                    </Link>
+                  ) : null}
+                </span>
+              }
+            >
+              <GiftFlow relatedRef={ref} person={person} fullName={x.fullName} justification={x.justification ?? ''} reason={x.reason} />
+            </SectionCard>
+          </div>
         )
       })}
     </div>

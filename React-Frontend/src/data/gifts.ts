@@ -79,6 +79,13 @@ export interface Gift {
   decidedAt?: string
   /** The CX manager's note when approving or rejecting. */
   decisionNote?: string
+  /** 24 Nov (owner): the case behind the request, so the CX manager decides from the full story: a one-line title and the facts, oldest first. */
+  caseTitle?: Bi
+  caseFacts?: Bi[]
+  /** The CX team member's own note: why they want to give it. */
+  teamNote?: Bi
+  /** Where the customer is (environment and product), for the card. */
+  where?: string
 }
 
 export interface GiftState {
@@ -212,13 +219,241 @@ function g(
   }
 }
 
-const DEFAULT_STATE: GiftState = { items: DEFAULT_ITEMS, moves: DEFAULT_MOVES, gifts: DEFAULT_GIFTS, adminEmail: 'administration@psi.sample' }
+/**
+ * 24 Nov (owner): proposed gifts for the CX manager to test the approval: five waiting, one already approved (for the team member to send) and
+ * one rejected. Each carries the case and the team member's note. Sample customers.
+ */
+const hoursAgo = (h: number) => new Date(Date.now() - h * 3_600_000).toISOString()
+function proposal(x: Partial<Gift> & Pick<Gift, 'id' | 'fullName' | 'reason' | 'requestedBy' | 'requestedById' | 'status'>, h: number): Gift {
+  return {
+    phone: '',
+    contactMethod: 'call',
+    address: '',
+    deliverOn: '',
+    deliverWindow: '10:00–13:00',
+    itemId: '',
+    qty: 1,
+    emailedTo: 'administration@psi.sample',
+    requestedAt: hoursAgo(h),
+    ...x,
+    // the approval card finds its gift by this reference
+    relatedRef: x.relatedRef ?? x.id,
+  }
+}
+const PROPOSALS: Gift[] = [
+  proposal(
+    {
+      id: 'gf-201',
+      fullName: 'Mariam Al Hashimi',
+      where: 'PSI Assets · Abu Dhabi (tenant)',
+      reason: 'recovery',
+      itemId: 'gi-flowers',
+      relatedRef: 'PUB-306',
+      requestedBy: 'Abeer',
+      requestedById: 'u-cxteam',
+      status: 'pending',
+      caseTitle: b('AC maintenance ignored for 18 days, then a public complaint', 'صيانة المكيف أُهملت 18 يوماً، ثم شكوى علنية'),
+      caseFacts: [
+        b(
+          '27 Sep: maintenance request in the tenant app (AC not cooling). Target: visit within 2 working days.',
+          '27 سبتمبر: طلب صيانة بالتطبيق (المكيف لا يبرّد). الهدف: زيارة خلال يومي عمل.',
+        ),
+        b(
+          '2, 6 and 9 Oct: she called the call center three times; each time "we will get back to you".',
+          '2 و6 و9 أكتوبر: اتصلت بمركز الاتصال 3 مرات؛ كل مرة "سنعود إليك".',
+        ),
+        b(
+          '11 Oct: Facebook post "Rental maintenance request ignored for two weeks" (PUB-306). We replied publicly after 5 h.',
+          '11 أكتوبر: منشور فيسبوك "طلب الصيانة متجاهل أسبوعين" (PUB-306). رددنا علناً بعد 5 ساعات.',
+        ),
+        b(
+          '15 Oct: AC fixed, 18 days after the request. Survey after the fix: 2 out of 5.',
+          '15 أكتوبر: أُصلح المكيف بعد 18 يوماً. الاستبيان بعد الإصلاح: 2 من 5.',
+        ),
+        b('Her lease renews on 10 January 2027.', 'عقدها يتجدد في 10 يناير 2027.'),
+      ],
+      teamNote: b(
+        'She chased us three times and only got help after posting publicly. Her lease renews in January and she told me she is looking elsewhere. I would like to send flowers with a handwritten apology, and the leasing manager will call her the same day.',
+        'لاحقتنا ثلاث مرات وما انحلت مشكلتها إلا بعد ما نشرت علناً. عقدها يتجدد بيناير وقالتلي إنها بتدور على بديل. بدي أبعثلها ورد مع اعتذار مكتوب، ومدير التأجير يتصل فيها بنفس اليوم.',
+      ),
+    },
+    3,
+  ),
+  proposal(
+    {
+      id: 'gf-202',
+      fullName: 'Faisal Rahman',
+      where: 'PSI Real Estate · Abu Dhabi (buyer)',
+      reason: 'recovery',
+      itemId: 'gi-dinner',
+      relatedRef: 'PUB-327',
+      requestedBy: 'Dina',
+      requestedById: 'u-cxteam3',
+      status: 'pending',
+      caseTitle: b('Waited 40 minutes at Reem Island for a booked viewing', 'انتظر 40 دقيقة بمكتب جزيرة الريم لمعاينة محجوزة'),
+      caseFacts: [
+        b(
+          'Viewing booked online for 10:00 at the Reem Island office (unit worth AED 2.4M).',
+          'معاينة محجوزة أونلاين الساعة 10:00 بمكتب جزيرة الريم (وحدة بقيمة 2.4 مليون درهم).',
+        ),
+        b(
+          'The agent arrived at 10:40; nobody at reception offered water or explained the wait.',
+          'وصل الوكيل الساعة 10:40؛ لا أحد بالاستقبال قدّم ماء أو شرح سبب الانتظار.',
+        ),
+        b(
+          'Same day: Facebook comment "Waited 40 minutes at the Reem Island office for my viewing" (PUB-327). Not replied yet.',
+          'بنفس اليوم: تعليق فيسبوك "انتظرت 40 دقيقة بمكتب جزيرة الريم" (PUB-327). لم يُرد عليه بعد.',
+        ),
+        b(
+          'Survey after the visit: NPS 3 (detractor). The lead is still open; he asked for a second viewing.',
+          'استبيان بعد الزيارة: NPS 3 (منتقد). الليد ما زال مفتوحاً وطلب معاينة ثانية.',
+        ),
+      ],
+      teamNote: b(
+        'He still wants to buy and asked for a second viewing. A dinner voucher with an apology from the branch manager could save the deal. The agent has already been spoken to.',
+        'لسا بده يشتري وطلب معاينة ثانية. قسيمة عشاء مع اعتذار من مدير الفرع ممكن تنقذ الصفقة. والوكيل انحكى معه.',
+      ),
+    },
+    6,
+  ),
+  proposal(
+    {
+      id: 'gf-203',
+      fullName: 'Tariq Al Nuaimi',
+      where: 'PSI Real Estate · Dubai (buyer)',
+      reason: 'thanks',
+      itemId: 'gi-box',
+      requestedBy: 'Muhannad',
+      requestedById: 'u-cxteam2',
+      status: 'pending',
+      caseTitle: b('Promoter who referred two friends', 'مروّج أحال صديقين'),
+      caseFacts: [
+        b('Bought in Dubai Hills in August. NPS after the signed deal: 10.', 'اشترى بدبي هيلز في أغسطس. NPS بعد توقيع العقد: 10.'),
+        b('Left a 5-star Google review naming his agent.', 'ترك تقييم 5 نجوم على جوجل وذكر اسم وكيله.'),
+        b('Referred two friends in October; both booked viewings and one signed an offer.', 'أحال صديقين في أكتوبر؛ الاثنان حجزا معاينة وواحد وقّع عرضاً.'),
+      ],
+      teamNote: b(
+        'He brought us a sale without being asked. A thank-you box now keeps him a promoter, and he mentioned a third friend.',
+        'جابلنا بيعة بدون ما نطلب. علبة شكر هلأ بتخليه مروّج، وحكى عن صديق ثالث.',
+      ),
+    },
+    20,
+  ),
+  proposal(
+    {
+      id: 'gf-204',
+      fullName: 'Khalid Al Mazrouei',
+      where: 'PSI Club · Abu Dhabi (owner of 3 units)',
+      reason: 'vip',
+      itemId: 'gi-spa',
+      requestedBy: 'Abeer',
+      requestedById: 'u-cxteam',
+      status: 'pending',
+      caseTitle: b('PSI Club member: 5 years and a renewed management contract', 'عضو نادي PSI: 5 سنوات وتجديد عقد الإدارة'),
+      caseFacts: [
+        b('Owns 3 units managed by PSI Assets; customer since November 2021.', 'يملك 3 وحدات تديرها PSI Assets؛ عميل منذ نوفمبر 2021.'),
+        b('Renewed the management contract for all 3 units last week.', 'جدد عقد الإدارة للوحدات الثلاث الأسبوع الماضي.'),
+        b('No complaint in the last 12 months; last NPS 9.', 'لا شكاوى آخر 12 شهراً؛ آخر NPS 9.'),
+      ],
+      teamNote: b(
+        'Five years with us this month and he just renewed all three units. A spa voucher for him and his wife on the anniversary.',
+        'خمس سنين معنا هالشهر وجدد الثلاث وحدات. قسيمة سبا إله ولزوجته بالذكرى.',
+      ),
+    },
+    28,
+  ),
+  proposal(
+    {
+      id: 'gf-205',
+      fullName: 'Noura Al Shamsi',
+      where: 'PSI Real Estate · Abu Dhabi (After-Sales)',
+      reason: 'occasion',
+      itemId: 'gi-cake',
+      requestedBy: 'Muhannad',
+      requestedById: 'u-cxteam2',
+      status: 'pending',
+      caseTitle: b('First home handed over after two date changes', 'تسليم أول بيت بعد تغيير الموعد مرتين'),
+      caseFacts: [
+        b(
+          'Off-plan unit in Saadiyat; handover moved twice by the developer (14 months late).',
+          'وحدة على المخطط بالسعديات؛ موعد التسليم تغير مرتين من المطور (14 شهراً تأخير).',
+        ),
+        b('She stayed patient; two calls from After-Sales explained each delay.', 'ضلت صبورة؛ مكالمتان من خدمة ما بعد البيع شرحتا كل تأخير.'),
+        b('Handover done on 20 Nov. NPS after handover: 9.', 'تم التسليم 20 نوفمبر. NPS بعد التسليم: 9.'),
+      ],
+      teamNote: b(
+        'Her first home, after a long wait. A cake on moving day to say welcome home.',
+        'أول بيت إلها بعد انتظار طويل. كيكة بيوم الانتقال نقول لها أهلاً بيتك.',
+      ),
+    },
+    46,
+  ),
+  proposal(
+    {
+      id: 'gf-206',
+      fullName: 'Hamad Al Ketbi',
+      where: 'PSI Real Estate · Dubai (buyer)',
+      reason: 'recovery',
+      itemId: 'gi-flowers',
+      relatedRef: 'PUB-304',
+      requestedBy: 'Abeer',
+      requestedById: 'u-cxteam',
+      status: 'approved',
+      approvedBy: 'CX manager',
+      decidedAt: hoursAgo(20),
+      decisionNote: 'Approved. Call him first so the flowers do not arrive cold.',
+      caseTitle: b('Quoted a payment plan that does not exist', 'أُعطي خطة دفع غير موجودة'),
+      caseFacts: [
+        b(
+          '8 Oct: an agent quoted a 40/60 payment plan by phone; the developer only offers 60/40.',
+          '8 أكتوبر: وكيل أعطاه بالهاتف خطة 40/60؛ المطور يعرض 60/40 فقط.',
+        ),
+        b('Google review, 1 star (PUB-304). We replied the same day.', 'تقييم جوجل نجمة واحدة (PUB-304). رددنا بنفس اليوم.'),
+        b('Sales Support corrected the offer in writing on 10 Oct.', 'دعم المبيعات صحّح العرض كتابياً في 10 أكتوبر.'),
+      ],
+      teamNote: b('He was misled by us. Flowers with the corrected offer and an apology.', 'إحنا ضللناه. ورد مع العرض المصحح واعتذار.'),
+    },
+    30,
+  ),
+  proposal(
+    {
+      id: 'gf-207',
+      fullName: 'Layla Nasser',
+      where: 'PSI Real Estate · Dubai (buyer)',
+      reason: 'thanks',
+      itemId: 'gi-box',
+      requestedBy: 'Abeer',
+      requestedById: 'u-cxteam',
+      status: 'rejected',
+      decidedAt: hoursAgo(26),
+      approvedBy: 'CX manager',
+      decisionNote: 'She received a gift box on 22 Sep. One gift per customer in six months.',
+      caseTitle: b('Kind comment after a viewing', 'تعليق لطيف بعد معاينة'),
+      caseFacts: [b('Instagram comment thanking her agent after a viewing.', 'تعليق إنستغرام تشكر وكيلها بعد معاينة.')],
+      teamNote: b('A small thank-you for a kind comment.', 'شكر بسيط على تعليق لطيف.'),
+    },
+    50,
+  ),
+]
+
+const DEFAULT_STATE: GiftState = {
+  items: DEFAULT_ITEMS,
+  moves: DEFAULT_MOVES,
+  gifts: [...PROPOSALS, ...DEFAULT_GIFTS],
+  adminEmail: 'administration@psi.sample',
+}
 const KEY = 'psicx.gifts'
 
 function read(): GiftState {
   try {
     const raw = localStorage.getItem(KEY)
-    if (raw) return { ...DEFAULT_STATE, ...(JSON.parse(raw) as Partial<GiftState>) }
+    if (raw) {
+      const saved = JSON.parse(raw) as Partial<GiftState>
+      // 24 Nov: sample proposals added later reach a browser that already saved its gifts
+      const gifts = saved.gifts ?? []
+      const missing = PROPOSALS.filter((p) => !gifts.some((x) => x.id === p.id))
+      return { ...DEFAULT_STATE, ...saved, gifts: [...missing, ...gifts] }
+    }
   } catch {
     /* storage unavailable */
   }
@@ -417,20 +652,22 @@ export function giftEmail(x: Gift, item: GiftItem | undefined, lang: 'en' | 'ar'
 /** Inbox rows (owner, 23 Nov): the CX manager sees the gifts waiting for approval; the member who asked sees the approved ones to send. */
 export function giftInboxItems(role: string, userId: string | undefined, s: GiftState): import('../types').InboxItem[] {
   if (role === 'cxmgr') {
-    const n = s.gifts.filter((x) => x.status === 'pending').length
-    if (!n) return []
-    return [
-      {
-        id: 'gift:pending',
-        kind: 'gift',
-        text: b(`Gift approvals waiting: ${n}`, `هدايا بانتظار موافقتك: ${n}`),
+    // 24 Nov (owner): one row per proposal, with the customer, the reason and who asked
+    return s.gifts
+      .filter((x) => x.status === 'pending')
+      .map((x) => ({
+        id: `gift:${x.id}`,
+        kind: 'gift' as const,
+        text: b(
+          `Approve a gift? ${x.fullName || 'Customer'} · ${REASON_LABEL[x.reason].en}${x.caseTitle ? ` · ${x.caseTitle.en}` : ''}`,
+          `موافقة على هدية؟ ${x.fullName || 'عميل'} · ${REASON_LABEL[x.reason].ar}${x.caseTitle ? ` · ${x.caseTitle.ar}` : ''}`,
+        ),
         daysLeft: 1,
-        unit: 'd',
-        who: b('CX team', 'فريق CX'),
+        unit: 'd' as const,
+        who: b(`Asked by ${x.requestedBy}`, `طلبها ${x.requestedBy}`),
         priority: 1,
-        target: '/gifts?tab=approvals',
-      },
-    ]
+        target: `/gifts?tab=approvals&gift=${x.id}`,
+      }))
   }
   if (role === 'cxteam' && userId) {
     const mine = s.gifts.filter((x) => x.requestedById === userId && (x.status === 'approved' || x.status === 'rejected'))
