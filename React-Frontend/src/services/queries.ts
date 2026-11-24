@@ -318,6 +318,7 @@ async function decideShopperCaseAction(input: {
   note?: string
   plannedFor?: string
   by?: string
+  deliveredBy?: 'owner' | 'ld'
 }) {
   await latency(LATENCY_MS)
   const c = mock.MOCK_SHOPPER_CASES.find((x) => x.id === input.caseId)
@@ -329,6 +330,8 @@ async function decideShopperCaseAction(input: {
     line.plannedFor = input.decision === 'rejected' ? undefined : input.plannedFor
     line.decidedBy = input.by
     line.decidedAt = new Date().toISOString()
+    line.deliveredBy = input.decision === 'rejected' ? undefined : input.deliveredBy
+    line.ld = line.deliveredBy === 'ld' ? { status: 'requested' } : undefined
   }
   saveShopperCases(mock.MOCK_SHOPPER_CASES)
   return c
@@ -358,7 +361,19 @@ async function markShopperActionDone(input: { caseId: string; n: number; note: s
   if (line) {
     line.doneAt = new Date().toISOString()
     line.doneNote = input.note
+    if (line.ld) line.ld = { ...line.ld, status: 'done' }
   }
+  saveShopperCases(mock.MOCK_SHOPPER_CASES)
+  return c
+}
+
+/** 24 Nov (owner): L&D plans a training the owner sent to it: the date and how (who attends, who gives it). */
+async function scheduleLdTraining(input: { caseId: string; n: number; date: string; note: string; by: string }) {
+  await latency(LATENCY_MS)
+  const c = mock.MOCK_SHOPPER_CASES.find((x) => x.id === input.caseId)
+  if (!c) throw new Error('Shopper case not found')
+  const line = c.proposedActions.find((p) => p.n === input.n)
+  if (line) line.ld = { status: 'scheduled', date: input.date, note: input.note, by: input.by, at: new Date().toISOString() }
   saveShopperCases(mock.MOCK_SHOPPER_CASES)
   return c
 }
@@ -774,6 +789,14 @@ export function useMarkShopperActionDone() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: markShopperActionDone,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['shopper-cases'] }),
+  })
+}
+
+export function useScheduleLdTraining() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: scheduleLdTraining,
     onSuccess: () => qc.invalidateQueries({ queryKey: ['shopper-cases'] }),
   })
 }

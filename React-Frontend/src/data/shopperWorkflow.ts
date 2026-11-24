@@ -38,6 +38,8 @@ export interface ShopperWorkflowConfig {
   commentOnApprove: boolean
   clocks: Record<Severity, SeverityClock>
   /** Reminder in the owner's inbox this many days before a planned date. */
+  /** 24 Nov (owner): who delivers an approved training: the owner chooses (an internal 1-to-1 or L&D), or always L&D. */
+  trainingRoute: 'choose' | 'ld'
   remindBeforeDays: number
   /** Not marked done this many days after its planned date: it reaches the CX manager's inbox. */
   escalateAfterDays: number
@@ -68,6 +70,7 @@ export const DEFAULT_WORKFLOW: ShopperWorkflowConfig = {
     medium: { respondDays: 3, resolveDays: 10 },
     low: { respondDays: 5, resolveDays: 20 },
   },
+  trainingRoute: 'choose',
   remindBeforeDays: 1,
   escalateAfterDays: 3,
   actionKinds: [

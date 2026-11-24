@@ -7,7 +7,14 @@ import { useRole } from '@/auth/RoleContext'
 import { useAuth } from '@/auth/session'
 import { useUsers } from '@/data/users'
 import { isInformedOnly } from '@/auth/permissions'
-import { useAdvanceShopperCase, useDecideShopperCaseAction, useMarkShopperActionDone, useReviewShopperCase, useShopperCases } from '@/services/queries'
+import {
+  useAdvanceShopperCase,
+  useDecideShopperCaseAction,
+  useMarkShopperActionDone,
+  useReviewShopperCase,
+  useScheduleLdTraining,
+  useShopperCases,
+} from '@/services/queries'
 import { awaitingCxReview, isCxSide, isShopperOwner, ownerLabel, readyToClose, shopperCategory, withOwner } from '@/data/shopperInbox'
 import { caseDue, kindConfig, useShopperWorkflow, type ShopperWorkflowConfig } from '@/data/shopperWorkflow'
 import { SEVERITY_TONE } from '@/lib/status'
@@ -81,6 +88,9 @@ export default function ShopperCases() {
   const [deciding, setDeciding] = useState<{ c: ShopperCase; p: ShopperProposedAction } | null>(null)
   const [reviewing, setReviewing] = useState<{ c: ShopperCase; approve: boolean } | null>(null)
   const [finishing, setFinishing] = useState<{ c: ShopperCase; p: ShopperProposedAction } | null>(null)
+  const [planning, setPlanning] = useState<{ c: ShopperCase; p: ShopperProposedAction } | null>(null)
+  const scheduleLd = useScheduleLdTraining()
+  const isLd = role.id === 'ld'
   const { config: cfg } = useShopperWorkflow()
   const cx = isCxSide(role.id)
   const informedOnly = isInformedOnly(role.id)
@@ -88,7 +98,8 @@ export default function ShopperCases() {
     iso ? new Date(iso).toLocaleDateString(lang === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : ''
 
   // the owner sees a case only after the CX manager has checked the evidence
-  const visible = (cases ?? []).filter((c) => cx || !awaitingCxReview(c, cfg))
+  // L&D sees only the cases with a training sent to it
+  const visible = (cases ?? []).filter((c) => (isLd ? c.proposedActions.some((p) => p.deliveredBy === 'ld') : cx || !awaitingCxReview(c, cfg)))
 
   useEffect(() => {
     if (!focus || !visible.length) return
@@ -251,7 +262,10 @@ export default function ShopperCases() {
                         {c.proposedActions.map((p) => {
                           const k = kindConfig(cfg, p.kind)
                           const canDecide = owner && withOwner(c, cfg) && p.decision === 'pending'
-                          const canFinish = owner && withOwner(c, cfg) && (p.decision === 'confirmed' || p.decision === 'modified') && !p.doneAt
+                          const approvedOpen = (p.decision === 'confirmed' || p.decision === 'modified') && !p.doneAt
+                          const toLd = p.deliveredBy === 'ld'
+                          const canFinish = approvedOpen && ((owner && withOwner(c, cfg) && !toLd) || (isLd && toLd && p.ld?.status === 'scheduled'))
+                          const canPlan = isLd && toLd && approvedOpen && p.ld?.status === 'requested'
                           return (
                             <li key={p.n} className="row-divider flex flex-col gap-2 py-3 first:pt-0 last:pb-0">
                               <div className="flex flex-wrap items-start justify-between gap-3">
@@ -277,6 +291,12 @@ export default function ShopperCases() {
                                       {t('Decide', 'قرّر')}
                                     </Button>
                                   )}
+                                  {canPlan && (
+                                    <Button size="sm" onClick={() => setPlanning({ c, p })}>
+                                      <ClipboardCheck aria-hidden />
+                                      {t('Plan the training', 'خطّط للتدريب')}
+                                    </Button>
+                                  )}
                                   {canFinish && (
                                     <Button variant="outline" size="sm" onClick={() => setFinishing({ c, p })}>
                                       <ClipboardCheck aria-hidden />
@@ -287,14 +307,49 @@ export default function ShopperCases() {
                               </div>
                               {p.decision !== 'pending' && (
                                 <div className="ms-5 flex flex-col gap-1 rounded-well bg-well px-3 py-2 text-sm">
+                                  {/* 24 Nov (owner): the chain is visible to whoever does the work (L&D sees who approved and their comments) */}
+                                  {c.cxReview && !c.cxReview.returned && toLd && (
+                                    <span className="text-muted-foreground">
+                                      {t('Evidence approved by the CX manager', 'اعتمد مدير CX الأدلة')} · {fmt(c.cxReview.at)}
+                                      {c.cxReview.note && <span className="text-foreground">: “{c.cxReview.note}”</span>}
+                                    </span>
+                                  )}
                                   <span className="text-foreground">
-                                    {p.decidedBy && <span className="font-medium">{p.decidedBy}</span>}
+                                    <span className="text-muted-foreground">
+                                      {p.decision === 'rejected' ? t('Rejected by', 'رفضه') : t('Approved by', 'اعتمده')} {L(ownerLabel(cfg, c))}
+                                    </span>
+                                    {p.decidedBy && <span className="font-medium"> · {p.decidedBy}</span>}
                                     {p.decidedAt && <span className="text-muted-foreground"> · {fmt(p.decidedAt)}</span>}
                                     {p.decisionNote && <span>: “{p.decisionNote}”</span>}
                                   </span>
                                   {p.plannedFor && k && (
                                     <span className="text-muted-foreground">
-                                      {L(k.dateLabel)}: <span className="font-medium text-foreground">{fmt(p.plannedFor)}</span>
+                                      {p.deliveredBy === 'ld'
+                                        ? t('Needed by', 'مطلوب بحلول')
+                                        : p.deliveredBy === 'owner'
+                                          ? t('Session date', 'موعد الجلسة')
+                                          : L(k.dateLabel)}
+                                      : <span className="font-medium text-foreground">{fmt(p.plannedFor)}</span>
+                                    </span>
+                                  )}
+                                  {p.deliveredBy && (
+                                    <span className="text-muted-foreground">
+                                      {p.deliveredBy === 'ld' ? (
+                                        <>
+                                          {t('Delivered by Learning & Development', 'ينفذه قسم التعلم والتطوير')} ·{' '}
+                                          {p.ld?.status === 'requested' ? (
+                                            <span className="font-medium text-foreground">{t('waiting for L&D to plan it', 'بانتظار تخطيط L&D')}</span>
+                                          ) : p.ld?.date ? (
+                                            <span className="text-foreground">
+                                              {t('training on', 'التدريب في')} <span className="font-medium">{fmt(p.ld.date)}</span>
+                                              {p.ld.note && <>: “{p.ld.note}”</>}
+                                              {p.ld.by && <span className="text-muted-foreground"> · {p.ld.by}</span>}
+                                            </span>
+                                          ) : null}
+                                        </>
+                                      ) : (
+                                        t('Internal 1-to-1 session, run by the owner', 'جلسة داخلية فردية يديرها المالك')
+                                      )}
                                     </span>
                                   )}
                                   {p.doneAt && (
@@ -366,6 +421,17 @@ export default function ShopperCases() {
           }}
         />
       )}
+      {planning && (
+        <PlanDialog
+          p={planning.p}
+          onCancel={() => setPlanning(null)}
+          onSave={(v) => {
+            scheduleLd.mutate({ caseId: planning.c.id, n: planning.p.n, ...v, by: me })
+            setPlanning(null)
+            toast.success(t('Training planned. The owner and the CX manager see the date.', 'خُطط التدريب. يرى المالك ومدير CX الموعد.'))
+          }}
+        />
+      )}
       {finishing && (
         <NoteDialog
           title={t('Mark this action done', 'علّم هذا الإجراء كمنجز')}
@@ -403,13 +469,16 @@ function DecideDialog({
   p: ShopperProposedAction
   cfg: ShopperWorkflowConfig
   onCancel: () => void
-  onSave: (v: { decision: 'confirmed' | 'modified' | 'rejected'; note: string; plannedFor?: string }) => void
+  onSave: (v: { decision: 'confirmed' | 'modified' | 'rejected'; note: string; plannedFor?: string; deliveredBy?: 'owner' | 'ld' }) => void
 }) {
   const { t, L } = useI18n()
   const [decision, setDecision] = useState<'confirmed' | 'modified' | 'rejected'>('confirmed')
   const [note, setNote] = useState('')
   const [date, setDate] = useState('')
   const [tried, setTried] = useState(false)
+  // 24 Nov (owner): a training is run by the owner as an internal 1-to-1 session, or sent to Learning & Development
+  const isTraining = p.kind === 'training'
+  const [delivery, setDelivery] = useState<'owner' | 'ld'>(cfg.trainingRoute === 'ld' ? 'ld' : 'owner')
   // what is required comes from the workflow configuration (Settings → Rules as configuration)
   const k = kindConfig(cfg, p.kind)
   const showDate = decision !== 'rejected' && !!k
@@ -439,7 +508,13 @@ function DecideDialog({
           onSubmit={(e) => {
             e.preventDefault()
             setTried(true)
-            if (ok) onSave({ decision, note: note.trim(), plannedFor: showDate && date ? date : undefined })
+            if (ok)
+              onSave({
+                decision,
+                note: note.trim(),
+                plannedFor: showDate && date ? date : undefined,
+                deliveredBy: isTraining && decision !== 'rejected' ? delivery : undefined,
+              })
           }}
         >
           <DialogHeader>
@@ -464,10 +539,53 @@ function DecideDialog({
               )
             })}
           </div>
+          {isTraining && decision !== 'rejected' && (
+            <div className="flex flex-col gap-2 text-sm">
+              <span className="font-medium text-foreground">{t('Who delivers it', 'من ينفذه')}</span>
+              {cfg.trainingRoute === 'ld' ? (
+                <span className="text-muted-foreground">
+                  {t('Sent to Learning & Development (set under Rules).', 'يُرسل لقسم التعلم والتطوير (محدد في القواعد).')}
+                </span>
+              ) : (
+                <div role="radiogroup" aria-label={t('Who delivers it', 'من ينفذه')} className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  {(
+                    [
+                      {
+                        value: 'owner',
+                        label: t('Internal 1-to-1 session', 'جلسة داخلية فردية'),
+                        note: t('You run it yourself with the person.', 'تديرها بنفسك مع الشخص.'),
+                      },
+                      {
+                        value: 'ld',
+                        label: t('Send to Learning & Development', 'أرسله لقسم التعلم والتطوير'),
+                        note: t('L&D plans and runs it; sees your comment.', 'يخطط له L&D وينفذه؛ ويرى تعليقك.'),
+                      },
+                    ] as const
+                  ).map((o) => {
+                    const checked = delivery === o.value
+                    return (
+                      <label
+                        key={o.value}
+                        className={cn(
+                          'ring-within flex cursor-pointer flex-col gap-0.5 rounded-well px-4 py-3 text-start transition-colors duration-200',
+                          checked ? 'material-dark' : 'bg-well hover:bg-well-hover',
+                        )}
+                      >
+                        <input type="radio" className="sr-only" name="delivery" value={o.value} checked={checked} onChange={() => setDelivery(o.value)} />
+                        <span className="t-ui-strong text-inherit">{o.label}</span>
+                        <span className={cn('text-xs', checked ? 'text-(--on-dark-muted)' : 'text-muted-foreground')}>{o.note}</span>
+                      </label>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )}
           {showDate && k && (
             <label className="flex flex-col gap-1 text-sm">
               <span className="font-medium text-foreground">
-                {L(k.dateLabel)} {needsDate ? t('(required)', '(مطلوب)') : t('(optional)', '(اختياري)')}
+                {isTraining ? (delivery === 'ld' ? t('Needed by', 'مطلوب بحلول') : t('Session date', 'موعد الجلسة')) : L(k.dateLabel)}{' '}
+                {needsDate ? t('(required)', '(مطلوب)') : t('(optional)', '(اختياري)')}
               </span>
               <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} aria-invalid={tried && !date} className="w-48" />
               {tried && needsDate && !date && <span className="text-xs text-(--status-error-text)">{t('Pick a date.', 'اختر تاريخاً.')}</span>}
@@ -532,6 +650,59 @@ function NoteDialog({
               {t('Cancel', 'إلغاء')}
             </Button>
             <Button type="submit">{saveLabel}</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+/** L&D plans a training sent to it: the date and how (who attends, who gives it, where). */
+function PlanDialog({ p, onCancel, onSave }: { p: ShopperProposedAction; onCancel: () => void; onSave: (v: { date: string; note: string }) => void }) {
+  const { t, L } = useI18n()
+  const [date, setDate] = useState(p.plannedFor ?? '')
+  const [note, setNote] = useState('')
+  const [tried, setTried] = useState(false)
+  return (
+    <Dialog open onOpenChange={(o) => !o && onCancel()}>
+      <DialogContent className="sm:max-w-lg">
+        <form
+          className="flex flex-col gap-5"
+          onSubmit={(e) => {
+            e.preventDefault()
+            setTried(true)
+            if (date && note.trim()) onSave({ date, note: note.trim() })
+          }}
+        >
+          <DialogHeader>
+            <DialogTitle>{t('Plan the training', 'خطّط للتدريب')}</DialogTitle>
+            <DialogDescription>{L(p.text)}</DialogDescription>
+          </DialogHeader>
+          {p.decisionNote && (
+            <p className="rounded-well bg-well px-3 py-2 text-sm text-foreground">
+              <span className="text-muted-foreground">{t('The owner’s comment', 'تعليق المالك')}: </span>“{p.decisionNote}”
+            </p>
+          )}
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium text-foreground">
+              {t('Training date', 'موعد التدريب')} {t('(required)', '(مطلوب)')}
+            </span>
+            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} aria-invalid={tried && !date} className="w-48" />
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium text-foreground">
+              {t('Who attends, who gives it, where', 'من يحضر، ومن يقدمه، وأين')} {t('(required)', '(مطلوب)')}
+            </span>
+            <Textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} aria-invalid={tried && !note.trim()} />
+            {tried && (!date || !note.trim()) && (
+              <span className="text-xs text-(--status-error-text)">{t('The date and the details are required.', 'الموعد والتفاصيل مطلوبة.')}</span>
+            )}
+          </label>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onCancel}>
+              {t('Cancel', 'إلغاء')}
+            </Button>
+            <Button type="submit">{t('Save the plan', 'احفظ الخطة')}</Button>
           </DialogFooter>
         </form>
       </DialogContent>

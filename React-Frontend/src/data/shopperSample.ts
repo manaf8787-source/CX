@@ -342,6 +342,24 @@ const SEEDS: Seed[] = [
         b('Payment plans for every live project are saved as WhatsApp quick replies.', 'تُحفظ خطط الدفع لكل مشروع قائم كردود سريعة في واتساب.'),
         b('The agent had to look for it and forgot.', 'اضطر الوكيل للبحث عنها فنسي.'),
       ),
+      act(
+        2,
+        'training',
+        b(
+          'WhatsApp sales training for the Dubai WhatsApp line: sending what was asked within the hour, with the quick replies.',
+          'تدريب مبيعات واتساب لخط دبي: إرسال المطلوب خلال ساعة باستخدام الردود السريعة.',
+        ),
+        b('Third WhatsApp follow-up finding in Dubai this quarter.', 'ثالث ملاحظة متابعة على واتساب في دبي هذا الربع.'),
+        {
+          decision: 'confirmed',
+          decisionNote: 'Approved. The whole WhatsApp line (8 agents) should attend, not only AG-102. Before the end of the month please.',
+          plannedFor: day(6),
+          decidedBy: 'Dubai environment manager',
+          decidedAt: iso(-2),
+          deliveredBy: 'ld',
+          ld: { status: 'requested' },
+        },
+      ),
     ],
   },
   // --- Abu Dhabi ---------------------------------------------------------------------------------------------------------------------
@@ -451,7 +469,8 @@ export function buildShopperSample(): ShopperCase[] {
  * Prototype persistence: the cases with their decisions are kept in this browser so the flow can be walked across users (CX manager →
  * environment manager → CX manager). The back end replaces this with `GET /api/mystery-shopper/cases`.
  */
-const SAVE_KEY = 'psicx.shopperCases'
+// v2 (24 Nov): the L&D leg was added to the sample; older saved copies are ignored
+const SAVE_KEY = 'psicx.shopperCases.v2'
 
 export function loadShopperCases(): ShopperCase[] {
   const base = buildShopperSample()

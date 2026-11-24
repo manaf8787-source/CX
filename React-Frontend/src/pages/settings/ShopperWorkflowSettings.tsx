@@ -82,6 +82,21 @@ export function ShopperWorkflowSettings() {
               )
             }
           />
+          <Toggle
+            label={t('Approved trainings always go to Learning & Development', 'التدريبات المعتمدة تذهب دائماً لقسم التعلم والتطوير')}
+            hint={t(
+              'Off: the owner chooses an internal 1-to-1 session or sends it to L&D.',
+              'عند الإيقاف: يختار المالك جلسة داخلية فردية أو يرسله لقسم التعلم والتطوير.',
+            )}
+            checked={cfg.trainingRoute === 'ld'}
+            disabled={!canEdit}
+            onChange={(v) =>
+              save(
+                { trainingRoute: v ? 'ld' : 'choose' },
+                v ? { en: 'Trainings: always L&D', ar: 'التدريبات: دائماً L&D' } : { en: 'Trainings: the owner chooses', ar: 'التدريبات: يختار المالك' },
+              )
+            }
+          />
         </div>
 
         {/* owners */}

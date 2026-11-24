@@ -55,7 +55,7 @@ export const ROLE_PATHS: Record<RoleId, string[] | null> = {
   envmgmt: ['/home', '/customers', '/runaway', '/actions', '/products/re', '/inbox', '/settings/surveys', WATCH_PAGE, '/agents', '/settings/public-mentions'],
   teamlead: ['/home', '/customers', '/actions', '/inbox', '/settings/public-mentions'],
   aslead: ['/home', '/customers', '/actions', '/settings/voc', '/products/af', '/inbox', '/settings/surveys', '/settings/public-mentions'],
-  ld: ['/actions', '/settings/standards', '/settings/ld'],
+  ld: ['/actions', '/inbox', '/settings/standards', '/settings/ld'],
   hrspec: ['/actions', '/settings/hr-team'],
   hrmgr: ['/settings/hr-team'],
   marketing: ['/home', '/customers', '/runaway', '/personas', '/inbox', '/settings/public-mentions', WATCH_PAGE, CAMPAIGN_AUDIT_PAGE],

@@ -280,9 +280,13 @@ export interface ShopperProposedAction {
   plannedFor?: string
   decidedBy?: string
   decidedAt?: string
-  /** Marked done by the owner, with what was done. */
+  /** Marked done (by the owner, or by L&D for a training L&D delivers), with what was done. */
   doneAt?: string
   doneNote?: string
+  /** 24 Nov (owner): a training is delivered by the owner (an internal 1-to-1 session) or sent to Learning & Development. */
+  deliveredBy?: 'owner' | 'ld'
+  /** The L&D leg: requested by the owner, scheduled by L&D (date, note), then done. */
+  ld?: { status: 'requested' | 'scheduled' | 'done'; date?: string; note?: string; by?: string; at?: string }
 }
 
 export interface ShopperVisit {

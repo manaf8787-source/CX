@@ -1,6 +1,6 @@
 # PSI CX Portal: Mystery shopper workflow, backend spec
 
-Version 1 · 24 Nov 2026 · Owner: Manaf Obeidat (Delivery & CX Manager)
+Version 1.1 · 24 Nov 2026 (adds the L&D leg for trainings) · Owner: Manaf Obeidat (Delivery & CX Manager)
 
 The front end is built and runs on sample data. This document is what the backend has to provide so the same screens run on real data. The front end calls are in `src/services/queries.ts` (`fetchShopperCases`, `reviewShopperCase`, `decideShopperCaseAction`, `markShopperActionDone`, `advanceShopperCase`). The types are in `src/types/domain.ts` (`ShopperCase`, `ShopperProposedAction`, `ShopperVisit`), and the configuration shape is in `src/data/shopperWorkflow.ts`.
 
@@ -16,8 +16,15 @@ The front end is built and runs on sample data. This document is what the backen
    - **Approve with changes.** A comment saying what changes is always required, and the date is required.
    - **Reject.** A comment saying why is always required. No date.
    - Conduct cases go to HR through the owner: the owner approves an "HR referral" action with the referral date. Nothing goes from the shopper to HR directly (decided 24 Nov).
-4. **The owner marks each approved action done.** A note saying what was done is required.
-5. **The CX manager closes the case.** This is allowed only when every action is rejected or done. Status becomes `closed`, and the resolve clock stops.
+4. **A training is delivered one of two ways (added 24 Nov).** When approving an action of type `training`, the owner chooses who delivers it (configurable as "always L&D"):
+   - **Internal 1-to-1 session.** The owner runs it, gives the session date, and marks it done.
+   - **Send to Learning & Development.** The owner gives a "needed by" date and a comment. The action appears in the L&D inbox with the full chain:
+     - the CX manager's evidence approval and note;
+     - the owner's approval, name, date and comment.
+
+     L&D plans it, giving the training date and who attends, who delivers it and where; both are required. L&D marks it done afterwards. The owner and the CX manager see the plan and the result on the case.
+5. **The owner marks each approved action done.** This covers every action the owner delivers, but not trainings sent to L&D. A note saying what was done is required.
+6. **The CX manager closes the case.** This is allowed only when every action is rejected or done. Status becomes `closed`, and the resolve clock stops.
 
 The status values are `open | owner_decision | closed`. `triaged` and `hr_review` exist in the type for older data; new cases do not use them.
 
@@ -31,7 +38,9 @@ The backend must check every rule below on the server. The front end hides butto
 | See a case | Its owner (environment manager of that environment, or the configured role), once the CX check is done or switched off |
 | Approve the evidence, or return it | CX manager |
 | Decide a proposed action | The case owner, while the status is `owner_decision` |
-| Mark an action done | The case owner |
+| Mark an action done | The case owner; for a training sent to L&D, the L&D manager |
+| Plan a training sent to L&D (date and details) | L&D manager |
+| See a case | L&D sees only cases with a training sent to it |
 | Close a case | CX manager, when every action is rejected or done |
 | Edit the workflow configuration | CX manager |
 | Informed only (read, no buttons) | Heads and C-level roles (`isInformedOnly`) |
@@ -86,6 +95,8 @@ The clocks are not stored. Derive `respond_due_at` and `resolve_due_at` as `open
 | planned_for | date? | Required when it goes ahead and the kind requires a date |
 | decided_by, decided_at | | |
 | done_at, done_note | | `done_note` is required |
+| delivered_by | `owner \| ld`? | Trainings only |
+| ld | object? | `{ status: requested \| scheduled \| done, date?, note?, by?, at? }` |
 
 ### 3.4 Audit
 
@@ -106,6 +117,7 @@ There is one versioned document. Each save increments `version` and logs the cha
     "medium":   { "respondDays": 3, "resolveDays": 10 },
     "low":      { "respondDays": 5, "resolveDays": 20 }
   },
+  "trainingRoute": "choose",
   "remindBeforeDays": 1,
   "escalateAfterDays": 3,
   "actionKinds": [
@@ -118,6 +130,7 @@ There is one versioned document. Each save increments `version` and logs the cha
 }
 ```
 
+- `trainingRoute` is either `choose` (the owner picks an internal 1-to-1 or L&D) or `ld` (approved trainings always go to L&D).
 - `ownerByEnv` values are `envmgmt`, `teamlead` or `aslead`. For `envmgmt`, the owner is the environment manager of that environment only.
 - The severity floor stays a numeric rule (`rule_shopper_floor`, 60%) in Decision 2.
 - The old numeric rules `rule_shopper_respond` and `rule_shopper_resolve` are replaced by `clocks.critical`.
@@ -131,8 +144,9 @@ There is one versioned document. Each save increments `version` and logs the cha
 | GET | `/api/mystery-shopper/cases/{id}` | | Same |
 | POST | `/api/mystery-shopper/visits` | visit and checklist, evidence files, proposed actions | Shopper form or vendor (service account) |
 | POST | `/api/mystery-shopper/cases/{id}/review` | `{ approve: boolean, note? }` (note required when `approve=false`) | CX manager |
-| POST | `/api/mystery-shopper/cases/{id}/actions/{n}/decision` | `{ decision, note, plannedFor? }` | Case owner |
-| POST | `/api/mystery-shopper/cases/{id}/actions/{n}/done` | `{ note }` | Case owner |
+| POST | `/api/mystery-shopper/cases/{id}/actions/{n}/decision` | `{ decision, note, plannedFor?, deliveredBy? }` (`deliveredBy` is required for a training when it goes ahead) | Case owner |
+| POST | `/api/mystery-shopper/cases/{id}/actions/{n}/ld-plan` | `{ date, note }` | L&D manager |
+| POST | `/api/mystery-shopper/cases/{id}/actions/{n}/done` | `{ note }` | Case owner, or L&D for an L&D training |
 | POST | `/api/mystery-shopper/cases/{id}/close` | | CX manager, all actions rejected or done |
 | GET | `/api/config/mystery-shopper-workflow` | | All signed-in roles (read) |
 | PUT | `/api/config/mystery-shopper-workflow` | the document in section 4 | CX manager |
@@ -142,6 +156,7 @@ There is one versioned document. Each save increments `version` and logs the cha
 - Decide while the status is not `owner_decision` (or `open` when the CX check is off).
 - A missing comment or date per the configuration.
 - Close with an action still pending or not done.
+- An owner marking done a training that was sent to L&D, or L&D planning an action that was not sent to it.
 
 ## 6. Inbox rows and notifications (generated by the backend)
 
@@ -151,6 +166,8 @@ There is one versioned document. Each save increments `version` and logs the cha
 | Owner | Case with the owner and an action pending | "Mystery shopper: decide {n} proposed actions · {category} ({score}%)" | `/actions/shopper-cases?case={id}` |
 | Owner | Approved action not done | "Mystery shopper: mark done when it happens ({n})". Flagged within `remindBeforeDays` of the planned date | same |
 | CX manager | Approved action not done `escalateAfterDays` after its planned date | "Mystery shopper: {n} approved actions not marked done …" | CX link |
+| L&D manager | Training sent to L&D, not planned | "Mystery shopper training to plan · {category} · {environment}". Who: "Approved by the CX manager and the {environment} environment manager" | `/actions/shopper-cases?case={id}` |
+| L&D manager | Planned, not done | "Mystery shopper training: mark done when it happens" | same |
 | CX manager | Every action rejected or done | "Mystery shopper: every action is done, close the case" | CX link |
 
 - **Priority:** critical cases are urgent (2); the rest are normal (1).

@@ -65,7 +65,9 @@ export function shopperInboxItems(
     const where = c.environment
     const due = caseDue(cfg, c.openedAt, c.severity)
     const prio = (c.severity === 'critical' ? 2 : 1) as 0 | 1 | 2
-    const toDo = c.proposedActions.filter((p) => (p.decision === 'confirmed' || p.decision === 'modified') && !p.doneAt)
+    const approved = c.proposedActions.filter((p) => (p.decision === 'confirmed' || p.decision === 'modified') && !p.doneAt)
+    // the owner marks done what the owner delivers; a training sent to L&D is L&D's to mark
+    const toDo = approved.filter((p) => p.deliveredBy !== 'ld')
     if (role === 'cxmgr') {
       if (awaitingCxReview(c, cfg) && !c.cxReview?.returned) {
         out.push({
@@ -97,7 +99,10 @@ export function shopperInboxItems(
           target: `/settings/mystery-shopper?tab=cases&case=${c.id}`,
         })
       } else {
-        const late = toDo.filter((p) => p.plannedFor && now - new Date(p.plannedFor).getTime() > cfg.escalateAfterDays * DAY)
+        const late = approved.filter((p) => {
+          const d = p.ld?.date ?? p.plannedFor
+          return !!d && now - new Date(d).getTime() > cfg.escalateAfterDays * DAY
+        })
         if (late.length) {
           out.push({
             id: `shopper:late:${c.id}`,
@@ -113,6 +118,32 @@ export function shopperInboxItems(
             target: `/settings/mystery-shopper?tab=cases&case=${c.id}`,
           })
         }
+      }
+      continue
+    }
+    // 24 Nov (owner): Learning & Development gets the trainings the owner sent to it, with the approvals
+    if (role === 'ld') {
+      for (const p of c.proposedActions) {
+        if (p.deliveredBy !== 'ld' || !p.ld || p.ld.status === 'done') continue
+        const planned = p.ld.status === 'scheduled'
+        out.push({
+          id: `shopper:ld:${c.id}:${p.n}`,
+          kind: planned ? 'do' : 'approve',
+          text: planned
+            ? b(
+                `Mystery shopper training: mark done when it happens · ${cat.en} · ${where}`,
+                `تدريب التسوق السري: علّم كمنجز عند التنفيذ · ${cat.ar} · ${where}`,
+              )
+            : b(`Mystery shopper training to plan · ${cat.en} · ${where}`, `تدريب من التسوق السري للتخطيط · ${cat.ar} · ${where}`),
+          daysLeft: daysTo(planned ? p.ld.date : p.plannedFor, now),
+          unit: 'd',
+          who: b(
+            `Approved by the CX manager and the ${where} ${OWNER_ROLE_LABEL[ownerRoleOf(cfg, c)].en.toLowerCase()}`,
+            `اعتمده مدير CX و${OWNER_ROLE_LABEL[ownerRoleOf(cfg, c)].ar} في ${where}`,
+          ),
+          priority: c.severity === 'critical' ? 2 : 1,
+          target: `/actions/shopper-cases?case=${c.id}`,
+        })
       }
       continue
     }
