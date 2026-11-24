@@ -191,7 +191,6 @@ export default function Users() {
       )}
 
       <InlineNote role="note">
-        <strong className="font-medium">{t('Prototype.', 'نموذج أولي.')}</strong>{' '}
         <span className="text-muted-foreground">
           {t(
             'No email is sent: copy the invitation link and pass it on. The directory is kept in this browser only. In the real platform the invitation is emailed and sign-in is the company directory.',
@@ -505,7 +504,9 @@ function EnvPicker({ value, onChange }: { value: EnvId; onChange: (v: EnvId) => 
           ))}
         </SelectContent>
       </Select>
-      <FieldDescription>{t('They see only the people, cases and agents of this environment.', 'يرى الأشخاص والحالات والوكلاء في هذه البيئة فقط.')}</FieldDescription>
+      <FieldDescription>
+        {t('They see only the people, cases and agents of this environment.', 'يرى الأشخاص والحالات والوكلاء في هذه البيئة فقط.')}
+      </FieldDescription>
     </Field>
   )
 }
@@ -749,7 +750,7 @@ function ChangeRoleDialog({ user, onClose, onChanged }: { user: PortalUser; onCl
           {def && <FieldDescription>{L(def.description)}</FieldDescription>}
         </Field>
         {choice === 'envmgmt' && <EnvPicker value={env} onChange={setEnv} />}
-          {choice === NEW_ROLE && <NewRoleFields draft={draft} onChange={setDraft} />}
+        {choice === NEW_ROLE && <NewRoleFields draft={draft} onChange={setDraft} />}
         {error && (
           <InlineNote role="status" tone="error">
             {error}
@@ -897,4 +898,3 @@ function EditRoleBody({ role, onClose, onSaved }: { role: CustomRole; onClose: (
     </DialogContent>
   )
 }
-

@@ -34,7 +34,6 @@ import { SectionCard } from '@/components/common/SectionCard'
 import { StatusBadge } from '@/components/common/StatusBadge'
 import { EmptyState } from '@/components/common/EmptyState'
 import { LoadingState } from '@/components/common/LoadingState'
-import { InlineNote } from '@/components/common/InlineNote'
 import { RankedBars } from '@/components/common/charts'
 import { IN_CARD, SubPageHeader } from './SubPageHeader'
 
@@ -72,41 +71,43 @@ export default function HrTeamPerf() {
       {/* v40 F09: the HR manager lands here, not on Home, so the Daily brief sits at the top of this page. */}
       <LandingBrief roles={['hrmgr']} />
 
-      <div className="flex flex-wrap items-end gap-3">
-        <Segmented<Period>
-          label={t('Period', 'الفترة')}
-          variant="pressed"
-          value={period}
-          onValueChange={setPeriod}
-          options={[
-            { value: '7', label: t('7 days', '7 أيام') },
-            { value: '30', label: t('30 days', '30 يوماً') },
-            { value: '60', label: t('60 days', '60 يوماً') },
-          ]}
-        />
-        <Select value={env} onValueChange={(v) => setEnv(v as EnvId | typeof ALL)}>
-          <SelectTrigger aria-label={t('Environment', 'البيئة')} className="h-9 min-w-44">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>{t('All environments', 'كل البيئات')}</SelectItem>
-            {ENVIRONMENTS.map((e) => (
-              <SelectItem key={e.id} value={e.id}>
-                {L(e.name)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
       <Tabs value={tab} onValueChange={(v) => setParams({ tab: v }, { replace: true })} className="gap-4">
-        <div className="-m-1 overflow-x-auto p-1">
-          <TabsList className="min-w-max" aria-label={t('HR performance', 'أداء الموارد البشرية')}>
-            <TabsTrigger value="ivr">{t('Call-center requests (IVR)', 'طلبات مركز الاتصال (IVR)')}</TabsTrigger>
-            <TabsTrigger value="recruitment">{t('Recruitment (Odoo)', 'التوظيف (Odoo)')}</TabsTrigger>
-            <TabsTrigger value="operations">{t('Operations', 'العمليات')}</TabsTrigger>
-            <TabsTrigger value="conduct">{t('Conduct cases', 'حالات السلوك')}</TabsTrigger>
-          </TabsList>
+        {/* 24 Nov (owner): period and environment sit on the tabs row */}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="-m-1 max-w-full overflow-x-auto p-1">
+            <TabsList className="min-w-max" aria-label={t('HR performance', 'أداء الموارد البشرية')}>
+              <TabsTrigger value="ivr">{t('Call-center requests (IVR)', 'طلبات مركز الاتصال (IVR)')}</TabsTrigger>
+              <TabsTrigger value="recruitment">{t('Recruitment (Odoo)', 'التوظيف (Odoo)')}</TabsTrigger>
+              <TabsTrigger value="operations">{t('Operations', 'العمليات')}</TabsTrigger>
+              <TabsTrigger value="conduct">{t('Conduct cases', 'حالات السلوك')}</TabsTrigger>
+            </TabsList>
+          </div>
+          <div className="ms-auto flex flex-wrap items-center gap-3">
+            <Segmented<Period>
+              label={t('Period', 'الفترة')}
+              variant="pressed"
+              value={period}
+              onValueChange={setPeriod}
+              options={[
+                { value: '7', label: t('7 days', '7 أيام') },
+                { value: '30', label: t('30 days', '30 يوماً') },
+                { value: '60', label: t('60 days', '60 يوماً') },
+              ]}
+            />
+            <Select value={env} onValueChange={(v) => setEnv(v as EnvId | typeof ALL)}>
+              <SelectTrigger aria-label={t('Environment', 'البيئة')} className="h-9 min-w-44">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL}>{t('All environments', 'كل البيئات')}</SelectItem>
+                {ENVIRONMENTS.map((e) => (
+                  <SelectItem key={e.id} value={e.id}>
+                    {L(e.name)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
         <TabsContent value="ivr">
           <IvrTab inScope={inScope} />
@@ -191,12 +192,6 @@ function IvrTab({ inScope }: { inScope: (iso: string, e: EnvId) => boolean }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <InlineNote title={t('Sample data until the call center is connected', 'بيانات تجريبية حتى يتم ربط مركز الاتصال')}>
-        {t(
-          `Every caller who picks "HR" in the IVR should be called back within ${IVR_TARGET_HOURS} working hours [Proposed, HR to confirm]. Needed from the IVR platform: an API or daily export of the HR callback queue (call id, time, caller number, option chosen) and the time of HR's callback.`,
-          `كل متصل يختار «الموارد البشرية» في الـ IVR يجب الاتصال به خلال ${IVR_TARGET_HOURS} ساعات عمل [مقترح، تؤكده الموارد البشرية]. المطلوب من نظام الـ IVR: واجهة API أو ملف يومي لقائمة طلبات الموارد البشرية (رقم المكالمة، الوقت، رقم المتصل، الخيار المختار) ووقت رد الموارد البشرية.`,
-        )}
-      </InlineNote>
       <div className="grid grid-cols-2 gap-(--grid-gap) lg:grid-cols-4">
         <KpiTile label={t('Asked for HR', 'طلبوا الموارد البشرية')} value={rows.length} icon={<PhoneCall />} />
         <KpiTile
@@ -339,12 +334,6 @@ function RecruitmentTab({ env, since }: { env: EnvId | typeof ALL; since: number
 
   return (
     <div className="flex flex-col gap-4">
-      <InlineNote title={t('Sample data until Odoo is connected', 'بيانات تجريبية حتى يتم ربط Odoo')}>
-        {t(
-          'Needed from Odoo Recruitment: a read-only API user and key, then the job positions (hr.job) and the applicants (hr.applicant: job, stage, date applied, date of the last stage change, source). Candidates appear by their Odoo reference, not by name.',
-          'المطلوب من Odoo للتوظيف: مستخدم API للقراءة فقط ومفتاحه، ثم الوظائف (hr.job) والمتقدمون (hr.applicant: الوظيفة، المرحلة، تاريخ التقديم، تاريخ آخر تغيير مرحلة، المصدر). يظهر المرشحون برقمهم في Odoo لا بالاسم.',
-        )}
-      </InlineNote>
       <div className="grid grid-cols-2 gap-(--grid-gap) lg:grid-cols-4">
         <KpiTile
           label={t('Places still to fill', 'شواغر لم تُملأ بعد')}
@@ -454,12 +443,6 @@ function OperationsTab({ inScope }: { inScope: (iso: string, e: EnvId) => boolea
 
   return (
     <div className="flex flex-col gap-4">
-      <InlineNote title={t('Sample data until the HR system is connected', 'بيانات تجريبية حتى يتم ربط نظام الموارد البشرية')}>
-        {t(
-          'The target days per request type are [Proposed] for HR to confirm. Needed: where HR logs these requests (Odoo HR or another tool) and read access to type, opened date, closed date and owner.',
-          'الأيام المستهدفة لكل نوع طلب [مقترحة] وتؤكدها الموارد البشرية. المطلوب: أين تسجّل الموارد البشرية هذه الطلبات (Odoo HR أو أداة أخرى) وصلاحية قراءة النوع وتاريخ الفتح وتاريخ الإغلاق والمسؤول.',
-        )}
-      </InlineNote>
       <div className="grid grid-cols-2 gap-(--grid-gap) lg:grid-cols-4">
         <KpiTile label={t('Open requests', 'طلبات مفتوحة')} value={open.length} icon={<FolderOpen />} />
         <KpiTile

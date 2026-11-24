@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { ArrowDownToLine, ArrowLeftRight, ArrowUpFromLine, ChevronDown, Pencil, Plug, Plus, Trash2 } from 'lucide-react'
@@ -31,6 +31,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { PageHeader } from '@/components/common/PageHeader'
@@ -53,6 +54,7 @@ export default function Integrations() {
   const [params, setParams] = useSearchParams()
   const asked = params.get('tab')
   const tab = asked === 'feeds' || asked === 'crm' ? asked : 'connections'
+  const [addRequest, setAddRequest] = useState(0)
   return (
     <div data-density="comfortable" className="flex flex-col gap-5">
       <PageHeader
@@ -63,13 +65,22 @@ export default function Integrations() {
         )}
       />
       <Tabs value={tab} onValueChange={(v) => setParams({ tab: v }, { replace: true })} className="gap-4">
-        <TabsList aria-label={t('Integrations', 'الربط والتكاملات')}>
-          <TabsTrigger value="connections">{t('Connections', 'الاتصالات')}</TabsTrigger>
-          <TabsTrigger value="feeds">{t('Data feeds (what arrived)', 'تغذيات البيانات (ما وصل)')}</TabsTrigger>
-          <TabsTrigger value="crm">{t('Fields we need from the CRM', 'الحقول المطلوبة من CRM')}</TabsTrigger>
-        </TabsList>
+        {/* 24 Nov (owner): "Add a connection" sits on the tabs row, at the right, aligned with the tabs */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <TabsList aria-label={t('Integrations', 'الربط والتكاملات')}>
+            <TabsTrigger value="connections">{t('Connections', 'الاتصالات')}</TabsTrigger>
+            <TabsTrigger value="feeds">{t('Data feeds (what arrived)', 'تغذيات البيانات (ما وصل)')}</TabsTrigger>
+            <TabsTrigger value="crm">{t('Fields we need from the CRM', 'الحقول المطلوبة من CRM')}</TabsTrigger>
+          </TabsList>
+          {tab === 'connections' && (
+            <Button size="sm" onClick={() => setAddRequest((n) => n + 1)}>
+              <Plus aria-hidden />
+              {t('Add a connection', 'أضف اتصالاً')}
+            </Button>
+          )}
+        </div>
         <TabsContent value="connections">
-          <Connections />
+          <Connections addRequest={addRequest} />
         </TabsContent>
         <TabsContent value="feeds">
           <Feeds />
@@ -82,7 +93,7 @@ export default function Integrations() {
   )
 }
 
-function Connections() {
+function Connections({ addRequest }: { addRequest: number }) {
   const { t, L, lang } = useI18n()
   const { log } = useAuditActor()
   const items = useIntegrations()
@@ -93,6 +104,10 @@ function Connections() {
     error: items.filter((x) => x.status === 'error').length,
     waiting: items.filter((x) => x.status === 'not_connected').length,
   }
+  // the "Add a connection" button lives on the tabs row (parent); each press opens a new form here
+  useEffect(() => {
+    if (addRequest > 0) setEditing(newIntegration())
+  }, [addRequest])
   const when = (iso?: string) =>
     iso ? new Date(iso).toLocaleString(lang === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—'
 
@@ -105,53 +120,55 @@ function Connections() {
         )}
       </InlineNote>
 
-      <div className="flex justify-end">
-        <Button size="sm" onClick={() => setEditing(newIntegration())}>
-          <Plus aria-hidden />
-          {t('Add a connection', 'أضف اتصالاً')}
-        </Button>
-      </div>
+      {/* 24 Nov (owner): adding or editing a connection opens in a pop-up, not inside the card */}
+      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
+          <DialogTitle>
+            {editing && items.some((x) => x.id === editing.id) ? t(`Edit “${editing.name}”`, `تعديل «${editing.name}»`) : t('New connection', 'اتصال جديد')}
+          </DialogTitle>
+          <DialogDescription className="sr-only">{t('Connection settings', 'إعدادات الاتصال')}</DialogDescription>
+          {editing && (
+            <EditForm
+              key={editing.id}
+              value={editing}
+              onCancel={() => setEditing(null)}
+              onSave={(v) => {
+                const isNew = !items.some((x) => x.id === v.id)
+                saveIntegration(v)
+                log(
+                  'action',
+                  isNew
+                    ? { en: `Added the integration "${v.name}"`, ar: `أضاف الربط "${v.name}"` }
+                    : { en: `Changed the integration "${v.name}"`, ar: `عدّل الربط "${v.name}"` },
+                  '/admin/integrations',
+                )
+                setEditing(null)
+                if (isNew) setOpenId(v.id)
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
 
-      {editing && !items.some((x) => x.id === editing.id) && (
-        <EditForm
-          value={editing}
-          onCancel={() => setEditing(null)}
-          onSave={(v) => {
-            saveIntegration(v)
-            log('action', { en: `Added the integration "${v.name}"`, ar: `أضاف الربط "${v.name}"` }, '/admin/integrations')
-            setEditing(null)
-            setOpenId(v.id)
-          }}
-        />
-      )}
-
-      <ul className="flex flex-col gap-2">
+      {/* 24 Nov (owner): cards in a grid instead of a long list; an opened or edited card spans the full row */}
+      <ul className="grid grid-cols-1 gap-3 md:grid-cols-2 2xl:grid-cols-3">
         {items.map((x) => {
           const open = openId === x.id
           const Dir = DIR_ICON[x.direction]
-          const isEditing = editing?.id === x.id
           return (
-            <li key={x.id} className="well flex flex-col gap-3 p-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <button
-                  type="button"
-                  onClick={() => setOpenId(open ? null : x.id)}
-                  aria-expanded={open}
-                  className="flex min-w-0 flex-1 items-center gap-3 text-start outline-hidden focus-visible:ring-2"
-                >
-                  <span aria-hidden className="material-light grid size-9 shrink-0 place-items-center rounded-full">
-                    <Dir className="size-4" />
-                  </span>
-                  <span className="flex min-w-0 flex-col gap-0.5">
-                    <span className="font-medium text-foreground">{x.name}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {L(DIRECTION_LABEL[x.direction])} · {x.scope} · {L(SCHEDULE_LABEL[x.schedule])}
-                      {x.runAt && (x.schedule === 'daily' || x.schedule === 'weekly') ? ` ${x.runAt}` : ''}
-                    </span>
-                  </span>
-                  <ChevronDown aria-hidden className={cn('ms-auto size-4 shrink-0 text-muted-foreground transition-transform', open && 'rotate-180')} />
-                </button>
-                <span className="flex items-center gap-3">
+            <li
+              key={x.id}
+              className={cn(
+                'well flex flex-col gap-3 p-4',
+                open && 'md:col-span-2 2xl:col-span-3',
+                x.status === 'error' && 'ring-1 ring-(--status-error-solid)/40',
+              )}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <span aria-hidden className="material-light grid size-10 shrink-0 place-items-center rounded-full">
+                  <Dir className="size-4" />
+                </span>
+                <span className="flex items-center gap-2">
                   <StatusBadge tone={STATUS_TONE[x.status]} dot>
                     {L(STATUS_LABEL[x.status])}
                   </StatusBadge>
@@ -169,8 +186,28 @@ function Connections() {
                   />
                 </span>
               </div>
+              <div className="flex min-w-0 flex-col gap-1">
+                <span className="font-medium text-foreground">{x.name}</span>
+                <span className="text-xs text-muted-foreground">
+                  {L(DIRECTION_LABEL[x.direction])} · {x.scope}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {L(SCHEDULE_LABEL[x.schedule])}
+                  {x.runAt && (x.schedule === 'daily' || x.schedule === 'weekly') ? ` ${x.runAt}` : ''}
+                  {x.lastSync ? ` · ${t('last sync', 'آخر مزامنة')} ${when(x.lastSync)}` : ''}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setOpenId(open ? null : x.id)}
+                aria-expanded={open}
+                className="mt-auto inline-flex w-fit items-center gap-1 rounded-md text-sm font-medium text-foreground outline-hidden hover:underline focus-visible:ring-2"
+              >
+                {open ? t('Hide details', 'إخفاء التفاصيل') : t('Details', 'التفاصيل')}
+                <ChevronDown aria-hidden className={cn('size-4 transition-transform', open && 'rotate-180')} />
+              </button>
 
-              {open && !isEditing && (
+              {open && (
                 <div className="flex flex-col gap-3 border-t border-line pt-3 text-sm">
                   <dl className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
                     <Fact label={t('What data', 'أي بيانات')} value={x.data || '—'} wide />
@@ -225,18 +262,6 @@ function Connections() {
                   </div>
                 </div>
               )}
-
-              {isEditing && editing && (
-                <EditForm
-                  value={editing}
-                  onCancel={() => setEditing(null)}
-                  onSave={(v) => {
-                    saveIntegration(v)
-                    log('action', { en: `Changed the integration "${v.name}"`, ar: `عدّل الربط "${v.name}"` }, '/admin/integrations')
-                    setEditing(null)
-                  }}
-                />
-              )}
             </li>
           )
         })}
@@ -286,8 +311,7 @@ function EditForm({ value, onSave, onCancel }: { value: Integration; onSave: (v:
   )
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-line bg-(--surface-card) p-4" data-testid="integration-form">
-      <span className="t-ui-strong">{value.name ? t(`Edit “${value.name}”`, `تعديل «${value.name}»`) : t('New connection', 'اتصال جديد')}</span>
+    <div className="flex flex-col gap-3" data-testid="integration-form">
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         <label className="flex flex-col gap-1 text-xs text-muted-foreground">
           {t('Name', 'الاسم')}
@@ -351,8 +375,8 @@ function EditForm({ value, onSave, onCancel }: { value: Integration; onSave: (v:
       {needsSecret && (
         <p className="text-xs text-muted-foreground">
           {t(
-            'Prototype: the key is not stored. Only its last four characters are kept, to show that one is set.',
-            'نموذج: المفتاح لا يُحفظ. تُحفظ آخر أربعة أحرف فقط لإظهار أنه مضبوط.',
+            'The key is never shown again. Only its last four characters appear, to show that one is set.',
+            'لا يُعرض المفتاح مجدداً. تظهر آخر أربعة أحرف فقط لإظهار أنه مضبوط.',
           )}
         </p>
       )}
@@ -468,4 +492,3 @@ function CrmFields() {
     </div>
   )
 }
-

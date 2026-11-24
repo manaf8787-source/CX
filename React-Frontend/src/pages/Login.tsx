@@ -27,7 +27,11 @@ import { cn } from '@/lib/utils'
 
 const BRAND_POINTS = [
   { icon: Layers, en: 'Every contact, from every channel, on one timeline', ar: 'كل تواصل، من كل قناة، على خط زمني واحد' },
-  { icon: Target, en: 'Signals are counted; a pattern gets one corrective action with an owner', ar: 'الإشارات تُحصى؛ والنمط يحصل على إجراء تصحيحي واحد له مالك' },
+  {
+    icon: Target,
+    en: 'Signals are counted; a pattern gets one corrective action with an owner',
+    ar: 'الإشارات تُحصى؛ والنمط يحصل على إجراء تصحيحي واحد له مالك',
+  },
   { icon: ShieldCheck, en: 'Each role sees only what it should', ar: 'كل دور يرى ما يخصه فقط' },
 ]
 
@@ -60,7 +64,10 @@ function BrandMotif() {
 function BrandPanel() {
   const { t } = useI18n()
   return (
-    <section aria-label="CX Portal" className="relative isolate flex flex-col overflow-hidden bg-sidebar px-5 py-6 sm:px-8 lg:min-h-svh lg:justify-between lg:p-12">
+    <section
+      aria-label="CX Portal"
+      className="relative isolate flex flex-col overflow-hidden bg-sidebar px-5 py-6 sm:px-8 lg:min-h-svh lg:justify-between lg:p-12"
+    >
       <m.div variants={brandList} initial="hidden" animate="show" className="relative flex flex-col gap-5 lg:gap-12">
         {/* owner's request (19 Nov): the logo larger with a larger point, the name "CX Portal" alone, the line under it "PSI Products" */}
         <m.div variants={brandItem} className="flex items-center gap-4">
@@ -72,7 +79,8 @@ function BrandPanel() {
         </m.div>
 
         <m.p variants={brandItem} className="max-w-md text-2xl leading-[1.15] font-medium text-balance lg:text-4xl lg:leading-[1.1]">
-          {t('One record per person.', 'سجل واحد لكل شخص.')} <span className="text-muted-foreground">{t('Every channel, one timeline.', 'كل القنوات، خط زمني واحد.')}</span>
+          {t('One record per person.', 'سجل واحد لكل شخص.')}{' '}
+          <span className="text-muted-foreground">{t('Every channel, one timeline.', 'كل القنوات، خط زمني واحد.')}</span>
         </m.p>
 
         <m.ul variants={brandList} className="hidden max-w-md flex-col gap-5 lg:flex">
@@ -87,9 +95,13 @@ function BrandPanel() {
         </m.ul>
       </m.div>
 
-      <m.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.45, duration: DURATION.slow }} className="relative hidden flex-col gap-4 lg:flex">
+      <m.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.45, duration: DURATION.slow }}
+        className="relative hidden flex-col gap-4 lg:flex"
+      >
         <BrandMotif />
-        <p className="text-sm text-muted-foreground">{t('Prototype v43 · sample data only', 'نموذج أولي الإصدار 43 · بيانات نموذجية فقط')}</p>
       </m.div>
     </section>
   )
@@ -165,21 +177,19 @@ export default function Login() {
                 className="w-full max-w-md"
               >
                 <Card variant="frame">
-                  {invited ? (
-                    <AcceptInviteForm user={invited} phase={phase} onDone={go} />
-                  ) : (
-                    <SignInForm phase={phase} badInvite={badInvite} onDone={go} />
-                  )}
+                  {invited ? <AcceptInviteForm user={invited} phase={phase} onDone={go} /> : <SignInForm phase={phase} badInvite={badInvite} onDone={go} />}
                 </Card>
                 <p className="mt-3 px-1 text-center text-xs text-muted-foreground">
-                  {t('No account? Ask the super admin for an invitation — there is no self sign-up.', 'لا حساب لديك؟ اطلب دعوة من المدير العام للنظام — لا يوجد تسجيل ذاتي.')}
+                  {t(
+                    'No account? Ask the super admin for an invitation — there is no self sign-up.',
+                    'لا حساب لديك؟ اطلب دعوة من المدير العام للنظام — لا يوجد تسجيل ذاتي.',
+                  )}
                 </p>
               </m.div>
             )}
           </AnimatePresence>
         </div>
       </main>
-
     </div>
   )
 }
@@ -244,30 +254,64 @@ function SignInForm({ phase, badInvite, onDone }: { phase: Phase; badInvite: boo
   const samples = listUsers().filter((u) => u.status === 'active')
 
   return (
-    <form noValidate onSubmit={handleSubmit(onValid)} className="surface-frame-inner flex flex-col gap-5 p-5 text-card-foreground sm:p-7" aria-busy={phase !== 'idle'}>
+    <form
+      noValidate
+      onSubmit={handleSubmit(onValid)}
+      className="surface-frame-inner flex flex-col gap-5 p-5 text-card-foreground sm:p-7"
+      aria-busy={phase !== 'idle'}
+    >
       <div className="flex flex-col gap-1.5">
         <h1 className="t-page-title">{t('Sign in', 'تسجيل الدخول')}</h1>
-        <p className="t-body-m">{t('Use the work email the super admin invited. Your role is set on your account.', 'استخدم البريد الوظيفي الذي دُعيت عليه. دورك محدد على حسابك.')}</p>
+        <p className="t-body-m">
+          {t('Use the work email the super admin invited. Your role is set on your account.', 'استخدم البريد الوظيفي الذي دُعيت عليه. دورك محدد على حسابك.')}
+        </p>
       </div>
 
       {badInvite && (
         <InlineNote role="status" tone="warning">
           <strong className="font-medium">{t('This invitation link is no longer valid.', 'رابط الدعوة هذا لم يعد صالحاً.')}</strong>{' '}
-          <span className="text-muted-foreground">{t('It was already used or replaced. Sign in below, or ask for a new invitation.', 'استُخدم من قبل أو استُبدل. سجّل الدخول أدناه، أو اطلب دعوة جديدة.')}</span>
+          <span className="text-muted-foreground">
+            {t(
+              'It was already used or replaced. Sign in below, or ask for a new invitation.',
+              'استُخدم من قبل أو استُبدل. سجّل الدخول أدناه، أو اطلب دعوة جديدة.',
+            )}
+          </span>
         </InlineNote>
       )}
 
       <Field data-invalid={!!errors.email}>
         <FieldLabel htmlFor="login-email">{t('Work email', 'البريد الوظيفي')}</FieldLabel>
-        <Input id="login-email" type="email" autoComplete="username" inputMode="email" dir="ltr" aria-invalid={!!errors.email} disabled={phase !== 'idle'} {...register('email')} />
+        <Input
+          id="login-email"
+          type="email"
+          autoComplete="username"
+          inputMode="email"
+          dir="ltr"
+          aria-invalid={!!errors.email}
+          disabled={phase !== 'idle'}
+          {...register('email')}
+        />
         {errors.email && <FieldError>{errors.email.message}</FieldError>}
       </Field>
 
       <Field data-invalid={!!errors.password}>
         <FieldLabel htmlFor="login-password">{t('Password', 'كلمة المرور')}</FieldLabel>
-        <Input id="login-password" type="password" autoComplete="current-password" dir="ltr" aria-invalid={!!errors.password} disabled={phase !== 'idle'} {...register('password')} />
+        <Input
+          id="login-password"
+          type="password"
+          autoComplete="current-password"
+          dir="ltr"
+          aria-invalid={!!errors.password}
+          disabled={phase !== 'idle'}
+          {...register('password')}
+        />
         {errors.password && <FieldError>{errors.password.message}</FieldError>}
-        <FieldDescription>{t('Prototype: the password is not stored or checked yet. The real sign-in will use the company directory.', 'نموذج أولي: كلمة المرور لا تُحفظ ولا تُفحص بعد. تسجيل الدخول الحقيقي سيكون عبر دليل الشركة.')}</FieldDescription>
+        <FieldDescription>
+          {t(
+            'Prototype: the password is not stored or checked yet. The real sign-in will use the company directory.',
+            'نموذج أولي: كلمة المرور لا تُحفظ ولا تُفحص بعد. تسجيل الدخول الحقيقي سيكون عبر دليل الشركة.',
+          )}
+        </FieldDescription>
       </Field>
 
       {lookupError && (
@@ -299,7 +343,13 @@ function SignInForm({ phase, badInvite, onDone }: { phase: Phase; badInvite: boo
                 className="glass ring-within flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-start transition-[background-color] duration-200 hover:bg-well-hover"
               >
                 <span className="t-ui-strong truncate">
-                  {u.roleId === 'custom' ? `${customRoleLabel(u.customRoleId)} · ${t('custom', 'مخصص')}` : u.roleId === 'envmgmt' ? `${L(envName(u.envId ?? 'dub'))} – CEO${u.name && !u.name.endsWith('CEO') ? ` – ${u.name}` : ''}` : u.roleId === 'cxteam' && u.name ? `${L(roleDef(u.roleId)!.name)} – ${u.name}` : L(roleDef(u.roleId)?.name ?? { en: u.roleId, ar: u.roleId })}
+                  {u.roleId === 'custom'
+                    ? `${customRoleLabel(u.customRoleId)} · ${t('custom', 'مخصص')}`
+                    : u.roleId === 'envmgmt'
+                      ? `${L(envName(u.envId ?? 'dub'))} – CEO${u.name && !u.name.endsWith('CEO') ? ` – ${u.name}` : ''}`
+                      : u.roleId === 'cxteam' && u.name
+                        ? `${L(roleDef(u.roleId)!.name)} – ${u.name}`
+                        : L(roleDef(u.roleId)?.name ?? { en: u.roleId, ar: u.roleId })}
                 </span>
                 <span className="truncate text-xs text-muted-foreground" dir="ltr">
                   {u.email}
@@ -321,8 +371,16 @@ function AcceptInviteForm({ user, phase, onDone }: { user: PortalUser; phase: Ph
     () =>
       z
         .object({
-          firstName: z.string().trim().min(1, t('Enter your first name.', 'أدخل اسمك الأول.')).max(40, t('Use 40 characters or fewer.', 'استخدم 40 حرفاً أو أقل.')),
-          lastName: z.string().trim().min(1, t('Enter your last name.', 'أدخل اسم عائلتك.')).max(40, t('Use 40 characters or fewer.', 'استخدم 40 حرفاً أو أقل.')),
+          firstName: z
+            .string()
+            .trim()
+            .min(1, t('Enter your first name.', 'أدخل اسمك الأول.'))
+            .max(40, t('Use 40 characters or fewer.', 'استخدم 40 حرفاً أو أقل.')),
+          lastName: z
+            .string()
+            .trim()
+            .min(1, t('Enter your last name.', 'أدخل اسم عائلتك.'))
+            .max(40, t('Use 40 characters or fewer.', 'استخدم 40 حرفاً أو أقل.')),
           password: z.string().min(8, t('Use at least 8 characters.', 'استخدم 8 أحرف على الأقل.')),
           confirm: z.string(),
         })
@@ -334,22 +392,38 @@ function AcceptInviteForm({ user, phase, onDone }: { user: PortalUser; phase: Ph
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: { firstName: user.name.split(' ')[0] ?? '', lastName: user.name.split(' ').slice(1).join(' '), password: '', confirm: '' } })
+  } = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: { firstName: user.name.split(' ')[0] ?? '', lastName: user.name.split(' ').slice(1).join(' '), password: '', confirm: '' },
+  })
 
   const onValid = ({ firstName, lastName }: FormValues) => {
     const active = acceptInvite(user.id, `${firstName} ${lastName}`)
     if (active) {
-      audit({ userId: active.id, email: active.email, roleId: active.roleId }, 'invite_accepted', { en: 'Accepted the invitation and set a password', ar: 'قبل الدعوة ووضع كلمة مرور' }, '/login')
+      audit(
+        { userId: active.id, email: active.email, roleId: active.roleId },
+        'invite_accepted',
+        { en: 'Accepted the invitation and set a password', ar: 'قبل الدعوة ووضع كلمة مرور' },
+        '/login',
+      )
       onDone(active)
     }
   }
 
   return (
-    <form noValidate onSubmit={handleSubmit(onValid)} className="surface-frame-inner flex flex-col gap-5 p-5 text-card-foreground sm:p-7" aria-busy={phase !== 'idle'}>
+    <form
+      noValidate
+      onSubmit={handleSubmit(onValid)}
+      className="surface-frame-inner flex flex-col gap-5 p-5 text-card-foreground sm:p-7"
+      aria-busy={phase !== 'idle'}
+    >
       <div className="flex flex-col gap-1.5">
         <h1 className="t-page-title">{t('Set up your account', 'إعداد حسابك')}</h1>
         <p className="t-body-m">
-          {t('You were invited as', 'تمت دعوتك بصفة')} <span className="font-medium text-foreground">{user.roleId === 'custom' ? customRoleLabel(user.customRoleId) : role ? L(role.name) : user.roleId}</span>
+          {t('You were invited as', 'تمت دعوتك بصفة')}{' '}
+          <span className="font-medium text-foreground">
+            {user.roleId === 'custom' ? customRoleLabel(user.customRoleId) : role ? L(role.name) : user.roleId}
+          </span>
           {' · '}
           <span dir="ltr">{user.email}</span>
         </p>
@@ -358,7 +432,9 @@ function AcceptInviteForm({ user, phase, onDone }: { user: PortalUser; phase: Ph
       {role && (
         <InlineNote role="note">
           <span className="text-muted-foreground">
-            {user.roleId === 'custom' ? t('You will see the screens the super admin chose for this role.', 'سترى الشاشات التي اختارها المدير العام لهذا الدور.') : L(role.description)}
+            {user.roleId === 'custom'
+              ? t('You will see the screens the super admin chose for this role.', 'سترى الشاشات التي اختارها المدير العام لهذا الدور.')
+              : L(role.description)}
           </span>
         </InlineNote>
       )}
@@ -366,25 +442,55 @@ function AcceptInviteForm({ user, phase, onDone }: { user: PortalUser; phase: Ph
       <div className="grid grid-cols-2 gap-3">
         <Field data-invalid={!!errors.firstName}>
           <FieldLabel htmlFor="invite-first">{t('First name', 'الاسم الأول')}</FieldLabel>
-          <Input id="invite-first" autoComplete="given-name" maxLength={40} aria-invalid={!!errors.firstName} disabled={phase !== 'idle'} {...register('firstName')} />
+          <Input
+            id="invite-first"
+            autoComplete="given-name"
+            maxLength={40}
+            aria-invalid={!!errors.firstName}
+            disabled={phase !== 'idle'}
+            {...register('firstName')}
+          />
           {errors.firstName && <FieldError>{errors.firstName.message}</FieldError>}
         </Field>
         <Field data-invalid={!!errors.lastName}>
           <FieldLabel htmlFor="invite-last">{t('Last name', 'اسم العائلة')}</FieldLabel>
-          <Input id="invite-last" autoComplete="family-name" maxLength={40} aria-invalid={!!errors.lastName} disabled={phase !== 'idle'} {...register('lastName')} />
+          <Input
+            id="invite-last"
+            autoComplete="family-name"
+            maxLength={40}
+            aria-invalid={!!errors.lastName}
+            disabled={phase !== 'idle'}
+            {...register('lastName')}
+          />
           {errors.lastName && <FieldError>{errors.lastName.message}</FieldError>}
         </Field>
       </div>
 
       <Field data-invalid={!!errors.password}>
         <FieldLabel htmlFor="invite-password">{t('Choose a password', 'اختر كلمة مرور')}</FieldLabel>
-        <Input id="invite-password" type="password" autoComplete="new-password" dir="ltr" aria-invalid={!!errors.password} disabled={phase !== 'idle'} {...register('password')} />
+        <Input
+          id="invite-password"
+          type="password"
+          autoComplete="new-password"
+          dir="ltr"
+          aria-invalid={!!errors.password}
+          disabled={phase !== 'idle'}
+          {...register('password')}
+        />
         {errors.password && <FieldError>{errors.password.message}</FieldError>}
       </Field>
 
       <Field data-invalid={!!errors.confirm}>
         <FieldLabel htmlFor="invite-confirm">{t('Repeat the password', 'أعد كتابة كلمة المرور')}</FieldLabel>
-        <Input id="invite-confirm" type="password" autoComplete="new-password" dir="ltr" aria-invalid={!!errors.confirm} disabled={phase !== 'idle'} {...register('confirm')} />
+        <Input
+          id="invite-confirm"
+          type="password"
+          autoComplete="new-password"
+          dir="ltr"
+          aria-invalid={!!errors.confirm}
+          disabled={phase !== 'idle'}
+          {...register('confirm')}
+        />
         {errors.confirm && <FieldError>{errors.confirm.message}</FieldError>}
         <FieldDescription>{t('Prototype: the password is not stored yet.', 'نموذج أولي: كلمة المرور لا تُحفظ بعد.')}</FieldDescription>
       </Field>
@@ -393,5 +499,3 @@ function AcceptInviteForm({ user, phase, onDone }: { user: PortalUser; phase: Ph
     </form>
   )
 }
-
-

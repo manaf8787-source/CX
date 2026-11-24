@@ -1023,7 +1023,6 @@ function HistoryTab({ onOpen }: { onOpen: (id: string) => void }) {
                     {r.met}/{r.total}
                   </span>
                   <VerdictBadge record={r} />
-                  {r.sample && <StatusBadge>{t('Sample', 'تجريبي')}</StatusBadge>}
                 </span>
               </button>
               {open && (

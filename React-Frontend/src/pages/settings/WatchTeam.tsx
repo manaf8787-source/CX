@@ -113,7 +113,11 @@ export default function WatchTeam() {
   const customer = useMemo<WatchCustomer>(
     () =>
       person
-        ? { name: { en: personLabel(person, role.id), ar: personLabel(person, role.id) }, mobile: maskMobile(person.identity.mobile, mayShowDigits), env: envName(person.envId) }
+        ? {
+            name: { en: personLabel(person, role.id), ar: personLabel(person, role.id) },
+            mobile: maskMobile(person.identity.mobile, mayShowDigits),
+            env: envName(person.envId),
+          }
         : // no one in this environment: the prototype's fallback customer, in Abu Dhabi
           { name: { en: 'A customer', ar: 'عميل' }, mobile: maskMobile(undefined, mayShowDigits), env: envName('auh') },
     [person, role.id, mayShowDigits],
@@ -154,7 +158,10 @@ export default function WatchTeam() {
               {L(COPY.reset)}
             </Button>
             <span data-slot="watch-step-of" className="ms-1 text-sm text-muted-foreground">
-              {L(COPY.step)} <bdi dir="ltr" className="tabular">{stepOf}</bdi>
+              {L(COPY.step)}{' '}
+              <bdi dir="ltr" className="tabular">
+                {stepOf}
+              </bdi>
             </span>
           </div>
 
@@ -174,15 +181,7 @@ export default function WatchTeam() {
         </div>
       </SectionCard>
 
-      <SectionCard
-        title={
-          <h3 className="inline-flex flex-wrap items-center gap-2">
-            {L(COPY.weekHeading)}
-            <StatusBadge tone="neutral">{L(COPY.sample)}</StatusBadge>
-          </h3>
-        }
-        description={L(COPY.weekHint)}
-      >
+      <SectionCard title={<h3 className="inline-flex flex-wrap items-center gap-2">{L(COPY.weekHeading)}</h3>} description={L(COPY.weekHint)}>
         <ul className="grid grid-cols-2 gap-2.5 @2xl:grid-cols-4">
           {counters.map((c) => (
             <li key={c.id} className="min-w-0">

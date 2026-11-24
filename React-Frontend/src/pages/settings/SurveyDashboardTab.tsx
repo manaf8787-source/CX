@@ -14,7 +14,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { SectionCard } from '@/components/common/SectionCard'
 import { KpiTile } from '@/components/common/KpiTile'
 import { StatusBadge } from '@/components/common/StatusBadge'
-import { InlineNote } from '@/components/common/InlineNote'
 import { EmptyState } from '@/components/common/EmptyState'
 import { ChartTooltip, ChartWell, RankedBars } from '@/components/common/charts'
 import { chartAxis, chartBar, chartCursorBar, chartGrid } from '@/components/common/chartTheme'
@@ -126,12 +125,6 @@ export function SurveyDashboardTab() {
   return (
     <div className="flex flex-col gap-6">
       {header}
-      <InlineNote>
-        {t(
-          'Example campaigns with sample numbers, to show how the Dashboard reads. Nothing here is a real customer’s answer.',
-          'حملات تجريبية بأرقام عيّنة لتوضيح شكل اللوحة. لا شيء هنا هو إجابة عميل حقيقي.',
-        )}
-      </InlineNote>
       {current ? (
         <One c={current.c} r={current.r} others={rows.filter((x) => x.c.id !== current.c.id).map((x) => x.r)} fmt={fmt} />
       ) : (
@@ -378,4 +371,3 @@ function QuestionCard({ q, fmt, allQuestions }: { q: QuestionResult; fmt: (n: nu
     </SectionCard>
   )
 }
-

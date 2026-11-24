@@ -566,12 +566,6 @@ export function AgentReport({ kind, canExport, envId }: Props) {
             ))}
           </TableBody>
         </Table>
-        <InlineNote className="mt-3" tone="info">
-          {t(
-            'Prototype: the agents and every month shown are sample data. In the real platform each figure comes from the time stamps on the CRM lead, activity or chat conversation.',
-            'نموذج أولي: الوكلاء وكل الأشهر المعروضة بيانات تجريبية. في المنصة الفعلية تأتي كل الأرقام من الأختام الزمنية على العميل المحتمل أو النشاط أو محادثة الدردشة في CRM.',
-          )}
-        </InlineNote>
       </SectionCard>
 
       <SectionCard

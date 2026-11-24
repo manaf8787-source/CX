@@ -208,10 +208,7 @@ function SendTab({ onSent }: { onSent: () => void }) {
     return (
       <div className="flex flex-col gap-4">
         <InlineNote tone="success" title={t('Request sent to the Administration team', 'أُرسل الطلب لفريق الإدارة')}>
-          {t(
-            'This is the email they receive. Sample data: nothing is really sent in the prototype.',
-            'هذا هو البريد الذي يصلهم. بيانات تجريبية: لا يُرسل شيء فعلاً في النموذج.',
-          )}
+          {t('This is the email they receive.', 'هذا هو البريد الذي يصلهم.')}
         </InlineNote>
         <EmailPreview email={email} />
         <div className="flex flex-wrap gap-2">

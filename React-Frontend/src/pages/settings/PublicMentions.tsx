@@ -824,12 +824,6 @@ function QuestionsTab() {
           ),
         )}
       </SectionCard>
-      <p className="text-xs text-muted-foreground">
-        {t(
-          '"Asked" counts are sample numbers for the last 90 days; once the social feed is connected they are counted from the mentions.',
-          'أعداد "سُئل" أرقام تجريبية لآخر 90 يوماً؛ عند ربط مصدر المنصات تُحسب من الإشارات.',
-        )}
-      </p>
     </div>
   )
 }

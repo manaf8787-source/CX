@@ -15,10 +15,9 @@ export function ConsentRow({ person }: { person: Pick<Person, 'consent'> }) {
   const { t, L } = useI18n()
   const { consent } = person
   const reach = surveyReach(person)
-  const sampleNote = t('Sample flags, as the CRM would hold them. Confirm the consent source with the CRM owner.', 'علامات افتراضية كما سيحملها CRM. يؤكَّد مصدر الموافقة مع مالك CRM.')
 
   return (
-    <section aria-label={t('Consent', 'الموافقة')} className="well flex flex-col gap-2.5 px-5 py-4" title={sampleNote}>
+    <section aria-label={t('Consent', 'الموافقة')} className="well flex flex-col gap-2.5 px-5 py-4">
       <div className="flex flex-wrap items-center gap-2">
         <span className="t-small-strong text-muted-foreground">{t('Consent (from the CRM):', 'الموافقة (من CRM):')}</span>
         {consent.dncr ? (
@@ -56,7 +55,10 @@ export function ConsentRow({ person }: { person: Pick<Person, 'consent'> }) {
                   `لا استبيان عبر ${reach.channelsWithoutConsent.map((c) => CONSENT_CHANNEL_LABEL[c].ar).join(' أو ')}: بلا موافقة. `,
                 )
               : ''}
-            {t('A skipped survey states why: DNCR, inside a cap, no consent or duplicate.', 'كل استبيان متخطّى يذكر السبب: DNCR أو داخل سقف أو بلا موافقة أو مكرر.')}
+            {t(
+              'A skipped survey states why: DNCR, inside a cap, no consent or duplicate.',
+              'كل استبيان متخطّى يذكر السبب: DNCR أو داخل سقف أو بلا موافقة أو مكرر.',
+            )}
           </span>
         )}
       </p>

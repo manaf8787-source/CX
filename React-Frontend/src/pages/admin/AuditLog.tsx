@@ -80,7 +80,8 @@ export default function AuditLog() {
   )
   const visible = filtered.slice(0, shown)
   const nameOf = (id: string) => users.find((u) => u.id === id)?.name
-  const roleText = (e: AuditEntry, lang2: 'en' | 'ar') => (e.roleId === 'custom' ? customRoleLabel(users.find((u) => u.id === e.userId)?.customRoleId) : (roleDef(e.roleId)?.name[lang2] ?? e.roleId))
+  const roleText = (e: AuditEntry, lang2: 'en' | 'ar') =>
+    e.roleId === 'custom' ? customRoleLabel(users.find((u) => u.id === e.userId)?.customRoleId) : (roleDef(e.roleId)?.name[lang2] ?? e.roleId)
 
   const exportCsv = () => {
     downloadCsv(
@@ -100,7 +101,8 @@ export default function AuditLog() {
     )
   }
 
-  const kindTone = (k: AuditKind) => (KIND_GROUP[k] === 'access' ? 'info' : KIND_GROUP[k] === 'admin' ? 'warning' : KIND_GROUP[k] === 'actions' ? 'success' : 'neutral')
+  const kindTone = (k: AuditKind) =>
+    KIND_GROUP[k] === 'access' ? 'info' : KIND_GROUP[k] === 'admin' ? 'warning' : KIND_GROUP[k] === 'actions' ? 'success' : 'neutral'
 
   const kindOptions: { value: KindFilter; label: string }[] = [
     { value: 'all', label: t('All events', 'كل الأحداث') },
@@ -165,7 +167,6 @@ export default function AuditLog() {
       {!canClear && <ViewOnlyNotice>{t('View only.', 'للعرض فقط.')}</ViewOnlyNotice>}
 
       <InlineNote role="note">
-        <strong className="font-medium">{t('Prototype.', 'نموذج أولي.')}</strong>{' '}
         <span className="text-muted-foreground">
           {t(
             'The log is kept in this browser only and records what happens in it. In the real platform every entry is written on the server, cannot be deleted, and CX actions (approving a fix, closing a case) are logged there too.',
@@ -232,7 +233,13 @@ export default function AuditLog() {
         </div>
 
         {filtered.length === 0 ? (
-          <EmptyState title={t('Nothing recorded yet', 'لا شيء مسجّل بعد')} note={t('Sign-ins, pages and administrative changes appear here as they happen.', 'تظهر هنا تسجيلات الدخول والصفحات والتغييرات الإدارية فور حدوثها.')} />
+          <EmptyState
+            title={t('Nothing recorded yet', 'لا شيء مسجّل بعد')}
+            note={t(
+              'Sign-ins, pages and administrative changes appear here as they happen.',
+              'تظهر هنا تسجيلات الدخول والصفحات والتغييرات الإدارية فور حدوثها.',
+            )}
+          />
         ) : (
           <>
             <Table density="comfortable">
