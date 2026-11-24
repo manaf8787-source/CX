@@ -14,7 +14,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Segmented } from '@/components/ui/segmented'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/table'
+import { SortHead, useSort } from '@/components/common/SortHead'
 import { PageHeader } from '@/components/common/PageHeader'
 import { KpiTile } from '@/components/common/KpiTile'
 import { Bad, Good, Rate } from '@/components/common/Trend'
@@ -124,6 +125,39 @@ export function AgentReport({ kind, canExport, envId }: Props) {
   const receivedBy = new Map<string, number>()
   for (const a of agents) for (const r of records.get(a.id) ?? []) if (r.reassignedTo) receivedBy.set(r.reassignedTo, (receivedBy.get(r.reassignedTo) ?? 0) + 1)
   const agentsWhoLost = rows.filter(({ m }) => m.lostToReassign > 0).length
+  // 24 Nov (owner): every number and percentage column sorts on click
+  type AgentCol = 'name' | 'records' | 'first' | 'avgFirst' | 'acts' | 'converted' | 'conv' | 'lost' | 'received' | 'resolved' | 'fcr' | 'escalated' | 'score'
+  const {
+    sorted: sortedRows,
+    sort,
+    toggle,
+  } = useSort<(typeof rows)[number], AgentCol>(rows, ({ agent, m }, k) =>
+    k === 'name'
+      ? agent.name
+      : k === 'records'
+        ? m.records
+        : k === 'first'
+          ? m.firstOnTimePct
+          : k === 'avgFirst'
+            ? m.avgFirstMin
+            : k === 'acts'
+              ? m.actsOnTimePct
+              : k === 'converted'
+                ? m.converted
+                : k === 'conv'
+                  ? m.conversionPct
+                  : k === 'lost'
+                    ? m.lostToReassign
+                    : k === 'received'
+                      ? (receivedBy.get(agent.id) ?? 0)
+                      : k === 'resolved'
+                        ? m.resolvedOnTimePct
+                        : k === 'fcr'
+                          ? m.fcrPct
+                          : k === 'escalated'
+                            ? m.escalated
+                            : m.avgScore,
+  )
 
   function exportSummary() {
     downloadCsv(
@@ -429,31 +463,34 @@ export function AgentReport({ kind, canExport, envId }: Props) {
 
       <SectionCard
         title={t('By agent', 'حسب الوكيل')}
-        description={t('Most handled first. Click a name to look at one agent.', 'الأكثر معالجة أولاً. اضغط على اسم لعرض وكيل واحد.')}
+        description={t(
+          'Most handled first. Click a column title to sort it; click a name to look at one agent.',
+          'الأكثر معالجة أولاً. اضغط على عنوان عمود لترتيبه، وعلى اسم لعرض وكيل واحد.',
+        )}
       >
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>{t('Agent', 'الوكيل')}</TableHead>
-              <TableHead className="text-end">{sales ? t('Leads', 'العملاء') : t('Conversations', 'المحادثات')}</TableHead>
-              <TableHead className="text-end">{t('First response %', 'أول رد %')}</TableHead>
-              <TableHead className="text-end">{t('Avg first (min)', 'متوسط أول رد (د)')}</TableHead>
+              <SortHead sortKey="name" sort={sort} onSort={toggle} label={t('Agent', 'الوكيل')} align="start" />
+              <SortHead sortKey="records" sort={sort} onSort={toggle} label={sales ? t('Leads', 'العملاء') : t('Conversations', 'المحادثات')} />
+              <SortHead sortKey="first" sort={sort} onSort={toggle} label={t('First response %', 'أول رد %')} />
+              <SortHead sortKey="avgFirst" sort={sort} onSort={toggle} label={t('Avg first (min)', 'متوسط أول رد (د)')} />
               {sales ? (
                 <>
-                  <TableHead className="text-end">{t('Activities on time %', 'الأنشطة في الموعد %')}</TableHead>
-                  <TableHead className="text-end">{t('Converted', 'المحوّلون')}</TableHead>
-                  <TableHead className="text-end">{t('Conversion %', 'التحويل %')}</TableHead>
-                  <TableHead className="text-end">{t('Lost to another agent', 'خسرها لوكيل آخر')}</TableHead>
-                  <TableHead className="text-end">{t('Received from others', 'استلمها من غيره')}</TableHead>
+                  <SortHead sortKey="acts" sort={sort} onSort={toggle} label={t('Activities on time %', 'الأنشطة في الموعد %')} />
+                  <SortHead sortKey="converted" sort={sort} onSort={toggle} label={t('Converted', 'المحوّلون')} />
+                  <SortHead sortKey="conv" sort={sort} onSort={toggle} label={t('Conversion %', 'التحويل %')} />
+                  <SortHead sortKey="lost" sort={sort} onSort={toggle} label={t('Lost to another agent', 'خسرها لوكيل آخر')} />
+                  <SortHead sortKey="received" sort={sort} onSort={toggle} label={t('Received from others', 'استلمها من غيره')} />
                 </>
               ) : (
                 <>
-                  <TableHead className="text-end">{t('Resolved in SLA %', 'الحل ضمن المهلة %')}</TableHead>
-                  <TableHead className="text-end">{t('First contact %', 'أول تواصل %')}</TableHead>
-                  <TableHead className="text-end">{t('Escalated', 'مصعّدة')}</TableHead>
+                  <SortHead sortKey="resolved" sort={sort} onSort={toggle} label={t('Resolved in SLA %', 'الحل ضمن المهلة %')} />
+                  <SortHead sortKey="fcr" sort={sort} onSort={toggle} label={t('First contact %', 'أول تواصل %')} />
+                  <SortHead sortKey="escalated" sort={sort} onSort={toggle} label={t('Escalated', 'مصعّدة')} />
                 </>
               )}
-              <TableHead className="text-end">{t('Score', 'التقييم')}</TableHead>
+              <SortHead sortKey="score" sort={sort} onSort={toggle} label={t('Score', 'التقييم')} />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -464,7 +501,7 @@ export function AgentReport({ kind, canExport, envId }: Props) {
                 </TableCell>
               </TableRow>
             )}
-            {rows.map(({ agent, m }) => (
+            {sortedRows.map(({ agent, m }) => (
               <TableRow key={agent.id} data-state={agentId === agent.id ? 'selected' : undefined}>
                 <TableCell>
                   <button

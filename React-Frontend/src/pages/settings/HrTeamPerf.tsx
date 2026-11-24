@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { AlertTriangle, CheckCircle2, Clock, FolderOpen, PhoneCall, UserPlus } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { Bad, Good, Rate } from '@/components/common/Trend'
+import { SortHead, useSort } from '@/components/common/SortHead'
 import { useNow } from '@/hooks/useNow'
 import { useHrPool, useShopperCases } from '@/services/queries'
 import { ENVIRONMENTS } from '@/data/environments'
@@ -166,6 +167,27 @@ function IvrTab({ inScope }: { inScope: (iso: string, e: EnvId) => boolean }) {
     { key: 'none', label: t('Not called back yet', 'لم يُعاد الاتصال بعد'), value: waiting.length },
   ]
   const specialists = [...new Set(rows.map((x) => x.assignedTo))].sort()
+  // 24 Nov (owner): the specialist table sorts on any column
+  const specRows = specialists.map((s) => {
+    const mine = rows.filter((x) => x.assignedTo === s)
+    const done = mine.filter((x) => x.calledBackAt)
+    const ok = done.filter((x) => delay(x) <= IVR_TARGET_HOURS).length
+    return {
+      s,
+      requests: mine.length,
+      onTime: mine.length ? Math.round((ok / mine.length) * 100) : 0,
+      avg: done.length ? done.reduce((sum, x) => sum + delay(x), 0) / done.length : 0,
+      waiting: mine.length - done.length,
+    }
+  })
+  type SpecCol = 'name' | 'requests' | 'onTime' | 'avg' | 'waiting'
+  const {
+    sorted: specSorted,
+    sort: specSort,
+    toggle: specToggle,
+  } = useSort<(typeof specRows)[number], SpecCol>(specRows, (r, k) =>
+    k === 'name' ? r.s : k === 'requests' ? r.requests : k === 'onTime' ? r.onTime : k === 'avg' ? r.avg : r.waiting,
+  )
 
   return (
     <div className="flex flex-col gap-4">
@@ -208,30 +230,25 @@ function IvrTab({ inScope }: { inScope: (iso: string, e: EnvId) => boolean }) {
           <Table density="comfortable">
             <TableHeader>
               <TableRow>
-                <TableHead>{t('Specialist', 'الأخصائي')}</TableHead>
-                <TableHead className="text-end">{t('Requests', 'الطلبات')}</TableHead>
-                <TableHead className="text-end">{t('On time', 'في الموعد')}</TableHead>
-                <TableHead className="text-end">{t('Average', 'المتوسط')}</TableHead>
-                <TableHead className="text-end">{t('Waiting', 'بالانتظار')}</TableHead>
+                <SortHead sortKey="name" sort={specSort} onSort={specToggle} align="start" label={t('Specialist', 'الأخصائي')} />
+                <SortHead sortKey="requests" sort={specSort} onSort={specToggle} label={t('Requests', 'الطلبات')} />
+                <SortHead sortKey="onTime" sort={specSort} onSort={specToggle} label={t('On time', 'في الموعد')} />
+                <SortHead sortKey="avg" sort={specSort} onSort={specToggle} label={t('Average', 'المتوسط')} />
+                <SortHead sortKey="waiting" sort={specSort} onSort={specToggle} label={t('Waiting', 'بالانتظار')} />
               </TableRow>
             </TableHeader>
             <TableBody>
-              {specialists.map((s) => {
-                const mine = rows.filter((x) => x.assignedTo === s)
-                const done = mine.filter((x) => x.calledBackAt)
-                const ok = done.filter((x) => delay(x) <= IVR_TARGET_HOURS).length
-                const a = done.length ? done.reduce((sum, x) => sum + delay(x), 0) / done.length : 0
-                const w = mine.length - done.length
-                return (
-                  <TableRow key={s}>
-                    <TableCell className="font-medium text-foreground">{s}</TableCell>
-                    <TableCell className="text-end tabular">{mine.length}</TableCell>
-                    <TableCell className="text-end tabular">{mine.length ? Math.round((ok / mine.length) * 100) : 0}%</TableCell>
-                    <TableCell className="text-end tabular">{fmtH(a, t)}</TableCell>
-                    <TableCell className="text-end tabular">{w ? <StatusBadge tone="danger">{w}</StatusBadge> : 0}</TableCell>
-                  </TableRow>
-                )
-              })}
+              {specSorted.map((r) => (
+                <TableRow key={r.s}>
+                  <TableCell className="font-medium text-foreground">{r.s}</TableCell>
+                  <TableCell className="text-end tabular">{r.requests}</TableCell>
+                  <TableCell className="text-end tabular">
+                    <Rate value={r.onTime}>{r.onTime}%</Rate>
+                  </TableCell>
+                  <TableCell className="text-end tabular">{fmtH(r.avg, t)}</TableCell>
+                  <TableCell className="text-end tabular">{r.waiting ? <StatusBadge tone="danger">{r.waiting}</StatusBadge> : 0}</TableCell>
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
         </SectionCard>

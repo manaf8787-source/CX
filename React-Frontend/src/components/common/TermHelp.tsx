@@ -43,7 +43,7 @@ export function TermHelp({ term, className }: { term: string; className?: string
 }
 
 /** KB §14: a "What the terms mean" button on every page: the full list with search. A light pill. */
-export function TermsButton() {
+export function TermsButton({ rail = false, className }: { rail?: boolean; className?: string } = {}) {
   const { t, L } = useI18n()
   const [q, setQ] = useState('')
   const list = useMemo(() => {
@@ -55,10 +55,22 @@ export function TermsButton() {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          <BookOpen aria-hidden />
-          {t('What the terms mean', 'ماذا تعني المصطلحات')}
-        </Button>
+        {rail ? (
+          <Button
+            variant="outline"
+            size="icon"
+            aria-label={t('What the terms mean', 'ماذا تعني المصطلحات')}
+            title={t('What the terms mean', 'ماذا تعني المصطلحات')}
+            className={className}
+          >
+            <BookOpen aria-hidden />
+          </Button>
+        ) : (
+          <Button variant="outline" size="sm" className={className}>
+            <BookOpen aria-hidden />
+            {t('What the terms mean', 'ماذا تعني المصطلحات')}
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="max-h-[85dvh] overflow-hidden sm:max-w-2xl">
         <DialogHeader>
@@ -67,7 +79,14 @@ export function TermsButton() {
         </DialogHeader>
         <div className="relative">
           <Search aria-hidden className="pointer-events-none absolute start-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('Search terms…', 'ابحث عن مصطلح…')} aria-label={t('Search terms', 'ابحث عن مصطلح')} className="h-9 ps-8" />
+          <Input
+            type="search"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder={t('Search terms…', 'ابحث عن مصطلح…')}
+            aria-label={t('Search terms', 'ابحث عن مصطلح')}
+            className="h-9 ps-8"
+          />
         </div>
         <dl className="-mx-1 flex max-h-[55dvh] flex-col gap-2 overflow-y-auto px-1 py-1">
           {list.map((g) => (

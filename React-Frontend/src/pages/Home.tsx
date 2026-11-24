@@ -15,7 +15,6 @@ import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/common/EmptyState'
 import { InlineNote } from '@/components/common/InlineNote'
-import { SampleBanner } from '@/components/common/SampleBanner'
 import { TermsButton } from '@/components/common/TermHelp'
 import { DailyBrief } from '@/components/home/DailyBrief'
 import { IndicatorCard } from '@/components/home/IndicatorCard'
@@ -44,10 +43,12 @@ export default function Home() {
   const { data: products } = useProducts()
 
   // One card per live product. A role with a product of its own (environment management, team leads, After-Sales) reads only that one.
-  const cards = (sets ?? []).filter((s) => !role.product || s.productId === role.product).flatMap((set) => {
-    const product = products?.find((p) => p.id === set.productId)
-    return product ? [{ set, product }] : []
-  })
+  const cards = (sets ?? [])
+    .filter((s) => !role.product || s.productId === role.product)
+    .flatMap((set) => {
+      const product = products?.find((p) => p.id === set.productId)
+      return product ? [{ set, product }] : []
+    })
 
   const searchTitle = assistant.available ? t('Find a person, or ask', 'ابحث عن شخص، أو اسأل') : t('Find a person', 'ابحث عن شخص')
 
@@ -61,7 +62,6 @@ export default function Home() {
                 <h1 className="t-page-title text-[20px] tablet:text-[22px] desktop:text-[24px]">{L(HOME_COPY.h1)}</h1>
                 <p className="t-body-m max-w-[72ch]">{L(HOME_COPY.lede)}</p>
               </div>
-              <SampleBanner>{L(HOME_COPY.tag)}</SampleBanner>
             </div>
             <StepLine />
             <WatchTeamButton />
@@ -80,9 +80,7 @@ export default function Home() {
           </h2>
           <TermsButton />
         </div>
-        {env !== 'all' && (
-          <InlineNote>{L(INDICATOR_COPY.envHint)}</InlineNote>
-        )}
+        {env !== 'all' && <InlineNote>{L(INDICATOR_COPY.envHint)}</InlineNote>}
         {isLoading || !sets ? (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Skeleton className="h-52 rounded-card" />

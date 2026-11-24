@@ -54,6 +54,7 @@ import { canAccessPath, canOpenPage } from '@/auth/access'
 import { useProducts } from '@/services/queries'
 import { prefetchPath } from '@/routes/pages'
 import { cn } from '@/lib/utils'
+import { TermsButton } from '@/components/common/TermHelp'
 import { prefersReducedMotion } from '@/lib/motion'
 import type { ViewportMode } from './useViewportMode'
 
@@ -366,15 +367,17 @@ function NavBody({ variant, groups, toggle, onClose, onNavigate, onReplay }: Nav
 
       {/* The skill's usage card (light material, radius 10, padding 10). v43 (19 Nov): the demo role switch is gone — the role comes from
           the account the super admin invited (Users and access); the card keeps the sample-data notice only. */}
-      <SidebarFooter className={cn('gap-2 p-0 pt-3 group-data-[collapsible=icon]:items-center', !hasTour && 'group-data-[collapsible=icon]:hidden')}>
+      {/* 24 Nov (owner): the help pair at the bottom for every user: the tour and "What the terms mean" (moved from every page header); the
+          "Prototype, sample data" card was removed with the sample-data pill. */}
+      <SidebarFooter className="gap-2 p-0 pt-3 group-data-[collapsible=icon]:items-center">
         {hasTour && <ReplayTour rail={!sheet && !!toggle?.rail} onReplay={onReplay} index={rows} />}
-        <div
-          style={step(rows + 1)}
-          className="nav-fade material-light flex flex-col gap-1 rounded-lg p-2.5 group-data-[collapsible=icon]:hidden [@media(max-height:719px)]:hidden"
-        >
-          <span className="t-ui-strong">{t('Prototype', 'نموذج أولي')}</span>
-          <span className="text-sm text-muted-foreground">{t('Sample data only', 'بيانات تجريبية فقط')}</span>
-        </div>
+        {!sheet && toggle?.rail ? (
+          <TermsButton rail className="rail-fade" />
+        ) : (
+          <div style={step(rows + 1)} className="nav-fade">
+            <TermsButton className="w-full justify-start" />
+          </div>
+        )}
       </SidebarFooter>
     </div>
   )

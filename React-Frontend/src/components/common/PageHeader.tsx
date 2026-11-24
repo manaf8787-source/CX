@@ -2,7 +2,7 @@ import { useEmbedded } from '@/pages/settings/SubPageHeader'
 import type { ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 import { SampleBanner } from './SampleBanner'
-import { TermHelp, TermsButton } from './TermHelp'
+import { TermHelp } from './TermHelp'
 
 interface PageHeaderProps {
   title: ReactNode
@@ -21,7 +21,7 @@ interface PageHeaderProps {
  * secondary pills first (sample-data state, "What the terms mean") and ONE primary pill last (`actions`: pass the primary action as
  * the last child and keep the others `variant="outline"`). Left-aligned, 24 to 32px rhythm; the stack goes full width on a phone.
  */
-export function PageHeader({ title, description, eyebrow, actions, sample = true, className, term }: PageHeaderProps) {
+export function PageHeader({ title, description, eyebrow, actions, sample = false, className, term }: PageHeaderProps) {
   // 24 Nov (owner): inside another page's tab, no second title (see EmbeddedPage)
   if (useEmbedded()) return description ? <p className={cn('max-w-[68ch] text-sm text-muted-foreground', className)}>{description}</p> : null
   return (
@@ -36,8 +36,7 @@ export function PageHeader({ title, description, eyebrow, actions, sample = true
       </div>
       <div className="flex flex-wrap items-center gap-2 sm:max-w-[55%] sm:shrink-0 sm:justify-end">
         {sample && <SampleBanner />}
-        {/* KB §14: a "What the terms mean" button on every page. */}
-        <TermsButton />
+        {/* 24 Nov (owner): "What the terms mean" moved to the sidebar, under "How do I use this?", for every page and user. */}
         {actions}
       </div>
     </header>

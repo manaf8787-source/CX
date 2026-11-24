@@ -21,6 +21,7 @@ import { Input } from '@/components/ui/input'
 import { Segmented } from '@/components/ui/segmented'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { SortHead, useSort } from '@/components/common/SortHead'
 import { PageHeader } from '@/components/common/PageHeader'
 import { KpiTile } from '@/components/common/KpiTile'
 import { SectionCard } from '@/components/common/SectionCard'
@@ -154,6 +155,33 @@ export function PerformanceReport({ scope, canExport }: Props) {
     [fixes, users, now],
   )
 
+  // 24 Nov (owner): every number and percentage column sorts on click
+  type PersonCol = 'name' | 'received' | 'onTime' | 'breached' | 'onTimePct' | 'response' | 'resolving' | 'escalated' | 'firstReply' | 'open'
+  const {
+    sorted: sortedRows,
+    sort,
+    toggle,
+  } = useSort<(typeof rows)[number], PersonCol>(rows, ({ person, m }, k) =>
+    k === 'name'
+      ? person.name
+      : k === 'received'
+        ? m.received
+        : k === 'onTime'
+          ? m.closedOnTime
+          : k === 'breached'
+            ? m.breached
+            : k === 'onTimePct'
+              ? m.onTimeRate
+              : k === 'response'
+                ? m.responseRate
+                : k === 'resolving'
+                  ? m.resolveRate
+                  : k === 'escalated'
+                    ? m.escalated
+                    : k === 'firstReply'
+                      ? m.avgResponseHours
+                      : m.open,
+  )
   const nameOf = (id: string) => people.find((p) => p.id === id)?.name ?? id
 
   // public comments still without a reply, for the people in view (owner, 23 Nov): each opens the comment on Public mentions
@@ -515,21 +543,24 @@ export function PerformanceReport({ scope, canExport }: Props) {
 
       <SectionCard
         title={scope === 'team' ? t('By team member', 'حسب الموظف') : t('By user', 'حسب المستخدم')}
-        description={t('Sorted by most breached first. Click a name to look at one person.', 'مرتبة بالأكثر تجاوزاً أولاً. اضغط على اسم لعرض شخص واحد.')}
+        description={t(
+          'Most breached first. Click a column title to sort it; click a name to look at one person.',
+          'الأكثر تجاوزاً أولاً. اضغط على عنوان عمود لترتيبه، وعلى اسم لعرض شخص واحد.',
+        )}
       >
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>{t('Person', 'الشخص')}</TableHead>
-              <TableHead className="text-end">{t('Received', 'المستلمة')}</TableHead>
-              <TableHead className="text-end">{t('On time', 'في الموعد')}</TableHead>
-              <TableHead className="text-end">{t('Breached', 'متجاوزة')}</TableHead>
-              <TableHead className="text-end">{t('On-time %', 'في الموعد %')}</TableHead>
-              <TableHead className="text-end">{t('Response %', 'الاستجابة %')}</TableHead>
-              <TableHead className="text-end">{t('Resolving %', 'الحل %')}</TableHead>
-              <TableHead className="text-end">{t('Escalated', 'مصعّدة')}</TableHead>
-              <TableHead className="text-end">{t('First reply (h)', 'أول رد (س)')}</TableHead>
-              <TableHead className="text-end">{t('Open now', 'مفتوحة')}</TableHead>
+              <SortHead sortKey="name" sort={sort} onSort={toggle} label={t('Person', 'الشخص')} align="start" />
+              <SortHead sortKey="received" sort={sort} onSort={toggle} label={t('Received', 'المستلمة')} />
+              <SortHead sortKey="onTime" sort={sort} onSort={toggle} label={t('On time', 'في الموعد')} />
+              <SortHead sortKey="breached" sort={sort} onSort={toggle} label={t('Breached', 'متجاوزة')} />
+              <SortHead sortKey="onTimePct" sort={sort} onSort={toggle} label={t('On-time %', 'في الموعد %')} />
+              <SortHead sortKey="response" sort={sort} onSort={toggle} label={t('Response %', 'الاستجابة %')} />
+              <SortHead sortKey="resolving" sort={sort} onSort={toggle} label={t('Resolving %', 'الحل %')} />
+              <SortHead sortKey="escalated" sort={sort} onSort={toggle} label={t('Escalated', 'مصعّدة')} />
+              <SortHead sortKey="firstReply" sort={sort} onSort={toggle} label={t('First reply (h)', 'أول رد (س)')} />
+              <SortHead sortKey="open" sort={sort} onSort={toggle} label={t('Open now', 'مفتوحة')} />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -540,7 +571,7 @@ export function PerformanceReport({ scope, canExport }: Props) {
                 </TableCell>
               </TableRow>
             )}
-            {rows.map(({ person, m }) => (
+            {sortedRows.map(({ person, m }) => (
               <TableRow key={person.id} data-state={personId === person.id ? 'selected' : undefined}>
                 <TableCell>
                   <button

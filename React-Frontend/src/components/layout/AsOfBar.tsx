@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { Globe2, Lock, RefreshCw, TriangleAlert } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { useRole } from '@/auth/RoleContext'
@@ -26,8 +26,13 @@ import type { EnvId, EnvScope } from '@/types'
  * Inside the top bar (a container named `bar`) the date and the feed text collapse to screen-reader text below 1000 and 900px, leaving
  * the dot or icon; on its own (tests) it shows everything.
  */
+/** 24 Nov (owner): pages with their own environment filter, where the top switch has no effect; the switch is hidden there. */
+const OWN_ENV_FILTER = ['/settings/hr-team']
+
 export function AsOfBar() {
   const { t, L, lang } = useI18n()
+  const { pathname } = useLocation()
+  const hideSwitch = OWN_ENV_FILTER.some((p) => pathname === p || pathname.startsWith(`${p}/`))
   const { role } = useRole()
   const { env, setEnv, allowed, fixed } = useEnvScope()
   const { data } = useFeedScope()
@@ -36,7 +41,9 @@ export function AsOfBar() {
   const link = canAccessPath(role.id, feedsPath.split('?')[0])
   const late = data?.lateCount ?? 0
   const asOf = data?.asOf
-    ? new Intl.DateTimeFormat(lang === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(data.asOf))
+    ? new Intl.DateTimeFormat(lang === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(
+        new Date(data.asOf),
+      )
     : '–'
 
   const feedLabel = late > 0 ? L(lateFeedsLabel(late)) : L(FEEDS_COPY.barAllReceived)
@@ -66,7 +73,7 @@ export function AsOfBar() {
 
   return (
     <div role="region" aria-label={t('Data freshness and environment', 'حداثة البيانات والبيئة')} className="flex min-w-0 flex-1 items-center gap-x-4 gap-y-1">
-      {fixed ? (
+      {hideSwitch ? null : fixed ? (
         <div title={fixedHint} className="flex min-w-0 items-center gap-2.5 px-1">
           {tile(<Lock />)}
           <span className="flex min-w-0 flex-col text-start leading-tight">
@@ -126,7 +133,11 @@ export function AsOfBar() {
       </span>
 
       {link ? (
-        <Link to={feedsPath} title={`${L(FEEDS_COPY.barDataAsOf)} ${asOf}`} className="rounded-full outline-hidden transition-opacity duration-200 hover:opacity-80">
+        <Link
+          to={feedsPath}
+          title={`${L(FEEDS_COPY.barDataAsOf)} ${asOf}`}
+          className="rounded-full outline-hidden transition-opacity duration-200 hover:opacity-80"
+        >
           {chip}
         </Link>
       ) : (
@@ -137,4 +148,3 @@ export function AsOfBar() {
     </div>
   )
 }
-
