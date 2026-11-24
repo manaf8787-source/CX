@@ -1227,6 +1227,29 @@
     opacity: 1;
   }
 }
+/* 24 Nov (owner): the "Ask the assistant" button pulses (a soft ring that grows and fades, the icon dims and brightens) */
+@keyframes cx-ai-ring {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--primary) 45%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 10px color-mix(in oklab, var(--primary) 0%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--primary) 0%, transparent);
+  }
+}
+@keyframes cx-ai-icon {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(0.85);
+  }
+}
 @keyframes cx-live {
   to {
     opacity: 0.3;

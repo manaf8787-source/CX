@@ -10,6 +10,7 @@ import { Activity, ChevronDown, Layers, Megaphone, Plus, Settings2 } from 'lucid
 import { useI18n } from '@/i18n'
 import { useNow } from '@/hooks/useNow'
 import { useRole } from '@/auth/RoleContext'
+import { canAccessPath } from '@/auth/access'
 import { canActOnCorrectiveAction } from '@/auth/permissions'
 import { useCorrectiveActions, useCreateActionFromPattern, usePatterns, useSignals, useSignalsAll } from '@/services/queries'
 import { useFixDue, useInvestigationEvidence } from '@/services/queriesV40'
@@ -43,12 +44,25 @@ import { PatternThresholdMeter } from './components/PatternThresholdMeter'
 import { ScoresVsSignalsNotice } from './components/ScoresVsSignalsNotice'
 import { signalCategoryLabel } from './components/labels'
 import { envNameFromShort } from '@/data/environments'
+import { usePublicMentions } from '@/services/referenceQueries'
+import { CHANNEL_LABEL } from '@/components/customers/channels'
+import type { PublicMention } from '@/data/v38Reference'
+import type { ChannelId } from '@/types'
 import { useChartMotion } from '@/hooks/useChartMotion'
 
 /** On a phone the pattern cards are the page's heaviest part; the rest wait behind "Show all". */
 const PATTERNS_SHOWN_FIRST = 4
 
-const CORRECTIVE_KINDS: CorrectiveActionKind[] = ['employee', 'service_behaviour', 'training_gap', 'product_app', 'process', 'environment', 'legal_privacy', 'marketing']
+const CORRECTIVE_KINDS: CorrectiveActionKind[] = [
+  'employee',
+  'service_behaviour',
+  'training_gap',
+  'product_app',
+  'process',
+  'environment',
+  'legal_privacy',
+  'marketing',
+]
 
 const KIND_LABEL: Record<CorrectiveActionKind, { en: string; ar: string }> = {
   employee: { en: 'Employee (management note)', ar: 'موظف (ملاحظة إدارية)' },
@@ -60,7 +74,6 @@ const KIND_LABEL: Record<CorrectiveActionKind, { en: string; ar: string }> = {
   legal_privacy: { en: 'Legal & privacy', ar: 'قانوني وخصوصية' },
   marketing: { en: 'Marketing', ar: 'تسويق' },
 }
-
 
 export default function Signals() {
   const chartMotion = useChartMotion()
@@ -91,6 +104,27 @@ export default function Signals() {
   }, [signals])
 
   const publicMentions = signals?.filter((s) => s.isPublic) ?? []
+  // 24 Nov (owner): each public-mention signal shows the comment behind it. The sample signals carry no text, so each is matched to a
+  // sample mention of the same environment (the negative ones first); in the real platform the signal keeps the mention's id.
+  const { data: allMentions } = usePublicMentions()
+  const canOpenMentions = canAccessPath(role.id, '/settings/public-mentions')
+  const mentionFor = (signalId: string, envShort: string): PublicMention | undefined => {
+    const list = allMentions ?? []
+    if (!list.length) return undefined
+    const envName = envNameFromShort(envShort).en.toLowerCase()
+    const sameEnv = list.filter(
+      (m) =>
+        m.environment &&
+        (m.environment === envShort || envName.startsWith(envNameFromShort(m.environment).en.toLowerCase()) || envName.startsWith(m.environment.toLowerCase())),
+    )
+    const pool = sameEnv.filter((m) => m.sentiment < 0).length
+      ? sameEnv.filter((m) => m.sentiment < 0)
+      : sameEnv.length
+        ? sameEnv
+        : list.filter((m) => m.sentiment < 0)
+    const n = Number(signalId.replace(/\D/g, '')) || 0
+    return pool[n % pool.length]
+  }
   const canCreate = canActOnCorrectiveAction(role.id, 'process')
 
   return (
@@ -98,7 +132,12 @@ export default function Signals() {
       <ScoresVsSignalsNotice register="signals" />
 
       <section aria-label={t('Signal totals', 'إجماليات الإشارات')} className="grid grid-cols-1 gap-(--grid-gap) sm:grid-cols-3">
-        <KpiTile label={t('Signals (counted, not worked)', 'الإشارات (تُحصى ولا تُعالج فردياً)')} value={signals?.length} icon={<Activity />} loading={signalsLoading} />
+        <KpiTile
+          label={t('Signals (counted, not worked)', 'الإشارات (تُحصى ولا تُعالج فردياً)')}
+          value={signals?.length}
+          icon={<Activity />}
+          loading={signalsLoading}
+        />
         <KpiTile label={t('Patterns past threshold', 'أنماط تجاوزت الحد')} value={patterns?.length} icon={<Layers />} loading={patternsLoading} />
         <KpiTile
           label={t('Public mentions', 'الإشارات العامة')}
@@ -113,13 +152,16 @@ export default function Signals() {
         title={t('Signal volume', 'حجم الإشارات')}
         term="Signal"
         description={t('Signals per day across live products.', 'الإشارات يومياً عبر المنتجات الفعالة.')}
+        // 24 Nov (owner): only roles that may open the rules page see the button (others were sent back to Home)
         actions={
-          <Button variant="outline" size="sm" asChild>
-            <Link to="/settings/rules">
-              <Settings2 aria-hidden />
-              {t('Edit thresholds', 'تعديل الحدود')}
-            </Link>
-          </Button>
+          canAccessPath(role.id, '/settings/rules') && (
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/settings/rules">
+                <Settings2 aria-hidden />
+                {t('Edit thresholds', 'تعديل الحدود')}
+              </Link>
+            </Button>
+          )
         }
       >
         {signalsLoading ? (
@@ -144,7 +186,10 @@ export default function Signals() {
       <div id="patterns" className="scroll-mt-24">
         <SectionCard
           title={t('Patterns', 'الأنماط')}
-          description={t('Each pattern shows how far its signals are toward the rule that makes it actionable. Closest to or furthest past the threshold first.', 'يُظهر كل نمط مدى اقتراب إشاراته من القاعدة التي تجعله قابلاً للإجراء. الأقرب إلى الحد أو الأبعد بعده أولاً.')}
+          description={t(
+            'Each pattern shows how far its signals are toward the rule that makes it actionable. Closest to or furthest past the threshold first.',
+            'يُظهر كل نمط مدى اقتراب إشاراته من القاعدة التي تجعله قابلاً للإجراء. الأقرب إلى الحد أو الأبعد بعده أولاً.',
+          )}
           term="Pattern"
         >
           {patternsLoading ? (
@@ -169,7 +214,10 @@ export default function Signals() {
                 >
                   <CollapsibleTrigger asChild>
                     <Button variant="outline" size="sm" className="w-full sm:w-auto">
-                      <ChevronDown aria-hidden className={cn('transition-transform duration-400 ease-spring motion-reduce:transition-none', patternsOpen && 'rotate-180')} />
+                      <ChevronDown
+                        aria-hidden
+                        className={cn('transition-transform duration-400 ease-spring motion-reduce:transition-none', patternsOpen && 'rotate-180')}
+                      />
                       {patternsOpen
                         ? t('Show fewer patterns', 'عرض أنماط أقل')
                         : t(`Show all patterns (${orderedPatterns.length})`, `عرض كل الأنماط (${orderedPatterns.length})`)}
@@ -185,7 +233,10 @@ export default function Signals() {
       <SectionCard
         title={t('Signals', 'الإشارات')}
         term="Signal"
-        description={t('Every signal with its id. Open one to see where it came from and where it leads. Counted, not worked one by one.', 'كل إشارة برقمها. افتح واحدة لترى من أين جاءت وإلى أين تقود. تُعدّ ولا تُعالج واحدة واحدة.')}
+        description={t(
+          'Every signal with its id. Open one to see where it came from and where it leads. Counted, not worked one by one.',
+          'كل إشارة برقمها. افتح واحدة لترى من أين جاءت وإلى أين تقود. تُعدّ ولا تُعالج واحدة واحدة.',
+        )}
       >
         <SignalsTable signals={signals} patterns={patterns} isLoading={signalsLoading} />
       </SectionCard>
@@ -202,22 +253,50 @@ export default function Signals() {
         ) : (
           <ul className="flex flex-col">
             {publicMentions.map((s) => {
+              const m = mentionFor(s.id, s.environment)
               const dueMs = s.publicReplyDueAt ? new Date(s.publicReplyDueAt).getTime() - now : null
               const breached = dueMs !== null && dueMs <= 0
               return (
-                <li key={s.id} className="row-divider flex min-h-(--row-h) flex-wrap items-center justify-between gap-x-3 gap-y-1.5 py-2">
-                  <span className="inline-flex flex-wrap items-center gap-2 text-sm">
-                    <Megaphone aria-hidden className="size-4 text-muted-foreground" />
-                    <TraceId kind="signal" id={s.id} />
-                    <span className="font-medium text-foreground">{L(signalCategoryLabel(s.category))}</span>
-                    <span className="text-muted-foreground">· {L(envNameFromShort(s.environment))}</span>
-                  </span>
-                  {s.publicReplyDueAt ? (
-                    <StatusBadge tone={breached ? 'danger' : 'warning'} dot>
-                      {breached ? t('48h reply breached', 'تجاوز ساعة الرد 48') : t('48h reply clock running', 'ساعة الرد 48 جارية')}
-                    </StatusBadge>
-                  ) : (
-                    <StatusBadge tone="neutral">{t('No reply clock', 'لا ساعة رد')}</StatusBadge>
+                <li key={s.id} className="row-divider flex flex-col gap-2 py-3">
+                  <div className="flex min-h-(--row-h) flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
+                    <span className="inline-flex flex-wrap items-center gap-2 text-sm">
+                      <Megaphone aria-hidden className="size-4 text-muted-foreground" />
+                      <TraceId kind="signal" id={s.id} />
+                      <span className="font-medium text-foreground">{L(signalCategoryLabel(s.category))}</span>
+                      <span className="text-muted-foreground">· {L(envNameFromShort(s.environment))}</span>
+                    </span>
+                    {s.publicReplyDueAt ? (
+                      <StatusBadge tone={breached ? 'danger' : 'warning'} dot>
+                        {breached ? t('48h reply breached', 'تجاوز ساعة الرد 48') : t('48h reply clock running', 'ساعة الرد 48 جارية')}
+                      </StatusBadge>
+                    ) : (
+                      <StatusBadge tone="neutral">{t('No reply clock', 'لا ساعة رد')}</StatusBadge>
+                    )}
+                  </div>
+                  {/* 24 Nov (owner): what the comment says, its tone and where, without opening it; and a link to the mention */}
+                  {m && (
+                    <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2 ps-6">
+                      <div className="flex min-w-0 flex-1 basis-80 flex-col gap-1.5">
+                        <p className="text-sm text-foreground">“{m.text}”</p>
+                        <span className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                          <StatusBadge tone={m.sentiment < 0 ? 'danger' : m.sentiment > 0 ? 'success' : 'neutral'}>
+                            {m.sentiment < 0 ? t('Negative', 'سلبي') : m.sentiment > 0 ? t('Positive', 'إيجابي') : t('Neutral', 'محايد')}
+                          </StatusBadge>
+                          <span>{L(CHANNEL_LABEL[m.platform as ChannelId] ?? { en: m.platform, ar: m.platform })}</span>
+                          <span>·</span>
+                          <bdi dir="ltr">{new Date(m.date).toLocaleDateString(lang === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short' })}</bdi>
+                          <span>· {m.replied ? t('Replied', 'تم الرد') : t('Not replied yet', 'لم يُرد بعد')}</span>
+                        </span>
+                      </div>
+                      {canOpenMentions && (
+                        <Button variant="outline" size="sm" asChild>
+                          <Link to={`/settings/public-mentions?open=${encodeURIComponent(m.id)}`}>
+                            {t('Open the mention', 'افتح الإشارة')}
+                            <span className="sr-only"> {s.id}</span>
+                          </Link>
+                        </Button>
+                      )}
+                    </div>
                   )}
                 </li>
               )
@@ -251,7 +330,17 @@ export default function Signals() {
  * meter, the AI suggestion, the recovery figure), the right column is what follows from it (the fix it already has, "How the AI found
  * this", the Create action pill). Rows are divided by the one line; a pattern opened from a Trace id (`?pt=`) gets the 1.5px ink ring.
  */
-function PatternRow({ pattern: p, canCreate, onCreate, selected }: { pattern: Pattern; canCreate: boolean; onCreate: (p: Pattern) => void; selected: boolean }) {
+function PatternRow({
+  pattern: p,
+  canCreate,
+  onCreate,
+  selected,
+}: {
+  pattern: Pattern
+  canCreate: boolean
+  onCreate: (p: Pattern) => void
+  selected: boolean
+}) {
   const { t, L } = useI18n()
   const { data: actions } = useCorrectiveActions()
   const { data: evidence } = useInvestigationEvidence()
@@ -322,7 +411,12 @@ type CreateValues = z.infer<typeof createSchema>
 function CreateActionDialog({ pattern, onCancel, onCreate }: { pattern: Pattern; onCancel: () => void; onCreate: (v: CreateValues) => void }) {
   const { t, L, lang } = useI18n()
   const { data: signals } = useSignalsAll()
-  const { register, handleSubmit, control, formState: { errors } } = useForm<CreateValues>({
+  const {
+    register,
+    handleSubmit,
+    control,
+    formState: { errors },
+  } = useForm<CreateValues>({
     resolver: zodResolver(createSchema),
     defaultValues: { kind: 'process', owner: `${pattern.team.replace(' team', '')} environment manager` },
   })
@@ -370,10 +464,14 @@ function CreateActionDialog({ pattern, onCancel, onCreate }: { pattern: Pattern;
               {errors.owner && <FieldError>{t('Owner title is required.', 'المسمى الوظيفي للمالك مطلوب.')}</FieldError>}
             </Field>
             <p className="text-sm text-muted-foreground" data-testid="create-due-note">
-              {t('Due date: set when the fix is approved, from the escalation matrix (Resolve, in working hours).', 'تاريخ الاستحقاق: يُحدَّد عند اعتماد الحل من مصفوفة التصعيد (الحل، بساعات العمل).')}{' '}
+              {t(
+                'Due date: set when the fix is approved, from the escalation matrix (Resolve, in working hours).',
+                'تاريخ الاستحقاق: يُحدَّد عند اعتماد الحل من مصفوفة التصعيد (الحل، بساعات العمل).',
+              )}{' '}
               {due && (
                 <>
-                  {t('If approved today:', 'إن اعتُمد اليوم:')} <span className="font-medium text-foreground tabular">{new Date(due.dueAt).toLocaleDateString(lang)}</span>
+                  {t('If approved today:', 'إن اعتُمد اليوم:')}{' '}
+                  <span className="font-medium text-foreground tabular">{new Date(due.dueAt).toLocaleDateString(lang)}</span>
                   {due.source === 'fallback' ? ` (${t('the matrix cell is empty: 14-day fallback', 'خلية المصفوفة فارغة: البديل 14 يوماً')})` : ''}
                 </>
               )}

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { ArrowRight, CircleCheck } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { useRole } from '@/auth/RoleContext'
 import { canAccessPath } from '@/auth/access'
@@ -11,7 +11,6 @@ import { SectionCard } from '@/components/common/SectionCard'
 import { DayChip } from '@/components/common/DayChip'
 import { NextBox } from '@/components/common/NextBox'
 import { LoadingState } from '@/components/common/LoadingState'
-import { EmptyState } from '@/components/common/EmptyState'
 
 /** How many inbox rows the Home card shows (v40 F06: the first four). */
 const ROWS = 4
@@ -31,6 +30,8 @@ export function WorkToday({ className }: { className?: string }) {
   const canInbox = canAccessPath(role.id, '/inbox')
   const first = items?.[0]
   const next = first ? nextForInboxItem(first, rules) : null
+  // 24 Nov (owner): Home shows only sections with something in them; nothing on you today -> no card
+  if (!isLoading && items && items.length === 0) return null
 
   return (
     <SectionCard
@@ -51,8 +52,6 @@ export function WorkToday({ className }: { className?: string }) {
     >
       {isLoading || !items ? (
         <LoadingState rows={3} />
-      ) : items.length === 0 ? (
-        <EmptyState title={L(INBOX_COPY.empty)} icon={<CircleCheck />} />
       ) : (
         <>
           {next && first && <NextBox next={next} who={first.who ? L(first.who) : undefined} />}

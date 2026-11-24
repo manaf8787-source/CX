@@ -6,15 +6,9 @@ import { toast } from 'sonner'
 import { Bot, PhoneMissed, Phone, Plus, TrendingUp, X } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { useRole } from '@/auth/RoleContext'
+import { canAccessPath } from '@/auth/access'
 import { canAssignCalls, canRecordCallAttempt } from '@/auth/permissions'
-import {
-  useAiCampaigns,
-  useCreateAiCampaign,
-  useDetractorCallItems,
-  usePersonsAll,
-  useRecordInterview,
-  useRecordResurvey,
-} from '@/services/queries'
+import { useAiCampaigns, useCreateAiCampaign, useDetractorCallItems, usePersonsAll, useRecordInterview, useRecordResurvey } from '@/services/queries'
 import { useRecordNoAnswer, useRules } from '@/services/queriesV40'
 import {
   CLOSE_LOOP_DEFAULTS,
@@ -106,10 +100,7 @@ export default function CloseTheLoop() {
   // A DNCR person is never callable and never on this list, whatever the environment switch says.
   const dncrIds = useMemo(() => new Set((persons ?? []).filter((p) => p.consent.dncr).map((p) => p.id)), [persons])
   const sorted = useMemo(
-    () =>
-      (items ?? [])
-        .filter((i) => !dncrIds.has(i.personId))
-        .sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]),
+    () => (items ?? []).filter((i) => !dncrIds.has(i.personId)).sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]),
     // oxlint-disable-next-line react-hooks/exhaustive-deps
     [items, dataUpdatedAt, dncrIds],
   )
@@ -125,7 +116,11 @@ export default function CloseTheLoop() {
   const away = useAway()
   // new cases go only to people who are active and not on leave today
   const cxTeam = useMemo(() => directory.filter((u) => u.roleId === 'cxteam' && u.status === 'active' && !isAwayOn(away[u.id])), [directory, away])
-  const whyOut = (userId: string) => unavailableReason(directory.find((u) => u.id === userId), away)
+  const whyOut = (userId: string) =>
+    unavailableReason(
+      directory.find((u) => u.id === userId),
+      away,
+    )
   // open cases held by someone who is on leave or has left, per person: the manager moves these
   const stranded = useMemo(() => {
     const by = new Map<string, DetractorCallItem[]>()
@@ -169,11 +164,17 @@ export default function CloseTheLoop() {
     if (!me) return
     if (userId === 'none') {
       unassignCall(item.id)
-      log('action', { en: `Took ${personName(item.personId)} off ${nameOf(assignments[item.id]?.userId ?? '')}`, ar: `سحب ${personName(item.personId)} من ${nameOf(assignments[item.id]?.userId ?? '')}` })
+      log('action', {
+        en: `Took ${personName(item.personId)} off ${nameOf(assignments[item.id]?.userId ?? '')}`,
+        ar: `سحب ${personName(item.personId)} من ${nameOf(assignments[item.id]?.userId ?? '')}`,
+      })
       return
     }
     assignCall(item.id, userId, me)
-    log('action', { en: `Gave ${personName(item.personId)} to ${nameOf(userId)} to call`, ar: `أسند ${personName(item.personId)} إلى ${nameOf(userId)} للاتصال` })
+    log('action', {
+      en: `Gave ${personName(item.personId)} to ${nameOf(userId)} to call`,
+      ar: `أسند ${personName(item.personId)} إلى ${nameOf(userId)} للاتصال`,
+    })
     toast.success(t(`Given to ${nameOf(userId)}.`, `أُسندت إلى ${nameOf(userId)}.`))
   }
 
@@ -181,7 +182,10 @@ export default function CloseTheLoop() {
     const a = assignments[item.id]
     if (!me || !a) return
     assignCall(item.id, a.userId, me, { askedAgain: true })
-    log('action', { en: `Asked ${nameOf(a.userId)} to call ${personName(item.personId)} again`, ar: `طلب من ${nameOf(a.userId)} الاتصال بـ${personName(item.personId)} مرة أخرى` })
+    log('action', {
+      en: `Asked ${nameOf(a.userId)} to call ${personName(item.personId)} again`,
+      ar: `طلب من ${nameOf(a.userId)} الاتصال بـ${personName(item.personId)} مرة أخرى`,
+    })
     toast.success(t(`${nameOf(a.userId)} will see “call again”.`, `سيرى ${nameOf(a.userId)} طلب «اتصل مرة أخرى».`))
   }
 
@@ -193,7 +197,12 @@ export default function CloseTheLoop() {
       toast.error(t('Nobody is available to take them.', 'لا أحد متاح لاستلامها.'))
       return
     }
-    moveCalls(cases.map((c) => c.id), to, me, whyOut(fromUserId) === 'left' ? 'left' : 'leave')
+    moveCalls(
+      cases.map((c) => c.id),
+      to,
+      me,
+      whyOut(fromUserId) === 'left' ? 'left' : 'leave',
+    )
     const toName = target === 'spread' ? t('the available team', 'الفريق المتاح') : nameOf(target)
     log('action', {
       en: `Moved ${cases.length} cases from ${nameOf(fromUserId)} (${whyOut(fromUserId) === 'left' ? 'left' : 'on leave'}) to ${toName}`,
@@ -270,7 +279,11 @@ export default function CloseTheLoop() {
       accessorFn: (i) => (i.reasonCode ? L(REASON_CODE_LABEL[i.reasonCode]) : ''),
       header: t('Reason', 'السبب'),
       cell: ({ row }) =>
-        row.original.reasonCode ? <span className="text-foreground">{L(REASON_CODE_LABEL[row.original.reasonCode])}</span> : <span className="text-muted-foreground">—</span>,
+        row.original.reasonCode ? (
+          <span className="text-foreground">{L(REASON_CODE_LABEL[row.original.reasonCode])}</span>
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        ),
     },
     {
       id: 'assignee',
@@ -280,7 +293,8 @@ export default function CloseTheLoop() {
       cell: ({ row }) => {
         const i = row.original
         const a = assignments[i.id]
-        if (i.status === 'done' || i.outcome) return a ? <span className="text-foreground">{nameOf(a.userId)}</span> : <span className="text-muted-foreground">—</span>
+        if (i.status === 'done' || i.outcome)
+          return a ? <span className="text-foreground">{nameOf(a.userId)}</span> : <span className="text-muted-foreground">—</span>
         const canAsk = canAssign && !!a && (i.status === 'no_answer' || i.status === 'needs_human')
         return (
           <span className="inline-flex flex-col items-start gap-1.5">
@@ -346,11 +360,15 @@ export default function CloseTheLoop() {
         const line = attemptLine(i, callRules)
         return (
           <span className="inline-flex flex-col gap-0.5 leading-tight">
-            {i.dueOn ? <bdi dir="ltr" className="tabular text-foreground">{fmtDay(i.dueOn)}</bdi> : <span className="text-muted-foreground">–</span>}
+            {i.dueOn ? (
+              <bdi dir="ltr" className="tabular text-foreground">
+                {fmtDay(i.dueOn)}
+              </bdi>
+            ) : (
+              <span className="text-muted-foreground">–</span>
+            )}
             {line && (
-              <span className="text-xs text-muted-foreground">
-                {L(CALL_COPY.rowSuffix(line.attempt, line.of, line.next ? fmtDay(line.next) : undefined))}
-              </span>
+              <span className="text-xs text-muted-foreground">{L(CALL_COPY.rowSuffix(line.attempt, line.of, line.next ? fmtDay(line.next) : undefined))}</span>
             )}
           </span>
         )
@@ -362,7 +380,8 @@ export default function CloseTheLoop() {
       header: t('Status', 'الحالة'),
       cell: ({ row }) => {
         const i = row.original
-        if (i.status === 'done' || i.outcome) return i.outcome ? <span className="text-foreground">{L(INTERVIEW_OUTCOME_LABEL[i.outcome])}</span> : <span className="text-muted-foreground">—</span>
+        if (i.status === 'done' || i.outcome)
+          return i.outcome ? <span className="text-foreground">{L(INTERVIEW_OUTCOME_LABEL[i.outcome])}</span> : <span className="text-muted-foreground">—</span>
         if (i.status === 'needs_human')
           return (
             <span className="inline-flex flex-col items-start gap-1">
@@ -456,7 +475,7 @@ export default function CloseTheLoop() {
       header: () => <span className="sr-only">{t('Actions', 'الإجراءات')}</span>,
       enableSorting: false,
       // pinned to the end edge: the Call button stays in reach while the 10 columns scroll
-      meta: { align: 'end', cellClassName: 'min-w-44', sticky: 'end' },
+      meta: { align: 'end', sticky: 'end' },
       cell: ({ row }) => rowActions(row.original),
     },
   ]
@@ -476,7 +495,14 @@ export default function CloseTheLoop() {
             {L(CALL_COPY.noAnswerButton)}
           </Button>
         )}
-        <Button size="xs" onClick={() => { clearAskedAgain(item.id); setInterviewing(item) }} data-tour="loop-call">
+        <Button
+          size="xs"
+          onClick={() => {
+            clearAskedAgain(item.id)
+            setInterviewing(item)
+          }}
+          data-tour="loop-call"
+        >
           <Phone aria-hidden />
           {t('Call', 'اتصال')}
         </Button>
@@ -493,14 +519,20 @@ export default function CloseTheLoop() {
       <PageHeader
         title={t('Close the loop', 'إغلاق الحلقة')}
         term="Close the loop"
-        description={t('Every detractor gets a human call, a reason code and a re-survey. Critical cases first.', 'كل منتقد يحصل على مكالمة بشرية ورمز سبب وإعادة استبيان. الحالات الحرجة أولاً.')}
+        description={t(
+          'Every detractor gets a human call, a reason code and a re-survey. Critical cases first.',
+          'كل منتقد يحصل على مكالمة بشرية ورمز سبب وإعادة استبيان. الحالات الحرجة أولاً.',
+        )}
       />
 
       <NextBox next={CLOSE_LOOP_NEXT} />
 
       <SectionCard
         title={t('Monthly capacity', 'السعة الشهرية')}
-        description={t('Critical detractors are always called; the rest are sampled to fit the team’s hours.', 'المنتقدون الحرجون يُتصل بهم دائماً؛ ويُختار الباقون بالعينة بما يتسع له وقت الفريق.')}
+        description={t(
+          'Critical detractors are always called; the rest are sampled to fit the team’s hours.',
+          'المنتقدون الحرجون يُتصل بهم دائماً؛ ويُختار الباقون بالعينة بما يتسع له وقت الفريق.',
+        )}
       >
         <div className="flex flex-col gap-5">
           <div className="grid grid-cols-2 items-end gap-4 sm:grid-cols-4">
@@ -525,7 +557,10 @@ export default function CloseTheLoop() {
               <>
                 {' '}
                 — <span className="tabular">{excluded.length}</span>{' '}
-                {t('sampled out (critical always called at 100%, the rest spread across products/environments)', 'مستبعدون من العينة (الحرج دائماً 100%، والباقي موزَّع على المنتجات والبيئات)')}
+                {t(
+                  'sampled out (critical always called at 100%, the rest spread across products/environments)',
+                  'مستبعدون من العينة (الحرج دائماً 100%، والباقي موزَّع على المنتجات والبيئات)',
+                )}
               </>
             )}
           </p>
@@ -598,14 +633,18 @@ export default function CloseTheLoop() {
                 </span>
                 {(() => {
                   const line = attemptLine(focusItem, callRules)
-                  return line ? <span className="text-muted-foreground">{L(CALL_COPY.rowSuffix(line.attempt, line.of, line.next ? fmtDay(line.next) : undefined))}</span> : null
+                  return line ? (
+                    <span className="text-muted-foreground">{L(CALL_COPY.rowSuffix(line.attempt, line.of, line.next ? fmtDay(line.next) : undefined))}</span>
+                  ) : null
                 })()}
-                <span className="ms-auto flex items-center gap-1.5">
-                  {rowActions(focusItem)}
-                </span>
+                <span className="ms-auto flex items-center gap-1.5">{rowActions(focusItem)}</span>
               </>
             ) : (
-              <span className="text-muted-foreground">{itemsLoading ? t('Loading…', 'جارٍ التحميل…') : t('That row is not on the list in the current scope.', 'هذا السطر ليس في القائمة ضمن النطاق الحالي.')}</span>
+              <span className="text-muted-foreground">
+                {itemsLoading
+                  ? t('Loading…', 'جارٍ التحميل…')
+                  : t('That row is not on the list in the current scope.', 'هذا السطر ليس في القائمة ضمن النطاق الحالي.')}
+              </span>
             )}
             <Button variant="ghost" size="icon-sm" onClick={() => setParams({}, { replace: true })} aria-label={t('Close this row', 'إغلاق هذا السطر')}>
               <X aria-hidden />
@@ -619,9 +658,18 @@ export default function CloseTheLoop() {
               const left = whyOut(uid) === 'left'
               const urgent = cases.filter((c) => c.severity === 'critical').length
               return (
-                <div key={uid} className="well flex flex-wrap items-center gap-x-3 gap-y-2 border-s-4 px-4 py-3" style={{ borderColor: 'var(--status-warning-solid)' }}>
+                <div
+                  key={uid}
+                  className="well flex flex-wrap items-center gap-x-3 gap-y-2 border-s-4 px-4 py-3"
+                  style={{ borderColor: 'var(--status-warning-solid)' }}
+                >
                   <span className="text-sm text-foreground">
-                    <span className="font-medium">{t(`${cases.length} open ${cases.length === 1 ? 'case is' : 'cases are'} with ${nameOf(uid)}`, `${cases.length} حالة مفتوحة لدى ${nameOf(uid)}`)}</span>
+                    <span className="font-medium">
+                      {t(
+                        `${cases.length} open ${cases.length === 1 ? 'case is' : 'cases are'} with ${nameOf(uid)}`,
+                        `${cases.length} حالة مفتوحة لدى ${nameOf(uid)}`,
+                      )}
+                    </span>
                     {', '}
                     {left ? t('who has left the company.', 'الذي غادر الشركة.') : t('who is on leave.', 'وهو في إجازة.')}
                     {urgent > 0 && <span className="ms-1 font-medium text-destructive">{t(`${urgent} urgent.`, `${urgent} عاجلة.`)}</span>}
@@ -661,20 +709,27 @@ export default function CloseTheLoop() {
           })()}
         </p>
 
+        {/* 24 Nov (owner): no empty pinned column; the Call / No answer column shows only when one of these rows has a button */}
         <DataTable
-          columns={columns}
+          columns={selected.some((i) => rowActions(i) !== null) ? columns : columns.filter((c) => c.id !== 'call')}
           data={selected}
           isLoading={itemsLoading}
           getRowId={(i) => i.id}
           pageSize={10}
           emptyTitle={t("Nobody on this month's list.", 'لا أحد في قائمة هذا الشهر.')}
           // a phone: the person and the call on two lines, severity, due date and status as tags, the rest behind "Details"
-          phone={{ title: 'person', meta: ['severity', 'assignee', 'due', 'outcome'], end: ['call'], detail: ['channel', 'firstScore', 'reason', 'resurvey', 'recovered'] }}
+          phone={{
+            title: 'person',
+            meta: ['severity', 'assignee', 'due', 'outcome'],
+            end: ['call'],
+            detail: ['channel', 'firstScore', 'reason', 'resurvey', 'recovered'],
+          }}
         />
       </SectionCard>
 
       <SectionCard
-        term="Close the loop" title={t('AI interview campaigns', 'حملات المقابلات بالذكاء الاصطناعي')}
+        term="Close the loop"
+        title={t('AI interview campaigns', 'حملات المقابلات بالذكاء الاصطناعي')}
         description={t(
           `Humans call by default. Hand-off rules: ${rules.aiNoAnswers}x no-answer/hang-up → human; asks for a person or says anything critical → human the same day; declines → no retry. Critical detractors are never in a campaign.`,
           `الاتصال بشري افتراضياً. قواعد التسليم: عدم الرد ${timesAr(rules.aiNoAnswers)} ← بشري؛ طلب شخص أو قول أمر حرج ← بشري بنفس اليوم؛ الرفض ← دون إعادة محاولة. المنتقدون الحرجون لا يُدرجون في أي حملة أبداً.`,
@@ -732,12 +787,14 @@ export default function CloseTheLoop() {
         )}
       </SectionCard>
 
-      <p className="text-sm text-muted-foreground">
-        {t('Calling hours, attempts and the working week are configuration:', 'ساعات الاتصال والمحاولات وأسبوع العمل إعدادات:')}{' '}
-        <Link to="/settings/rules" className="text-foreground underline underline-offset-4">
-          {t('Settings → Rules as configuration', 'الإعدادات ← القواعد كإعدادات')}
-        </Link>
-      </p>
+      {canAccessPath(role.id, '/settings/rules') && (
+        <p className="text-sm text-muted-foreground">
+          {t('Calling hours, attempts and the working week are configuration:', 'ساعات الاتصال والمحاولات وأسبوع العمل إعدادات:')}{' '}
+          <Link to="/settings/rules" className="text-foreground underline underline-offset-4">
+            {t('Settings → Rules as configuration', 'الإعدادات ← القواعد كإعدادات')}
+          </Link>
+        </p>
+      )}
 
       {interviewing && (
         <InterviewDialog
@@ -773,7 +830,21 @@ export default function CloseTheLoop() {
   )
 }
 
-function NumberField({ id, label, value, min, max, onChange }: { id: string; label: string; value: number; min: number; max?: number; onChange: (v: number) => void }) {
+function NumberField({
+  id,
+  label,
+  value,
+  min,
+  max,
+  onChange,
+}: {
+  id: string
+  label: string
+  value: number
+  min: number
+  max?: number
+  onChange: (v: number) => void
+}) {
   return (
     <div className="flex flex-col gap-1.5">
       <Label htmlFor={id}>{label}</Label>

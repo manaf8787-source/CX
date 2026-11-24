@@ -128,7 +128,7 @@ function Segmented<T extends string>({
 
   if (!pressed) return track
   return (
-    <div ref={fadeRef} {...fadeProps} className={cn("scroll-fade -m-1 max-w-full overflow-x-auto p-1", className)}>
+    <div ref={fadeRef} {...fadeProps} className={cn("scroll-fade no-scrollbar -m-1 max-w-full shrink-0 overflow-x-auto p-1 sm:max-w-none sm:overflow-visible", className)}>
       {track}
     </div>
   )

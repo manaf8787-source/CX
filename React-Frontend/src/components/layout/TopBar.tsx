@@ -100,12 +100,12 @@ export function TopBar({ showMenuButton, onOpenMenu, assistantAvailable, onAskAs
           <ThemeSwitch />
           {assistantAvailable && (
             <Button
-              className="@max-[1119px]/bar:size-9 @max-[1119px]/bar:p-0"
+              className="animate-[cx-ai-ring_2s_ease-out_infinite] motion-reduce:animate-none @max-[1119px]/bar:size-9 @max-[1119px]/bar:p-0"
               size="sm"
               onClick={onAskAssistant}
               aria-label={t('Ask the assistant', 'اسأل المساعد')}
             >
-              <Sparkles aria-hidden />
+              <Sparkles aria-hidden className="animate-[cx-ai-icon_2s_ease-in-out_infinite] motion-reduce:animate-none" />
               <span className="hidden @min-[1120px]/bar:inline">{t('Ask the assistant', 'اسأل المساعد')}</span>
             </Button>
           )}

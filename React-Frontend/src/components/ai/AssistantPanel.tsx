@@ -22,7 +22,7 @@ import {
   useSignals,
 } from '../../services/queries'
 import { SheetTitle } from '@/components/ui/sheet'
-import { answerQuestion, SUGGESTED_QUERIES, type AssistantAnswer, type AssistantDataset } from './assistantEngine'
+import { answerQuestion, type AssistantAnswer, type AssistantDataset } from './assistantEngine'
 import { AssistantResult } from './AssistantResult'
 import type { Bi } from '../../types'
 
@@ -188,7 +188,7 @@ export function AssistantPanel({ onClose, initialQuestion }: { onClose: () => vo
         <div className="flex min-w-0 flex-1 flex-col">
           <SheetTitle className="leading-tight">{t('AI assistant', 'المساعد الذكي')}</SheetTitle>
           <span className="text-xs leading-snug text-muted-foreground">
-            {t('Built-in parser (no connection) · sample data, within your role', 'المحلّل المدمج (دون اتصال) · بيانات نموذجية ضمن صلاحيات دورك')}
+            {t('Answers within your role', 'إجابات ضمن صلاحيات دورك')}
           </span>
         </div>
         <Button variant="outline" size="icon-sm" onClick={onClose} aria-label={t('Close', 'إغلاق')}>
@@ -261,14 +261,8 @@ export function AssistantPanel({ onClose, initialQuestion }: { onClose: () => vo
         )}
       </div>
 
-      <div className="flex flex-col gap-2 pb-4">
-        <div className="flex gap-2 overflow-x-auto px-5 pt-3 pb-1 outline-hidden" aria-label={t('Suggested questions', 'أسئلة مقترحة')} role="group" tabIndex={0}>
-          {SUGGESTED_QUERIES.map((q) => (
-            <Button key={q.en} type="button" variant="outline" size="sm" className="shrink-0" disabled={!ready || thinking} onClick={() => send(t(q.en, q.ar))}>
-              {t(q.en, q.ar)}
-            </Button>
-          ))}
-        </div>
+      <div className="flex flex-col gap-2 pt-3 pb-4">
+        {/* 24 Nov (owner): no suggested questions under the box; the area stays empty */}
 
         <form
           className="flex items-center gap-2 px-5"
@@ -298,10 +292,10 @@ export function AssistantPanel({ onClose, initialQuestion }: { onClose: () => vo
             aria-label={t('Ask the assistant', 'اسأل المساعد')}
             placeholder={
               !ready
-                ? t('Loading the sample data…', 'جارٍ تحميل البيانات النموذجية…')
+                ? t('Loading the data…', 'جارٍ تحميل البيانات…')
                 : listening
                   ? t('Listening…', 'جارٍ الاستماع…')
-                  : t('Name, mobile, or a question…', 'اسم، رقم جوال، أو سؤال…')
+                  : t('Ask anything…', 'اسأل أي شيء…')
             }
             className="h-10 min-w-0 flex-1"
           />

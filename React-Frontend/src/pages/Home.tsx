@@ -13,7 +13,6 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
-import { EmptyState } from '@/components/common/EmptyState'
 import { InlineNote } from '@/components/common/InlineNote'
 import { TermsButton } from '@/components/common/TermHelp'
 import { DailyBrief } from '@/components/home/DailyBrief'
@@ -73,29 +72,30 @@ export default function Home() {
 
       <StartHere />
 
-      <section aria-labelledby="home-indicators" className="flex flex-col gap-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 id="home-indicators" className="t-card-title">
-            {L(INDICATOR_COPY.heading)}
-          </h2>
-          <TermsButton />
-        </div>
-        {env !== 'all' && <InlineNote>{L(INDICATOR_COPY.envHint)}</InlineNote>}
-        {isLoading || !sets ? (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <Skeleton className="h-52 rounded-card" />
-            <Skeleton className="h-52 rounded-card" />
+      {/* 24 Nov (owner): no live product -> no indicators section */}
+      {!(!isLoading && sets && cards.length === 0) && (
+        <section aria-labelledby="home-indicators" className="flex flex-col gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 id="home-indicators" className="t-card-title">
+              {L(INDICATOR_COPY.heading)}
+            </h2>
+            <TermsButton />
           </div>
-        ) : cards.length === 0 ? (
-          <EmptyState title={t('No live product to show.', 'لا منتج فعّال لعرضه.')} />
-        ) : (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            {cards.map(({ set, product }) => (
-              <IndicatorCard key={set.productId} set={set} product={product} />
-            ))}
-          </div>
-        )}
-      </section>
+          {env !== 'all' && <InlineNote>{L(INDICATOR_COPY.envHint)}</InlineNote>}
+          {isLoading || !sets ? (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <Skeleton className="h-52 rounded-card" />
+              <Skeleton className="h-52 rounded-card" />
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              {cards.map(({ set, product }) => (
+                <IndicatorCard key={set.productId} set={set} product={product} />
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
       <WorkToday />
 
