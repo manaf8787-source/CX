@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Bar, BarChart, CartesianGrid, Tooltip, XAxis, YAxis } from 'recharts'
 import { AlertTriangle, CheckCircle2, Clock, Download, Inbox, MessageCircle, Reply, ShieldAlert, TrendingUp } from 'lucide-react'
 import { useI18n } from '@/i18n'
+import { Bad, Good, Rate } from '@/components/common/Trend'
 import { useNow } from '@/hooks/useNow'
 import { useAuditActor } from '@/auth/useAuditActor'
 import { useUsers } from '@/data/users'
@@ -432,20 +433,25 @@ export function PerformanceReport({ scope, canExport }: Props) {
         <KpiTile label={t('Received', 'المستلمة')} value={total.received} icon={<Inbox />} sub={t(`${total.open} open now`, `${total.open} مفتوحة الآن`)} />
         <KpiTile
           label={t('Closed on time', 'في موعدها')}
-          value={fmtPct(total.onTimeRate)}
+          value={<Rate value={total.onTimeRate}>{fmtPct(total.onTimeRate)}</Rate>}
           icon={<CheckCircle2 />}
           sub={t(`${total.closedOnTime} of ${total.closed} closed`, `${total.closedOnTime} من ${total.closed} مغلقة`)}
         />
         <KpiTile
           label={t('Breached', 'متجاوزة')}
-          value={total.breached}
+          value={total.breached ? <Bad>{total.breached}</Bad> : <Good>0</Good>}
           icon={<ShieldAlert />}
           accent={total.breached ? 'var(--destructive)' : undefined}
           sub={t(`${total.breachedOpen} still open`, `${total.breachedOpen} ما زالت مفتوحة`)}
         />
-        <KpiTile label={t('Response rate', 'نسبة الاستجابة')} value={fmtPct(total.responseRate)} icon={<Reply />} />
-        <KpiTile label={t('Resolving rate', 'نسبة الحل')} value={fmtPct(total.resolveRate)} icon={<TrendingUp />} sub={t('of closed cases', 'من المغلقة')} />
-        <KpiTile label={t('Escalated', 'المصعّدة')} value={total.escalated} icon={<AlertTriangle />} />
+        <KpiTile label={t('Response rate', 'نسبة الاستجابة')} value={<Rate value={total.responseRate}>{fmtPct(total.responseRate)}</Rate>} icon={<Reply />} />
+        <KpiTile
+          label={t('Resolving rate', 'نسبة الحل')}
+          value={<Rate value={total.resolveRate}>{fmtPct(total.resolveRate)}</Rate>}
+          icon={<TrendingUp />}
+          sub={t('of closed cases', 'من المغلقة')}
+        />
+        <KpiTile label={t('Escalated', 'المصعّدة')} value={total.escalated ? <Bad>{total.escalated}</Bad> : <Good>0</Good>} icon={<AlertTriangle />} />
         <KpiTile
           label={t('First reply', 'أول رد')}
           value={total.avgResponseHours === null ? '—' : total.avgResponseHours}
@@ -557,10 +563,16 @@ export function PerformanceReport({ scope, canExport }: Props) {
                     0
                   )}
                 </TableCell>
-                <TableCell className="tabular text-end">{fmtPct(m.onTimeRate)}</TableCell>
-                <TableCell className="tabular text-end">{fmtPct(m.responseRate)}</TableCell>
-                <TableCell className="tabular text-end">{fmtPct(m.resolveRate)}</TableCell>
-                <TableCell className="tabular text-end">{m.escalated}</TableCell>
+                <TableCell className="tabular text-end">
+                  <Rate value={m.onTimeRate}>{fmtPct(m.onTimeRate)}</Rate>
+                </TableCell>
+                <TableCell className="tabular text-end">
+                  <Rate value={m.responseRate}>{fmtPct(m.responseRate)}</Rate>
+                </TableCell>
+                <TableCell className="tabular text-end">
+                  <Rate value={m.resolveRate}>{fmtPct(m.resolveRate)}</Rate>
+                </TableCell>
+                <TableCell className="tabular text-end">{m.escalated ? <Bad>{m.escalated}</Bad> : m.escalated}</TableCell>
                 <TableCell className="tabular text-end">{m.avgResponseHours ?? '—'}</TableCell>
                 <TableCell className="tabular text-end">{m.open}</TableCell>
               </TableRow>

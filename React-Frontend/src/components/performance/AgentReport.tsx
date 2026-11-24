@@ -17,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { PageHeader } from '@/components/common/PageHeader'
 import { KpiTile } from '@/components/common/KpiTile'
-import { Bad, Good } from '@/components/common/Trend'
+import { Bad, Good, Rate } from '@/components/common/Trend'
 import { SectionCard } from '@/components/common/SectionCard'
 import { StatusBadge } from '@/components/common/StatusBadge'
 import { InlineNote } from '@/components/common/InlineNote'
@@ -370,7 +370,7 @@ export function AgentReport({ kind, canExport, envId }: Props) {
         />
         <KpiTile
           label={t('First response on time', 'أول رد في الموعد')}
-          value={fmtPct(total.firstOnTimePct)}
+          value={<Rate value={total.firstOnTimePct}>{fmtPct(total.firstOnTimePct)}</Rate>}
           icon={<Clock />}
           sub={total.avgFirstMin === null ? undefined : t(`${total.avgFirstMin} min on average`, `${total.avgFirstMin} دقيقة في المتوسط`)}
         />
@@ -378,7 +378,7 @@ export function AgentReport({ kind, canExport, envId }: Props) {
           <>
             <KpiTile
               label={t('Activities on time', 'الأنشطة في الموعد')}
-              value={fmtPct(total.actsOnTimePct)}
+              value={<Rate value={total.actsOnTimePct}>{fmtPct(total.actsOnTimePct)}</Rate>}
               icon={<CheckCircle2 />}
               sub={t(`${total.actsOnTime} of ${total.acts}`, `${total.actsOnTime} من ${total.acts}`)}
             />
@@ -401,14 +401,26 @@ export function AgentReport({ kind, canExport, envId }: Props) {
           </>
         ) : (
           <>
-            <KpiTile label={t('Resolved within SLA', 'الحل ضمن المهلة')} value={fmtPct(total.resolvedOnTimePct)} icon={<CheckCircle2 />} />
-            <KpiTile label={t('First-contact resolution', 'الحل من أول تواصل')} value={fmtPct(total.fcrPct)} icon={<Percent />} />
-            <KpiTile label={t('Escalated', 'المصعّدة')} value={total.escalated} icon={<ShieldAlert />} />
+            <KpiTile
+              label={t('Resolved within SLA', 'الحل ضمن المهلة')}
+              value={<Rate value={total.resolvedOnTimePct}>{fmtPct(total.resolvedOnTimePct)}</Rate>}
+              icon={<CheckCircle2 />}
+            />
+            <KpiTile
+              label={t('First-contact resolution', 'الحل من أول تواصل')}
+              value={
+                <Rate value={total.fcrPct} good={70} bad={50}>
+                  {fmtPct(total.fcrPct)}
+                </Rate>
+              }
+              icon={<Percent />}
+            />
+            <KpiTile label={t('Escalated', 'المصعّدة')} value={total.escalated ? <Bad>{total.escalated}</Bad> : <Good>0</Good>} icon={<ShieldAlert />} />
           </>
         )}
         <KpiTile
           label={t('Customer score', 'تقييم العملاء')}
-          value={total.avgScore === null ? '—' : total.avgScore}
+          value={total.avgScore === null ? '—' : <Rate value={total.avgScore * 20}>{total.avgScore}</Rate>}
           unit={total.avgScore === null ? undefined : '/5'}
           icon={<Star />}
           sub={t(`${total.scored} customers scored`, `${total.scored} عميل قيّم`)}
@@ -470,12 +482,18 @@ export function AgentReport({ kind, canExport, envId }: Props) {
                 </TableCell>
                 <TableCell className="tabular text-end">{m.records}</TableCell>
                 <TableCell className="tabular text-end">
-                  {agent.crm || !sales ? fmtPct(m.firstOnTimePct) : <span className="text-muted-foreground">{t('API needed', 'يحتاج واجهة')}</span>}
+                  {agent.crm || !sales ? (
+                    <Rate value={m.firstOnTimePct}>{fmtPct(m.firstOnTimePct)}</Rate>
+                  ) : (
+                    <span className="text-muted-foreground">{t('API needed', 'يحتاج واجهة')}</span>
+                  )}
                 </TableCell>
                 <TableCell className="tabular text-end">{m.avgFirstMin ?? '—'}</TableCell>
                 {sales ? (
                   <>
-                    <TableCell className="tabular text-end">{fmtPct(m.actsOnTimePct)}</TableCell>
+                    <TableCell className="tabular text-end">
+                      <Rate value={m.actsOnTimePct}>{fmtPct(m.actsOnTimePct)}</Rate>
+                    </TableCell>
                     <TableCell className="tabular text-end">{agent.crm ? m.converted : '—'}</TableCell>
                     <TableCell className="tabular text-end">{fmtPct(m.conversionPct)}</TableCell>
                     <TableCell className="tabular text-end">
@@ -495,12 +513,18 @@ export function AgentReport({ kind, canExport, envId }: Props) {
                   </>
                 ) : (
                   <>
-                    <TableCell className="tabular text-end">{fmtPct(m.resolvedOnTimePct)}</TableCell>
-                    <TableCell className="tabular text-end">{fmtPct(m.fcrPct)}</TableCell>
-                    <TableCell className="tabular text-end">{m.escalated}</TableCell>
+                    <TableCell className="tabular text-end">
+                      <Rate value={m.resolvedOnTimePct}>{fmtPct(m.resolvedOnTimePct)}</Rate>
+                    </TableCell>
+                    <TableCell className="tabular text-end">
+                      <Rate value={m.fcrPct} good={70} bad={50}>
+                        {fmtPct(m.fcrPct)}
+                      </Rate>
+                    </TableCell>
+                    <TableCell className="tabular text-end">{m.escalated ? <Bad>{m.escalated}</Bad> : m.escalated}</TableCell>
                   </>
                 )}
-                <TableCell className="tabular text-end">{m.avgScore ?? '—'}</TableCell>
+                <TableCell className="tabular text-end">{m.avgScore == null ? '—' : <Rate value={m.avgScore * 20}>{m.avgScore}</Rate>}</TableCell>
               </TableRow>
             ))}
           </TableBody>

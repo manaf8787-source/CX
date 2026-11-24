@@ -1,3 +1,4 @@
+import { EmbeddedPage } from '@/pages/settings/SubPageHeader'
 import { useSearchParams } from 'react-router-dom'
 import { useI18n } from '@/i18n'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -22,7 +23,9 @@ export default function Performance() {
         <PerformanceReport scope="team" canExport />
       </TabsContent>
       <TabsContent value="availability">
-        <TeamAvailability />
+        <EmbeddedPage>
+          <TeamAvailability />
+        </EmbeddedPage>
       </TabsContent>
     </Tabs>
   )

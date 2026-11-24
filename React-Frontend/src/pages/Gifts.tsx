@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Check, Download, Gift as GiftIcon, Mail, PackagePlus, Plus, Search, X } from 'lucide-react'
 import { useI18n } from '@/i18n'
+import { Good } from '@/components/common/Trend'
 import { useRole } from '@/auth/RoleContext'
 import { useAuth } from '@/auth/session'
 import { useAuditActor } from '@/auth/useAuditActor'
@@ -576,7 +577,7 @@ function HistoryTab() {
     <div className="flex flex-col gap-4">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiTile label={t('Gifts', 'الهدايا')} value={list.length} />
-        <KpiTile label={t('Delivered', 'سُلّمت')} value={delivered.length} />
+        <KpiTile label={t('Delivered', 'سُلّمت')} value={<Good>{delivered.length}</Good>} />
         <KpiTile label={t('Waiting for delivery', 'بانتظار التسليم')} value={list.filter((x) => x.status === 'sent').length} />
         <KpiTile label={t('Value delivered', 'قيمة ما سُلّم')} value={<bdi dir="ltr">{`AED ${value.toLocaleString('en-US')}`}</bdi>} />
       </div>

@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 import { Bar, BarChart, CartesianGrid, Tooltip, XAxis, YAxis } from 'recharts'
 import { Plus, RotateCcw, Trash2 } from 'lucide-react'
 import { useI18n } from '@/i18n'
+import { Bad, Good } from '@/components/common/Trend'
 import { useRole } from '@/auth/RoleContext'
 import { useAuditActor } from '@/auth/useAuditActor'
 import { useAuth } from '@/auth/session'
@@ -243,17 +244,25 @@ function Results({ picked, onPick }: { picked: string; onPick: (id: string) => v
             />
             <KpiTile
               label={t('Won', 'أُغلقت بنجاح')}
-              value={fmt(
-                rows.reduce((s, x) => s + x.tr.won, 0),
-                lang,
-              )}
+              value={
+                <Good>
+                  {fmt(
+                    rows.reduce((s, x) => s + x.tr.won, 0),
+                    lang,
+                  )}
+                </Good>
+              }
             />
             <KpiTile
               label={t('Nobody contacted yet', 'لم يتواصل معهم أحد')}
-              value={fmt(
-                rows.reduce((s, x) => s + x.tr.notContacted, 0),
-                lang,
-              )}
+              value={
+                <Bad>
+                  {fmt(
+                    rows.reduce((s, x) => s + x.tr.notContacted, 0),
+                    lang,
+                  )}
+                </Bad>
+              }
               accent="var(--destructive)"
             />
           </div>
@@ -1259,4 +1268,3 @@ function EnvBreakdown({ c }: { c: MarketingCampaign }) {
     </SectionCard>
   )
 }
-

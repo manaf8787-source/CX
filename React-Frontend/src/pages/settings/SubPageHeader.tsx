@@ -1,3 +1,4 @@
+import { createContext, useContext } from 'react'
 import type { ReactNode } from 'react'
 import { Eye } from 'lucide-react'
 import { Card } from '@/components/ui/card'
@@ -11,7 +12,25 @@ import { cn } from '@/lib/utils'
  */
 
 /** Heading for one Settings-and-reference sub-page; the layout's PageHeader already carries the sample badge. */
+/**
+ * 24 Nov (owner): a page shown inside another page's tab (Notices inside Rules, Team availability inside Team performance…) does not
+ * repeat its title: the tab already names it. Wrap the tab content in <EmbeddedPage>; the page's header then keeps only its description.
+ */
+const EmbeddedContext = createContext(false)
+export function EmbeddedPage({ children }: { children: ReactNode }) {
+  return <EmbeddedContext.Provider value={true}>{children}</EmbeddedContext.Provider>
+}
+export const useEmbedded = () => useContext(EmbeddedContext)
+
 export function SubPageHeader({ title, description, actions }: { title: ReactNode; description?: ReactNode; actions?: ReactNode }) {
+  const embedded = useEmbedded()
+  if (embedded)
+    return description || actions ? (
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        {description ? <p className="max-w-[68ch] text-sm text-muted-foreground">{description}</p> : <span />}
+        {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
+      </div>
+    ) : null
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div className="flex min-w-0 flex-col gap-1.5">
@@ -94,7 +113,19 @@ export function SettingsSection({
  * A count that filters (the status tiles of the registers): a well; pressed = the dark material. `aria-pressed` carries the state, a
  * second press clears the filter. Put the status tag in `head`, the number in `count` and a grey sentence in `note`.
  */
-export function CountTile({ pressed, onPress, head, count, note }: { pressed: boolean; onPress: () => void; head: ReactNode; count: ReactNode; note?: ReactNode }) {
+export function CountTile({
+  pressed,
+  onPress,
+  head,
+  count,
+  note,
+}: {
+  pressed: boolean
+  onPress: () => void
+  head: ReactNode
+  count: ReactNode
+  note?: ReactNode
+}) {
   return (
     <button
       type="button"

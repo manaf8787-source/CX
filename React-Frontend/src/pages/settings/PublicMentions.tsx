@@ -2,6 +2,7 @@ import { Fragment, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { ChevronRight, ExternalLink, Send, Pencil, Plus, RotateCcw, TimerOff, Trash2 } from 'lucide-react'
 import { useI18n } from '@/i18n'
+import { Bad, Good } from '@/components/common/Trend'
 import { useRole } from '@/auth/RoleContext'
 import { canEditReplyLibrary, canMarkMentionReplied } from '@/auth/permissions'
 import { usePublicMentions } from '@/services/referenceQueries'
@@ -185,11 +186,11 @@ function MentionsTab() {
         <KpiTile label={t('Awaiting reply', 'بانتظار الرد')} value={counts.awaiting} sub={t(`inside the ${hours}-hour clock`, `ضمن مهلة ${hours} ساعة`)} />
         <KpiTile
           label={t(`Over ${hours} h, no reply`, `تجاوزت ${hours} ساعة بلا رد`)}
-          value={counts.overdue}
+          value={counts.overdue ? <Bad>{counts.overdue}</Bad> : <Good>0</Good>}
           accent={counts.overdue ? 'var(--destructive)' : undefined}
           sub={counts.overdue ? L(COPY.missedSignal) : undefined}
         />
-        <KpiTile label={t('Replied', 'رُدّ عليها')} value={counts.replied} />
+        <KpiTile label={t('Replied', 'رُدّ عليها')} value={<Good>{counts.replied}</Good>} />
       </div>
 
       {unclassified > 0 && (

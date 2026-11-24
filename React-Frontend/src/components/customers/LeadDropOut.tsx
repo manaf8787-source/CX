@@ -19,6 +19,7 @@ import {
   type Owner,
 } from '@/data/leadFunnel'
 import { cn } from '@/lib/utils'
+import { Bad, Good } from '@/components/common/Trend'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { SectionCard } from '@/components/common/SectionCard'
@@ -140,11 +141,11 @@ export function LeadDropOut() {
                 <span className="block h-full rounded-full bg-foreground/80" style={{ width: `${Math.max(1, (100 * n) / max)}%` }} />
               </span>
               <span className="tabular min-w-28 text-end">
-                <span className="font-medium text-foreground">{n}</span>
+                {i === steps.length - 1 ? <Good className="font-medium">{n}</Good> : <span className="font-medium text-foreground">{n}</span>}
                 {i > 0 && (
                   <span className="text-xs text-muted-foreground">
                     {' '}
-                    · {prev ? Math.round((100 * n) / prev) : 0}% {lost > 0 && t(`· ${lost} out`, `· خرج ${lost}`)}
+                    · {prev ? Math.round((100 * n) / prev) : 0}% {lost > 0 && <Bad>{t(`· ${lost} out`, `· خرج ${lost}`)}</Bad>}
                   </span>
                 )}
               </span>
@@ -169,7 +170,9 @@ export function LeadDropOut() {
               <Fragment key={reason}>
                 <TableRow className="cursor-pointer" onClick={() => setOpen(open === reason ? null : reason)} aria-expanded={open === reason}>
                   <TableCell className="min-w-56 whitespace-normal font-medium text-foreground">{L(EXIT_LABEL[reason])}</TableCell>
-                  <TableCell className="text-end tabular">{rows.length}</TableCell>
+                  <TableCell className="text-end tabular">
+                    <Bad>{rows.length}</Bad>
+                  </TableCell>
                   <TableCell className="min-w-48 whitespace-normal text-sm">
                     {owners(rows)
                       .map(([o, n]) => `${o === 'agent' ? t('Sales agents', 'وكلاء المبيعات') : L(OWNER_LABEL[o])} ${n}`)

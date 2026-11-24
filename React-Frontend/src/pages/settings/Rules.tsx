@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils'
 import { Input } from '@/components/ui/input'
 import { LoadingState } from '@/components/common/LoadingState'
 import { ProposedBadge } from '@/components/common/ProposedBadge'
-import { SettingsSection, SubPageHeader, ViewOnlyNotice } from './SubPageHeader'
+import { EmbeddedPage, SettingsSection, SubPageHeader, ViewOnlyNotice } from './SubPageHeader'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import AdminSettings from './AdminSettings'
 import AiInsightsAccess from './AiInsightsAccess'
@@ -187,16 +187,22 @@ export default function Rules() {
         <RulesBody />
       </TabsContent>
       <TabsContent value="standards">
-        <StandardsRegister embedded />
+        <EmbeddedPage>
+          <StandardsRegister embedded />
+        </EmbeddedPage>
       </TabsContent>
       {isMgr && (
         <TabsContent value="notices">
-          <AdminSettings />
+          <EmbeddedPage>
+            <AdminSettings />
+          </EmbeddedPage>
         </TabsContent>
       )}
       {isMgr && (
         <TabsContent value="access">
-          <AiInsightsAccess />
+          <EmbeddedPage>
+            <AiInsightsAccess />
+          </EmbeddedPage>
         </TabsContent>
       )}
     </Tabs>

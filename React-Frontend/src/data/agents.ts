@@ -140,8 +140,11 @@ export interface AgentRecord {
   reassignedTo?: string
 }
 
-/** Sales: with no first response this many minutes after the lead arrived, the CRM gives the lead to another agent [Proposed]. */
-export const REASSIGN_AFTER_MIN = 60
+/**
+ * Sales: with no first response this many minutes after the lead arrived, the CRM gives the lead to another agent. 24 Nov (owner):
+ * 5 minutes for now, the agent first-call target in PSI Marketing's CRM logic guide (critical after 15).
+ */
+export const REASSIGN_AFTER_MIN = 5
 
 const hash = (s: string) => {
   let h = 2166136261
@@ -173,14 +176,15 @@ export function agentHistory(agent: Agent, nowMs: number): AgentRecord[] {
       const rec: AgentRecord = { agentId: agent.id, at }
       if (rng() < 0.55) rec.score = Math.max(1, Math.min(5, Math.round(p.score + (rng() - 0.5) * 2.4)))
       if (agent.kind === 'sales' && agent.crm) {
-        // the CRM lead SLA is 30 minutes in working hours; activities carry their own SLA
-        rec.firstSlaMin = 30
-        rec.firstMin = kept ? Math.round(4 + rng() * 24) : Math.round(36 + rng() * 150)
+        // 24 Nov (owner): the first-response SLA is the CRM guide's 5 minutes from handover; activities carry their own SLA
+        rec.firstSlaMin = REASSIGN_AFTER_MIN
+        rec.firstMin = kept ? Math.round((1 + rng() * 3.9) * 10) / 10 : Math.round(6 + rng() * 40)
         rec.acts = 2 + Math.floor(rng() * 4)
         rec.actsOnTime = Math.round(rec.acts * Math.min(1, p.sla + (rng() - 0.5) * 0.3))
         rec.converted = rng() < p.convert
         // its own random stream, so the other figures stay as they were
-        if (rec.firstMin > REASSIGN_AFTER_MIN && rr() < 0.8) {
+        // no reply within the window: the CRM moves the lead to another agent (a manager can stop the move, hence not every late lead)
+        if (rec.firstMin > REASSIGN_AFTER_MIN && rr() < 0.85) {
           const peers = AGENTS.filter((a) => a.kind === 'sales' && a.crm && a.id !== agent.id && a.product === agent.product)
           const same = peers.filter((a) => a.envId === agent.envId)
           const pool = same.length ? same : peers
@@ -300,8 +304,8 @@ export const PRODUCT_SOURCES: Partial<Record<ProductId, { ready: boolean; text: 
   re: {
     ready: true,
     text: {
-      en: 'PSI Real Estate: the CRM. Lead first response is checked against the CRM lead SLA; every activity on the lead is checked against its own SLA.',
-      ar: 'بي إس آي العقارية: نظام CRM. يُقارن أول رد على العميل المحتمل بمهلة CRM، وكل نشاط على العميل بمهلته الخاصة.',
+      en: 'PSI Real Estate: the CRM. The first response must come within 5 minutes of the handover, or the lead moves to another agent; every activity on the lead is checked against its own SLA.',
+      ar: 'بي إس آي العقارية: نظام CRM. يجب أن يأتي أول رد خلال 5 دقائق من التسليم وإلا ينتقل العميل لوكيل آخر، وكل نشاط على العميل يُقارن بمهلته الخاصة.',
     },
   },
   cl: {

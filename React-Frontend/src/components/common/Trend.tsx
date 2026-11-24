@@ -58,3 +58,29 @@ export function Delta({
     </span>
   )
 }
+
+/**
+ * A rate coloured against its target (24 Nov, owner: the same rule on every page): green at or above `good`, red below `bad`, ink in
+ * between. `lowIsGood` flips it for rates where less is better (escalated, lost, junk).
+ */
+export function Rate({
+  value,
+  good = 80,
+  bad = 60,
+  lowIsGood = false,
+  children,
+}: {
+  value: number | null | undefined
+  good?: number
+  bad?: number
+  lowIsGood?: boolean
+  children?: ReactNode
+}) {
+  const text = children ?? (value == null ? '—' : `${value}%`)
+  if (value == null) return <>{text}</>
+  const isGood = lowIsGood ? value <= good : value >= good
+  const isBad = lowIsGood ? value > bad : value < bad
+  if (isGood) return <Good>{text}</Good>
+  if (isBad) return <Bad>{text}</Bad>
+  return <>{text}</>
+}

@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import IntelligentCxTeam from '@/pages/IntelligentCxTeam'
 import WatchTeam from './WatchTeam'
 import AiAssessment from './AiAssessment'
-import { SubPageHeader } from './SubPageHeader'
+import { EmbeddedPage, SubPageHeader } from './SubPageHeader'
 
 /**
  * The AI team (owner's request, 23 Nov): "How the portal works (the AI team)" and "Watch the AI team work" in one page with two tabs.
@@ -32,10 +32,14 @@ export default function AiTeam() {
           <TabsTrigger value="results">{t('Results and assessment', 'النتائج والتقييم')}</TabsTrigger>
         </TabsList>
         <TabsContent value="how">
-          <IntelligentCxTeam />
+          <EmbeddedPage>
+            <IntelligentCxTeam />
+          </EmbeddedPage>
         </TabsContent>
         <TabsContent value="watch">
-          <WatchTeam />
+          <EmbeddedPage>
+            <WatchTeam />
+          </EmbeddedPage>
         </TabsContent>
         <TabsContent value="results">
           <AiAssessment />

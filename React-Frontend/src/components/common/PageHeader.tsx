@@ -1,3 +1,4 @@
+import { useEmbedded } from '@/pages/settings/SubPageHeader'
 import type { ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 import { SampleBanner } from './SampleBanner'
@@ -21,6 +22,8 @@ interface PageHeaderProps {
  * the last child and keep the others `variant="outline"`). Left-aligned, 24 to 32px rhythm; the stack goes full width on a phone.
  */
 export function PageHeader({ title, description, eyebrow, actions, sample = true, className, term }: PageHeaderProps) {
+  // 24 Nov (owner): inside another page's tab, no second title (see EmbeddedPage)
+  if (useEmbedded()) return description ? <p className={cn('max-w-[68ch] text-sm text-muted-foreground', className)}>{description}</p> : null
   return (
     <header className={cn('flex flex-col gap-3 pt-2 sm:flex-row sm:items-end sm:justify-between', className)}>
       <div className="flex min-w-0 flex-col gap-1.5">
@@ -40,4 +43,3 @@ export function PageHeader({ title, description, eyebrow, actions, sample = true
     </header>
   )
 }
-
