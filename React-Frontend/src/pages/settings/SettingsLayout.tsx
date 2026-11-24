@@ -10,6 +10,7 @@ import { RouteTransition } from '@/components/layout/RouteTransition'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useSlidingIndicator } from '@/components/ui/use-sliding-indicator'
 import { cn } from '@/lib/utils'
+import { EmbeddedPage } from './SubPageHeader'
 
 /**
  * The folded legacy menu (APPLICATION_MODULES.md §C) — everything the
@@ -30,20 +31,27 @@ export default function SettingsLayout() {
   const items = SETTINGS_NAV.filter((i) => canOpenPage(role.id, i.path) && !(isCx && i.hideForCx))
   const current = items.find((i) => pathname === i.path || pathname.startsWith(`${i.path}/`))?.path
   const navLabel = t('Settings and reference', 'الإعدادات والمرجع')
+  // 24 Nov (owner): a role with one section only (HR) sees that page's own title, once, and no side menu
+  const single = items.length === 1
   const { ref, box, ready, animate } = useSlidingIndicator<HTMLDivElement>('a[aria-current=page]')
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        eyebrow={t('Reference', 'مرجع')}
-        title={navLabel}
-        description={t(
-          'How the portal works, the registers (weekly sample, public mentions), the data and configuration pages (data feeds, CRM mapping, escalation matrix, survey questions, rules) and the older modules.',
-          'كيف تعمل البوابة، والسجلات (العينة الأسبوعية، الإشارات العامة)، وصفحات البيانات والإعدادات (تغذيات البيانات، ربط CRM، مصفوفة التصعيد، أسئلة الاستبيانات، القواعد) والوحدات الأقدم.',
-        )}
+        eyebrow={single ? undefined : t('Reference', 'مرجع')}
+        title={single ? L(items[0].label) : navLabel}
+        description={
+          single
+            ? undefined
+            : t(
+                'How the portal works, the registers (weekly sample, public mentions), the data and configuration pages (data feeds, CRM mapping, escalation matrix, survey questions, rules) and the older modules.',
+                'كيف تعمل البوابة، والسجلات (العينة الأسبوعية، الإشارات العامة)، وصفحات البيانات والإعدادات (تغذيات البيانات، ربط CRM، مصفوفة التصعيد، أسئلة الاستبيانات، القواعد) والوحدات الأقدم.',
+              )
+        }
       />
 
-      <div className="lg:hidden">
+      {/* 24 Nov: with one section only (HR), no side menu: the page takes the full width. */}
+      <div className={cn('lg:hidden', items.length <= 1 && 'hidden')}>
         <Select value={current} onValueChange={(v) => navigate(v)}>
           <SelectTrigger aria-label={t('Choose a section', 'اختر قسماً')} className="w-full">
             <SelectValue placeholder={t('Choose a section', 'اختر قسماً')} />
@@ -58,8 +66,14 @@ export default function SettingsLayout() {
         </Select>
       </div>
 
-      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[232px_minmax(0,1fr)]">
-        <nav aria-label={navLabel} className="sticky top-20 hidden max-h-[calc(100vh-6.5rem)] overflow-y-auto rounded-panel bg-card p-2 shadow-card lg:block">
+      <div className={cn('grid grid-cols-1 items-start gap-6', items.length > 1 && 'lg:grid-cols-[232px_minmax(0,1fr)]')}>
+        <nav
+          aria-label={navLabel}
+          className={cn(
+            'sticky top-20 hidden max-h-[calc(100vh-6.5rem)] overflow-y-auto rounded-panel bg-card p-2 shadow-card',
+            items.length > 1 && 'lg:block',
+          )}
+        >
           <div ref={ref} data-indicator={ready ? 'on' : 'off'} className="group/settings-nav relative">
             {ready && box && (
               <span
@@ -97,7 +111,13 @@ export default function SettingsLayout() {
         <div className="flex min-w-0 flex-col gap-6">
           <Suspense fallback={<LoadingState rows={5} />}>
             <RouteTransition scope="section">
-              <Outlet />
+              {single ? (
+                <EmbeddedPage>
+                  <Outlet />
+                </EmbeddedPage>
+              ) : (
+                <Outlet />
+              )}
             </RouteTransition>
           </Suspense>
         </div>
@@ -105,4 +125,3 @@ export default function SettingsLayout() {
     </div>
   )
 }
-

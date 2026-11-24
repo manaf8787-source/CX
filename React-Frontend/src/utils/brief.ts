@@ -1,4 +1,5 @@
 import type { Bi, BriefInputs, IndicatorSet, InboxItem, NextStep, Product, ProductId, RoleId, StepId } from '../types'
+import { HR_NOW, IVR_REQUESTS, IVR_TARGET_HOURS, OPS_REQUESTS, OPS_TYPE, RECRUITMENT, STUCK_DAYS, daysBetween, hoursBetween } from '@/data/hrOps'
 import { canAccessPath } from '../auth/access'
 import { CLOSE_LOOP_NEXT, actionsNext, fixNext } from '../data/steps'
 import { fmtSigned } from './indicators'
@@ -33,7 +34,21 @@ export const BRIEF_COPY = {
   noPage: b('(no page for your role)', '(لا صفحة لدورك)'),
 }
 
-export type BriefLineKind = 'nps' | 'signals' | 'fixes' | 'shopper' | 'loop' | 'drifting' | 'public' | 'ld' | 'conduct' | 'sample' | 'campaigns'
+export type BriefLineKind =
+  | 'nps'
+  | 'signals'
+  | 'fixes'
+  | 'shopper'
+  | 'loop'
+  | 'drifting'
+  | 'public'
+  | 'ld'
+  | 'conduct'
+  | 'sample'
+  | 'campaigns'
+  | 'hr_calls'
+  | 'hr_recruit'
+  | 'hr_requests'
 
 /**
  * Lines per role, in the order shown (V40_DELTA F09 table). `[Proposed]`: the KB says "one per role" and nothing more.
@@ -47,7 +62,8 @@ export const BRIEF_LINES_BY_ROLE: Record<RoleId, readonly BriefLineKind[]> = {
   teamlead: ['nps', 'signals', 'fixes', 'shopper'],
   aslead: ['nps', 'signals', 'fixes', 'shopper'],
   hrspec: ['nps', 'signals', 'fixes', 'shopper', 'conduct'],
-  hrmgr: ['nps'],
+  // 24 Nov (owner, via Alaa): the HR director's brief is HR's own work, not the customer NPS
+  hrmgr: ['hr_calls', 'hr_recruit', 'hr_requests', 'conduct'],
   ld: ['nps', 'signals', 'fixes', 'ld'],
   marketing: ['nps', 'drifting', 'public'],
   // v42.1 (F33): the campaign line after the NPS lines (the prototype puts it second, right after its first line) [Proposed position]
@@ -76,6 +92,9 @@ export const BRIEF_TARGET: Record<BriefLineKind, string> = {
   conduct: '/actions/corrective',
   sample: '/settings/weekly-sample',
   campaigns: '/settings/campaign-audit',
+  hr_calls: '/settings/hr-team',
+  hr_recruit: '/settings/hr-team?tab=recruitment',
+  hr_requests: '/settings/hr-team?tab=operations',
 }
 
 export interface BriefLine {
@@ -179,8 +198,14 @@ function loopLine(i: BriefInputs): Bi {
   const l = i.loop
   const c = count(l.open, UNHAPPY)
   const pron = agr(l.open, 'به', 'بهما', 'بهم')
-  const phoneEn = l.recoveredByPhonePct == null ? 'recovery so far: too early' : `recovery so far ${l.recoveredByPhonePct}% by phone${l.recoveredByAiPct != null ? `, ${l.recoveredByAiPct}% by AI campaign` : ''}`
-  const phoneAr = l.recoveredByPhonePct == null ? 'التعافي حتى الآن: مبكر' : `التعافي حتى الآن ${l.recoveredByPhonePct}% بالهاتف${l.recoveredByAiPct != null ? `، ${l.recoveredByAiPct}% بحملة الذكاء` : ''}`
+  const phoneEn =
+    l.recoveredByPhonePct == null
+      ? 'recovery so far: too early'
+      : `recovery so far ${l.recoveredByPhonePct}% by phone${l.recoveredByAiPct != null ? `, ${l.recoveredByAiPct}% by AI campaign` : ''}`
+  const phoneAr =
+    l.recoveredByPhonePct == null
+      ? 'التعافي حتى الآن: مبكر'
+      : `التعافي حتى الآن ${l.recoveredByPhonePct}% بالهاتف${l.recoveredByAiPct != null ? `، ${l.recoveredByAiPct}% بحملة الذكاء` : ''}`
   return b(`${c.en} still to call, ${l.critical} critical; ${phoneEn}`, `${c.ar} لم نتصل ${pron} بعد، ${l.critical} حرجة؛ ${phoneAr}`)
 }
 
@@ -224,6 +249,32 @@ function conductLine(i: BriefInputs): Bi {
   return b(`${c.en} this month, each to the direct manager only`, `${c.ar} هذا الشهر، كل منها للمدير المباشر فقط`)
 }
 
+/** HR lines (24 Nov): the same numbers as the HR team performance page, last 30 days. */
+function hrCallsLine(): Bi {
+  const since = HR_NOW - 30 * 86_400_000
+  const rows = IVR_REQUESTS.filter((x) => Date.parse(x.receivedAt) >= since)
+  const waiting = rows.filter((x) => !x.calledBackAt).length
+  const onTime = rows.filter((x) => x.calledBackAt && hoursBetween(x.receivedAt, x.calledBackAt) <= IVR_TARGET_HOURS).length
+  const pct = rows.length ? Math.round((100 * onTime) / rows.length) : 0
+  return b(
+    `${rows.length} people asked for HR on the call center in 30 days; ${pct}% were called back within ${IVR_TARGET_HOURS} h, ${waiting} still waiting`,
+    `${rows.length} شخصاً طلبوا الموارد البشرية عبر مركز الاتصال خلال 30 يوماً؛ أُعيد الاتصال بـ${pct}% خلال ${IVR_TARGET_HOURS} ساعات، و${waiting} ما زالوا ينتظرون`,
+  )
+}
+function hrRecruitLine(): Bi {
+  const open = RECRUITMENT.candidates.filter((c) => c.stage !== 'hired' && c.stage !== 'refused')
+  const stuck = open.filter((c) => daysBetween(c.stageSince) > STUCK_DAYS).length
+  return b(
+    `Recruitment: ${open.length} candidates in progress, ${stuck} stuck more than ${STUCK_DAYS} days in one stage`,
+    `التوظيف: ${open.length} مرشحاً قيد المتابعة، ${stuck} عالقون أكثر من ${STUCK_DAYS} أيام في مرحلة واحدة`,
+  )
+}
+function hrRequestsLine(): Bi {
+  const open = OPS_REQUESTS.filter((x) => !x.closedAt)
+  const late = open.filter((x) => daysBetween(x.openedAt) > OPS_TYPE[x.type].targetDays).length
+  return b(`HR requests: ${open.length} open, ${late} past their target`, `طلبات الموارد البشرية: ${open.length} مفتوحة، ${late} تجاوزت الهدف`)
+}
+
 function sampleLine(i: BriefInputs): Bi {
   return b(
     `Weekly sample: ${i.sample.toRead} agent outputs to read by eye; ${i.sample.read} read so far this week`,
@@ -250,8 +301,17 @@ const percentList = (pcts: readonly number[], lang: 'en' | 'ar'): string => {
 export function campaignsLine(c: NonNullable<BriefInputs['campaigns']>): Bi | null {
   const running = c.runningReachedPct
   if (c.waiting === 0 && running.length === 0) return null
-  const wait = c.waiting === 0 ? b('No campaign waits for your clearance', 'لا حملة تنتظر إجازتك') : b(`${count(c.waiting, CAMPAIGN).en} ${c.waiting === 1 ? 'waits' : 'wait'} for your clearance`, `تنتظر ${count(c.waiting, CAMPAIGN).ar} إجازتك`)
-  const run = running.length === 0 ? b('none running', 'لا حملة تعمل') : b(`${running.length} running, ${percentList(running, 'en')} reached the right people so far`, `${running.length} تعمل، وصلت للأشخاص الصحيحين ${percentList(running, 'ar')} حتى الآن`)
+  const wait =
+    c.waiting === 0
+      ? b('No campaign waits for your clearance', 'لا حملة تنتظر إجازتك')
+      : b(`${count(c.waiting, CAMPAIGN).en} ${c.waiting === 1 ? 'waits' : 'wait'} for your clearance`, `تنتظر ${count(c.waiting, CAMPAIGN).ar} إجازتك`)
+  const run =
+    running.length === 0
+      ? b('none running', 'لا حملة تعمل')
+      : b(
+          `${running.length} running, ${percentList(running, 'en')} reached the right people so far`,
+          `${running.length} تعمل، وصلت للأشخاص الصحيحين ${percentList(running, 'ar')} حتى الآن`,
+        )
   return b(`${wait.en}; ${run.en}`, `${wait.ar}؛ ${run.ar}`)
 }
 
@@ -269,8 +329,9 @@ export interface BriefInput {
 export function buildBrief({ role, product, inputs, indicators, products }: BriefInput): BriefLine[] {
   const lines: BriefLine[] = []
   const add = (id: string, kind: BriefLineKind, text: Bi) => {
-    const target = BRIEF_TARGET[kind]
-    lines.push({ id, kind, text, to: canAccessPath(role, target) ? target : undefined })
+    // the HR director reads conduct cases on the HR page
+    const target = kind === 'conduct' && role === 'hrmgr' ? '/settings/hr-team?tab=conduct' : BRIEF_TARGET[kind]
+    lines.push({ id, kind, text, to: canAccessPath(role, target.split('?')[0]) ? target : undefined })
   }
   for (const kind of BRIEF_LINES_BY_ROLE[role]) {
     switch (kind) {
@@ -307,6 +368,15 @@ export function buildBrief({ role, product, inputs, indicators, products }: Brie
         break
       case 'sample':
         add('sample', kind, sampleLine(inputs))
+        break
+      case 'hr_calls':
+        add('hr_calls', kind, hrCallsLine())
+        break
+      case 'hr_recruit':
+        add('hr_recruit', kind, hrRecruitLine())
+        break
+      case 'hr_requests':
+        add('hr_requests', kind, hrRequestsLine())
         break
       case 'campaigns': {
         const line = inputs.campaigns ? campaignsLine(inputs.campaigns) : null

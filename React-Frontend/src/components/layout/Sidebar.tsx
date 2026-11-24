@@ -450,7 +450,7 @@ export function AppSidebar({ mode, expanded, onToggle, sheetOpen, onSheetOpenCha
         data-collapsible={layoutRail ? 'icon' : ''}
         data-phase={phase ?? undefined}
         // 20px = the frame card's padding, top and bottom, above 1440px
-        className="group sticky top-0 flex h-svh flex-col overflow-hidden px-2.5 py-3.5 text-sidebar-foreground min-[1441px]:h-[calc(100svh-20px)]"
+        className="group sticky top-0 flex h-svh flex-col overflow-hidden px-2.5 py-3.5 text-sidebar-foreground"
       >
         <NavBody
           variant="aside"

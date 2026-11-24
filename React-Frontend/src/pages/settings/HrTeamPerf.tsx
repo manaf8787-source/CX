@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { AlertTriangle, CheckCircle2, Clock, FolderOpen, PhoneCall, UserPlus } from 'lucide-react'
 import { useI18n } from '@/i18n'
+import { Bad, Good, Rate } from '@/components/common/Trend'
 import { useNow } from '@/hooks/useNow'
 import { useHrPool, useShopperCases } from '@/services/queries'
 import { ENVIRONMENTS } from '@/data/environments'
@@ -178,14 +179,18 @@ function IvrTab({ inScope }: { inScope: (iso: string, e: EnvId) => boolean }) {
         <KpiTile label={t('Asked for HR', 'طلبوا الموارد البشرية')} value={rows.length} icon={<PhoneCall />} />
         <KpiTile
           label={t(`Called back within ${IVR_TARGET_HOURS} h`, `أُعيد الاتصال خلال ${IVR_TARGET_HOURS} ساعات`)}
-          value={rows.length ? Math.round((onTime.length / rows.length) * 100) : 0}
+          value={
+            <Rate value={rows.length ? Math.round((onTime.length / rows.length) * 100) : 0}>
+              {rows.length ? Math.round((onTime.length / rows.length) * 100) : 0}
+            </Rate>
+          }
           unit="%"
           sub={t(`${onTime.length} of ${rows.length}`, `${onTime.length} من ${rows.length}`)}
         />
         <KpiTile label={t('Average time to call back', 'متوسط وقت إعادة الاتصال')} value={fmtH(avg, t)} icon={<Clock />} />
         <KpiTile
           label={t('Still waiting for a call', 'ما زالوا بانتظار الاتصال')}
-          value={waiting.length}
+          value={waiting.length ? <Bad>{waiting.length}</Bad> : <Good>0</Good>}
           accent={waiting.length ? 'var(--destructive)' : undefined}
           sub={
             waiting.length ? t(`oldest waiting ${fmtH(oldestWaiting, t)}`, `الأقدم ينتظر منذ ${fmtH(oldestWaiting, t)}`) : t('nobody waiting', 'لا أحد ينتظر')
@@ -331,10 +336,10 @@ function RecruitmentTab({ env, since }: { env: EnvId | typeof ALL; since: number
           sub={t(`${jobs.length} open positions`, `${jobs.length} وظائف مفتوحة`)}
         />
         <KpiTile label={t('Candidates in progress', 'مرشحون قيد المتابعة')} value={open.length} />
-        <KpiTile label={t('Hired in the period', 'عُيّنوا في الفترة')} value={hiredInPeriod.length} icon={<CheckCircle2 />} />
+        <KpiTile label={t('Hired in the period', 'عُيّنوا في الفترة')} value={<Good>{hiredInPeriod.length}</Good>} icon={<CheckCircle2 />} />
         <KpiTile
           label={t(`Stuck over ${STUCK_DAYS} days`, `عالقون أكثر من ${STUCK_DAYS} أيام`)}
-          value={stuck.length}
+          value={stuck.length ? <Bad>{stuck.length}</Bad> : <Good>0</Good>}
           accent={stuck.length ? 'var(--destructive)' : undefined}
           icon={<AlertTriangle />}
         />
@@ -442,12 +447,18 @@ function OperationsTab({ inScope }: { inScope: (iso: string, e: EnvId) => boolea
         <KpiTile label={t('Open requests', 'طلبات مفتوحة')} value={open.length} icon={<FolderOpen />} />
         <KpiTile
           label={t('Open and past the target', 'مفتوحة وتجاوزت الهدف')}
-          value={lateOpen.length}
+          value={lateOpen.length ? <Bad>{lateOpen.length}</Bad> : <Good>0</Good>}
           accent={lateOpen.length ? 'var(--destructive)' : undefined}
           icon={<AlertTriangle />}
         />
         <KpiTile label={t('Closed in the period', 'أُغلقت في الفترة')} value={closed.length} icon={<CheckCircle2 />} />
-        <KpiTile label={t('Closed on time', 'أُغلقت في الموعد')} value={closed.length ? Math.round((onTime / closed.length) * 100) : 0} unit="%" />
+        <KpiTile
+          label={t('Closed on time', 'أُغلقت في الموعد')}
+          value={
+            <Rate value={closed.length ? Math.round((onTime / closed.length) * 100) : 0}>{closed.length ? Math.round((onTime / closed.length) * 100) : 0}</Rate>
+          }
+          unit="%"
+        />
       </div>
       <SectionCard title={t('By request type', 'حسب نوع الطلب')} contentClassName={IN_CARD}>
         <Table density="comfortable">
@@ -546,7 +557,7 @@ function ConductTab() {
         <KpiTile label={t('Open conduct cases', 'حالات السلوك المفتوحة')} value={open.length} icon={<FolderOpen />} loading={casesLoading} />
         <KpiTile
           label={t('Late or at risk', 'متأخرة أو في خطر')}
-          value={late.length}
+          value={late.length ? <Bad>{late.length}</Bad> : <Good>0</Good>}
           icon={<AlertTriangle />}
           accent={late.length ? 'var(--destructive)' : undefined}
           loading={casesLoading}
@@ -592,4 +603,3 @@ function ConductTab() {
     </div>
   )
 }
-

@@ -122,7 +122,7 @@ export const SETTINGS_NAV: NavLeaf[] = [
   { path: '/settings/admin', label: { en: 'Notices and digests', ar: 'الإشعارات والخلاصات' }, hideForCx: true },
   { path: '/settings/rules', label: { en: 'Rules as configuration', ar: 'القواعد كإعدادات' } },
   { path: '/settings/ai-insights-access', label: { en: 'AI Insights access matrix', ar: 'مصفوفة صلاحيات رؤى الذكاء الاصطناعي' }, hideForCx: true },
-  { path: '/settings/glossary', label: { en: 'What the terms mean', ar: 'ماذا تعني المصطلحات' } },
+  // 24 Nov (owner): no menu entry for the glossary; the "What the terms mean" button on every page opens it.
 ]
 
 /** The pages `/settings` can send a role to, in menu order: `SETTINGS_NAV` without the demo pages (`skipLanding`). */

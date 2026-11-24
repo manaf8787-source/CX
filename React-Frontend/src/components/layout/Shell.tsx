@@ -115,19 +115,19 @@ export function Shell() {
             {t('Skip to content', 'انتقل إلى المحتوى')}
           </a>
 
-          {/* Page. Above 1440px: soft page, frame card (radius 26, padding 10, window shadow), inner surface (radius 18, hairline). The frame
-              sits flush with the window: the 22px page margin around it was removed at the owner's request (19 Nov). */}
-          <div className="min-h-svh min-w-0 flex-1 bg-background min-[1441px]:bg-soft">
-            <div className="mx-auto min-[1441px]:max-w-[1600px] min-[1441px]:rounded-frame min-[1441px]:bg-card min-[1441px]:p-2.5 min-[1441px]:shadow-window">
-              <div className="min-[1441px]:overflow-clip min-[1441px]:rounded-inner min-[1441px]:bg-background min-[1441px]:shadow-hairline">
+          {/* Page. 24 Nov (owner): the portal fills the window on every screen; the framed card above 1440px (capped at 1600px) left margins
+              and cut the bottom on large Mac screens, so it was removed. */}
+          <div className="min-h-svh min-w-0 flex-1 bg-background">
+            <div>
+              <div>
                 <div
                   ref={gridRef}
                   className={cn(
-                    'grid min-h-svh min-[1441px]:min-h-[calc(100svh-20px)]',
+                    'grid min-h-svh',
                     mode === 'phone'
                       ? 'grid-cols-[minmax(0,1fr)]'
                       : // the sidebar opens and closes gradually: a soft curve with no overshoot (see Sidebar.tsx)
-                      'transition-[grid-template-columns] duration-[680ms] ease-smooth ' +
+                        'transition-[grid-template-columns] duration-[680ms] ease-smooth ' +
                           (rail ? 'grid-cols-[var(--sidebar-w-icon)_minmax(0,1fr)]' : 'grid-cols-[var(--sidebar-w)_minmax(0,1fr)]'),
                   )}
                 >
@@ -151,7 +151,7 @@ export function Shell() {
                     <main
                       id="main"
                       tabIndex={-1}
-                      className="mx-auto flex w-full max-w-[1320px] flex-1 flex-col gap-4 overflow-x-clip px-5 pt-2 pb-10 outline-hidden focus-visible:[--tw-ring-shadow:0_0_#0000] tablet:px-6 desktop:px-8 has-[[data-fluid-page]]:max-w-none"
+                      className="mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-4 overflow-x-clip px-5 pt-2 pb-10 outline-hidden focus-visible:[--tw-ring-shadow:0_0_#0000] tablet:px-6 desktop:px-8 has-[[data-fluid-page]]:max-w-none"
                     >
                       <Suspense fallback={<LoadingState rows={6} />}>
                         <RouteTransition>
