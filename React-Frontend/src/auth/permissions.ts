@@ -166,6 +166,11 @@ export function canMarkMentionReplied(role: RoleId): boolean {
   return role === 'cxmgr' || role === 'cxteam'
 }
 
+/** 24 Nov: the AI agent settings (Settings tab of the AI team page) are changed by the CX manager only; everyone else who opens the page reads. */
+export function canEditAgentSettings(role: RoleId): boolean {
+  return role === 'cxmgr'
+}
+
 /** 23 Nov: the reply scripts and common questions of Public mentions are edited by the CX manager only; everyone who opens the page reads them. */
 export function canEditReplyLibrary(role: RoleId): boolean {
   return role === 'cxmgr'

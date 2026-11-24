@@ -1,4 +1,5 @@
 import { latency, mock } from './mockStore'
+import { fixTitle } from '@/data/fixProblem'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { INTERVIEW_OUTCOME_LABEL, REASON_CODE_LABEL, recoveryStatus } from '../utils/closeTheLoop'
 import { scoreChecklist } from '../utils/mysteryShopper'
@@ -298,7 +299,7 @@ async function createActionFromPattern(input: { pattern: Pattern; kind: Correcti
     id: `ca-${mock.MOCK_CORRECTIVE_ACTIONS.length + 1}`,
     kind: input.kind,
     patternId: input.pattern.id,
-    title: { en: `Address ${input.pattern.category.replace(/_/g, ' ')} in ${input.pattern.team}`, ar: 'معالجة النمط المرصود لهذا الفريق' },
+    title: fixTitle(input.pattern.category, input.pattern.team),
     owner: input.owner,
     dueDate: input.dueDate ?? dueFromMatrix({ product, kind: input.kind, patternId: input.pattern.id }).dueAt,
     status: 'proposed',
@@ -330,7 +331,14 @@ async function advanceShopperCase(input: { caseId: string; status: ShopperCase['
   return c
 }
 
-async function requestInvestigation(input: { patternId: string; kind: Investigation['kind']; requestedCount?: number; environment?: string; scenario?: string; lookFor?: string }) {
+async function requestInvestigation(input: {
+  patternId: string
+  kind: Investigation['kind']
+  requestedCount?: number
+  environment?: string
+  scenario?: string
+  lookFor?: string
+}) {
   await latency(LATENCY_MS)
   const inv: Investigation = {
     id: `inv-${mock.MOCK_INVESTIGATIONS.length + 1}`,
@@ -363,7 +371,9 @@ async function returnInvestigation(input: { id: string; resultSummary: string })
   inv.doneCount = inv.requestedCount ?? inv.doneCount
   if (inv.patternId && !inv.proposedFixId && !mock.MOCK_CORRECTIVE_ACTIONS.some((a) => a.patternId === inv.patternId)) {
     const rules = rulesFromConfig(mock.MOCK_RULES_CONFIG)
-    const pattern = detectPatternsCached('all', mock.MOCK_SIGNALS, rules.patterns).find((p) => p.id === inv.patternId) ?? mock.MOCK_PATTERNS.find((p) => p.id === inv.patternId)
+    const pattern =
+      detectPatternsCached('all', mock.MOCK_SIGNALS, rules.patterns).find((p) => p.id === inv.patternId) ??
+      mock.MOCK_PATTERNS.find((p) => p.id === inv.patternId)
     const label = pattern ? pattern.category.replace(/_/g, ' ') : 'the investigated issue'
     const team = pattern?.team ?? inv.environment ?? 'the team'
     const fix: CorrectiveAction = {

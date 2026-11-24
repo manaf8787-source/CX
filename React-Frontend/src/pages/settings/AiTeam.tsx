@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import IntelligentCxTeam from '@/pages/IntelligentCxTeam'
 import WatchTeam from './WatchTeam'
 import AiAssessment from './AiAssessment'
+import AgentSettings from './AgentSettings'
 import { EmbeddedPage, SubPageHeader } from './SubPageHeader'
 
 /**
@@ -14,7 +15,7 @@ export default function AiTeam() {
   const { t } = useI18n()
   const [params, setParams] = useSearchParams()
   const raw = params.get('tab')
-  const tab = raw === 'watch' || raw === 'results' ? raw : 'how'
+  const tab = raw === 'watch' || raw === 'results' || raw === 'settings' ? raw : 'how'
   return (
     <section className="flex flex-col gap-4">
       <SubPageHeader
@@ -30,6 +31,8 @@ export default function AiTeam() {
           <TabsTrigger value="watch">{t('Watch it work', 'شاهده يعمل')}</TabsTrigger>
           {/* 23 Nov (owner): how well the campaign AI agent and the QA layers perform */}
           <TabsTrigger value="results">{t('Results and assessment', 'النتائج والتقييم')}</TabsTrigger>
+          {/* 24 Nov (owner): per-agent on/paused, mode, confidence line and reviewer */}
+          <TabsTrigger value="settings">{t('Settings', 'الإعدادات')}</TabsTrigger>
         </TabsList>
         <TabsContent value="how">
           <EmbeddedPage>
@@ -43,6 +46,9 @@ export default function AiTeam() {
         </TabsContent>
         <TabsContent value="results">
           <AiAssessment />
+        </TabsContent>
+        <TabsContent value="settings">
+          <AgentSettings />
         </TabsContent>
       </Tabs>
     </section>

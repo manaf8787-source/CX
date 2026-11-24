@@ -1,3 +1,4 @@
+import { agentSetting } from './agentSettings'
 import type { ProductId } from '../types'
 
 /**
@@ -57,7 +58,10 @@ export function classifyMention(text: string, pageEnvironment: string, pageProdu
       // two products fit equally: Agent 2 is not sure enough
       confidence = 0.45
     }
-    if (confidence < CONFIDENCE_LINE) productId = null
+    // 24 Nov: the line is the CX manager's setting for Agent 2 (AI team, Settings); a paused Agent 2 classifies nothing, a person does.
+    const a2 = agentSetting('classify')
+    if (!a2.enabled) confidence = 0
+    if (confidence < (a2.confidence ?? CONFIDENCE_LINE * 100) / 100) productId = null
   }
   let environment = pageEnvironment
   let envFrom: Classified['envFrom'] = pageEnvironment ? 'page' : 'none'

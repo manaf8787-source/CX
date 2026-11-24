@@ -47,6 +47,7 @@ import type {
   VocComment,
   VocRow,
 } from '../types'
+import { fixTitle } from '@/data/fixProblem'
 import { daysAgoIso, intBetween, pick, seededRandom } from '../utils/random'
 import type { InsightCategory } from '../data/insightSuggestions'
 import { PATTERN_RULES, detectPatterns } from '../utils/patterns'
@@ -384,7 +385,7 @@ function buildCorrectiveActions(patterns: Pattern[], signals: Signal[]): Correct
       id: `ca-${idx + 1}`,
       kind,
       patternId: p.id,
-      title: { en: `Address ${p.category.replace(/_/g, ' ')} in ${p.team}`, ar: 'معالجة النمط المرصود لهذا الفريق' },
+      title: fixTitle(p.category, p.team),
       owner: owner[kind] ?? envManager,
       dueDate,
       status,
@@ -437,14 +438,12 @@ function buildCorrectiveRationales(actions: CorrectiveAction[], patterns: Patter
           ar: 'لم يتم التواصل مع العميل، ولم يُغيَّر أي سجل في النظام، ولم تُنسب المسؤولية لشخص بعينه.',
         },
       },
-      evidence: (pattern?.signalIds ?? [])
-        .slice(0, 5)
-        .map((sid, i) => ({
-          sourceType: 'signal',
-          sourceId: sid,
-          occurredAt: daysAgoIso(rng, 30),
-          summary: { en: `Signal #${i + 1} in the pattern window.`, ar: `إشارة رقم ${i + 1} ضمن نافذة النمط.` },
-        })),
+      evidence: (pattern?.signalIds ?? []).slice(0, 5).map((sid, i) => ({
+        sourceType: 'signal',
+        sourceId: sid,
+        occurredAt: daysAgoIso(rng, 30),
+        summary: { en: `Signal #${i + 1} in the pattern window.`, ar: `إشارة رقم ${i + 1} ضمن نافذة النمط.` },
+      })),
       confidence: pattern?.hasMinimumSample ? 0.78 : 0.42,
       rulesApplied: pattern ? [`signals.${pattern.thresholdKind}`] : [],
       model: 'mock-agent-5',

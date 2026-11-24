@@ -33,6 +33,7 @@ import { MatrixLine } from './MatrixLine'
 import { AuditTrail } from './AuditTrail'
 import { fixNextStep, isAiMadeFix } from './fixNextStep'
 import { FixLineage, FixVerdictSection } from './FixVerdict'
+import { FixProblem } from './FixProblem'
 
 const DECISION_LABEL = {
   modified: { en: 'Modified', ar: 'معدّل' },
@@ -81,7 +82,10 @@ export function FixCard({ fix: a, pattern, selected, now, onDecide, open, onOpen
     if (selected) headingRef.current?.focus({ preventScroll: true })
   }, [selected])
 
-  const eff = a.monthlySignalSeries && a.startedMonthIndex !== undefined ? evaluateEffectiveness(a.monthlySignalSeries, a.startedMonthIndex, rules.effectiveDropPct) : null
+  const eff =
+    a.monthlySignalSeries && a.startedMonthIndex !== undefined
+      ? evaluateEffectiveness(a.monthlySignalSeries, a.startedMonthIndex, rules.effectiveDropPct)
+      : null
   const showEff = eff && (a.status === 'verification' || a.status === 'effective' || a.status === 'partial' || a.status === 'failed')
   const product = PRODUCTS.find((p) => p.id === a.product)
   const next = fixNextStep(a, rules)
@@ -91,7 +95,12 @@ export function FixCard({ fix: a, pattern, selected, now, onDecide, open, onOpen
   function move(status: 'in_progress' | 'verification') {
     setStatus.mutate(
       { id: a.id, status },
-      { onSuccess: () => toast.success(status === 'in_progress' ? t('Started', 'بدأ التنفيذ') : t('Marked done; the 60-day check is scheduled', 'عُلّم منجزاً؛ جُدول فحص الـ60 يوماً')) },
+      {
+        onSuccess: () =>
+          toast.success(
+            status === 'in_progress' ? t('Started', 'بدأ التنفيذ') : t('Marked done; the 60-day check is scheduled', 'عُلّم منجزاً؛ جُدول فحص الـ60 يوماً'),
+          ),
+      },
     )
   }
 
@@ -122,10 +131,16 @@ export function FixCard({ fix: a, pattern, selected, now, onDecide, open, onOpen
   const halved = vip ? { en: ', halved for the VIP', ar: '، منصَّفة لعميل VIP' } : { en: '', ar: '' }
   const dueHint: Bi | null = due?.preview
     ? due.source === 'matrix'
-      ? { en: `if approved today: matrix Resolve ${formatHours(due.hours ?? 0)} h${halved.en}, in working hours`, ar: `إن اعتُمد اليوم: الحل حسب المصفوفة ${formatHours(due.hours ?? 0)} ساعة عمل${halved.ar}` }
+      ? {
+          en: `if approved today: matrix Resolve ${formatHours(due.hours ?? 0)} h${halved.en}, in working hours`,
+          ar: `إن اعتُمد اليوم: الحل حسب المصفوفة ${formatHours(due.hours ?? 0)} ساعة عمل${halved.ar}`,
+        }
       : { en: `if approved today: ${MATRIX_COPY.noResolveClock.en}`, ar: `إن اعتُمد اليوم: ${MATRIX_COPY.noResolveClock.ar}` }
     : due?.source === 'matrix'
-      ? { en: `from the matrix Resolve (h)${halved.en}, in working hours from approval`, ar: `من حقل الحل (ساعة) في المصفوفة${halved.ar}، بساعات العمل من الاعتماد` }
+      ? {
+          en: `from the matrix Resolve (h)${halved.en}, in working hours from approval`,
+          ar: `من حقل الحل (ساعة) في المصفوفة${halved.ar}، بساعات العمل من الاعتماد`,
+        }
       : due?.source === 'fallback'
         ? MATRIX_COPY.noResolveClock
         : null
@@ -146,7 +161,9 @@ export function FixCard({ fix: a, pattern, selected, now, onDecide, open, onOpen
         <div className="flex flex-wrap items-center gap-2">
           <TraceId kind="fix" id={a.id} plain />
           <StatusBadge tone="neutral">{L(ACTION_KIND[a.kind].label)}</StatusBadge>
-          <StatusBadge tone={a.status === 'effective' ? 'success' : a.status === 'failed' ? 'danger' : a.status === 'partial' ? 'warning' : 'neutral'}>{L(CORRECTIVE_STATUS_LABEL[a.status])}</StatusBadge>
+          <StatusBadge tone={a.status === 'effective' ? 'success' : a.status === 'failed' ? 'danger' : a.status === 'partial' ? 'warning' : 'neutral'}>
+            {L(CORRECTIVE_STATUS_LABEL[a.status])}
+          </StatusBadge>
           {a.fromInsight && <StatusBadge tone="neutral">{t('From AI Insights', 'من رؤى الذكاء الاصطناعي')}</StatusBadge>}
           {vip && (
             <span data-testid="fix-vip-tag">
@@ -172,6 +189,8 @@ export function FixCard({ fix: a, pattern, selected, now, onDecide, open, onOpen
         )}
         <FixLineage fix={a} />
       </div>
+
+      <FixProblem fix={a} pattern={pattern} />
 
       <div className="well flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
         <span className="inline-flex items-center gap-1.5">
@@ -201,7 +220,10 @@ export function FixCard({ fix: a, pattern, selected, now, onDecide, open, onOpen
 
       {a.kind === 'employee' && (
         <InlineNote tone="warning">
-          {t('Management note — the direct manager only, never a case, never HR, never a name outside this line.', 'ملاحظة إدارية — للمدير المباشر فقط، دون حالة أو موارد بشرية أو اسم خارج هذا الخط.')}
+          {t(
+            'Management note — the direct manager only, never a case, never HR, never a name outside this line.',
+            'ملاحظة إدارية — للمدير المباشر فقط، دون حالة أو موارد بشرية أو اسم خارج هذا الخط.',
+          )}
         </InlineNote>
       )}
 
@@ -215,7 +237,9 @@ export function FixCard({ fix: a, pattern, selected, now, onDecide, open, onOpen
       {showEff && (
         <div className="flex flex-wrap items-center gap-2 text-sm">
           <span className="text-muted-foreground">{t('60-day verification', 'تحقق 60 يوماً')}</span>
-          <StatusBadge tone={eff.verdict === 'effective' ? 'success' : eff.verdict === 'failed' ? 'danger' : eff.verdict === 'too_early' ? 'neutral' : 'warning'}>
+          <StatusBadge
+            tone={eff.verdict === 'effective' ? 'success' : eff.verdict === 'failed' ? 'danger' : eff.verdict === 'too_early' ? 'neutral' : 'warning'}
+          >
             {L(EFFECTIVENESS_LABEL[eff.verdict])}
           </StatusBadge>
           <bdi dir="ltr" className="tabular text-muted-foreground">
@@ -232,7 +256,9 @@ export function FixCard({ fix: a, pattern, selected, now, onDecide, open, onOpen
           <StatusBadge tone="info" icon={<FileSearch aria-hidden />}>
             {t('Sent to investigation first', 'أُحيل إلى التحقيق أولاً')}
           </StatusBadge>
-          <span className="text-muted-foreground">{t('Five customer interviews requested; see Investigations.', 'طُلبت خمس مقابلات مع العملاء؛ انظر التحقيقات.')}</span>
+          <span className="text-muted-foreground">
+            {t('Five customer interviews requested; see Investigations.', 'طُلبت خمس مقابلات مع العملاء؛ انظر التحقيقات.')}
+          </span>
         </div>
       )}
 
