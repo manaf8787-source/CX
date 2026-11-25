@@ -30,8 +30,9 @@ export function AccessGuard({ children }: { children: ReactNode }) {
 
 function ViewOnlyScope({ children }: { children: ReactNode }) {
   const { t } = useI18n()
+  // 25 Nov (owner): the notice keeps the page's own gap below it
   return (
-    <>
+    <div className="flex flex-col gap-6">
       <p role="status" className="well px-4 py-2.5 text-sm text-muted-foreground">
         <span className="font-medium text-foreground">{t('View only.', 'للعرض فقط.')}</span>{' '}
         {t('Your role can read this screen but not change anything on it.', 'دورك يستطيع قراءة هذه الشاشة دون تغيير أي شيء فيها.')}
@@ -39,7 +40,6 @@ function ViewOnlyScope({ children }: { children: ReactNode }) {
       <fieldset disabled className="contents">
         {children}
       </fieldset>
-    </>
+    </div>
   )
 }
-

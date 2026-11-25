@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
-import { ArrowDownToLine, ArrowLeftRight, ArrowUpFromLine, ChevronDown, Pencil, Plug, Plus, Trash2 } from 'lucide-react'
+import { ArrowDownToLine, ArrowLeftRight, ArrowUpFromLine, ChevronRight, Pencil, Plug, Plus, Trash2 } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { useAuditActor } from '@/auth/useAuditActor'
 import {
@@ -99,6 +99,7 @@ function Connections({ addRequest }: { addRequest: number }) {
   const items = useIntegrations()
   const [openId, setOpenId] = useState<string | null>(null)
   const [editing, setEditing] = useState<Integration | null>(null)
+  const shown = items.find((x) => x.id === openId) ?? null
   const counts = {
     connected: items.filter((x) => x.status === 'connected').length,
     error: items.filter((x) => x.status === 'error').length,
@@ -150,20 +151,83 @@ function Connections({ addRequest }: { addRequest: number }) {
         </DialogContent>
       </Dialog>
 
-      {/* 24 Nov (owner): cards in a grid instead of a long list; an opened or edited card spans the full row */}
+      <Dialog open={!!shown} onOpenChange={(o) => !o && setOpenId(null)}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+          <DialogTitle>{shown?.name}</DialogTitle>
+          <DialogDescription>{shown ? `${L(DIRECTION_LABEL[shown.direction])} · ${shown.scope}` : ''}</DialogDescription>
+          {shown &&
+            ((x) => (
+              <div className="flex flex-col gap-4 text-sm">
+                <dl className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
+                  <Fact label={t('What data', 'أي بيانات')} value={x.data || '—'} wide />
+                  <Fact label={t('How', 'الطريقة')} value={L(METHOD_LABEL[x.method])} />
+                  <Fact label={t('Address (base URL)', 'العنوان (Base URL)')} value={x.baseUrl || '—'} mono />
+                  <Fact
+                    label={t('Sign-in', 'تسجيل الدخول')}
+                    value={`${L(AUTH_LABEL[x.auth])}${x.secretHint ? ` · ${x.secretHint}` : x.auth === 'none' || x.auth === 'oauth' ? '' : ` · ${t('not entered', 'غير مُدخل')}`}`}
+                  />
+                  <Fact label={t('Owner on their side', 'المسؤول لديهم')} value={x.owner || '—'} />
+                  <Fact label={t('Last sync', 'آخر مزامنة')} value={when(x.lastSync)} />
+                  {x.lastError && <Fact label={t('Last error', 'آخر خطأ')} value={<span className="text-(--status-error-text)">{x.lastError}</span>} />}
+                  {(x.params ?? []).map((p) => (
+                    <Fact key={p.key} label={p.label} value={p.secret ? p.value || t('not entered', 'غير مُدخل') : p.value || '—'} mono />
+                  ))}
+                </dl>
+                <div className="flex flex-wrap justify-end gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      const r = testIntegration(x.id)
+                      if (r.ok) toast.success(t('The connection answered (prototype check).', 'استجاب الاتصال (فحص تجريبي).'))
+                      else toast.error(r.reason ? L(r.reason) : t('The check failed.', 'فشل الفحص.'))
+                      log(
+                        'action',
+                        { en: `Tested the integration "${x.name}": ${r.ok ? 'ok' : 'failed'}`, ar: `فحص الربط "${x.name}": ${r.ok ? 'نجح' : 'فشل'}` },
+                        '/admin/integrations',
+                      )
+                    }}
+                  >
+                    <Plug aria-hidden />
+                    {t('Test the connection', 'افحص الاتصال')}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setOpenId(null)
+                      setEditing({ ...x })
+                    }}
+                  >
+                    <Pencil aria-hidden />
+                    {t('Edit', 'تعديل')}
+                  </Button>
+                  {x.custom && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        removeIntegration(x.id)
+                        setOpenId(null)
+                        log('action', { en: `Removed the integration "${x.name}"`, ar: `حذف الربط "${x.name}"` }, '/admin/integrations')
+                      }}
+                    >
+                      <Trash2 aria-hidden />
+                      {t('Remove', 'حذف')}
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ))(shown)}
+        </DialogContent>
+      </Dialog>
+
+      {/* 24 Nov (owner): cards in a grid; Details opens the connection's data in a pop-up (25 Nov), not inside the card */}
       <ul className="grid grid-cols-1 gap-3 md:grid-cols-2 2xl:grid-cols-3">
         {items.map((x) => {
-          const open = openId === x.id
           const Dir = DIR_ICON[x.direction]
           return (
-            <li
-              key={x.id}
-              className={cn(
-                'well flex flex-col gap-3 p-4',
-                open && 'md:col-span-2 2xl:col-span-3',
-                x.status === 'error' && 'ring-1 ring-(--status-error-solid)/40',
-              )}
-            >
+            <li key={x.id} className={cn('well flex flex-col gap-3 p-4', x.status === 'error' && 'ring-1 ring-(--status-error-solid)/40')}>
               <div className="flex items-start justify-between gap-3">
                 <span aria-hidden className="material-light grid size-10 shrink-0 place-items-center rounded-full">
                   <Dir className="size-4" />
@@ -199,69 +263,13 @@ function Connections({ addRequest }: { addRequest: number }) {
               </div>
               <button
                 type="button"
-                onClick={() => setOpenId(open ? null : x.id)}
-                aria-expanded={open}
+                onClick={() => setOpenId(x.id)}
+                aria-haspopup="dialog"
                 className="mt-auto inline-flex w-fit items-center gap-1 rounded-md text-sm font-medium text-foreground outline-hidden hover:underline focus-visible:ring-2"
               >
-                {open ? t('Hide details', 'إخفاء التفاصيل') : t('Details', 'التفاصيل')}
-                <ChevronDown aria-hidden className={cn('size-4 transition-transform', open && 'rotate-180')} />
+                {t('Details', 'التفاصيل')}
+                <ChevronRight aria-hidden className="size-4 rtl:rotate-180" />
               </button>
-
-              {open && (
-                <div className="flex flex-col gap-3 border-t border-line pt-3 text-sm">
-                  <dl className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
-                    <Fact label={t('What data', 'أي بيانات')} value={x.data || '—'} wide />
-                    <Fact label={t('How', 'الطريقة')} value={L(METHOD_LABEL[x.method])} />
-                    <Fact label={t('Address (base URL)', 'العنوان (Base URL)')} value={x.baseUrl || '—'} mono />
-                    <Fact
-                      label={t('Sign-in', 'تسجيل الدخول')}
-                      value={`${L(AUTH_LABEL[x.auth])}${x.secretHint ? ` · ${x.secretHint}` : x.auth === 'none' || x.auth === 'oauth' ? '' : ` · ${t('not entered', 'غير مُدخل')}`}`}
-                    />
-                    <Fact label={t('Owner on their side', 'المسؤول لديهم')} value={x.owner || '—'} />
-                    <Fact label={t('Last sync', 'آخر مزامنة')} value={when(x.lastSync)} />
-                    {x.lastError && <Fact label={t('Last error', 'آخر خطأ')} value={<span className="text-(--status-error-text)">{x.lastError}</span>} />}
-                    {(x.params ?? []).map((p) => (
-                      <Fact key={p.key} label={p.label} value={p.secret ? p.value || t('not entered', 'غير مُدخل') : p.value || '—'} mono />
-                    ))}
-                  </dl>
-                  <div className="flex flex-wrap justify-end gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        const r = testIntegration(x.id)
-                        if (r.ok) toast.success(t('The connection answered (prototype check).', 'استجاب الاتصال (فحص تجريبي).'))
-                        else toast.error(r.reason ? L(r.reason) : t('The check failed.', 'فشل الفحص.'))
-                        log(
-                          'action',
-                          { en: `Tested the integration "${x.name}": ${r.ok ? 'ok' : 'failed'}`, ar: `فحص الربط "${x.name}": ${r.ok ? 'نجح' : 'فشل'}` },
-                          '/admin/integrations',
-                        )
-                      }}
-                    >
-                      <Plug aria-hidden />
-                      {t('Test the connection', 'افحص الاتصال')}
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => setEditing({ ...x })}>
-                      <Pencil aria-hidden />
-                      {t('Edit', 'تعديل')}
-                    </Button>
-                    {x.custom && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => {
-                          removeIntegration(x.id)
-                          log('action', { en: `Removed the integration "${x.name}"`, ar: `حذف الربط "${x.name}"` }, '/admin/integrations')
-                        }}
-                      >
-                        <Trash2 aria-hidden />
-                        {t('Remove', 'حذف')}
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              )}
             </li>
           )
         })}

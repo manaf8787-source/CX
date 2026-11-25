@@ -33,7 +33,10 @@ const only = (paths: string[], list: ScreenEntry[]) => list.filter((s) => paths.
 
 /** The screens the owner can tick, grouped like the menu. */
 export const SCREEN_CATALOG: ScreenGroup[] = [
-  { label: { en: 'Workspace', ar: 'مساحة العمل' }, screens: only(['/home', '/inbox', '/close-the-loop', '/overview', '/reports', '/agents/sales', '/agents/support'], PRIMARY_NAV[0].items) },
+  {
+    label: { en: 'Workspace', ar: 'مساحة العمل' },
+    screens: only(['/home', '/inbox', '/close-the-loop', '/overview', '/reports', '/agents/sales', '/agents/support'], PRIMARY_NAV[0].items),
+  },
   { label: { en: 'Customers', ar: 'العملاء' }, screens: CUSTOMERS_TABS },
   { label: { en: 'Signals and fixes', ar: 'الإشارات والحلول' }, screens: ACTIONS_TABS },
   { label: { en: 'Settings and reference', ar: 'الإعدادات والمرجع' }, screens: SETTINGS_NAV },
@@ -106,7 +109,11 @@ export function useCustomRoles(): CustomRole[] {
 }
 /** Changes whenever a custom role or the signed-in person's custom role changes, so role-dependent values recompute. */
 export function useCustomRolesRevision(): number {
-  return useSyncExternalStore(subscribe, () => rev, () => rev)
+  return useSyncExternalStore(
+    subscribe,
+    () => rev,
+    () => rev,
+  )
 }
 
 // --- the signed-in person's custom role -----------------------------------------------------
@@ -164,11 +171,11 @@ export function customAllowedPaths(): string[] {
 /** First allowed screen in menu order: where a custom role lands after signing in. */
 export function customHome(): string {
   const allowed = new Set(customAllowedPaths())
+  // 25 Nov (owner): a custom role that may open Home lands on Home
+  if (allowed.has('/home')) return '/home'
   return ALL_SCREENS.find((s) => allowed.has(s.path))?.path ?? [...allowed][0] ?? '/home'
 }
 
 export function customRoleLabel(id: string | undefined): string {
   return getCustomRole(id)?.name ?? 'Custom role'
 }
-
-

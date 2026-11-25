@@ -26,7 +26,6 @@ import { PageHeader } from '@/components/common/PageHeader'
 import { KpiTile } from '@/components/common/KpiTile'
 import { SectionCard } from '@/components/common/SectionCard'
 import { StatusBadge } from '@/components/common/StatusBadge'
-import { InlineNote } from '@/components/common/InlineNote'
 import { ChartTooltip, ChartWell, ChartLegend } from '@/components/common/charts'
 import { chartAxis, chartBar, chartBarMuted, chartColor, chartCursorBar, chartGrid } from '@/components/common/chartTheme'
 import { ViewOnlyNotice } from '@/pages/settings/SubPageHeader'
@@ -387,19 +386,33 @@ export function PerformanceReport({ scope, canExport }: Props) {
 
       <SectionCard>
         <div className="flex flex-wrap items-end gap-x-4 gap-y-3">
-          <Segmented<RangePreset>
-            label={t('Period', 'الفترة')}
+          <Segmented<'all' | 'social' | 'other'>
+            label={t('Work', 'نوع العمل')}
             variant="pressed"
-            value={preset}
-            onValueChange={choosePreset}
+            value={work}
+            onValueChange={setWork}
             options={[
-              { value: 'month', label: t('This month', 'هذا الشهر') },
-              { value: 'last_month', label: t('Last month', 'الشهر الماضي') },
-              { value: 'last_90', label: t('Last 90 days', 'آخر 90 يوماً') },
-              { value: 'ytd', label: t('This year', 'هذا العام') },
-              { value: 'custom', label: t('Custom', 'مخصص') },
+              { value: 'all', label: t('All work', 'كل العمل') },
+              { value: 'social', label: t('Public comments (social media)', 'التعليقات العامة (السوشيال ميديا)') },
+              { value: 'other', label: t('Calls and fixes', 'المكالمات والإجراءات') },
             ]}
           />
+          <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+            {t('Person', 'الشخص')}
+            <Select value={personId} onValueChange={setPersonId}>
+              <SelectTrigger size="sm" className="h-9 min-w-48" aria-label={t('Person', 'الشخص')}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{scope === 'team' ? t('Whole team', 'الفريق كله') : t('Everyone', 'الجميع')}</SelectItem>
+                {people.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </label>
           <label className="flex flex-col gap-1 text-xs text-muted-foreground">
             {t('From', 'من')}
             <Input
@@ -427,33 +440,19 @@ export function PerformanceReport({ scope, canExport }: Props) {
               }}
             />
           </label>
-          <Segmented<'all' | 'social' | 'other'>
-            label={t('Work', 'نوع العمل')}
+          <Segmented<RangePreset>
+            label={t('Period', 'الفترة')}
             variant="pressed"
-            value={work}
-            onValueChange={setWork}
+            value={preset}
+            onValueChange={choosePreset}
             options={[
-              { value: 'all', label: t('All work', 'كل العمل') },
-              { value: 'social', label: t('Public comments (social media)', 'التعليقات العامة (السوشيال ميديا)') },
-              { value: 'other', label: t('Calls and fixes', 'المكالمات والإجراءات') },
+              { value: 'month', label: t('This month', 'هذا الشهر') },
+              { value: 'last_month', label: t('Last month', 'الشهر الماضي') },
+              { value: 'last_90', label: t('Last 90 days', 'آخر 90 يوماً') },
+              { value: 'ytd', label: t('This year', 'هذا العام') },
+              { value: 'custom', label: t('Custom', 'مخصص') },
             ]}
           />
-          <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-            {t('Person', 'الشخص')}
-            <Select value={personId} onValueChange={setPersonId}>
-              <SelectTrigger className="h-9 min-w-48" aria-label={t('Person', 'الشخص')}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{scope === 'team' ? t('Whole team', 'الفريق كله') : t('Everyone', 'الجميع')}</SelectItem>
-                {people.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </label>
         </div>
       </SectionCard>
 
@@ -610,12 +609,6 @@ export function PerformanceReport({ scope, canExport }: Props) {
             ))}
           </TableBody>
         </Table>
-        <InlineNote className="mt-3" tone="info">
-          {t(
-            'Prototype: earlier months of the CX team are sample history; today’s calls and fixes are read live. In the real platform every figure comes from the time stamps on the case.',
-            'نموذج أولي: الأشهر السابقة لفريق CX بيانات تجريبية؛ مكالمات اليوم والإجراءات تُقرأ مباشرة. في المنصة الفعلية تأتي كل الأرقام من الأختام الزمنية على الحالة.',
-          )}
-        </InlineNote>
       </SectionCard>
 
       <SectionCard

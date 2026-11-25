@@ -11,6 +11,7 @@ import { SectionCard } from '@/components/common/SectionCard'
 import { StatusBadge } from '@/components/common/StatusBadge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { InlineNote } from '@/components/common/InlineNote'
+import { SortHead, useSort } from '@/components/common/SortHead'
 import { IN_CARD, SubPageHeader } from './SubPageHeader'
 
 const DAY_MS = 86_400_000
@@ -51,6 +52,10 @@ export default function Feeds() {
   }
 
   const lateCount = (feeds ?? []).filter((f) => f.status !== 'ok').length
+  // 25 Nov (owner): sort by when a feed last arrived and by how many records it brought
+  const { sorted, sort, toggle } = useSort<NonNullable<typeof feeds>[number], 'received' | 'records'>(feeds ?? [], (f, k) =>
+    k === 'received' ? Date.parse(f.receivedAt) : f.rows,
+  )
 
   return (
     <section data-density="dense" className="flex flex-col gap-4">
@@ -93,13 +98,13 @@ export default function Feeds() {
                 <TableHead>{L(c.feed)}</TableHead>
                 <TableHead>{L(c.environment)}</TableHead>
                 <TableHead>{L(c.today)}</TableHead>
-                <TableHead>{L(c.lastReceived)}</TableHead>
-                <TableHead className="text-end">{L(c.records)}</TableHead>
+                <SortHead sortKey="received" sort={sort} onSort={toggle} label={L(c.lastReceived)} align="start" />
+                <SortHead sortKey="records" sort={sort} onSort={toggle} label={L(c.records)} />
                 <TableHead>{L(c.carries)}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {feeds.map((f) => (
+              {sorted.map((f) => (
                 <TableRow key={f.id}>
                   <TableCell className="font-medium text-foreground">{L(f.name)}</TableCell>
                   <TableCell>{f.env ? L(environmentById(f.env).name) : L(FEEDS_COPY.shared)}</TableCell>
@@ -122,4 +127,3 @@ export default function Feeds() {
     </section>
   )
 }
-

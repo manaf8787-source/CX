@@ -132,7 +132,8 @@ export function AsOfBar() {
         </span>
       </span>
 
-      {link ? (
+      {/* 25 Nov (owner): a custom role (e.g. Sales support) does not see the feeds state */}
+      {role.id === 'custom' ? null : link ? (
         <Link
           to={feedsPath}
           title={`${L(FEEDS_COPY.barDataAsOf)} ${asOf}`}

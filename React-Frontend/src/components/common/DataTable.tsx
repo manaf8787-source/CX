@@ -98,6 +98,71 @@ const PAGER_BASE =
   'inline-grid size-8 shrink-0 cursor-pointer place-items-center rounded-full text-sm font-medium tabular outline-hidden transition-[opacity,background-color] duration-200 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-40 [&_svg]:size-3'
 const PAGER_ARROW = PAGER_BASE + ' material-light hover:opacity-80'
 
+/** The same pager for a plain table that pages its own rows (e.g. the audit log): range text and 32px round buttons. */
+export function Pager({
+  pageIndex,
+  pageCount,
+  pageSize,
+  total,
+  onPage,
+}: {
+  pageIndex: number
+  pageCount: number
+  pageSize: number
+  total: number
+  onPage: (i: number) => void
+}) {
+  const { t } = useI18n()
+  if (pageCount <= 1) return null
+  const from = pageIndex * pageSize + 1
+  const to = Math.min(total, (pageIndex + 1) * pageSize)
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-1 text-sm text-muted-foreground">
+      <span className="tabular">{t(`${from}–${to} of ${total}`, `${from}–${to} من ${total}`)}</span>
+      <nav aria-label={t('Pagination', 'ترقيم الصفحات')} className="flex items-center gap-1">
+        <button
+          type="button"
+          className={PAGER_ARROW}
+          onClick={() => onPage(pageIndex - 1)}
+          disabled={pageIndex === 0}
+          aria-label={t('Previous page', 'الصفحة السابقة')}
+        >
+          <ChevronLeft aria-hidden className="rtl:rotate-180" />
+        </button>
+        <span className="hidden items-center gap-1 sm:flex">
+          {pageWindow(pageIndex, pageCount).map((p) =>
+            typeof p === 'string' ? (
+              <span key={p} aria-hidden className="grid size-8 place-items-center">
+                …
+              </span>
+            ) : (
+              <button
+                key={p}
+                type="button"
+                onClick={() => onPage(p)}
+                aria-label={t(`Page ${p + 1}`, `صفحة ${p + 1}`)}
+                aria-current={p === pageIndex ? 'page' : undefined}
+                className={cn(PAGER_BASE, p === pageIndex ? 'material-dark' : 'hover:bg-(--hover-tint)')}
+              >
+                {p + 1}
+              </button>
+            ),
+          )}
+        </span>
+        <button
+          type="button"
+          className={PAGER_ARROW}
+          onClick={() => onPage(pageIndex + 1)}
+          disabled={pageIndex >= pageCount - 1}
+          aria-label={t('Next page', 'الصفحة التالية')}
+        >
+          <ChevronRight aria-hidden className="rtl:rotate-180" />
+        </button>
+      </nav>
+    </div>
+  )
+}
+
 /** A pinned column: sticky to its edge with an opaque fill (the row hover and selected tones are applied to `td` by the row, with higher specificity). */
 const PINNED = { start: 'sticky start-0 z-[1] bg-card', end: 'sticky end-0 z-[1] bg-card' } as const
 /** The header cell of a pinned column sits above the pinned body cells; with `stickyHeader` the header already has z-10 and top-0. */
@@ -212,14 +277,13 @@ export function DataTable<TData>({
                     return (
                       <TableHead
                         key={header.id}
-                        aria-sort={
-                          header.column.getIsSorted() === 'asc' ? 'ascending' : header.column.getIsSorted() === 'desc' ? 'descending' : undefined
-                        }
+                        aria-sort={header.column.getIsSorted() === 'asc' ? 'ascending' : header.column.getIsSorted() === 'desc' ? 'descending' : undefined}
                         className={cn(
                           meta?.align === 'end' && 'text-end',
                           meta?.sticky && PINNED_HEAD[meta.sticky],
                           meta?.sticky && !stickyHeader && 'z-[2]',
-                          stickyHeader && 'sticky top-0 z-10 bg-card transition-shadow duration-200 group-data-[scrolled]/data-table:shadow-[0_1px_0_var(--line)]',
+                          stickyHeader &&
+                            'sticky top-0 z-10 bg-card transition-shadow duration-200 group-data-[scrolled]/data-table:shadow-[0_1px_0_var(--line)]',
                           meta?.headerClassName,
                         )}
                       >
@@ -244,12 +308,22 @@ export function DataTable<TData>({
                         : undefined
                     }
                     tabIndex={onRowClick ? 0 : undefined}
-                    className={cn(onRowClick && 'cursor-pointer outline-hidden focus-visible:[&>td]:bg-row-hover focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring')}
+                    className={cn(
+                      onRowClick &&
+                        'cursor-pointer outline-hidden focus-visible:[&>td]:bg-row-hover focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring',
+                    )}
                   >
                     {row.getVisibleCells().map((cell) => {
                       const meta = cell.column.columnDef.meta
                       return (
-                        <TableCell key={cell.id} className={cn(meta?.align === 'end' && 'text-end font-medium tabular text-foreground', meta?.sticky && PINNED[meta.sticky], meta?.cellClassName)}>
+                        <TableCell
+                          key={cell.id}
+                          className={cn(
+                            meta?.align === 'end' && 'text-end font-medium tabular text-foreground',
+                            meta?.sticky && PINNED[meta.sticky],
+                            meta?.cellClassName,
+                          )}
+                        >
                           {renderSlot(cell.column.columnDef.cell, cell.getContext())}
                         </TableCell>
                       )
@@ -261,7 +335,9 @@ export function DataTable<TData>({
                   <TableCell colSpan={columns.length} className="p-2 whitespace-normal">
                     <EmptyState
                       className="py-4"
-                      title={globalFilter ? t('No rows match your search', 'لا توجد صفوف مطابقة لبحثك') : (emptyTitle ?? t('Nothing here yet', 'لا شيء هنا بعد'))}
+                      title={
+                        globalFilter ? t('No rows match your search', 'لا توجد صفوف مطابقة لبحثك') : (emptyTitle ?? t('Nothing here yet', 'لا شيء هنا بعد'))
+                      }
                       note={globalFilter ? undefined : emptyNote}
                     />
                   </TableCell>
@@ -274,11 +350,15 @@ export function DataTable<TData>({
 
       {pageSize > 0 && !isLoading && pageCount > 1 && (
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-1 text-sm text-muted-foreground">
-          <span className="tabular">
-            {t(`${rangeFrom}–${rangeTo} of ${filteredCount}`, `${rangeFrom}–${rangeTo} من ${filteredCount}`)}
-          </span>
+          <span className="tabular">{t(`${rangeFrom}–${rangeTo} of ${filteredCount}`, `${rangeFrom}–${rangeTo} من ${filteredCount}`)}</span>
           <nav aria-label={t('Pagination', 'ترقيم الصفحات')} className="flex items-center gap-1">
-            <button type="button" className={PAGER_ARROW} onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()} aria-label={t('Previous page', 'الصفحة السابقة')}>
+            <button
+              type="button"
+              className={PAGER_ARROW}
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+              aria-label={t('Previous page', 'الصفحة السابقة')}
+            >
               <ChevronLeft aria-hidden className="rtl:rotate-180" />
             </button>
             <span className="hidden items-center gap-1 sm:flex">
@@ -301,7 +381,13 @@ export function DataTable<TData>({
                 ),
               )}
             </span>
-            <button type="button" className={PAGER_ARROW} onClick={() => table.nextPage()} disabled={!table.getCanNextPage()} aria-label={t('Next page', 'الصفحة التالية')}>
+            <button
+              type="button"
+              className={PAGER_ARROW}
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+              aria-label={t('Next page', 'الصفحة التالية')}
+            >
               <ChevronRight aria-hidden className="rtl:rotate-180" />
             </button>
           </nav>
@@ -325,7 +411,13 @@ export function SortableHeader<TData, TValue>({ column, children }: { column: Co
       className="group/sort -mx-1.5 inline-flex h-8 cursor-pointer items-center gap-1 rounded-md px-1.5 outline-hidden hover:text-foreground"
     >
       {children}
-      <Icon aria-hidden className={cn('size-3 transition-opacity duration-200', sorted ? 'opacity-100' : 'opacity-0 group-hover/sort:opacity-100 group-focus-visible/sort:opacity-100')} />
+      <Icon
+        aria-hidden
+        className={cn(
+          'size-3 transition-opacity duration-200',
+          sorted ? 'opacity-100' : 'opacity-0 group-hover/sort:opacity-100 group-focus-visible/sort:opacity-100',
+        )}
+      />
     </button>
   )
 }

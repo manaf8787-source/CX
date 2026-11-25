@@ -50,7 +50,7 @@ export default function Home() {
   const searchTitle = assistant.available ? t('Find a person, or ask', 'ابحث عن شخص، أو اسأل') : t('Find a person', 'ابحث عن شخص')
 
   return (
-    <div data-density="comfortable" className="mx-auto flex w-full max-w-[1100px] flex-col gap-8">
+    <div data-density="comfortable" className="flex w-full flex-col gap-8">
       {/* 25 Nov (owner): the six steps (Listen … Report) are the AI's steps; they moved to Settings → The AI team */}
 
       {/* 24 Nov (owner): the search sits above the Daily brief */}

@@ -9,7 +9,7 @@ import { ProductTag } from '@/components/common/Chip'
 import { LoadingState } from '@/components/common/LoadingState'
 
 /**
- * Product launch (owner's request, 23 Nov; moved from the CX manager's Settings): which products are live in the portal. A product that
+ * Product launch (owner's request, 23 Nov; cards like Integrations, 25 Nov; moved from the CX manager's Settings): which products are live in the portal. A product that
  * is not launched stays out of the menu, the entry page and the filters for everyone. Super admin and Admin only; each switch is logged.
  */
 export default function ProductLaunch() {
@@ -31,11 +31,13 @@ export default function ProductLaunch() {
         {isLoading ? (
           <LoadingState rows={4} />
         ) : (
-          <ul className="flex flex-col">
+          <ul className="grid grid-cols-1 gap-3 md:grid-cols-2 2xl:grid-cols-3">
             {(products ?? []).map((p) => (
-              <li key={p.id} className="row-divider flex min-h-14 items-center justify-between gap-3 py-2">
-                <ProductTag productId={p.id} lang={lang} />
-                <label className="flex cursor-pointer items-center gap-3">
+              <li key={p.id} className="well flex flex-col gap-4 p-4">
+                <span className="w-fit">
+                  <ProductTag productId={p.id} lang={lang} />
+                </span>
+                <label className="flex cursor-pointer items-center justify-between gap-3">
                   <StatusBadge tone={p.live ? 'success' : 'neutral'} dot>
                     {p.live ? t('Live', 'مُفعّل') : t('Hidden', 'مخفي')}
                   </StatusBadge>
@@ -60,4 +62,3 @@ export default function ProductLaunch() {
     </div>
   )
 }
-

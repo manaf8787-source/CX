@@ -57,6 +57,7 @@ const Integrations = lazy(() => import('./pages/admin/Integrations'))
 const ProductLaunch = lazy(() => import('./pages/admin/ProductLaunch'))
 const TeamAvailability = lazy(() => import('./pages/settings/TeamAvailability'))
 const HrTeamPerf = lazy(pageLoaders.hrTeamPerf)
+const MaintenancePerf = lazy(pageLoaders.maintenancePerf)
 const Rules = lazy(pageLoaders.rules)
 const AiInsightsAccess = lazy(pageLoaders.aiInsightsAccess)
 const SettingsGlossary = lazy(pageLoaders.settingsGlossary)
@@ -158,6 +159,7 @@ export default function App() {
                         <Route path="teams-structure" element={<Navigate to="/settings/escalation-matrix?view=routing" replace />} />
                         <Route path="team-availability" element={<TeamAvailability />} />
                         <Route path="hr-team" element={<HrTeamPerf />} />
+                        <Route path="maintenance" element={<MaintenancePerf />} />
                         <Route path="admin" element={<AdminSettings />} />
                         <Route path="rules" element={<Rules />} />
                         <Route path="ai-insights-access" element={<AiInsightsAccess />} />

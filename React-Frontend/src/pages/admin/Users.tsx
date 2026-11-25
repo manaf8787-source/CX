@@ -190,15 +190,6 @@ export default function Users() {
         </ViewOnlyNotice>
       )}
 
-      <InlineNote role="note">
-        <span className="text-muted-foreground">
-          {t(
-            'No email is sent: copy the invitation link and pass it on. The directory is kept in this browser only. In the real platform the invitation is emailed and sign-in is the company directory.',
-            'لا يُرسل بريد: انسخ رابط الدعوة وأرسله بنفسك. الدليل محفوظ في هذا المتصفح فقط. في المنصة الحقيقية تُرسل الدعوة بالبريد ويكون تسجيل الدخول عبر دليل الشركة.',
-          )}
-        </span>
-      </InlineNote>
-
       {lastInvite && lastInvite.status === 'invited' && (
         <InlineNote
           role="status"
@@ -220,7 +211,7 @@ export default function Users() {
         </InlineNote>
       )}
 
-      <Card className="flex flex-col gap-4">
+      <Card className="flex flex-col gap-4 px-(--card-pad)">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="t-h4">{t('Directory', 'الدليل')}</h2>
           <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
@@ -234,6 +225,24 @@ export default function Users() {
               <StatusBadge tone="neutral">
                 {counts.disabled} {t('deactivated', 'موقوف')}
               </StatusBadge>
+            )}
+            {canEdit && (
+              <Button
+                variant="ghost"
+                size="xs"
+                onClick={() => {
+                  resetUsers()
+                  log('users_reset', {
+                    en: 'Restored the sample directory',
+                    ar: 'أعاد الدليل النموذجي',
+                  })
+                  setLastInvite(null)
+                  toast.success(t('Sample directory restored.', 'أُعيد الدليل النموذجي.'))
+                }}
+              >
+                <RotateCcw aria-hidden />
+                {t('Reset sample users', 'إعادة المستخدمين النموذجيين')}
+              </Button>
             )}
           </div>
         </div>
@@ -259,8 +268,8 @@ export default function Users() {
                     {u.name || <span className="text-muted-foreground">{t('(name not set yet)', '(الاسم لم يُحدد بعد)')}</span>}
                     {me && <span className="ms-2 text-xs text-muted-foreground">{t('(you)', '(أنت)')}</span>}
                   </TableCell>
-                  <TableCell className="tabular" dir="ltr">
-                    {u.email}
+                  <TableCell className="tabular">
+                    <span dir="ltr">{u.email}</span>
                   </TableCell>
                   <TableCell>
                     <span className="flex flex-col">
@@ -281,7 +290,7 @@ export default function Users() {
                       ) : (
                         <div className="flex items-center justify-end gap-1">
                           {u.status === 'active' && !me && (
-                            <Button variant="outline" size="xs" onClick={() => setLeaving(u)}>
+                            <Button variant="outline" size="xs" className="text-(--status-error-text)" onClick={() => setLeaving(u)}>
                               {t('Deactivate', 'إيقاف')}
                             </Button>
                           )}
@@ -325,6 +334,7 @@ export default function Users() {
                               {u.status === 'active' && (
                                 <DropdownMenuItem
                                   disabled={me}
+                                  variant="destructive"
                                   onSelect={() => {
                                     setUserStatus(u.id, 'disabled')
                                     log('user_deactivated', {
@@ -382,27 +392,6 @@ export default function Users() {
             })}
           </TableBody>
         </Table>
-
-        {canEdit && (
-          <div className="flex justify-end">
-            <Button
-              variant="ghost"
-              size="xs"
-              onClick={() => {
-                resetUsers()
-                log('users_reset', {
-                  en: 'Restored the sample directory',
-                  ar: 'أعاد الدليل النموذجي',
-                })
-                setLastInvite(null)
-                toast.success(t('Sample directory restored.', 'أُعيد الدليل النموذجي.'))
-              }}
-            >
-              <RotateCcw aria-hidden />
-              {t('Reset sample users', 'إعادة المستخدمين النموذجيين')}
-            </Button>
-          </div>
-        )}
       </Card>
 
       <CustomRolesCard canEdit={canEdit} />
@@ -674,7 +663,12 @@ function InviteDialog({ invitedBy, onClose, onInvited }: { invitedBy?: string; o
           </DialogHeader>
 
           <Field data-invalid={!!errors.email}>
-            <FieldLabel htmlFor="invite-email">{t('Work email', 'البريد الوظيفي')}</FieldLabel>
+            <FieldLabel htmlFor="invite-email">
+              {t('Work email', 'البريد الوظيفي')}
+              <span aria-hidden className="text-(--status-error-text)">
+                *
+              </span>
+            </FieldLabel>
             <Input id="invite-email" type="email" inputMode="email" dir="ltr" autoFocus aria-invalid={!!errors.email} {...register('email')} />
             {errors.email && <FieldError>{errors.email.message}</FieldError>}
           </Field>
@@ -691,13 +685,6 @@ function InviteDialog({ invitedBy, onClose, onInvited }: { invitedBy?: string; o
               {errors.lastName && <FieldError>{errors.lastName.message}</FieldError>}
             </Field>
           </div>
-          <FieldDescription>
-            {t(
-              'Only the email is required. The person enters their own first and last name when they accept the invitation, and it appears next to their email in the audit log.',
-              'البريد وحده مطلوب. يدخل الشخص اسمه الأول واسم عائلته بنفسه عند قبول الدعوة، ويظهر بجانب بريده في سجل التدقيق.',
-            )}
-          </FieldDescription>
-
           <Field>
             <FieldLabel htmlFor="invite-role">{t('Role', 'الدور')}</FieldLabel>
             <RoleSelect id="invite-role" value={choice} onChange={setChoice} />

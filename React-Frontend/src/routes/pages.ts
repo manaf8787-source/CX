@@ -35,6 +35,7 @@ export const pageLoaders = {
   voc: () => import('../pages/settings/Voc'),
   ld: () => import('../pages/settings/Ld'),
   hrTeamPerf: () => import('../pages/settings/HrTeamPerf'),
+  maintenancePerf: () => import('../pages/settings/MaintenancePerf'),
   rules: () => import('../pages/settings/Rules'),
   aiInsightsAccess: () => import('../pages/settings/AiInsightsAccess'),
   settingsGlossary: () => import('../pages/settings/Glossary'),

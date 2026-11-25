@@ -116,6 +116,8 @@ export const SETTINGS_NAV: NavLeaf[] = [
   { path: '/settings/ld', label: { en: 'L&D: training & materials', ar: 'التعلم والتطوير' } },
   { path: '/settings/team-availability', label: { en: 'Team availability (leave)', ar: 'توفّر الفريق (الإجازات)' }, skipLanding: true, hideForCx: true },
   { path: '/settings/hr-team', label: { en: 'HR team performance', ar: 'أداء فريق الموارد البشرية' } },
+  // 25 Nov (owner): the maintenance follow-up team and the outsourced vendors, on the Property Management SLA
+  { path: '/settings/maintenance', label: { en: 'Maintenance follow-up', ar: 'متابعة الصيانة' } },
   { path: '/settings/feeds', label: { en: 'Data feeds', ar: 'تغذيات البيانات' } },
   { path: '/settings/crm-mapping', label: { en: 'CRM mapping', ar: 'ربط قيم CRM' } },
   { path: '/settings/escalation-matrix', label: { en: 'Who handles what', ar: 'من يتولّى ماذا' } },

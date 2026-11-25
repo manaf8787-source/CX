@@ -238,7 +238,19 @@ export function AgentReport({ kind, canExport, envId }: Props) {
   return (
     <div className="flex flex-col gap-4" data-density="comfortable" data-testid={`agent-report-${kind}`}>
       <PageHeader
-        title={title}
+        title={
+          canExport ? (
+            title
+          ) : (
+            <>
+              {title}
+              {/* 25 Nov (owner): a small tag beside the title instead of a banner */}
+              <StatusBadge tone="neutral" className="ms-2 font-normal">
+                {t('You can read this report. Exporting is not part of your role.', 'يمكنك قراءة هذا التقرير. التصدير ليس ضمن دورك.')}
+              </StatusBadge>
+            </>
+          )
+        }
         description={description}
         actions={
           canExport && (
@@ -256,56 +268,10 @@ export function AgentReport({ kind, canExport, envId }: Props) {
         }
       />
 
-      {!canExport && (
-        <InlineNote tone="info">
-          {t('You can read this report. Exporting is not part of your role.', 'يمكنك قراءة هذا التقرير. التصدير ليس ضمن دورك.')}
-        </InlineNote>
-      )}
-
       {envId && <InlineNote tone="info">{t(`You see the agents of ${L(envName(envId))} only.`, `ترى وكلاء ${L(envName(envId))} فقط.`)}</InlineNote>}
 
       <SectionCard>
         <div className="flex flex-wrap items-end gap-x-4 gap-y-3">
-          <Segmented<RangePreset>
-            label={t('Period', 'الفترة')}
-            variant="pressed"
-            value={preset}
-            onValueChange={choosePreset}
-            options={[
-              { value: 'month', label: t('This month', 'هذا الشهر') },
-              { value: 'last_month', label: t('Last month', 'الشهر الماضي') },
-              { value: 'last_90', label: t('Last 90 days', 'آخر 90 يوماً') },
-              { value: 'ytd', label: t('This year', 'هذا العام') },
-              { value: 'custom', label: t('Custom', 'مخصص') },
-            ]}
-          />
-          <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-            {t('From', 'من')}
-            <Input
-              type="date"
-              className="h-9 w-40"
-              value={from}
-              max={to}
-              onChange={(e) => {
-                setPreset('custom')
-                setFrom(e.target.value)
-              }}
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-            {t('To', 'إلى')}
-            <Input
-              type="date"
-              className="h-9 w-40"
-              value={to}
-              min={from}
-              max={ymd(new Date(now))}
-              onChange={(e) => {
-                setPreset('custom')
-                setTo(e.target.value)
-              }}
-            />
-          </label>
           <label className="flex flex-col gap-1 text-xs text-muted-foreground">
             {t('Product', 'المنتج')}
             <Select
@@ -323,6 +289,22 @@ export function AgentReport({ kind, canExport, envId }: Props) {
                 {products.map((p) => (
                   <SelectItem key={p.id} value={p.id}>
                     {L(p.name)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </label>
+          <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+            {t('Agent', 'الوكيل')}
+            <Select value={agentId} onValueChange={setAgentId}>
+              <SelectTrigger className="h-9 min-w-48" aria-label={t('Agent', 'الوكيل')}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t('All agents', 'كل الوكلاء')}</SelectItem>
+                {agents.map((a) => (
+                  <SelectItem key={a.id} value={a.id}>
+                    {a.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -353,47 +335,47 @@ export function AgentReport({ kind, canExport, envId }: Props) {
             </label>
           )}
           <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-            {t('Agent', 'الوكيل')}
-            <Select value={agentId} onValueChange={setAgentId}>
-              <SelectTrigger className="h-9 min-w-48" aria-label={t('Agent', 'الوكيل')}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t('All agents', 'كل الوكلاء')}</SelectItem>
-                {agents.map((a) => (
-                  <SelectItem key={a.id} value={a.id}>
-                    {a.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {t('From', 'من')}
+            <Input
+              type="date"
+              className="h-9 w-40"
+              value={from}
+              max={to}
+              onChange={(e) => {
+                setPreset('custom')
+                setFrom(e.target.value)
+              }}
+            />
           </label>
+          <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+            {t('To', 'إلى')}
+            <Input
+              type="date"
+              className="h-9 w-40"
+              value={to}
+              min={from}
+              max={ymd(new Date(now))}
+              onChange={(e) => {
+                setPreset('custom')
+                setTo(e.target.value)
+              }}
+            />
+          </label>
+          <Segmented<RangePreset>
+            label={t('Period', 'الفترة')}
+            variant="pressed"
+            value={preset}
+            onValueChange={choosePreset}
+            options={[
+              { value: 'month', label: t('This month', 'هذا الشهر') },
+              { value: 'last_month', label: t('Last month', 'الشهر الماضي') },
+              { value: 'last_90', label: t('Last 90 days', 'آخر 90 يوماً') },
+              { value: 'ytd', label: t('This year', 'هذا العام') },
+              { value: 'custom', label: t('Custom', 'مخصص') },
+            ]}
+          />
         </div>
       </SectionCard>
-
-      {sources.length > 0 && (
-        <SectionCard
-          title={t('Where these numbers come from', 'من أين تأتي هذه الأرقام')}
-          description={t(
-            'One source per product. “API needed” means the data is not connected yet.',
-            'مصدر لكل منتج. «يحتاج واجهة» يعني أن البيانات غير موصولة بعد.',
-          )}
-        >
-          <ul className="flex flex-col gap-2" data-testid="agent-sources">
-            {sources.map((id) => {
-              const s = PRODUCT_SOURCES[id]!
-              return (
-                <li key={id} className="flex items-start gap-3 text-sm">
-                  <StatusBadge tone={s.ready ? 'success' : 'warning'} dot>
-                    {s.ready ? t('CRM', 'CRM') : t('API needed', 'يحتاج واجهة')}
-                  </StatusBadge>
-                  <span className="text-muted-foreground">{L(s.text)}</span>
-                </li>
-              )
-            })}
-          </ul>
-        </SectionCard>
-      )}
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4" data-testid="agent-tiles">
         <KpiTile
@@ -604,6 +586,30 @@ export function AgentReport({ kind, canExport, envId }: Props) {
           </ChartWell>
         )}
       </SectionCard>
+
+      {sources.length > 0 && (
+        <SectionCard
+          title={t('Where these numbers come from', 'من أين تأتي هذه الأرقام')}
+          description={t(
+            'One source per product. “API needed” means the data is not connected yet.',
+            'مصدر لكل منتج. «يحتاج واجهة» يعني أن البيانات غير موصولة بعد.',
+          )}
+        >
+          <ul className="flex flex-col gap-2" data-testid="agent-sources">
+            {sources.map((id) => {
+              const s = PRODUCT_SOURCES[id]!
+              return (
+                <li key={id} className="flex items-start gap-3 text-sm">
+                  <StatusBadge tone={s.ready ? 'success' : 'warning'} dot>
+                    {s.ready ? t('CRM', 'CRM') : t('API needed', 'يحتاج واجهة')}
+                  </StatusBadge>
+                  <span className="text-muted-foreground">{L(s.text)}</span>
+                </li>
+              )
+            })}
+          </ul>
+        </SectionCard>
+      )}
     </div>
   )
 }

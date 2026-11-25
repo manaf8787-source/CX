@@ -52,7 +52,7 @@ import { customAllowedPaths } from '../data/customRoles'
 export const ROLE_PATHS: Record<RoleId, string[] | null> = {
   cxmgr: null,
   cxteam: null,
-  envmgmt: ['/home', '/customers', '/runaway', '/actions', '/products/re', '/inbox', '/settings/surveys', WATCH_PAGE, '/agents', '/settings/public-mentions'],
+  envmgmt: ['/home', '/customers', '/runaway', '/actions', '/products/re', '/inbox', '/settings/surveys', WATCH_PAGE, '/agents', '/settings/public-mentions', '/settings/maintenance'],
   teamlead: ['/home', '/customers', '/actions', '/inbox', '/settings/public-mentions'],
   aslead: ['/home', '/customers', '/actions', '/settings/voc', '/products/af', '/inbox', '/settings/surveys', '/settings/public-mentions'],
   ld: ['/actions', '/inbox', '/settings/standards', '/settings/ld'],

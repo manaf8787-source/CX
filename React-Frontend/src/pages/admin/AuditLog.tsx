@@ -16,8 +16,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { PageHeader } from '@/components/common/PageHeader'
 import { StatusBadge } from '@/components/common/StatusBadge'
-import { InlineNote } from '@/components/common/InlineNote'
 import { EmptyState } from '@/components/common/EmptyState'
+import { Pager } from '@/components/common/DataTable'
 import { ViewOnlyNotice } from '@/pages/settings/SubPageHeader'
 
 type KindFilter = 'all' | 'access' | 'pages' | 'admin' | 'actions'
@@ -38,7 +38,7 @@ const KIND_GROUP: Record<AuditKind, Exclude<KindFilter, 'all'>> = {
 }
 
 const ALL = 'all'
-const PAGE = 100
+const PAGE = 20
 
 /** Local calendar day as YYYY-MM-DD (the date filter compares days, not instants). */
 function dayKey(iso: string): string {
@@ -59,7 +59,7 @@ export default function AuditLog() {
   const [who, setWho] = useState<string>(ALL)
   const [kind, setKind] = useState<KindFilter>('all')
   const [day, setDay] = useState('')
-  const [shown, setShown] = useState(PAGE)
+  const [page, setPage] = useState(0)
 
   const locale = lang === 'ar' ? 'ar-AE' : 'en-GB'
   const fmtDate = useMemo(() => new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', year: 'numeric' }), [locale])
@@ -78,7 +78,9 @@ export default function AuditLog() {
     () => entries.filter((e) => (who === ALL || e.userId === who) && (kind === 'all' || KIND_GROUP[e.kind] === kind) && (!day || dayKey(e.at) === day)),
     [entries, who, kind, day],
   )
-  const visible = filtered.slice(0, shown)
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE))
+  const current = Math.min(page, pageCount - 1)
+  const visible = filtered.slice(current * PAGE, current * PAGE + PAGE)
   const nameOf = (id: string) => users.find((u) => u.id === id)?.name
   const roleText = (e: AuditEntry, lang2: 'en' | 'ar') =>
     e.roleId === 'custom' ? customRoleLabel(users.find((u) => u.id === e.userId)?.customRoleId) : (roleDef(e.roleId)?.name[lang2] ?? e.roleId)
@@ -118,14 +120,14 @@ export default function AuditLog() {
       <TableRow key={e.id}>
         <TableCell className="tabular whitespace-nowrap text-foreground">{fmtDate.format(at)}</TableCell>
         <TableCell className="whitespace-nowrap text-muted-foreground">{fmtDay.format(at)}</TableCell>
-        <TableCell className="tabular whitespace-nowrap text-foreground" dir="ltr">
-          {fmtTime.format(at)}
+        <TableCell className="tabular whitespace-nowrap text-foreground">
+          <span dir="ltr">{fmtTime.format(at)}</span>
         </TableCell>
         <TableCell>
           <span className="flex flex-col">
             {nameOf(e.userId) && <span className="font-medium text-foreground">{nameOf(e.userId)}</span>}
-            <span className="tabular text-foreground" dir="ltr">
-              {e.email}
+            <span className="tabular text-start text-foreground">
+              <bdi>{e.email}</bdi>
             </span>
             <span className="text-xs text-muted-foreground">{roleText(e, lang)}</span>
           </span>
@@ -166,20 +168,17 @@ export default function AuditLog() {
 
       {!canClear && <ViewOnlyNotice>{t('View only.', 'للعرض فقط.')}</ViewOnlyNotice>}
 
-      <InlineNote role="note">
-        <span className="text-muted-foreground">
-          {t(
-            'The log is kept in this browser only and records what happens in it. In the real platform every entry is written on the server, cannot be deleted, and CX actions (approving a fix, closing a case) are logged there too.',
-            'السجل محفوظ في هذا المتصفح فقط ويسجّل ما يحدث فيه. في المنصة الحقيقية يُكتب كل سطر على الخادم ولا يُحذف، وتُسجّل فيه إجراءات CX أيضاً (اعتماد حل، إغلاق حالة).',
-          )}
-        </span>
-      </InlineNote>
-
-      <Card className="flex flex-col gap-4">
+      <Card className="flex flex-col gap-4 px-(--card-pad)">
         <div className="flex flex-wrap items-end gap-3">
           <div className="flex min-w-56 flex-col gap-1.5">
             <span className="t-small-strong">{t('Person', 'الشخص')}</span>
-            <Select value={who} onValueChange={setWho}>
+            <Select
+              value={who}
+              onValueChange={(v) => {
+                setWho(v)
+                setPage(0)
+              }}
+            >
               <SelectTrigger className="h-9" aria-label={t('Person', 'الشخص')}>
                 <SelectValue />
               </SelectTrigger>
@@ -195,7 +194,13 @@ export default function AuditLog() {
           </div>
           <div className="flex min-w-52 flex-col gap-1.5">
             <span className="t-small-strong">{t('Event', 'الحدث')}</span>
-            <Select value={kind} onValueChange={(v) => setKind(v as KindFilter)}>
+            <Select
+              value={kind}
+              onValueChange={(v) => {
+                setKind(v as KindFilter)
+                setPage(0)
+              }}
+            >
               <SelectTrigger className="h-9" aria-label={t('Event', 'الحدث')}>
                 <SelectValue />
               </SelectTrigger>
@@ -212,7 +217,17 @@ export default function AuditLog() {
             <label htmlFor="audit-day" className="t-small-strong">
               {t('Day', 'اليوم')}
             </label>
-            <Input id="audit-day" type="date" value={day} onChange={(e) => setDay(e.target.value)} className="h-9 w-44" dir="ltr" />
+            <Input
+              id="audit-day"
+              type="date"
+              value={day}
+              onChange={(e) => {
+                setDay(e.target.value)
+                setPage(0)
+              }}
+              className="h-9 w-44"
+              dir="ltr"
+            />
           </div>
           {(who !== ALL || kind !== 'all' || day) && (
             <Button
@@ -255,13 +270,7 @@ export default function AuditLog() {
               </TableHeader>
               <TableBody>{visible.map(rowFor)}</TableBody>
             </Table>
-            {filtered.length > shown && (
-              <div className="flex justify-center">
-                <Button variant="outline" size="sm" onClick={() => setShown((n) => n + PAGE)}>
-                  {t(`Show ${Math.min(PAGE, filtered.length - shown)} more`, `عرض ${Math.min(PAGE, filtered.length - shown)} أخرى`)}
-                </Button>
-              </div>
-            )}
+            <Pager pageIndex={current} pageCount={pageCount} pageSize={PAGE} total={filtered.length} onPage={setPage} />
           </>
         )}
         {canClear && entries.length > 0 && (
