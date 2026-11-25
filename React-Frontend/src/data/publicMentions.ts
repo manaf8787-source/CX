@@ -180,44 +180,38 @@ export function mentionInboxItems(
   rules: { publicReplyHours: number; publicReminderHours: number },
 ): import('../types').InboxItem[] {
   const open = mentions.filter((m) => !m.replied)
-  if (role === 'cxteam' && userId) {
-    const mine = open.filter((m) => m.assignee === userId)
-    if (!mine.length) return []
-    const late = mine.filter((m) => mentionStage(m, now, rules) !== 'new').length
-    return [
-      {
-        id: 'mention:mine',
-        kind: 'mention',
-        text: b(
-          `Public comments to reply to: ${mine.length}${late ? `, ${late} past the reminder` : ''}`,
-          `تعليقات عامة بانتظار ردك: ${mine.length}${late ? `، ${late} تجاوزت التذكير` : ''}`,
-        ),
-        daysLeft: late ? 0 : 1,
-        unit: 'd',
-        who: null,
-        priority: late ? 2 : 1,
-        target: '/settings/public-mentions?assignee=me&status=open',
-      },
-    ]
+  // 25 Nov (owner): one row per comment, so a late one is seen at once and opens alone
+  const PLATFORM: Record<string, string> = {
+    facebook: 'Facebook',
+    instagram: 'Instagram',
+    linkedin: 'LinkedIn',
+    google: 'Google',
+    googleplay: 'Google Play',
+    appstore: 'App Store',
+    webcomment: 'Website',
   }
-  if (role === 'cxmgr') {
-    const esc = open.filter((m) => mentionStage(m, now, rules) === 'escalated')
-    if (!esc.length) return []
-    return [
-      {
-        id: 'mention:escalated',
-        kind: 'mention',
-        text: b(
-          `Escalated: ${esc.length} public ${esc.length === 1 ? 'comment' : 'comments'} past the ${rules.publicReplyHours} h reply SLA`,
-          `مُصعَّد: ${esc.length} تعليق عام تجاوز مهلة الرد ${rules.publicReplyHours} ساعة`,
-        ),
-        daysLeft: -1,
-        unit: 'd',
-        who: b('CX team', 'فريق CX'),
-        priority: 2,
-        target: '/settings/public-mentions?status=overdue',
-      },
-    ]
+  const short = (t: string) => (t.length > 70 ? `${t.slice(0, 67)}…` : t)
+  const row = (m: PublicMention, forManager: boolean): import('../types').InboxItem => {
+    const stage = mentionStage(m, now, rules)
+    const hoursLeft = rules.publicReplyHours - (now - Date.parse(m.date)) / 3_600_000
+    const where = `${PLATFORM[m.platform] ?? m.platform}${m.environment ? ` · ${m.environment}` : ''}`
+    return {
+      id: `mention:${m.id}`,
+      kind: 'mention',
+      text: forManager
+        ? b(
+            `Escalated public comment, no reply after ${rules.publicReplyHours} h · ${where} · “${short(m.text)}”`,
+            `تعليق عام مُصعَّد، بلا رد بعد ${rules.publicReplyHours} ساعة · ${where} · «${short(m.text)}»`,
+          )
+        : b(`Reply to a public comment · ${where} · “${short(m.text)}”`, `رد على تعليق عام · ${where} · «${short(m.text)}»`),
+      daysLeft: Math.floor(hoursLeft / 24),
+      unit: 'd',
+      who: forManager ? b('CX team', 'فريق CX') : null,
+      priority: stage === 'escalated' ? 2 : stage === 'reminded' ? 1 : 0,
+      target: `/settings/public-mentions?open=${m.id}`,
+    }
   }
+  if (role === 'cxteam' && userId) return open.filter((m) => m.assignee === userId).map((m) => row(m, false))
+  if (role === 'cxmgr') return open.filter((m) => mentionStage(m, now, rules) === 'escalated').map((m) => row(m, true))
   return []
 }

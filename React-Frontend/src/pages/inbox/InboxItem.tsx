@@ -9,7 +9,7 @@ import ShopperCases from '@/pages/actions/ShopperCases'
 import Investigations from '@/pages/actions/Investigations'
 import CloseTheLoop from '@/pages/CloseTheLoop'
 import { ApprovalsTab } from '@/pages/Gifts'
-import PublicMentions from '@/pages/settings/PublicMentions'
+import PublicMentions, { MentionAlone } from '@/pages/settings/PublicMentions'
 import WeeklySample from '@/pages/settings/WeeklySample'
 
 /**
@@ -62,6 +62,9 @@ export default function InboxItem() {
   } else if (path === '/gifts') {
     body = <ApprovalsTab only={params.get('gift') ?? undefined} />
     allLabel = t('See all gift requests', 'اعرض كل طلبات الهدايا')
+  } else if (path === '/settings/public-mentions' && params.get('open')) {
+    body = <MentionAlone id={params.get('open')!} />
+    allLabel = t('See all public comments', 'اعرض كل التعليقات العامة')
   } else if (path === '/settings/public-mentions') {
     body = <PublicMentions />
   } else if (path === '/settings/weekly-sample') {

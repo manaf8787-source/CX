@@ -1,3 +1,5 @@
+import { PublicMentionsBrief } from '@/components/home/PublicMentionsBrief'
+import { StartHere } from '@/components/home/StartHere'
 import { useState } from 'react'
 import { Search } from 'lucide-react'
 import { useI18n } from '@/i18n'
@@ -5,7 +7,6 @@ import { useRole } from '@/auth/RoleContext'
 import { usePersonSearch } from '@/hooks/usePersonSearch'
 import { useAssistant } from '@/components/ai/AssistantContext'
 import { SUGGESTED_QUERIES } from '@/components/ai/assistantEngine'
-import { HOME_COPY } from '@/data/steps'
 import { INDICATOR_COPY } from '@/data/indicators'
 import { useProducts } from '@/services/queries'
 import { useEnvScope, useIndicators } from '@/services/queriesV40'
@@ -17,9 +18,6 @@ import { InlineNote } from '@/components/common/InlineNote'
 import { TermsButton } from '@/components/common/TermHelp'
 import { DailyBrief } from '@/components/home/DailyBrief'
 import { IndicatorCard } from '@/components/home/IndicatorCard'
-import { StartHere } from '@/components/home/StartHere'
-import { StepLine } from '@/components/home/StepLine'
-import { WatchTeamButton } from '@/components/home/WatchTeamButton'
 import { WorkToday } from '@/components/home/WorkToday'
 
 /**
@@ -53,20 +51,7 @@ export default function Home() {
 
   return (
     <div data-density="comfortable" className="mx-auto flex w-full max-w-[1100px] flex-col gap-8">
-      <header>
-        <Card>
-          <CardContent className="flex flex-col gap-7">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="flex min-w-0 flex-col gap-1.5">
-                <h1 className="t-page-title text-[20px] tablet:text-[22px] desktop:text-[24px]">{L(HOME_COPY.h1)}</h1>
-                <p className="t-body-m max-w-[72ch]">{L(HOME_COPY.lede)}</p>
-              </div>
-            </div>
-            <StepLine />
-            <WatchTeamButton />
-          </CardContent>
-        </Card>
-      </header>
+      {/* 25 Nov (owner): the six steps (Listen … Report) are the AI's steps; they moved to Settings → The AI team */}
 
       {/* 24 Nov (owner): the search sits above the Daily brief */}
       <Card>
@@ -148,6 +133,8 @@ export default function Home() {
           )}
         </section>
       )}
+
+      <PublicMentionsBrief />
 
       <WorkToday />
     </div>

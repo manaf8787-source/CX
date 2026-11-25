@@ -381,6 +381,30 @@ function MentionsTab() {
 
 const b = (en: string, ar: string): Bi => ({ en, ar })
 
+/** 25 Nov (owner): one public comment on its own page (opened from the inbox): the same detail and reply as the side panel. */
+export function MentionAlone({ id }: { id: string }) {
+  const { t, L } = useI18n()
+  const { role } = useRole()
+  const { data: mentions, isLoading } = usePublicMentions()
+  const m = mentions?.find((x) => x.id === id)
+  if (isLoading) return <LoadingState rows={3} />
+  if (!m) return <EmptyState title={t('This comment is no longer open for you.', 'هذا التعليق لم يعد مفتوحاً لك.')} />
+  const fmt = (d: string) => new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+  return (
+    <SectionCard
+      title={t('Public comment', 'تعليق عام')}
+      description={
+        <>
+          {L(CHANNEL_LABEL[m.platform])} · <bdi dir="ltr">{fmt(m.date)}</bdi>
+          {m.environment && <> · {L(envNameFromShort(m.environment))}</>}
+        </>
+      }
+    >
+      <MentionDetail key={m.id} m={m} canReply={canMarkMentionReplied(role.id)} onDone={() => {}} />
+    </SectionCard>
+  )
+}
+
 /** One mention, opened: where it was posted, the thread, and the reply (from a script or a common answer). */
 function MentionDetail({ m, canReply, onDone }: { m: PublicMention; canReply: boolean; onDone: () => void }) {
   const { t, L, lang } = useI18n()
