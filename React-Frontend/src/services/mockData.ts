@@ -2405,6 +2405,90 @@ export const MOCK_PATTERNS = detectPatterns(MOCK_SIGNALS, { windowDays: PATTERN_
 export const MOCK_CORRECTIVE_ACTIONS = buildCorrectiveActions(MOCK_PATTERNS, MOCK_SIGNALS)
 tagVipOnFirstFix(MOCK_PERSONS, MOCK_SIGNALS, MOCK_PATTERNS, MOCK_CORRECTIVE_ACTIONS)
 export const MOCK_CORRECTIVE_RATIONALES = buildCorrectiveRationales(MOCK_CORRECTIVE_ACTIONS, MOCK_PATTERNS)
+
+/**
+ * 25 Nov (owner): every environment's own management must see a filled page, not empty sections (Abu Dhabi had no pattern, no public
+ * mention and no fix; PSI-AI and PSI Assets had no fix). These rows are added after the seeded generators ran, with no random draws,
+ * so the rest of the sample stays the same: per environment, one agent with repeated signals of one issue (a same-agent and a
+ * same-issue pattern in that environment), a few public mentions, and two fixes carrying the environment (one being done, one proposed).
+ */
+const ENV_TOP_UP: { envId: EnvId; agentRef: string; category: string; signals: number; mentions: number; kind: CorrectiveActionKind }[] = [
+  { envId: 'auh', agentRef: 'agent-2', category: 'slow_response', signals: 6, mentions: 2, kind: 'training_gap' },
+  { envId: 'ast', agentRef: 'agent-7', category: 'promise_not_kept', signals: 5, mentions: 0, kind: 'process' },
+  { envId: 'ai', agentRef: 'agent-5', category: 'repeat_contact', signals: 6, mentions: 1, kind: 'service_behaviour' },
+]
+function topUpEnvironments() {
+  const DAY = 86_400_000
+  let n = 0
+  for (const top of ENV_TOP_UP) {
+    const env = environmentById(top.envId)
+    const people = MOCK_PERSONS.filter((p) => p.envId === top.envId)
+
+    for (let i = 0; i < top.signals; i++) {
+      const id = `sig-${top.envId}-${i + 1}`
+
+      MOCK_SIGNALS.push({
+        id,
+        kind: 'complaint',
+        personId: people.length ? people[i % people.length].id : undefined,
+        product: 're',
+        ...envFields(env),
+        category: top.category,
+        occurredAt: new Date(Date.now() - (2 + i * 3) * DAY).toISOString(),
+        agentRef: top.agentRef,
+        isPublic: false,
+        eventIds: [],
+      })
+    }
+    for (let i = 0; i < top.mentions; i++) {
+      const at = Date.now() - (1 + i * 2) * DAY
+      MOCK_SIGNALS.push({
+        id: `PUB-${top.envId.toUpperCase()}-${i + 1}`,
+        kind: 'public_mention',
+        product: 're',
+        ...envFields(env),
+        category: top.category,
+        occurredAt: new Date(at).toISOString(),
+        isPublic: true,
+        eventIds: [],
+        publicReplyDueAt: new Date(at + 48 * 3_600_000).toISOString(),
+      })
+    }
+    const base = MOCK_CORRECTIVE_ACTIONS[0]
+    const team = `${env.short} team`
+    for (const status of ['in_progress', 'proposed'] as const) {
+      n++
+      const proposedAt = new Date(Date.now() - (status === 'proposed' ? 3 : 18) * DAY).toISOString()
+      const fix: CorrectiveAction = {
+        ...base,
+        id: `ca-${top.envId}-${n}`,
+        envId: top.envId,
+        kind: status === 'proposed' ? 'employee' : top.kind,
+        patternId: status === 'proposed' ? `same_agent:${top.agentRef.replace(/[^a-z0-9]+/gi, '_')}` : `same_issue:${top.category}`,
+        title: fixTitle(top.category, team),
+        owner:
+          status === 'proposed'
+            ? `Direct manager (${env.short} environment manager)`
+            : top.kind === 'training_gap'
+              ? 'L&D manager with the environment champion'
+              : `${env.short} environment manager`,
+        dueDate: new Date(Date.now() + (status === 'proposed' ? 14 : 6) * DAY).toISOString(),
+        status,
+        decision: undefined,
+        decisionReason: undefined,
+        verificationResult: undefined,
+        monthlySignalSeries: [4, 5, 6, 6, 5, 4],
+        startedMonthIndex: 3,
+        proposedAt,
+        product: 're',
+        auditLog: seedAuditLog({ kind: top.kind, status }, proposedAt, ''),
+      }
+      MOCK_CORRECTIVE_ACTIONS.push(fix)
+      if (MOCK_CORRECTIVE_RATIONALES[base.id]) MOCK_CORRECTIVE_RATIONALES[fix.id] = MOCK_CORRECTIVE_RATIONALES[base.id]
+    }
+  }
+}
+topUpEnvironments()
 // 24 Nov (owner): hand-written sample cases with the visit and real proposed actions. The old generator still runs so the seeded
 // random sequence (and every list built after it) stays the same.
 void buildShopperCases()

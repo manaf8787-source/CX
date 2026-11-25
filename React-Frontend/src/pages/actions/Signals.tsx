@@ -181,7 +181,8 @@ export default function Signals() {
         )}
       </SectionCard>
 
-      <div id="patterns" className="scroll-mt-24">
+      {/* 25 Nov (owner): a section with no data is not shown */}
+      <div id="patterns" className={cn('scroll-mt-24', !patternsLoading && !patterns?.length && 'hidden')}>
         <SectionCard
           title={t('Patterns', 'الأنماط')}
           description={t(
@@ -240,6 +241,7 @@ export default function Signals() {
       </SectionCard>
 
       <SectionCard
+        className={!signalsLoading && publicMentions.length === 0 ? 'hidden' : undefined}
         term="Public reputation index"
         title={t('Public mentions', 'الإشارات العامة')}
         description={t('Never tied to a person unless self-identified.', 'لا تُربط بشخص إلا إذا عرّف نفسه.')}

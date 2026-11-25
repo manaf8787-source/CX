@@ -409,7 +409,9 @@ const SEEDS: Seed[] = [
     category: 'greeting',
     score: 84,
     visitDaysAgo: 3,
-    status: 'open',
+    // 25 Nov (owner): checked by CX, so the PSI-AI owner has a case to decide too
+    status: 'owner_decision',
+    review: { daysAgo: 1, note: 'Chat log confirms the 9-minute hand-over and the repeated questions.' },
     visit: {
       where: b('PSI-AI chat on the website', 'محادثة PSI-AI على الموقع'),
       channel: b('Website chat', 'محادثة الموقع'),

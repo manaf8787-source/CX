@@ -1,15 +1,5 @@
-import type {
-  AiInterviewCampaign,
-  Bi,
-  CorrectiveAction,
-  DayChipState,
-  DetractorCallItem,
-  InboxItem,
-  Investigation,
-  Pattern,
-  Person,
-  RoleId,
-} from '../types'
+import { environmentById } from '../data/environments'
+import type { AiInterviewCampaign, Bi, CorrectiveAction, DayChipState, DetractorCallItem, InboxItem, Investigation, Pattern, Person, RoleId } from '../types'
 import { canAccessPath, canOpenPage } from '../auth/access'
 import { DEFAULT_RULES_BAG, calendarFromRules, type RulesBag } from './ruleValues'
 import { ownerTitle } from '../data/ownerTitles'
@@ -130,16 +120,17 @@ export interface InboxInput {
  * Fixes a role may see: L&D sees only the training-gap kind (KB §15); environment management only its own
  * environment's patterns (KB §2); everyone with the Actions page sees the rest; roles without it see none.
  */
-export function visibleFixes(
-  fixes: readonly CorrectiveAction[],
-  patterns: readonly Pattern[],
-  role: RoleId,
-  roleEnvironment?: string,
-): CorrectiveAction[] {
+export function visibleFixes(fixes: readonly CorrectiveAction[], patterns: readonly Pattern[], role: RoleId, roleEnvironment?: string): CorrectiveAction[] {
   if (!canOpenPage(role, '/actions')) return []
   let list = [...fixes]
   if (role === 'ld') list = list.filter((f) => f.kind === 'training_gap')
-  if (role === 'envmgmt' && roleEnvironment) list = list.filter((f) => patterns.find((p) => p.id === f.patternId)?.team.startsWith(roleEnvironment))
+  if (role === 'envmgmt' && roleEnvironment)
+    // a fix that carries its own environment is that environment's; otherwise its pattern's team decides
+    list = list.filter((f) =>
+      f.envId
+        ? `${environmentById(f.envId).short} team`.startsWith(roleEnvironment)
+        : patterns.find((p) => p.id === f.patternId)?.team.startsWith(roleEnvironment),
+    )
   return list
 }
 
@@ -215,7 +206,10 @@ export function buildInbox(input: InboxInput): InboxItem[] {
         text: { en: `${critical ? 'Critical · ' : ''}Call ${name} · ${reason}`, ar: `${critical ? 'حرج · ' : ''}اتصل بـ ${name} · ${reason}` },
         daysLeft: left,
         unit: 'wd',
-        who: l.channel === 'ai_campaign' && l.status !== 'needs_human' && campaign ? { en: `AI campaign ${campaign.id}`, ar: `حملة AI ${campaign.id}` } : { en: 'CX team', ar: 'فريق CX' },
+        who:
+          l.channel === 'ai_campaign' && l.status !== 'needs_human' && campaign
+            ? { en: `AI campaign ${campaign.id}`, ar: `حملة AI ${campaign.id}` }
+            : { en: 'CX team', ar: 'فريق CX' },
         priority: critical ? 2 : left !== null && left < 0 ? 1 : 0,
         target: `/close-the-loop?item=${l.id}`,
         critical,
@@ -231,7 +225,10 @@ export function buildInbox(input: InboxInput): InboxItem[] {
         id: `inv:${inv.id}`,
         kind: 'inv',
         text: interviews
-          ? { en: `Investigation open: ${id} · ${inv.doneCount ?? 0}/${inv.requestedCount ?? 0} interviews`, ar: `تحقيق مفتوح: ${id} · ${inv.doneCount ?? 0}/${inv.requestedCount ?? 0} مقابلات` }
+          ? {
+              en: `Investigation open: ${id} · ${inv.doneCount ?? 0}/${inv.requestedCount ?? 0} interviews`,
+              ar: `تحقيق مفتوح: ${id} · ${inv.doneCount ?? 0}/${inv.requestedCount ?? 0} مقابلات`,
+            }
           : { en: `Investigation open: ${id} · shopper check`, ar: `تحقيق مفتوح: ${id} · فحص متسوق` },
         daysLeft: null,
         unit: 'd',
@@ -262,7 +259,9 @@ export function buildInbox(input: InboxInput): InboxItem[] {
   // Campaign audit: "Clear or send back" (urgent, 2 working days) and "Audit after the run", Internal Audit only (v42.1 F33).
   items.push(...campaignAuditInboxItems(role, input.campaignAudit))
 
-  return items.sort((a, b) => b.priority - a.priority || (a.daysLeft ?? Number.POSITIVE_INFINITY) - (b.daysLeft ?? Number.POSITIVE_INFINITY) || a.id.localeCompare(b.id))
+  return items.sort(
+    (a, b) => b.priority - a.priority || (a.daysLeft ?? Number.POSITIVE_INFINITY) - (b.daysLeft ?? Number.POSITIVE_INFINITY) || a.id.localeCompare(b.id),
+  )
 }
 
 /** The numbers of the "Your work today" hint: items on the role and how many are urgent (priority 1 or more). */

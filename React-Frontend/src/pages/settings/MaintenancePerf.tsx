@@ -395,6 +395,7 @@ function TeamTab({ since }: { since: number }) {
       </div>
 
       <SectionCard
+        className={worst.length ? undefined : 'hidden'}
         title={t('Most overdue', 'الأكثر تأخراً')}
         description={t('Open requests past a target now.', 'طلبات مفتوحة تجاوزت هدفاً الآن.')}
         contentClassName={IN_CARD}
