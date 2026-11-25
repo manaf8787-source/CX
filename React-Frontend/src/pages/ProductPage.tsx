@@ -1,3 +1,4 @@
+import { INCLUDES } from '@/utils/indicators'
 import type { ReactNode } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { ArrowRight, Ban, Globe, Smartphone } from 'lucide-react'
@@ -49,7 +50,8 @@ export default function ProductPage() {
   const isCx = role.id === 'cxmgr' || role.id === 'cxteam'
   if (!product || (!product.live && !isCx)) return <Navigate to={role.home} replace />
 
-  const rows = (vocRows ?? []).filter((r) => r.product === product.id)
+  // 25 Nov (owner): PSI Real Estate includes the After-Sales answers (completed transactions)
+  const rows = (vocRows ?? []).filter((r) => r.product === product.id || (INCLUDES[product.id] ?? []).includes(r.product))
   const n = rows.reduce((s, r) => s + r.n, 0)
   const csat = n ? Math.round(rows.reduce((s, r) => s + r.csat * r.n, 0) / n) : null
   const ces = CES_SAMPLE[product.id]

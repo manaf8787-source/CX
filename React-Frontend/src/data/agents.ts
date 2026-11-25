@@ -305,14 +305,14 @@ export const PRODUCT_SOURCES: Partial<Record<ProductId, { ready: boolean; text: 
     ready: true,
     text: {
       en: 'PSI Real Estate: the CRM. The first response must come within 5 minutes of the handover, or the lead moves to another agent; every activity on the lead is checked against its own SLA.',
-      ar: 'بي إس آي العقارية: نظام CRM. يجب أن يأتي أول رد خلال 5 دقائق من التسليم وإلا ينتقل العميل لوكيل آخر، وكل نشاط على العميل يُقارن بمهلته الخاصة.',
+      ar: 'PSI العقارية: نظام CRM. يجب أن يأتي أول رد خلال 5 دقائق من التسليم وإلا ينتقل العميل لوكيل آخر، وكل نشاط على العميل يُقارن بمهلته الخاصة.',
     },
   },
   cl: {
     ready: true,
     text: {
       en: 'PSI Club: the same method as Real Estate, from the CRM lead and activity SLAs.',
-      ar: 'نادي بي إس آي: الطريقة نفسها كالعقارية، من مهل العملاء المحتملين والأنشطة في CRM.',
+      ar: 'نادي PSI: الطريقة نفسها كالعقارية، من مهل العملاء المحتملين والأنشطة في CRM.',
     },
   },
   af: {
@@ -333,7 +333,7 @@ export const PRODUCT_SOURCES: Partial<Record<ProductId, { ready: boolean; text: 
     ready: false,
     text: {
       en: 'PSI Wallet: the work is mostly the user’s own, so only the Excellence team members on the front line are measured, on WhatsApp and in-app chat. Needs the chat tool’s API; until then the figures are sample data.',
-      ar: 'محفظة بي إس آي: العمل يقوم به المستخدم في الغالب، لذا يُقاس فقط أعضاء فريق التميّز في الواجهة عبر واتساب ودردشة التطبيق. يحتاج واجهة أداة الدردشة؛ إلى ذلك الحين الأرقام تجريبية.',
+      ar: 'محفظة PSI: العمل يقوم به المستخدم في الغالب، لذا يُقاس فقط أعضاء فريق التميّز في الواجهة عبر واتساب ودردشة التطبيق. يحتاج واجهة أداة الدردشة؛ إلى ذلك الحين الأرقام تجريبية.',
     },
   },
 }

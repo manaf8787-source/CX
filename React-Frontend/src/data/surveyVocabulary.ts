@@ -12,10 +12,10 @@ export const LEGACY_SURVEYS: LegacySurvey[] = [
     name: { en: 'NPS for customers who purchased', ar: 'مؤشر NPS للعملاء الذين أتموا الشراء' },
     product: 're',
     questions: [
-      { id: 'q1', type: 'nps', text: { en: 'How likely are you to recommend PSI Real Estate to a friend or colleague?', ar: 'ما مدى احتمال أن توصي بـ بي إس آي العقارية لصديق أو زميل؟' } },
+      { id: 'q1', type: 'nps', text: { en: 'How likely are you to recommend PSI Real Estate to a friend or colleague?', ar: 'ما مدى احتمال أن توصي بـ PSI العقارية لصديق أو زميل؟' } },
       { id: 'q2', type: 'open', text: { en: "What's the main reason for your score?", ar: 'ما السبب الرئيسي لتقييمك؟' } },
       { id: 'q3', type: 'rating', text: { en: 'How professional and clear was your sales agent?', ar: 'ما مدى احترافية ووضوح وكيل المبيعات؟' } },
-      { id: 'q4', type: 'yesno', text: { en: 'Would you buy from PSI again or refer someone?', ar: 'هل ستشتري من بي إس آي مجدداً أو ترشّحها لأحد؟' } },
+      { id: 'q4', type: 'yesno', text: { en: 'Would you buy from PSI again or refer someone?', ar: 'هل ستشتري من PSI مجدداً أو ترشّحها لأحد؟' } },
     ],
   },
   {
@@ -35,7 +35,7 @@ export const LEGACY_SURVEYS: LegacySurvey[] = [
     questions: [
       { id: 'q1', type: 'yesno', text: { en: 'Was your unit handed over on time?', ar: 'هل تم تسليم وحدتك في الوقت المحدد؟' } },
       { id: 'q2', type: 'rating', text: { en: 'How do you rate the build quality and finishing?', ar: 'كيف تقيّم جودة البناء والتشطيب؟' } },
-      { id: 'q3', type: 'nps', text: { en: 'How likely are you to invest again or refer PSI?', ar: 'ما مدى احتمال استثمارك مجدداً أو ترشيح بي إس آي؟' } },
+      { id: 'q3', type: 'nps', text: { en: 'How likely are you to invest again or refer PSI?', ar: 'ما مدى احتمال استثمارك مجدداً أو ترشيح PSI؟' } },
     ],
   },
 ]

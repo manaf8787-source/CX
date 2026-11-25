@@ -161,7 +161,7 @@ export const MATRIX_TITLES_AR: Readonly<Record<string, string>> = {
   'Property or community manager (PSI Assets)': 'مدير العقار أو المجتمع (PSI للأصول)',
   // PSI Club
   'Club relations manager': 'مدير علاقات النادي',
-  'Head of PSI Club': 'رئيس نادي بي إس آي',
+  'Head of PSI Club': 'رئيس نادي PSI',
   'Club champion': 'ممثل النادي',
   'Club operations lead': 'قائد عمليات النادي',
   'Club app product owner': 'مالك منتج تطبيق النادي',

@@ -90,7 +90,7 @@ export default function Surveys({ section }: { section: 'results' | 'when' }) {
       <InlineNote tone="warning" title={t('Group NPS: none, by design', 'مؤشر NPS الموحد: غير موجود، بالتصميم')}>
         {t(
           'Each product has its own NPS, CSAT and CES line and its own moments — Tour Estate, PSI Club and PSI Events are separate businesses with different customers, so no number ever mixes them (FR-7.4).',
-          'لكل منتج خط NPS وCSAT وCES خاص به ولحظاته الخاصة — تور إستيت ونادي بي إس آي وفعاليات بي إس آي أعمال منفصلة بعملاء مختلفين، فلا يُدمج أي رقم بينها — FR-7.4.',
+          'لكل منتج خط NPS وCSAT وCES خاص به ولحظاته الخاصة — تور إستيت ونادي PSI وفعاليات PSI أعمال منفصلة بعملاء مختلفين، فلا يُدمج أي رقم بينها — FR-7.4.',
         )}
       </InlineNote>
 

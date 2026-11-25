@@ -5,7 +5,7 @@ import { useRole } from '@/auth/RoleContext'
 import { useCorrectiveActions, useHomeSummary, usePatterns, useProducts, useShopperCases, useSignals, useVocRows } from '@/services/queries'
 import { canAccessPath } from '@/auth/access'
 import type { ProductId } from '@/types'
-import { csatOf, fmtSigned, npsOf } from '@/utils/indicators'
+import { csatOf, fmtSigned, INCLUDES, npsOf } from '@/utils/indicators'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { SectionCard } from '@/components/common/SectionCard'
@@ -62,7 +62,7 @@ export default function SettingsOverview({ hideHeader = false }: { hideHeader?: 
   const vocFiltered = (vocRows ?? []).filter((r) => (product === 'all' || r.product === product) && (channel === 'all' || r.channel === channel))
   const shown = launched.filter((p) => product === 'all' || p.id === product)
   function rowsFor(id: ProductId) {
-    return vocFiltered.filter((r) => r.product === id)
+    return vocFiltered.filter((r) => r.product === id || (INCLUDES[id] ?? []).includes(r.product))
   }
 
   return (

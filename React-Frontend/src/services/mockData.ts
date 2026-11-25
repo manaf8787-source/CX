@@ -1029,9 +1029,9 @@ const SURVEY_TRIGGERS: SurveyTrigger[] = [
 ]
 
 const FUNNEL_SOURCES: Bi[] = [
-  { en: 'PSI Website', ar: 'موقع بي إس آي' },
-  { en: 'PSI Real Estate app', ar: 'تطبيق بي إس آي العقاري' },
-  { en: 'PSI Club', ar: 'نادي بي إس آي' },
+  { en: 'PSI Website', ar: 'موقع PSI' },
+  { en: 'PSI Real Estate app', ar: 'تطبيق PSI العقاري' },
+  { en: 'PSI Club', ar: 'نادي PSI' },
   { en: 'WhatsApp', ar: 'واتساب' },
   { en: 'CRM', ar: 'نظام إدارة علاقات العملاء' },
 ]
@@ -1414,7 +1414,7 @@ function buildStandards(): Standard[] {
       code: 'M-11',
       source: 'platform_rule',
       group: { en: 'Platform rules', ar: 'قواعد المنصة' },
-      title: { en: 'PSI Club VIP nomination policy', ar: 'سياسة ترشيح أعضاء نادي بي إس آي المميزين' },
+      title: { en: 'PSI Club VIP nomination policy', ar: 'سياسة ترشيح أعضاء نادي PSI المميزين' },
       writer: { en: 'Club lead', ar: 'قائد النادي' },
       readBy: { en: 'Club', ar: 'النادي' },
       owner: 'Club lead',
@@ -1440,7 +1440,7 @@ function buildStandards(): Standard[] {
       group: { en: 'Platform rules', ar: 'قواعد المنصة' },
       title: { en: 'Events registration and follow-up standard', ar: 'معيار تسجيل ومتابعة الفعاليات' },
       writer: { en: 'Events lead', ar: 'قائد الفعاليات' },
-      readBy: { en: 'PSI Events', ar: 'فعاليات بي إس آي' },
+      readBy: { en: 'PSI Events', ar: 'فعاليات PSI' },
       owner: 'Events lead',
       linkedItems: 0,
       status: 'not_started',
@@ -1451,7 +1451,7 @@ function buildStandards(): Standard[] {
   const g2: Bi = { en: '2. Communication and selling', ar: '٢. التواصل والبيع' }
   const g3: Bi = { en: '3. Digital channels and chat', ar: '٣. القنوات الرقمية والمحادثة' }
   const g4: Bi = { en: '4. Call center', ar: '٤. مركز الاتصال' }
-  const g5: Bi = { en: '5. After-Sales and rental (PSI Assets)', ar: '٥. ما بعد البيع والإيجار (بي إس آي أسيتس)' }
+  const g5: Bi = { en: '5. After-Sales and rental (PSI Assets)', ar: '٥. ما بعد البيع والإيجار (PSI أسيتس)' }
   const g6: Bi = { en: '6. Follow-up and conduct', ar: '٦. المتابعة والسلوك' }
   const ld = (en: string, ar: string) => ({ en, ar }) as Bi
 

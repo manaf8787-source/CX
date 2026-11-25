@@ -44,6 +44,9 @@ export function deltaFromTrend(series: readonly number[] | undefined): number | 
   return series[series.length - 1] - series[series.length - 2]
 }
 
+/** Products whose answers also count in another product's figures: PSI Real Estate includes After-Sales (completed transactions). */
+export const INCLUDES: Partial<Record<ProductId, ProductId[]>> = { re: ['af'] }
+
 /** The indicators of one product. `ces` is the sample table value (null = not asked yet). */
 export function indicatorsFor(
   productId: ProductId,
@@ -51,7 +54,9 @@ export function indicatorsFor(
   trend: Partial<Record<ProductId, number[]>>,
   cesSample: Partial<Record<ProductId, number | null>>,
 ): IndicatorSet {
-  const mine = rows.filter((r) => r.product === productId)
+  // 25 Nov (owner): After-Sales asks the same customers about the same service after the deal completes, so PSI Real Estate's
+  // figures include the After-Sales answers; After-Sales still has its own card with only its answers.
+  const mine = rows.filter((r) => r.product === productId || (INCLUDES[productId] ?? []).includes(r.product))
   return {
     productId,
     nps: npsOf(mine),

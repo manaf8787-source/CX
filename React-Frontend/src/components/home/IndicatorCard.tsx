@@ -1,3 +1,4 @@
+import { INCLUDES } from '@/utils/indicators'
 import type { CSSProperties, ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
@@ -71,7 +72,12 @@ export function IndicatorCard({ set, product }: { set: IndicatorSet; product: Pr
           <span aria-hidden className="dot bg-(--c)" />
           {L(product.name)}
         </h3>
-        <p className="text-sm text-muted-foreground">{L(INDICATOR_COPY.meta(set.answers))}</p>
+        <p className="text-sm text-muted-foreground">
+          {L(INDICATOR_COPY.meta(set.answers))}
+          {INCLUDES[set.productId]?.includes('af') && (
+            <> · {L({ en: 'includes After-Sales (completed transactions)', ar: 'تشمل ما بعد البيع (الصفقات المكتملة)' })}</>
+          )}
+        </p>
       </CardHeader>
       <CardContent>
         {/* the data-density sits on an inner box: on CardContent itself it would also change the card's own side padding */}
