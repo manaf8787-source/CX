@@ -378,6 +378,10 @@ function NavBody({ variant, groups, toggle, onClose, onNavigate, onReplay }: Nav
             <TermsButton className="w-full justify-start" />
           </div>
         )}
+        {/* 25 Nov: the review link shows which build is open, so a reviewer can tell an old copy from the latest */}
+        {import.meta.env.VITE_BUILD_STAMP && !(!sheet && toggle?.rail) && (
+          <span className="px-2 text-[11px] text-muted-foreground tabular">Build {import.meta.env.VITE_BUILD_STAMP}</span>
+        )}
       </SidebarFooter>
     </div>
   )

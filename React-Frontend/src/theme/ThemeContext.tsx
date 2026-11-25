@@ -54,3 +54,16 @@ export function useTheme(): ThemeValue {
   if (!ctx) throw new Error('useTheme must be used inside ThemeProvider')
   return ctx
 }
+
+/** Whether the dark theme is showing now (the chosen mode, or the device's when "Match device"). */
+export function useIsDark(): boolean {
+  const { mode } = useTheme()
+  const [deviceDark, setDeviceDark] = useState(() => typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+  useEffect(() => {
+    const media = window.matchMedia('(prefers-color-scheme: dark)')
+    const on = () => setDeviceDark(media.matches)
+    media.addEventListener('change', on)
+    return () => media.removeEventListener('change', on)
+  }, [])
+  return mode === 'dark' || (mode === 'system' && deviceDark)
+}

@@ -22,6 +22,7 @@ import { InlineNote } from '@/components/common/InlineNote'
 import { BrandLogo } from '@/components/common/BrandLogo'
 import { LangSwitch } from '@/components/common/LangSwitch'
 import { ThemeSwitch } from '@/components/common/ThemeSwitch'
+import { useIsDark } from '@/theme/ThemeContext'
 import { dirSign, DURATION, EASE_OUT, EXIT } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 
@@ -66,7 +67,7 @@ function BrandPanel() {
   return (
     <section
       aria-label="CX Portal"
-      className="relative isolate flex flex-col overflow-hidden bg-sidebar px-5 py-6 sm:px-8 lg:min-h-svh lg:justify-between lg:p-12"
+      className="relative isolate flex flex-col overflow-hidden bg-sidebar px-5 text-foreground py-6 sm:px-8 lg:min-h-svh lg:justify-between lg:p-12"
     >
       <m.div variants={brandList} initial="hidden" animate="show" className="relative flex flex-col gap-5 lg:gap-12">
         {/* owner's request (19 Nov): the logo larger with a larger point, the name "CX Portal" alone, the line under it "PSI Products" */}
@@ -123,6 +124,7 @@ export default function Login() {
   const location = useLocation()
   const [params] = useSearchParams()
   const [phase, setPhase] = useState<Phase>('idle')
+  const dark = useIsDark()
   const [target, setTarget] = useState<PortalUser | null>(null)
 
   const inviteToken = params.get('invite')
@@ -158,7 +160,8 @@ export default function Login() {
 
   return (
     <div className="grid min-h-svh bg-background lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
-      <BrandPanel />
+      {/* 25 Nov (owner/Alaa): in dark mode the logo and the headline stayed black on Safari; remounting the panel on a theme change repaints them */}
+      <BrandPanel key={dark ? 'dark' : 'light'} />
 
       <main className="flex min-w-0 flex-col px-4 pt-4 pb-10 sm:px-8 lg:px-10 lg:pb-4">
         <div className="flex items-center justify-end gap-2">
