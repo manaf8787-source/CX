@@ -4,7 +4,10 @@ import { seededRandom, intBetween, pick } from '../utils/random'
 /**
  * Every survey answer, one row each (26 Nov, owner): the table behind the NPS, CSAT and CES tiles on Home. Clicking a tile opens
  * it; it filters and exports with everything about the answer: the survey and its rule, the moment that triggered it, the score,
- * the customer (name, mobile, age, persona, type, nationality), the environment, the agent, the date and the time.
+ * the customer (name, mobile, age, persona, type, nationality), the environment, the touchpoint, the date and the time.
+ *
+ * 26 Nov (owner): the touchpoint is what the customer rated. A person only when a person handled the moment (a viewing, a
+ * signing, a handover, a call); a digital step (booking, upload, payment in the app) names the app and the step, with no person.
  *
  * NPS rows are generated from the per-environment survey rows (`VocDetailRow`), so the table count and the tile's NPS always
  * agree: n answers per row, split exactly into promoters, passives and detractors. A signed lease in PSI Assets is a completed
@@ -48,7 +51,12 @@ export interface SurveyResponse {
     vip: boolean
     language: 'en' | 'ar'
   }
-  agent: string
+  /** The person who handled the moment; unset for a digital step (the customer rated the app, not a person). */
+  handledBy?: string
+  /** What was rated: the role of the person ("Leasing agent") or the app and step ("PSI Real Estate app · Uploading documents"). */
+  touchpoint: Bi
+  /** True when the touchpoint is a digital step with no person. */
+  digital?: boolean
   /** Project or unit the moment was about. */
   unit: string
   /** For a detractor: the close-the-loop call. */
@@ -96,6 +104,7 @@ const PERSONAS: Bi[] = [
   b('Comparison shopper', 'متسوق مقارن'),
   b('Referral-driven member', 'عضو عبر الإحالة'),
 ]
+const VENDORS = ['Al Waha Technical', 'Bright Facilities', 'CoolAir MEP']
 const AGENTS = ['Ahmad Saleh', 'Rania Khalil', 'Mohammed Darwish', 'Sana Yousef', 'Karim Odeh', 'Nadia Fares', 'Bilal Hamdan', 'Ola Nimer']
 const UNITS = [
   'Saadiyat Lagoons',
@@ -115,6 +124,43 @@ const CHANNEL_NOTE: Record<string, Bi> = {
   event: b('QR at the booth', 'رمز QR عند الجناح'),
 }
 export const responseChannelLabel = (c: string): Bi => CHANNEL_NOTE[c] ?? b(c, c)
+
+const ROLE = {
+  sales: b('Sales agent', 'وكيل مبيعات'),
+  leasing: b('Leasing agent', 'وكيل تأجير'),
+  handover: b('Handover team', 'فريق التسليم'),
+  property: b('Property management', 'إدارة العقارات'),
+  maintenance: b('Maintenance team', 'فريق الصيانة'),
+  afterSales: b('After-Sales team', 'فريق ما بعد البيع'),
+  club: b('Relationship manager', 'مدير العلاقة'),
+  guide: b('Tour guide', 'المرشد السياحي'),
+  booth: b('Booth team', 'فريق الجناح'),
+}
+
+function npsRole(r: VocDetailRow): Bi {
+  if (r.product === 'cl') return ROLE.club
+  if (r.product === 'to') return ROLE.guide
+  if (r.product === 'ev') return ROLE.booth
+  if (r.milestone === 'lease' || r.milestone === 'renewal') return ROLE.leasing
+  if (r.milestone === 'handover') return r.envId === 'ast' ? ROLE.property : ROLE.handover
+  return ROLE.sales
+}
+
+/** CES on a digital step: identified app users only, after a completed or an abandoned step; no person is rated. */
+const DIGITAL_RULE = b(
+  'CES on a digital step: identified app users only; after a completed or abandoned step; once per 30 days',
+  'CES على خطوة رقمية: مستخدمو التطبيق المعرّفون فقط؛ بعد خطوة مكتملة أو متروكة؛ مرة كل 30 يوماً',
+)
+const DIGITAL_STEPS: Record<'sales' | 'leasing' | 'af', Bi[]> = {
+  sales: [b('Booking a viewing', 'حجز معاينة'), b('Uploading documents', 'رفع المستندات'), b('Paying the reservation fee', 'دفع رسوم الحجز')],
+  leasing: [
+    b('Booking a rental viewing', 'حجز معاينة إيجار'),
+    b('Uploading tenancy documents', 'رفع مستندات الإيجار'),
+    b('Paying rent online', 'دفع الإيجار إلكترونياً'),
+  ],
+  af: [b('Raising a maintenance request', 'تقديم طلب صيانة'), b('Downloading a statement', 'تنزيل كشف الحساب')],
+}
+const APP = b('PSI Real Estate app', 'تطبيق PSI العقارية')
 
 const NPS_RULE = b('Transactional NPS: after a completed milestone; once per 90 days per person', 'NPS معاملاتي: بعد إتمام مرحلة؛ مرة كل 90 يوماً للشخص')
 
@@ -157,14 +203,24 @@ function npsSurvey(r: VocDetailRow): { name: Bi; rule: Bi; moment: Bi } {
 }
 
 const CSAT_RULE = b('CSAT + CES after a meaningful moment; once per 30 days per person', 'CSAT + CES بعد لحظة مهمة؛ مرة كل 30 يوماً للشخص')
-const CSAT_MOMENTS: Record<string, Bi[]> = {
-  re: [b('Viewing done', 'معاينة تمت'), b('Offer made', 'عرض قُدّم'), b('Agent call over 2 minutes', 'مكالمة وكيل فوق دقيقتين')],
-  af: [b('Maintenance ticket closed', 'إغلاق تذكرة صيانة'), b('Complaint closed', 'إغلاق شكوى'), b('Statement explained', 'شرح كشف الحساب')],
+type Moment = { m: Bi; role: Bi }
+const mo = (m: Bi, role: Bi): Moment => ({ m, role })
+const CSAT_MOMENTS: Record<string, Moment[]> = {
+  re: [
+    mo(b('Viewing done', 'معاينة تمت'), ROLE.sales),
+    mo(b('Offer made', 'عرض قُدّم'), ROLE.sales),
+    mo(b('Agent call over 2 minutes', 'مكالمة وكيل فوق دقيقتين'), ROLE.sales),
+  ],
+  af: [
+    mo(b('Maintenance ticket closed', 'إغلاق تذكرة صيانة'), ROLE.maintenance),
+    mo(b('Complaint closed', 'إغلاق شكوى'), ROLE.afterSales),
+    mo(b('Statement explained', 'شرح كشف الحساب'), ROLE.afterSales),
+  ],
 }
-const CSAT_LEASE_MOMENTS = [
-  b('Rental viewing done', 'معاينة إيجار تمت'),
-  b('Maintenance ticket closed', 'إغلاق تذكرة صيانة'),
-  b('Leasing call over 2 minutes', 'مكالمة تأجير فوق دقيقتين'),
+const CSAT_LEASE_MOMENTS: Moment[] = [
+  mo(b('Rental viewing done', 'معاينة إيجار تمت'), ROLE.leasing),
+  mo(b('Maintenance ticket closed', 'إغلاق تذكرة صيانة'), ROLE.maintenance),
+  mo(b('Leasing call over 2 minutes', 'مكالمة تأجير فوق دقيقتين'), ROLE.leasing),
 ]
 
 const COMMENTS: Record<ResponseGroup, Bi[]> = {
@@ -264,7 +320,8 @@ export function buildSurveyResponses(rows: readonly VocDetailRow[]): SurveyRespo
         channel: r.channel,
         comment: rng() < (s.group === 'detractor' ? 0.7 : 0.3) ? pick(rng, COMMENTS[s.group]) : undefined,
         customer: c,
-        agent: pick(rng, AGENTS),
+        handledBy: pick(rng, AGENTS),
+        touchpoint: npsRole(r),
         unit: pick(rng, UNITS),
         followUp: s.group === 'detractor' ? pick(rng, ['called', 'to_call', 'recovered'] as const) : undefined,
       })
@@ -280,7 +337,8 @@ export function buildSurveyResponses(rows: readonly VocDetailRow[]): SurveyRespo
       const happy = i / n < satisfiedShare
       const csat = happy ? intBetween(rng, 4, 5) : intBetween(rng, 1, 3)
       const csatGroup: ResponseGroup = csat >= 4 ? 'promoter' : csat === 3 ? 'passive' : 'detractor'
-      const moment = pick(rng, moments)
+      const picked = pick(rng, moments)
+      const moment = picked.m
       const base = {
         surveyRule: CSAT_RULE,
         moment,
@@ -288,7 +346,8 @@ export function buildSurveyResponses(rows: readonly VocDetailRow[]): SurveyRespo
         envId: r.envId,
         channel: r.channel,
         customer: c,
-        agent: pick(rng, AGENTS),
+        handledBy: picked.role === ROLE.maintenance ? pick(rng, VENDORS) : pick(rng, AGENTS),
+        touchpoint: picked.role,
         unit: pick(rng, UNITS),
       }
       const when = at(rng)
@@ -316,6 +375,35 @@ export function buildSurveyResponses(rows: readonly VocDetailRow[]): SurveyRespo
           surveyName: b(`CSAT + CES · ${moment.en.toLowerCase()}`, `CSAT + CES · ${moment.ar}`),
         })
       }
+    }
+    // CES on a digital step in the app (identified users only): the customer rates the app and the step, never a person
+    const steps = r.product === 'af' ? DIGITAL_STEPS.af : r.product === 're' ? (leaseSide ? DIGITAL_STEPS.leasing : DIGITAL_STEPS.sales) : null
+    if (!steps) continue
+    const nd = Math.round(r.n / 6)
+    for (let i = 0; i < nd; i++) {
+      seq++
+      const step = pick(rng, steps)
+      const abandoned = rng() < 0.3
+      const ces = abandoned ? intBetween(rng, 1, 4) : intBetween(rng, 4, 7)
+      const group: ResponseGroup = ces >= 6 ? 'promoter' : ces >= 4 ? 'passive' : 'detractor'
+      out.push({
+        id: `R-${String(seq).padStart(5, '0')}-D`,
+        answeredAt: at(rng),
+        instrument: 'ces',
+        score: ces,
+        group,
+        surveyName: b('CES · digital step', 'CES · خطوة رقمية'),
+        surveyRule: DIGITAL_RULE,
+        moment: abandoned ? b(`Abandoned: ${step.en.toLowerCase()}`, `تُركت: ${step.ar}`) : b(`Completed: ${step.en.toLowerCase()}`, `اكتملت: ${step.ar}`),
+        product: r.product,
+        envId: r.envId,
+        channel: 'app',
+        comment: abandoned && rng() < 0.5 ? b('The upload kept failing.', 'الرفع فشل أكثر من مرة.') : undefined,
+        customer: customer(rng, r, seq),
+        touchpoint: b(`${APP.en} · ${step.en}`, `${APP.ar} · ${step.ar}`),
+        digital: true,
+        unit: pick(rng, UNITS),
+      })
     }
   }
   return out.sort((a, z) => z.answeredAt.localeCompare(a.answeredAt))

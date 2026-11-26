@@ -100,7 +100,7 @@ export function IndicatorCard({ set, product }: { set: IndicatorSet; product: Pr
         <div data-density="dense" className="grid grid-cols-1 gap-2.5 min-[420px]:grid-cols-3">
           <Tile
             kind="nps"
-            href={canOpenProduct ? `${productPath}/answers?i=nps` : null}
+            href={canOpenProduct ? `${productPath}?tab=answers&i=nps` : null}
             term="NPS"
             label="NPS"
             raw={nps}
@@ -115,7 +115,7 @@ export function IndicatorCard({ set, product }: { set: IndicatorSet; product: Pr
           />
           <Tile
             kind="csat"
-            href={canOpenProduct ? `${productPath}/answers?i=csat` : null}
+            href={canOpenProduct ? `${productPath}?tab=answers&i=csat` : null}
             term="CSAT"
             label="CSAT"
             raw={set.csat}
@@ -123,7 +123,7 @@ export function IndicatorCard({ set, product }: { set: IndicatorSet; product: Pr
           />
           <Tile
             kind="ces"
-            href={canOpenProduct ? `${productPath}/answers?i=ces` : null}
+            href={canOpenProduct ? `${productPath}?tab=answers&i=ces` : null}
             term="CES"
             label="CES"
             raw={set.ces}

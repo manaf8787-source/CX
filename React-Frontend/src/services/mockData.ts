@@ -2525,7 +2525,7 @@ function topUpEnvironments() {
       const proposedAt = new Date(Date.now() - (status === 'proposed' ? 3 : 18) * DAY).toISOString()
       const fix: CorrectiveAction = {
         ...base,
-        id: `ca-${top.envId}-${n}`,
+        id: `ca-${top.envId}-${10 + n}`,
         envId: top.envId,
         kind: status === 'proposed' ? 'employee' : top.kind,
         patternId: status === 'proposed' ? `same_agent:${top.agentRef.replace(/[^a-z0-9]+/gi, '_')}` : `same_issue:${top.category}`,

@@ -48,6 +48,11 @@ export function Shell() {
   useEffect(() => {
     log('page_opened', pageTitleFor(pathname), pathname)
   }, [pathname, log])
+  // 26 Nov: a new page opens at its top (Home's tiles open a product page from halfway down Home)
+  useEffect(() => {
+    window.scrollTo(0, 0)
+    document.scrollingElement?.scrollTo(0, 0)
+  }, [pathname])
   const rail = mode === 'tablet' || (mode === 'desktop' && !expanded)
 
   // A menu sheet left open must not survive a resize to the desktop layout (adjust state while rendering, not in an effect).

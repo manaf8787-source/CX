@@ -433,3 +433,248 @@ export function nextForInboxItem(item: InboxItem, rules: { approveDays: number; 
       return null
   }
 }
+
+// --- Tiles (26 Nov, owner: "your day in numbers") ----------------------------------------------------------------
+
+export type BriefTileTone = 'neutral' | 'alert' | 'warn'
+
+/** One number of the brief: a label, the number, one short line under it, and the page it opens. Same sources as the lines. */
+export interface BriefTile {
+  id: string
+  kind: BriefLineKind
+  label: Bi
+  value: string
+  /** A quiet "/ 30" after the number. */
+  of?: string
+  sub: Bi
+  /** For an NPS tile: the change on last month colours the line under it. */
+  trend?: 'up' | 'down' | 'flat'
+  /** alert = red (needs someone now), warn = amber (watch), neutral = grey. */
+  tone: BriefTileTone
+  to?: string
+}
+
+function hrNumbers() {
+  const since = HR_NOW - 30 * 86_400_000
+  const rows = IVR_REQUESTS.filter((x) => Date.parse(x.receivedAt) >= since)
+  const waiting = rows.filter((x) => !x.calledBackAt).length
+  const onTime = rows.filter((x) => x.calledBackAt && hoursBetween(x.receivedAt, x.calledBackAt) <= IVR_TARGET_HOURS).length
+  const open = RECRUITMENT.candidates.filter((c) => c.stage !== 'hired' && c.stage !== 'refused')
+  const reqOpen = OPS_REQUESTS.filter((x) => !x.closedAt)
+  return {
+    calls: { asked: rows.length, waiting, pct: rows.length ? Math.round((100 * onTime) / rows.length) : 0 },
+    recruit: { open: open.length, stuck: open.filter((c) => daysBetween(c.stageSince) > STUCK_DAYS).length },
+    requests: { open: reqOpen.length, late: reqOpen.filter((x) => daysBetween(x.openedAt) > OPS_TYPE[x.type].targetDays).length },
+  }
+}
+
+/**
+ * The brief as tiles (26 Nov, owner, for every role): the same kinds per role as `BRIEF_LINES_BY_ROLE`, each turned into one number.
+ * What needs someone now is red, what to watch is amber, the rest grey; NPS colours only its change on last month.
+ */
+export function buildBriefTiles({ role, product, inputs, indicators, products }: BriefInput): BriefTile[] {
+  const tiles: BriefTile[] = []
+  const hr = hrNumbers()
+  const add = (tile: Omit<BriefTile, 'to'>) => {
+    const target = tile.kind === 'conduct' && role === 'hrmgr' ? '/settings/hr-team?tab=conduct' : BRIEF_TARGET[tile.kind]
+    tiles.push({ ...tile, to: canAccessPath(role, target.split('?')[0]) ? target : undefined })
+  }
+  const approver = role === 'cxmgr' || role === 'envmgmt' || role === 'teamlead' || role === 'aslead'
+  for (const kind of BRIEF_LINES_BY_ROLE[role]) {
+    switch (kind) {
+      case 'nps':
+        for (const set of indicators) {
+          if (product && set.productId !== product) continue
+          const p = products.find((x) => x.id === set.productId)
+          if (!p) continue
+          const d = set.deltaVsLastMonth
+          add({
+            id: `nps:${p.id}`,
+            kind,
+            label: b(`NPS · ${p.name.en}`, `\u2068NPS\u2069 · \u2068${p.name.ar}\u2069`),
+            value: set.nps == null ? '–' : fmtSigned(set.nps),
+            sub:
+              set.nps == null
+                ? b('too early', 'مبكر')
+                : d == null
+                  ? b(`${set.answers} answers, 90 days`, `${set.answers} إجابة، 90 يوماً`)
+                  : d === 0
+                    ? b('unchanged on last month', 'دون تغيير عن الشهر الماضي')
+                    : b(`${d > 0 ? '▲' : '▼'} ${Math.abs(d)} on last month`, `${d > 0 ? '▲' : '▼'} ${Math.abs(d)} عن الشهر الماضي`),
+            trend: d == null || set.nps == null ? undefined : d > 0 ? 'up' : d < 0 ? 'down' : 'flat',
+            tone: 'neutral',
+          })
+        }
+        break
+      case 'signals': {
+        const p = inputs.signals.patternsWaitingForFix
+        add({
+          id: 'signals',
+          kind,
+          label: b(`Signals, ${inputs.windowDays} days`, `الإشارات، ${inputs.windowDays} يوماً`),
+          value: String(inputs.signals.inWindow),
+          sub: b(`${p} ${p === 1 ? 'pattern' : 'patterns'} crossed the line`, `${count(p, PATTERN).ar} ${agr(p, 'تجاوز الحد', 'تجاوزا الحد', 'تجاوزت الحد')}`),
+          tone: 'neutral',
+        })
+        break
+      }
+      case 'fixes': {
+        const f = inputs.fixes
+        add({
+          id: 'fixes',
+          kind,
+          label: approver ? b('Waiting for your yes', 'بانتظار موافقتك') : b('Fixes waiting for a yes', 'حلول بانتظار موافقة'),
+          value: String(f.proposed),
+          sub:
+            f.late > 0
+              ? b(`${f.proposed === 1 ? 'fix' : 'fixes'} · ${f.late} past ${f.late === 1 ? 'its' : 'their'} date`, `حلول · ${f.late} تجاوزت موعدها`)
+              : b(`${f.inProgress} in progress, none late`, `${f.inProgress} قيد التنفيذ، لا تأخير`),
+          tone: f.proposed > 0 || f.late > 0 ? 'alert' : 'neutral',
+        })
+        break
+      }
+      case 'shopper':
+        add({
+          id: 'shopper',
+          kind,
+          label: b('Shopper cases', 'حالات المتسوق'),
+          value: String(inputs.shopper.open),
+          sub: inputs.shopper.late
+            ? b(`${inputs.shopper.late} over the clock`, `${inputs.shopper.late} تجاوزت المهلة`)
+            : b('none over the clock', 'لا شيء تجاوز المهلة'),
+          tone: inputs.shopper.late ? 'alert' : 'neutral',
+        })
+        break
+      case 'loop':
+        add({
+          id: 'loop',
+          kind,
+          label: b('Customers to call', 'عملاء للاتصال'),
+          value: String(inputs.loop.open),
+          sub: inputs.loop.critical ? b(`${inputs.loop.critical} critical`, `${inputs.loop.critical} حرجة`) : b('none critical', 'لا حالات حرجة'),
+          tone: inputs.loop.critical ? 'alert' : inputs.loop.open ? 'warn' : 'neutral',
+        })
+        break
+      case 'drifting':
+        add({
+          id: 'drifting',
+          kind,
+          label: b('Drifting away', 'يبتعدون'),
+          value: String(inputs.people.drifting),
+          of: `/ ${inputs.people.total}`,
+          sub: b('silent leads first', 'العملاء الصامتون أولاً'),
+          tone: 'neutral',
+        })
+        break
+      case 'public': {
+        const p = inputs.publicMentions
+        if (p.last30 === 0) break
+        const neg = p.negativePct != null ? ` · ${p.negativePct}%` : ''
+        add({
+          id: 'public',
+          kind,
+          label: b('Public comments', 'التعليقات العامة'),
+          value: String(p.overdue > 0 ? p.overdue : p.last30),
+          sub:
+            p.overdue > 0
+              ? b(`past ${p.target} h${neg ? `${neg} negative` : ''}`, `بعد ${p.target} ساعة${neg ? `${neg} سلبية` : ''}`)
+              : b(`in 30 days${neg ? `${neg} negative` : ''}`, `في 30 يوماً${neg ? `${neg} سلبية` : ''}`),
+          tone: p.overdue > 0 ? 'warn' : 'neutral',
+        })
+        break
+      }
+      case 'ld':
+        add({
+          id: 'ld',
+          kind,
+          label: b('With L&D now', 'لدى L&D الآن'),
+          value: String(inputs.ldFixes),
+          sub: b('training-gap fixes', 'حلول فجوات تدريب'),
+          tone: 'neutral',
+        })
+        break
+      case 'conduct':
+        add({
+          id: 'conduct',
+          kind,
+          label: b('Conduct notes', 'ملاحظات السلوك'),
+          value: String(inputs.conductNotes),
+          sub: b('this month, to the direct manager only', 'هذا الشهر، للمدير المباشر فقط'),
+          tone: 'neutral',
+        })
+        break
+      case 'sample':
+        add({
+          id: 'sample',
+          kind,
+          label: b('Weekly sample to read', 'العينة الأسبوعية للقراءة'),
+          value: String(inputs.sample.toRead),
+          sub: b(`${inputs.sample.read} read this week`, `قُرئ ${inputs.sample.read} هذا الأسبوع`),
+          tone: inputs.sample.toRead ? 'warn' : 'neutral',
+        })
+        break
+      case 'hr_calls':
+        add({
+          id: 'hr_calls',
+          kind,
+          label: b('HR callbacks waiting', 'اتصالات HR بالانتظار'),
+          value: String(hr.calls.waiting),
+          sub: b(`${hr.calls.pct}% called back within ${IVR_TARGET_HOURS} h`, `${hr.calls.pct}% خلال ${IVR_TARGET_HOURS} ساعات`),
+          tone: hr.calls.waiting ? 'alert' : 'neutral',
+        })
+        break
+      case 'hr_recruit':
+        add({
+          id: 'hr_recruit',
+          kind,
+          label: b('Candidates in progress', 'مرشحون قيد المتابعة'),
+          value: String(hr.recruit.open),
+          sub: b(`${hr.recruit.stuck} stuck over ${STUCK_DAYS} days`, `${hr.recruit.stuck} عالقون أكثر من ${STUCK_DAYS} أيام`),
+          tone: hr.recruit.stuck ? 'warn' : 'neutral',
+        })
+        break
+      case 'hr_requests':
+        add({
+          id: 'hr_requests',
+          kind,
+          label: b('HR requests open', 'طلبات HR مفتوحة'),
+          value: String(hr.requests.open),
+          sub: b(`${hr.requests.late} past their target`, `${hr.requests.late} تجاوزت الهدف`),
+          tone: hr.requests.late ? 'alert' : 'neutral',
+        })
+        break
+      case 'campaigns': {
+        const c = inputs.campaigns
+        if (!c || (c.waiting === 0 && c.runningReachedPct.length === 0)) break
+        add({
+          id: 'campaigns',
+          kind,
+          label: b('Campaigns to clear', 'حملات بانتظار إجازتك'),
+          value: String(c.waiting),
+          sub: b(`${c.runningReachedPct.length} running`, `${c.runningReachedPct.length} تعمل`),
+          tone: c.waiting ? 'alert' : 'neutral',
+        })
+        break
+      }
+    }
+  }
+  return tiles
+}
+
+const NUMBER_WORD: Record<number, Bi> = {
+  2: b('two', 'رقمين'),
+  3: b('three', 'ثلاثة أرقام'),
+  4: b('four', 'أربعة أرقام'),
+  5: b('five', 'خمسة أرقام'),
+  6: b('six', 'ستة أرقام'),
+  7: b('seven', 'سبعة أرقام'),
+  8: b('eight', 'ثمانية أرقام'),
+  9: b('nine', 'تسعة أرقام'),
+  10: b('ten', 'عشرة أرقام'),
+}
+
+/** "Your day in eight numbers" / "يومك في ثمانية أرقام". */
+export function briefTitle(n: number): Bi {
+  const w = NUMBER_WORD[n]
+  return w ? b(`Your day in ${w.en} numbers`, `يومك في ${w.ar}`) : b('Your day in numbers', 'يومك بالأرقام')
+}

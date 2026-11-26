@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
-import { Link, useParams, useSearchParams } from 'react-router-dom'
+import { Navigate, useParams, useSearchParams } from 'react-router-dom'
 import type { ColumnDef } from '@tanstack/react-table'
-import { ArrowLeft, Crown, Search } from 'lucide-react'
+import { Crown, Search, Smartphone } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { useRole } from '@/auth/RoleContext'
 import { canViewCustomerNames, canViewMobiles } from '@/auth/permissions'
@@ -20,7 +20,6 @@ import { ENVIRONMENTS, environmentById } from '@/data/environments'
 import { INCLUDES } from '@/utils/indicators'
 import { downloadCsv } from '@/utils/csv'
 import type { EnvId, ProductId } from '@/types'
-import { PageHeader } from '@/components/common/PageHeader'
 import { SectionCard } from '@/components/common/SectionCard'
 import { StatusBadge } from '@/components/common/StatusBadge'
 import { ExportButton } from '@/components/common/ExportButton'
@@ -62,14 +61,24 @@ function FilterSelect({
 }
 
 /**
- * Every survey answer behind a product's NPS, CSAT or CES tile on Home (26 Nov, owner): no new menu entry, the tile opens it.
+ * Every survey answer behind a product's NPS, CSAT or CES (26 Nov, owner): a tab of the product page; Home's tiles open it.
  * One row per answer with the survey and its rule, the moment, the score, the customer's details, the environment, the date and
  * the time; filters for each; the export carries every column (subject to the per-person export permission). A signed lease in
  * PSI Assets is a completed transaction, so its NPS answers are here like a sale's. The environment switch and an environment
  * manager's fixed environment narrow the list, as they narrow the tile.
  */
+/** The old address (26 Nov, first cut) opens the product page's Answers tab. */
 export default function SurveyAnswers() {
   const { productId = 're' } = useParams<{ productId: ProductId }>()
+  const [params] = useSearchParams()
+  return <Navigate to={`/products/${productId}?tab=answers&i=${params.get('i') ?? 'nps'}`} replace />
+}
+
+/**
+ * The Answers tab of a product page (26 Nov, owner): every answer behind the product's NPS, CSAT and CES, one row each.
+ * Home's tiles open this tab; nothing is added to the menu.
+ */
+export function SurveyAnswersPanel({ productId }: { productId: ProductId }) {
   const [params, setParams] = useSearchParams()
   const instrument = (['nps', 'csat', 'ces'].includes(params.get('i') ?? '') ? params.get('i') : 'nps') as ResponseInstrument
   const { t, L, lang } = useI18n()
@@ -243,15 +252,24 @@ export default function SurveyAnswers() {
         row.original.comment ? <span className="block min-w-56 text-sm">{L(row.original.comment)}</span> : <span className="text-muted-foreground">–</span>,
     },
     {
-      id: 'agent',
-      accessorFn: (r) => r.agent,
-      header: ({ column }) => <SortableHeader column={column}>{t('Agent', 'الموظف')}</SortableHeader>,
-      cell: ({ row }) => (
-        <span className="flex flex-col whitespace-nowrap">
-          <span>{row.original.agent}</span>
-          <span className="text-xs text-muted-foreground">{row.original.unit}</span>
-        </span>
-      ),
+      // 26 Nov (owner): what was rated. A person only when a person handled the moment; a digital step names the app and the step.
+      id: 'touchpoint',
+      accessorFn: (r) => r.handledBy ?? L(r.touchpoint),
+      header: ({ column }) => <SortableHeader column={column}>{t('Touchpoint', 'نقطة الخدمة')}</SortableHeader>,
+      cell: ({ row }) =>
+        row.original.digital ? (
+          <span className="flex min-w-48 items-start gap-1.5">
+            <Smartphone aria-hidden className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
+            <span>{L(row.original.touchpoint)}</span>
+          </span>
+        ) : (
+          <span className="flex flex-col whitespace-nowrap">
+            <span className="text-foreground">{row.original.handledBy}</span>
+            <span className="text-xs text-muted-foreground">
+              {L(row.original.touchpoint)} · {row.original.unit}
+            </span>
+          </span>
+        ),
     },
     {
       id: 'followUp',
@@ -296,7 +314,8 @@ export default function SurveyAnswers() {
         [t('Persona', 'الشخصية')]: L(r.customer.persona),
         VIP: r.customer.vip ? t('yes', 'نعم') : t('no', 'لا'),
         [t('Preferred language', 'اللغة المفضلة')]: r.customer.language === 'ar' ? t('Arabic', 'العربية') : t('English', 'الإنجليزية'),
-        [t('Agent', 'الموظف')]: r.agent,
+        [t('Touchpoint', 'نقطة الخدمة')]: L(r.touchpoint),
+        [t('Handled by', 'تعامل معه')]: r.handledBy ?? t('No person (digital step)', 'لا أحد (خطوة رقمية)'),
         [t('Project / unit', 'المشروع / الوحدة')]: r.unit,
         [t('Follow-up', 'المتابعة')]: r.followUp ? L(FOLLOW_UP_LABEL[r.followUp]) : '',
       })),
@@ -308,42 +327,31 @@ export default function SurveyAnswers() {
 
   return (
     <div className="flex flex-col gap-6">
-      <Button asChild variant="ghost" size="sm" className="self-start">
-        <Link to="/home">
-          <ArrowLeft aria-hidden className="rtl:rotate-180" />
-          {t('Home', 'الرئيسية')}
-        </Link>
-      </Button>
-      <PageHeader
-        eyebrow={product ? L(product.name) : undefined}
-        title={t(`${TITLE[instrument]} answers`, `إجابات ${TITLE[instrument]}`)}
-        term={TITLE[instrument]}
-        description={t(
-          'Every answer behind the tile on Home, one row each: the survey that asked, the moment, the score, the customer and when. Leases in PSI Assets count as completed transactions, like sales.',
-          'كل إجابة خلف المؤشر في الرئيسية، سطر لكل إجابة: الاستبيان الذي سأل، واللحظة، والدرجة، والعميل، والوقت. عقود الإيجار في PSI للأصول تُحسب معاملات مكتملة مثل البيع.',
-        )}
-        actions={
-          <ExportButton
-            onExport={exportReport}
-            disabled={!rows.length}
-            what={{ en: `${TITLE[instrument]} answers (${rows.length})`, ar: `إجابات ${TITLE[instrument]} (${rows.length})` }}
-          >
-            {t('Export report (CSV)', 'تصدير التقرير (CSV)')}
-          </ExportButton>
-        }
-      />
-
-      <Segmented<ResponseInstrument>
-        label={t('Instrument', 'المقياس')}
-        variant="pressed"
-        value={instrument}
-        onValueChange={(v) => {
-          setParams({ i: v }, { replace: true })
-          setSurvey(ALL)
-          setGroup(ALL)
-        }}
-        options={(['nps', 'csat', 'ces'] as const).map((v) => ({ value: v, label: TITLE[v] }))}
-      />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Segmented<ResponseInstrument>
+          label={t('Instrument', 'المقياس')}
+          variant="pressed"
+          value={instrument}
+          onValueChange={(v) => {
+            const next = new URLSearchParams(params)
+            next.set('i', v)
+            setParams(next, { replace: true })
+            setSurvey(ALL)
+            setGroup(ALL)
+          }}
+          options={(['nps', 'csat', 'ces'] as const).map((v) => ({ value: v, label: TITLE[v] }))}
+        />
+        <ExportButton
+          onExport={exportReport}
+          disabled={!rows.length}
+          what={{
+            en: `${product ? product.name.en : productId} ${TITLE[instrument]} answers (${rows.length})`,
+            ar: `إجابات ${TITLE[instrument]} (${rows.length})`,
+          }}
+        >
+          {t('Export report (CSV)', 'تصدير التقرير (CSV)')}
+        </ExportButton>
+      </div>
 
       <SectionCard
         title={
