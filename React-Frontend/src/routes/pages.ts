@@ -13,6 +13,8 @@ export const pageLoaders = {
   recoveryResults: () => import('../pages/RecoveryResults'),
   // 26 Nov (owner): every detractor and why, and the contacted ones (overall; each product page has it as a tab)
   detractorAnalysis: () => import('../pages/DetractorAnalysis'),
+  // 26 Nov (owner): BrightCall in overall numbers (daily totals only) and its outcome mapping
+  aiCallCenter: () => import('../pages/AiCallCenter'),
   personas: () => import('../pages/Personas'),
   surveys: () => import('../pages/settings/SurveysHub'),
   productPage: () => import('../pages/ProductPage'),
@@ -65,6 +67,7 @@ const PATH_LOADERS: [prefix: string, keys: LoaderKey[]][] = [
   ['/actions', ['actionsLayout', 'corrective']],
   ['/close-the-loop/results', ['recoveryResults']],
   ['/detractors', ['detractorAnalysis']],
+  ['/ai-calls', ['aiCallCenter']],
   ['/close-the-loop', ['closeTheLoop']],
   ['/inbox', ['inbox']],
   ['/overview', ['overview']],

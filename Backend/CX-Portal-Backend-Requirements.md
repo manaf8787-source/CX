@@ -136,6 +136,7 @@ Details are in the document "CX Portal: Data needed from Odoo (HR)" already shar
 | Interview campaigns | An API to send the AI caller a list of customers and a short script, receive answers back, and flag calls that need a human. |
 | CX team calls | The CX team calls unhappy customers. Can they call from the portal through the call center system (click-to-call), with the call logged and recorded? If not, how are their calls logged today? |
 | Support agents' chats | For the Excellence team report: WhatsApp and in-app chat conversations handled by support agents, with first reply and resolve times. Confirm which system holds them. |
+| BrightCall totals | Daily totals only (no call records): per day, environment, campaign and outcome the contacts, calls and cost; the drop buckets and sentiment; per campaign the targeted and attempted contacts. Outcome mapping and formulas: `AI-Call-Center-Backend-Spec.md`. |
 | Survey after a call | A "call ended" event per call (webhook preferred): call ID, end time, direction, AI or human, call script or IVR line, result code (to map to: appointment, follow-up, successful, not interested, dropped after the AI greeting, no answer, busy, voicemail, wrong number), talk seconds, phone. QA score and critical-failure flag linked by call ID for the calls in the QA sample. Full rule: `Call-Survey-Rule-Backend-Spec.md`. |
 | Sample | A few days of anonymised call logs and quality scores. |
 

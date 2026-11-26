@@ -10,7 +10,17 @@ import type { Bi } from '../types'
  * below; in the real platform this is the rule the survey engine reads when the call center sends a "call ended" event.
  */
 export type CallResult =
-  'appointment' | 'follow_up' | 'successful' | 'no_answer' | 'busy' | 'dropped_after_greeting' | 'wrong_number' | 'not_interested' | 'voicemail'
+  | 'appointment'
+  | 'follow_up'
+  | 'successful'
+  | 'no_answer'
+  | 'busy'
+  | 'dropped_after_greeting'
+  | 'wrong_number'
+  | 'not_interested'
+  | 'voicemail'
+  | 'call_back'
+  | 'other'
 
 export const CALL_RESULTS: { id: CallResult; label: Bi; hint: Bi; completed: boolean }[] = [
   {
@@ -30,6 +40,18 @@ export const CALL_RESULTS: { id: CallResult; label: Bi; hint: Bi; completed: boo
     label: { en: 'Successful call', ar: 'مكالمة ناجحة' },
     hint: { en: 'The request was answered or resolved', ar: 'تمت الإجابة على الطلب أو حلّه' },
     completed: true,
+  },
+  {
+    id: 'call_back',
+    label: { en: 'Asked to call back later', ar: 'طلب معاودة الاتصال لاحقاً' },
+    hint: { en: 'No conversation yet', ar: 'لم تتم المحادثة بعد' },
+    completed: false,
+  },
+  {
+    id: 'other',
+    label: { en: 'Other answered result', ar: 'نتيجة أخرى بعد الرد' },
+    hint: { en: 'Not qualified, broker, gatekeeper, language barrier', ar: 'غير مؤهل، وسيط، حارس بوابة، حاجز لغة' },
+    completed: false,
   },
   { id: 'not_interested', label: { en: 'Not interested', ar: 'غير مهتم' }, hint: { en: 'Talked, but declined', ar: 'تحدث لكنه رفض' }, completed: false },
   {

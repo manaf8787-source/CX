@@ -31,6 +31,8 @@ export const PRIMARY_NAV: NavGroup[] = [
       { path: '/overview', label: { en: '6 · CX indicators', ar: '6 · مؤشرات تجربة العملاء' } },
       // 26 Nov (owner): every detractor across products and environments, why, and the contacted ones (re-survey results moved here)
       { path: '/detractors', label: { en: 'Detractor analysis', ar: 'تحليل المنتقدين' } },
+      // 26 Nov (owner): the AI call center (BrightCall) in overall numbers; CX manager and CX team
+      { path: '/ai-calls', label: { en: 'AI call center', ar: 'مركز الاتصال الذكي' } },
       // 23 Nov (owner): gifts to customers, emailed to the Administration team, with the stock and the history (CX manager and CX team).
       { path: '/gifts', label: { en: 'Gifts', ar: 'الهدايا' } },
       // 22 Nov: the CX manager's team performance report (appraisal), exportable.

@@ -18,6 +18,7 @@ import {
   PanelLeftOpen,
   PhoneCall,
   Frown,
+  Headset,
   ScrollText,
   Settings2,
   UserCog,
@@ -68,6 +69,7 @@ const ICONS: Record<string, LucideIcon> = {
   '/overview': Gauge,
   // 26 Nov (owner): Detractor analysis
   '/detractors': Frown,
+  '/ai-calls': Headset,
   '/gifts': Gift,
   '/settings': Settings2,
   '/admin/users': UserCog,
