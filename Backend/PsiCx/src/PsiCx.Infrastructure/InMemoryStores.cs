@@ -63,3 +63,76 @@ public sealed class InMemorySettingsStore : ISettingsStore
         }
     }
 }
+
+public sealed class InMemoryFixStore : IFixStore
+{
+    private readonly List<CorrectiveAction> _items = [];
+    private readonly object _gate = new();
+    private int _last;
+
+    public Task<IReadOnlyList<CorrectiveAction>> ListAsync(CancellationToken ct = default)
+    { lock (_gate) return Task.FromResult<IReadOnlyList<CorrectiveAction>>(_items.ToList()); }
+
+    public Task<CorrectiveAction?> GetAsync(string id, CancellationToken ct = default)
+    { lock (_gate) return Task.FromResult(_items.FirstOrDefault(f => f.Id == id)); }
+
+    public Task<CorrectiveAction> AddAsync(Func<string, CorrectiveAction> build, CancellationToken ct = default)
+    {
+        lock (_gate)
+        {
+            var item = build($"ca-{++_last}");
+            _items.Add(item);
+            return Task.FromResult(item);
+        }
+    }
+
+    public Task<bool> TryReplaceAsync(CorrectiveAction next, FixStatus expected, CancellationToken ct = default)
+    {
+        lock (_gate)
+        {
+            var i = _items.FindIndex(f => f.Id == next.Id);
+            if (i < 0 || _items[i].Status != expected) return Task.FromResult(false);
+            _items[i] = next;
+            return Task.FromResult(true);
+        }
+    }
+}
+
+public sealed class InMemoryInvestigationStore : IInvestigationStore
+{
+    private readonly List<Investigation> _items = [];
+    private readonly object _gate = new();
+    private int _last;
+
+    public Task<IReadOnlyList<Investigation>> ListAsync(CancellationToken ct = default)
+    { lock (_gate) return Task.FromResult<IReadOnlyList<Investigation>>(_items.ToList()); }
+
+    public Task<Investigation> AddAsync(Func<string, Investigation> build, CancellationToken ct = default)
+    {
+        lock (_gate)
+        {
+            var item = build($"inv-{++_last}");
+            _items.Add(item);
+            return Task.FromResult(item);
+        }
+    }
+}
+
+public sealed class InMemorySignalStore : ISignalStore
+{
+    private readonly List<Signal> _items = [];
+    private readonly object _gate = new();
+
+    public Task<bool> AddAsync(Signal signal, CancellationToken ct = default)
+    {
+        lock (_gate)
+        {
+            if (_items.Any(s => s.Id == signal.Id)) return Task.FromResult(false);
+            _items.Add(signal);
+            return Task.FromResult(true);
+        }
+    }
+
+    public Task<IReadOnlyList<Signal>> ListAsync(CancellationToken ct = default)
+    { lock (_gate) return Task.FromResult<IReadOnlyList<Signal>>(_items.ToList()); }
+}

@@ -1,6 +1,6 @@
+using PsiCx.Domain;
 namespace PsiCx.Rules;
 
-public enum FixDueSource { Matrix, Fallback }
 
 public sealed record FixDue(DateTime DueAt, FixDueSource Source, double? Hours = null);
 

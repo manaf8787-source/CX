@@ -20,7 +20,8 @@ public sealed class DevCurrentUser(IHttpContextAccessor http) : ICurrentUser
             var email = h["X-Dev-Email"].ToString();
             var role = h["X-Dev-Role"].ToString().Replace("_", "");
             if (id.Length == 0 || !Enum.TryParse<RoleId>(role, ignoreCase: true, out var r)) return null;
-            return new Actor(id, email.Length == 0 ? id : email, r);
+            var env = Enum.TryParse<EnvId>(h["X-Dev-Env"].ToString(), ignoreCase: true, out var e) ? e : (EnvId?)null;
+            return new Actor(id, email.Length == 0 ? id : email, r, env);
         }
     }
 }

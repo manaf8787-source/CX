@@ -1,3 +1,4 @@
+using PsiCx.Domain;
 using PsiCx.Rules;
 using static PsiCx.Tests.T;
 
