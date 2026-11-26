@@ -136,3 +136,56 @@ public sealed class InMemorySignalStore : ISignalStore
     public Task<IReadOnlyList<Signal>> ListAsync(CancellationToken ct = default)
     { lock (_gate) return Task.FromResult<IReadOnlyList<Signal>>(_items.ToList()); }
 }
+
+public sealed class InMemorySurveyResponseStore : ISurveyResponseStore
+{
+    private readonly List<SurveyResponse> _items = [];
+    private readonly object _gate = new();
+    private int _last;
+
+    public Task<SurveyResponse> AddAsync(Func<string, SurveyResponse> build, CancellationToken ct = default)
+    {
+        lock (_gate)
+        {
+            var item = build($"sr-{++_last}");
+            _items.Add(item);
+            return Task.FromResult(item);
+        }
+    }
+
+    public Task<SurveyResponse?> GetAsync(string id, CancellationToken ct = default)
+    { lock (_gate) return Task.FromResult(_items.FirstOrDefault(s => s.Id == id)); }
+
+    public Task<IReadOnlyList<SurveyResponse>> ListAsync(CancellationToken ct = default)
+    { lock (_gate) return Task.FromResult<IReadOnlyList<SurveyResponse>>(_items.ToList()); }
+}
+
+public sealed class InMemoryGiftStore : IGiftStore
+{
+    private readonly List<GiftItem> _items = [];
+    private readonly List<StockMove> _moves = [];
+    private readonly List<Gift> _gifts = [];
+    private readonly object _gate = new();
+    private int _item, _move, _gift;
+
+    public Task<IReadOnlyList<GiftItem>> ItemsAsync(CancellationToken ct = default) { lock (_gate) return Task.FromResult<IReadOnlyList<GiftItem>>(_items.ToList()); }
+    public Task<GiftItem> AddItemAsync(Func<string, GiftItem> build, CancellationToken ct = default)
+    { lock (_gate) { var x = build($"gi-{++_item}"); _items.Add(x); return Task.FromResult(x); } }
+    public Task<IReadOnlyList<StockMove>> MovesAsync(CancellationToken ct = default) { lock (_gate) return Task.FromResult<IReadOnlyList<StockMove>>(_moves.ToList()); }
+    public Task<StockMove> AddMoveAsync(Func<string, StockMove> build, CancellationToken ct = default)
+    { lock (_gate) { var x = build($"sm-{++_move}"); _moves.Add(x); return Task.FromResult(x); } }
+    public Task<IReadOnlyList<Gift>> GiftsAsync(CancellationToken ct = default) { lock (_gate) return Task.FromResult<IReadOnlyList<Gift>>(_gifts.ToList()); }
+    public Task<Gift?> GetAsync(string id, CancellationToken ct = default) { lock (_gate) return Task.FromResult(_gifts.FirstOrDefault(g => g.Id == id)); }
+    public Task<Gift> AddAsync(Func<string, Gift> build, CancellationToken ct = default)
+    { lock (_gate) { var x = build($"gf-{++_gift}"); _gifts.Add(x); return Task.FromResult(x); } }
+    public Task<bool> TryReplaceAsync(Gift next, GiftStatus expected, CancellationToken ct = default)
+    {
+        lock (_gate)
+        {
+            var i = _gifts.FindIndex(g => g.Id == next.Id);
+            if (i < 0 || _gifts[i].Status != expected) return Task.FromResult(false);
+            _gifts[i] = next;
+            return Task.FromResult(true);
+        }
+    }
+}

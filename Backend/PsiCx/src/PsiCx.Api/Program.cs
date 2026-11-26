@@ -26,7 +26,13 @@ builder.Services.AddSingleton<IFixClockInputs, SettingsFixClockInputs>();
 builder.Services.AddSingleton<ISignalStore, InMemorySignalStore>();
 builder.Services.AddSingleton<SignalService>();
 builder.Services.AddSingleton<IPatternDirectory>(sp => sp.GetRequiredService<SignalService>());
+builder.Services.AddSingleton<ISettingValidator, SurveySetsValidator>();
+builder.Services.AddSingleton<ISurveyResponseStore, InMemorySurveyResponseStore>();
+builder.Services.AddSingleton<SurveyService>();
 builder.Services.AddSingleton<FixService>();
+builder.Services.AddSingleton<IGiftStore, InMemoryGiftStore>();
+builder.Services.AddSingleton<IGiftMailer, NoGiftMailer>();
+builder.Services.AddSingleton<GiftService>();
 builder.Services.AddSingleton<IInboxSource, FixInboxSource>();
 builder.Services.AddSingleton<InboxService>();
 

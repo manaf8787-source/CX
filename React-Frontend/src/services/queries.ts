@@ -724,6 +724,8 @@ export const useDetractorCallItems = () => {
   const { env } = useEnvScope()
   return useQuery({ queryKey: ['detractor-call-items', env], queryFn: () => fetchDetractorCallItems(env) })
 }
+/** Every environment's call items, whatever the switch says: for the registers that are not scoped by environment (the Overview table). */
+export const useAllDetractorCallItems = () => useQuery({ queryKey: ['detractor-call-items', 'all-envs'], queryFn: () => fetchDetractorCallItems('all') })
 export const useAllInteractions = () => useQuery({ queryKey: ['interactions-all'], queryFn: fetchAllInteractions })
 export const useEffortSummaries = () => useQuery({ queryKey: ['effort-summaries'], queryFn: fetchEffortSummaries })
 export const useAiJourneyReading = (personId: string) =>

@@ -674,6 +674,26 @@ const DETRACTOR_FOLLOW_UPS: [number, Omit<RecoveryEvent, 'at'>][][] = [
 
 const INSTRUMENT_CYCLE: FeedbackInstrument[] = ['nps', 'csat', 'ces']
 
+/**
+ * 26 Nov: a few of the called detractors were surveyed again, so the re-survey results page and the indicators have something to show.
+ * kind: how the second rating moved. Sample data, no extra rng draws.
+ */
+const RESURVEY_SEED: Record<number, { kind: 'recovered' | 'better' | 'same'; daysAgo: number; notes: string }> = {
+  0: { kind: 'recovered', daysAgo: 6, notes: 'Handover date was never confirmed in writing. Sent the dated letter the same day.' },
+  1: { kind: 'recovered', daysAgo: 8, notes: 'Wanted one named contact. Gave him the case owner direct line.' },
+  3: { kind: 'better', daysAgo: 5, notes: 'Still waiting on the title deed; promised a date by the 30th.' },
+  4: { kind: 'recovered', daysAgo: 9, notes: 'Parking fee was charged twice. Refunded and confirmed by email.' },
+  6: { kind: 'same', daysAgo: 4, notes: 'Does not trust the payment plan figures; asked for a meeting with finance.' },
+  7: { kind: 'recovered', daysAgo: 7, notes: 'Wrong unit area on the contract. Corrected, new copy sent.' },
+}
+
+function seedResurvey(idx: number, instrument: FeedbackInstrument, firstScore: number): Pick<DetractorCallItem, 'secondScore' | 'resurveyedAt' | 'notes'> | undefined {
+  const r = RESURVEY_SEED[idx]
+  if (!r) return undefined
+  const second = r.kind === 'same' ? firstScore : r.kind === 'better' ? (instrument === 'nps' ? Math.min(firstScore + 2, 6) : 3) : instrument === 'nps' ? 9 : 5
+  return { secondScore: second, resurveyedAt: new Date(Date.now() - r.daysAgo * 86_400_000).toISOString(), notes: r.notes }
+}
+
 function buildDetractorCallItems(persons: Person[]): DetractorCallItem[] {
   // A person on the do-not-call register is never callable, so never on this list (v40, F24).
   return persons
@@ -710,6 +730,7 @@ function buildDetractorCallItems(persons: Person[]): DetractorCallItem[] {
         followUps,
         // An AI campaign row hands over after its 2 no-answers (decided 18 Nov), the CX team's own list after 3.
         ...seedCallAttempts(idx, open, channel === 'ai_campaign' ? 2 : 3),
+        ...(open ? undefined : seedResurvey(idx, instrument, firstScore)),
       }
     })
 }

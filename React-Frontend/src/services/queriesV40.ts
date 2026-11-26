@@ -45,6 +45,7 @@ import { classifyRunaway } from '../utils/runaway'
 import { recoveryRate } from '../utils/closeTheLoop'
 import { buildInbox, workTodayStats } from '../utils/inbox'
 import { liveIndicators, rowsForScope } from '../utils/indicators'
+import { applyResurveys } from '../utils/resurvey'
 import { callRulesFrom, recordNoAnswer, CALL_COPY } from '../utils/callSchedule'
 import { chainFrom, resolveTraceRef, sgId, traceIndexFor, traceRoute } from '../utils/trace'
 import { statusAudit } from '../utils/audit'
@@ -290,12 +291,14 @@ export function useIndicators(): {
   const { data: trend, isLoading: l3 } = useNpsTrend()
   // 26 Nov: the indicators follow the environment switch (and an environment manager's fixed environment), like every register
   const { env } = useEnvScope()
+  // 26 Nov (owner): a detractor who was called and re-surveyed counts with the SECOND rating only; the first stops counting
+  const { data: loop, isLoading: l4, dataUpdatedAt: t4 } = useDetractorCallItems()
   // oxlint-disable-next-line react-hooks/exhaustive-deps
   const data = useMemo(
-    () => (products && rows && trend ? liveIndicators(products, rowsForScope(rows, env), trend, CES_SAMPLE) : undefined),
-    [products, rows, trend, env, dataUpdatedAt],
+    () => (products && rows && trend ? liveIndicators(products, applyResurveys(rowsForScope(rows, env), loop ?? []), trend, CES_SAMPLE) : undefined),
+    [products, rows, trend, env, dataUpdatedAt, loop, t4],
   )
-  return { data, isLoading: l1 || l2 || l3 }
+  return { data, isLoading: l1 || l2 || l3 || l4 }
 }
 
 const DAY_MS = 86_400_000

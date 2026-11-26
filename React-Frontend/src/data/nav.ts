@@ -28,6 +28,8 @@ export const PRIMARY_NAV: NavGroup[] = [
       { path: '/inbox', label: { en: 'My inbox', ar: 'صندوقي' } },
       { path: '/actions', label: { en: 'Problems and fixes', ar: 'المشاكل والحلول' } },
       { path: '/close-the-loop', label: { en: '5 · Close the loop', ar: '5 · إغلاق الحلقة' } },
+      // 26 Nov (owner): what the detractors said and how their score moved after the call, gift and re-survey
+      { path: '/close-the-loop/results', label: { en: 'Re-survey results', ar: 'نتائج إعادة الاستبيان' } },
       { path: '/overview', label: { en: '6 · CX indicators', ar: '6 · مؤشرات تجربة العملاء' } },
       // 23 Nov (owner): gifts to customers, emailed to the Administration team, with the stock and the history (CX manager and CX team).
       { path: '/gifts', label: { en: 'Gifts', ar: 'الهدايا' } },

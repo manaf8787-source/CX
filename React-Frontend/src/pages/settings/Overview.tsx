@@ -1,11 +1,12 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Ban } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { useRole } from '@/auth/RoleContext'
-import { useCorrectiveActions, useHomeSummary, usePatterns, useProducts, useShopperCases, useSignals, useVocRows } from '@/services/queries'
+import { useCorrectiveActions, useHomeSummary, usePatterns, useAllDetractorCallItems, useProducts, useShopperCases, useSignals, useVocRows } from '@/services/queries'
 import { canAccessPath } from '@/auth/access'
 import type { ProductId } from '@/types'
 import { csatOf, fmtSigned, INCLUDES, npsOf } from '@/utils/indicators'
+import { applyResurveys } from '@/utils/resurvey'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { SectionCard } from '@/components/common/SectionCard'
@@ -42,7 +43,10 @@ export default function SettingsOverview({ hideHeader = false }: { hideHeader?: 
   const { t, L, lang } = useI18n()
   const { role } = useRole()
   const { data: products, isLoading: productsLoading } = useProducts()
-  const { data: vocRows } = useVocRows()
+  const { data: vocRowsRaw } = useVocRows()
+  // 26 Nov (owner): a re-surveyed detractor counts with the second rating only
+  const { data: loopItems } = useAllDetractorCallItems()
+  const vocRows = useMemo(() => (vocRowsRaw ? applyResurveys(vocRowsRaw, loopItems ?? []) : undefined), [vocRowsRaw, loopItems])
   const { data: trend } = useNpsTrend()
   const { data: actions, isLoading: actionsLoading } = useCorrectiveActions()
   const { data: cases, isLoading: casesLoading } = useShopperCases()

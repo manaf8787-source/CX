@@ -38,7 +38,7 @@ public static class SettingKeys
     };
 }
 
-public sealed class SettingsService(ISettingsStore store, AuditService audit, IClock clock)
+public sealed class SettingsService(ISettingsStore store, AuditService audit, IClock clock, IEnumerable<ISettingValidator>? validators = null)
 {
     /// <summary>1 MiB of JSON per version is far more than any of these needs.</summary>
     public const int MaxJsonBytes = 1_048_576;
@@ -75,6 +75,10 @@ public sealed class SettingsService(ISettingsStore store, AuditService audit, IC
         var currentVersion = current?.Version ?? 0;
         if (expectedVersion != currentVersion)
             return ServiceResult<SettingVersion>.Fail(Failure.Conflict, $"Someone saved version {currentVersion} since you opened it (you had {expectedVersion}). Reload and apply your change again.");
+
+        foreach (var v in validators ?? [])
+            if (v.Handles(key) && v.Validate(value, current?.Value) is { } problem)
+                return ServiceResult<SettingVersion>.Fail(Failure.Invalid, problem);
 
         var next = new SettingVersion(key, currentVersion + 1, value.Clone(), clock.UtcNow, actor.UserId, actor.Role, note);
         if (!await store.TryAppendAsync(next, ct))

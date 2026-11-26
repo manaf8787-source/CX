@@ -9,6 +9,8 @@ export const pageLoaders = {
   customers: () => import('../pages/Customers'),
   runaway: () => import('../pages/Runaway'),
   closeTheLoop: () => import('../pages/CloseTheLoop'),
+  // 26 Nov (owner): the re-survey results (detractors before and after, with the call notes)
+  recoveryResults: () => import('../pages/RecoveryResults'),
   personas: () => import('../pages/Personas'),
   surveys: () => import('../pages/settings/SurveysHub'),
   productPage: () => import('../pages/ProductPage'),
@@ -59,6 +61,7 @@ const PATH_LOADERS: [prefix: string, keys: LoaderKey[]][] = [
   ['/customers', ['customers']],
   ['/runaway', ['runaway']],
   ['/actions', ['actionsLayout', 'corrective']],
+  ['/close-the-loop/results', ['recoveryResults']],
   ['/close-the-loop', ['closeTheLoop']],
   ['/inbox', ['inbox']],
   ['/overview', ['overview']],
