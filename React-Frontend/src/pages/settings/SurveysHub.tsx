@@ -7,6 +7,7 @@ import { SurveyQuestionsTab } from './SurveyQuestionsTab'
 import { SurveyCampaignsTab } from './SurveyCampaignsTab'
 import { SurveyDashboardTab } from './SurveyDashboardTab'
 import { SurveyCaps } from './SurveyCaps'
+import { CallSurveyRuleCard } from './CallSurveyRule'
 import { SubPageHeader, ViewOnlyNotice } from './SubPageHeader'
 
 /**
@@ -59,6 +60,8 @@ export default function SurveysHub() {
         </TabsContent>
         <TabsContent value="when" className="flex flex-col gap-6">
           <SurveyCaps canEdit={canEdit} />
+          {/* 26 Nov (owner): CSAT + CES after a completed call-center call */}
+          <CallSurveyRuleCard canEdit={canEdit} />
           <Surveys section="when" />
         </TabsContent>
         <TabsContent value="campaigns">
@@ -71,4 +74,3 @@ export default function SurveysHub() {
     </section>
   )
 }
-

@@ -687,7 +687,11 @@ const RESURVEY_SEED: Record<number, { kind: 'recovered' | 'better' | 'same'; day
   7: { kind: 'recovered', daysAgo: 7, notes: 'Wrong unit area on the contract. Corrected, new copy sent.' },
 }
 
-function seedResurvey(idx: number, instrument: FeedbackInstrument, firstScore: number): Pick<DetractorCallItem, 'secondScore' | 'resurveyedAt' | 'notes'> | undefined {
+function seedResurvey(
+  idx: number,
+  instrument: FeedbackInstrument,
+  firstScore: number,
+): Pick<DetractorCallItem, 'secondScore' | 'resurveyedAt' | 'notes'> | undefined {
   const r = RESURVEY_SEED[idx]
   if (!r) return undefined
   const second = r.kind === 'same' ? firstScore : r.kind === 'better' ? (instrument === 'nps' ? Math.min(firstScore + 2, 6) : 3) : instrument === 'nps' ? 9 : 5
@@ -983,8 +987,8 @@ const SURVEY_TRIGGERS: SurveyTrigger[] = [
     product: 're',
     instrument: 'csat_ces',
     triggerDescription: {
-      en: 'Agent call over 2 minutes, a viewing, or an offer — CSAT + CES on one screen. Inside the 30-day window the portal keeps the most important touchpoint: viewing over offer over call.',
-      ar: 'مكالمة وكيل تتجاوز دقيقتين، أو معاينة، أو عرض — CSAT وCES على شاشة واحدة. ضمن نافذة الثلاثين يوماً يحتفظ النظام بأهم نقطة تواصل: المعاينة قبل العرض قبل المكالمة.',
+      en: 'A completed call-center call (AI or a person) that ended with an appointment, an agreed follow-up or a successful call, a viewing, or an offer — CSAT + CES on one screen. Never after a call dropped at the AI greeting. Inside the 30-day window the portal keeps the most important touchpoint: viewing over offer over call.',
+      ar: 'مكالمة مكتملة من مركز الاتصال (ذكاء اصطناعي أو موظف) انتهت بموعد أو متابعة متفق عليها أو مكالمة ناجحة، أو معاينة، أو عرض — CSAT وCES على شاشة واحدة. لا يُرسل أبداً بعد مكالمة أُغلقت عند تحية الذكاء الاصطناعي. ضمن نافذة الثلاثين يوماً يحتفظ النظام بأهم نقطة تواصل: المعاينة قبل العرض قبل المكالمة.',
     },
     capDays: 30,
   },
@@ -2402,16 +2406,6 @@ function buildRulesConfig(): RuleConfigItem[] {
       value: 2,
       unit: bi('no-answers', 'مرات عدم رد'),
       source: 'Decisions 18 Nov, 5',
-    },
-    {
-      id: 'rule_gift_alert_months',
-      area: bi('Gifts', 'الهدايا'),
-      label: bi('Alert CX when the customer already got a gift in the last', 'تنبيه CX عندما يكون العميل قد أخذ هدية خلال آخر'),
-      value: 6,
-      unit: bi('months', 'شهر'),
-      source: 'Owner 26 Nov',
-      proposed: true,
-      note: bi('An alert only; it never blocks a gift.', 'تنبيه فقط؛ لا يمنع الهدية أبداً.'),
     },
     {
       id: 'rule_silence_why',
