@@ -1,7 +1,8 @@
 import { PublicMentionsBrief } from '@/components/home/PublicMentionsBrief'
 import { StartHere } from '@/components/home/StartHere'
 import { useState } from 'react'
-import { Search } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Plus, Search } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { useRole } from '@/auth/RoleContext'
 import { usePersonSearch } from '@/hooks/usePersonSearch'
@@ -9,13 +10,11 @@ import { useAssistant } from '@/components/ai/AssistantContext'
 import { SUGGESTED_QUERIES } from '@/components/ai/assistantEngine'
 import { INDICATOR_COPY } from '@/data/indicators'
 import { useProducts } from '@/services/queries'
-import { useEnvScope, useIndicators } from '@/services/queriesV40'
+import { useIndicators } from '@/services/queriesV40'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
-import { InlineNote } from '@/components/common/InlineNote'
-import { TermsButton } from '@/components/common/TermHelp'
 import { DailyBrief } from '@/components/home/DailyBrief'
 import { IndicatorCard } from '@/components/home/IndicatorCard'
 import { WorkToday } from '@/components/home/WorkToday'
@@ -32,7 +31,6 @@ import { WorkToday } from '@/components/home/WorkToday'
 export default function Home() {
   const { t, L } = useI18n()
   const { role } = useRole()
-  const { env } = useEnvScope()
   const search = usePersonSearch()
   const assistant = useAssistant()
   const [query, setQuery] = useState('')
@@ -116,9 +114,16 @@ export default function Home() {
             <h2 id="home-indicators" className="t-card-title">
               {L(INDICATOR_COPY.heading)}
             </h2>
-            <TermsButton />
+            {/* 26 Nov (owner): a "Create survey" button here; no "What the terms mean" (it is in the sidebar) and no environment hint */}
+            {(role.id === 'cxmgr' || role.id === 'cxteam') && (
+              <Button asChild size="sm">
+                <Link to="/settings/surveys?tab=campaigns&new=1">
+                  <Plus aria-hidden />
+                  {t('Create survey', 'إنشاء استبيان')}
+                </Link>
+              </Button>
+            )}
           </div>
-          {env !== 'all' && <InlineNote>{L(INDICATOR_COPY.envHint)}</InlineNote>}
           {isLoading || !sets ? (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <Skeleton className="h-52 rounded-card" />

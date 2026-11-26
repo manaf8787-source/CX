@@ -1,3 +1,4 @@
+import type { NpsMilestone } from './reference'
 import type { Bi, ChannelId, EnvId, ProductId } from './common'
 import type { CorrectiveActionStatus, SignalKind } from './domain'
 
@@ -359,6 +360,8 @@ export interface IndicatorSet {
   answers: number
   /** NPS points against last month, from the monthly series; null when there is no series. */
   deltaVsLastMonth: number | null
+  /** Answers per completed transaction behind the NPS (sale, lease, renewal, handover); a signed lease counts like a sale (26 Nov). */
+  byMilestone: Partial<Record<NpsMilestone, number>>
 }
 
 /** Numbers the Daily brief (Agent 9) reads: the same registers the pages show. */

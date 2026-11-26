@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
-import { Link2, MoreHorizontal, RotateCcw, UserPlus } from 'lucide-react'
+import { Download, Link2, MoreHorizontal, RotateCcw, UserPlus } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { useRole } from '@/auth/RoleContext'
 import { useAuth } from '@/auth/session'
@@ -21,12 +21,14 @@ import {
   removeUser,
   resetUsers,
   setUserRole,
+  setUserExport,
   setUserStatus,
   useUsers,
   type PortalUser,
   type UserStatus,
 } from '@/data/users'
 import { Button } from '@/components/ui/button'
+import { Switch } from '@/components/ui/switch'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Field, FieldDescription, FieldError, FieldLabel } from '@/components/ui/field'
@@ -137,6 +139,7 @@ export default function Users() {
   const [inviteOpen, setInviteOpen] = useState(false)
   const [roleFor, setRoleFor] = useState<PortalUser | null>(null)
   const [lastInvite, setLastInvite] = useState<PortalUser | null>(null)
+  const [granting, setGranting] = useState<PortalUser | null>(null)
 
   const sorted = useMemo(
     () =>
@@ -150,6 +153,7 @@ export default function Users() {
       active: users.filter((u) => u.status === 'active').length,
       invited: users.filter((u) => u.status === 'invited').length,
       disabled: users.filter((u) => u.status === 'disabled').length,
+      exporters: users.filter((u) => u.canExport && u.status !== 'disabled').length,
     }),
     [users],
   )
@@ -221,6 +225,9 @@ export default function Users() {
             <StatusBadge tone="info">
               {counts.invited} {t('invited', 'مدعو')}
             </StatusBadge>
+            <StatusBadge tone="warning" icon={<Download aria-hidden />}>
+              {counts.exporters} {t('can export', 'يمكنهم التصدير')}
+            </StatusBadge>
             {counts.disabled > 0 && (
               <StatusBadge tone="neutral">
                 {counts.disabled} {t('deactivated', 'موقوف')}
@@ -254,6 +261,7 @@ export default function Users() {
               <TableHead>{t('Email', 'البريد')}</TableHead>
               <TableHead>{t('Role', 'الدور')}</TableHead>
               <TableHead>{t('Status', 'الحالة')}</TableHead>
+              <TableHead>{t('Export data', 'تصدير البيانات')}</TableHead>
               <TableHead>{t('Since', 'منذ')}</TableHead>
               {canEdit && <TableHead className="text-end">{t('Actions', 'إجراءات')}</TableHead>}
             </TableRow>
@@ -281,6 +289,31 @@ export default function Users() {
                     <StatusBadge tone={u.status === 'active' ? 'success' : u.status === 'invited' ? 'info' : 'neutral'} dot={u.status !== 'disabled'}>
                       {L(STATUS_LABEL[u.status])}
                     </StatusBadge>
+                  </TableCell>
+                  <TableCell>
+                    {(() => {
+                      // 26 Nov (owner): a dangerous privilege, given per person by the Super admin or an Admin; an Admin's own row is the Super admin's
+                      const locked = !canEdit || ((u.roleId === 'admin' || u.roleId === 'useradmin') && !canManageAdmins(role.id)) || u.status === 'disabled'
+                      return (
+                        <span className="flex items-center gap-2">
+                          <Switch
+                            size="sm"
+                            checked={!!u.canExport}
+                            disabled={locked}
+                            aria-label={t(`Export data: ${u.email}`, `تصدير البيانات: ${u.email}`)}
+                            onCheckedChange={(on) => {
+                              if (on) return setGranting(u)
+                              setUserExport(u.id, false)
+                              log('export_revoked', { en: `Removed export permission from ${u.email}`, ar: `سحب صلاحية التصدير من ${u.email}` })
+                              toast.success(t('Export permission removed.', 'سُحبت صلاحية التصدير.'))
+                            }}
+                          />
+                          <span className={u.canExport ? 'text-sm text-(--status-warning-text)' : 'text-sm text-muted-foreground'}>
+                            {u.canExport ? t('Allowed', 'مسموح') : t('No', 'لا')}
+                          </span>
+                        </span>
+                      )
+                    })()}
                   </TableCell>
                   <TableCell className="tabular text-muted-foreground">{dateFmt.format(new Date(u.activatedAt ?? u.invitedAt))}</TableCell>
                   {canEdit && (
@@ -439,6 +472,38 @@ export default function Users() {
                 }}
               >
                 {t('Deactivate', 'إيقاف')}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {granting && (
+        <Dialog open onOpenChange={(o) => !o && setGranting(null)}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>{t('Give export permission?', 'منح صلاحية التصدير؟')}</DialogTitle>
+              <DialogDescription>
+                {t(
+                  `${granting.name || granting.email} will be able to download files from every page they can open: people lists with mobile numbers, cases, survey answers, gifts and reports. Files leave the portal and cannot be called back. Every export is written to the audit log with the person, the file and the time.`,
+                  `سيتمكن ${granting.name || granting.email} من تنزيل ملفات من كل صفحة يستطيع فتحها: قوائم الأشخاص مع أرقام الجوال، والحالات، وإجابات الاستبيانات، والهدايا والتقارير. الملفات تخرج من البوابة ولا يمكن استرجاعها. كل تصدير يُسجَّل في سجل التدقيق مع الشخص والملف والوقت.`,
+                )}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setGranting(null)}>
+                {t('Cancel', 'إلغاء')}
+              </Button>
+              <Button
+                type="button"
+                onClick={() => {
+                  setUserExport(granting.id, true)
+                  log('export_granted', { en: `Gave export permission to ${granting.email}`, ar: `منح صلاحية التصدير لـ ${granting.email}` })
+                  toast.success(t('Export permission given.', 'مُنحت صلاحية التصدير.'))
+                  setGranting(null)
+                }}
+              >
+                {t('Give permission', 'منح الصلاحية')}
               </Button>
             </DialogFooter>
           </DialogContent>

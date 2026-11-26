@@ -1,4 +1,5 @@
-import type { IndicatorSet, Product, ProductId, VocRow } from '../types'
+import type { EnvScope, IndicatorSet, NpsMilestone, Product, ProductId, VocDetailRow, VocRow } from '../types'
+import { isCompletedTransaction } from '../data/npsMilestones'
 import { INDICATOR_THRESHOLDS, type IndicatorKind } from '../data/indicators'
 
 /**
@@ -47,10 +48,26 @@ export function deltaFromTrend(series: readonly number[] | undefined): number | 
 /** Products whose answers also count in another product's figures: PSI Real Estate includes After-Sales (completed transactions). */
 export const INCLUDES: Partial<Record<ProductId, ProductId[]>> = { re: ['af'] }
 
+/**
+ * The rows a scope reads: one environment, or all of them. Rows of products without a CRM environment show in every scope.
+ * Every completed transaction counts: 26 Nov (owner) a signed lease in PSI Assets is a completed transaction, so its NPS answers
+ * are in the figure exactly like a sale's, for anyone whose environment access covers PSI Assets.
+ */
+export function rowsForScope(rows: readonly VocDetailRow[], env: EnvScope): VocDetailRow[] {
+  return rows.filter((r) => isCompletedTransaction(r.milestone) && (env === 'all' || !r.envId || r.envId === env))
+}
+
+/** Answers per completed transaction (sale, lease, renewal, handover). */
+export function milestoneCounts(rows: readonly VocDetailRow[]): Partial<Record<NpsMilestone, number>> {
+  const out: Partial<Record<NpsMilestone, number>> = {}
+  for (const r of rows) out[r.milestone] = (out[r.milestone] ?? 0) + r.n
+  return out
+}
+
 /** The indicators of one product. `ces` is the sample table value (null = not asked yet). */
 export function indicatorsFor(
   productId: ProductId,
-  rows: readonly VocRow[],
+  rows: readonly VocDetailRow[],
   trend: Partial<Record<ProductId, number[]>>,
   cesSample: Partial<Record<ProductId, number | null>>,
 ): IndicatorSet {
@@ -64,13 +81,14 @@ export function indicatorsFor(
     ces: cesSample[productId] ?? null,
     answers: answersOf(mine),
     deltaVsLastMonth: deltaFromTrend(trend[productId]),
+    byMilestone: milestoneCounts(mine),
   }
 }
 
 /** One indicator set per live product (hidden products and PSI Wallet never appear on Home). */
 export function liveIndicators(
   products: readonly Product[],
-  rows: readonly VocRow[],
+  rows: readonly VocDetailRow[],
   trend: Partial<Record<ProductId, number[]>>,
   cesSample: Partial<Record<ProductId, number | null>>,
 ): IndicatorSet[] {

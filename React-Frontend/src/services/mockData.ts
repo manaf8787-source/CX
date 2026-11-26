@@ -46,6 +46,7 @@ import type {
   SurveyTrigger,
   VocComment,
   VocRow,
+  VocDetailRow,
 } from '../types'
 import { fixTitle } from '@/data/fixProblem'
 import { daysAgoIso, intBetween, pick, seededRandom } from '../utils/random'
@@ -2016,17 +2017,80 @@ function buildMsAssignments(): MsAssignment[] {
   ]
 }
 
-function buildVocRows(): VocRow[] {
-  return [
-    { product: 're', channel: 'digital', n: 420, promoters: 210, passives: 126, detractors: 84, csat: 78 },
-    { product: 're', channel: 'call', n: 310, promoters: 140, passives: 93, detractors: 77, csat: 71 },
-    { product: 're', channel: 'app', n: 260, promoters: 145, passives: 68, detractors: 47, csat: 80 },
-    { product: 'af', channel: 'call', n: 540, promoters: 216, passives: 183, detractors: 141, csat: 68 },
-    { product: 'af', channel: 'digital', n: 180, promoters: 90, passives: 54, detractors: 36, csat: 74 },
-    { product: 'cl', channel: 'digital', n: 60, promoters: 39, passives: 15, detractors: 6, csat: 86 },
-    { product: 'to', channel: 'app', n: 95, promoters: 57, passives: 28, detractors: 10, csat: 83 },
-    { product: 'ev', channel: 'event', n: 70, promoters: 38, passives: 22, detractors: 10, csat: 77 },
-  ]
+/** The survey answers by product and channel before the split by environment and completed transaction (the earlier sample). */
+const VOC_BASE: VocRow[] = [
+  { product: 're', channel: 'digital', n: 420, promoters: 210, passives: 126, detractors: 84, csat: 78 },
+  { product: 're', channel: 'call', n: 310, promoters: 140, passives: 93, detractors: 77, csat: 71 },
+  { product: 're', channel: 'app', n: 260, promoters: 145, passives: 68, detractors: 47, csat: 80 },
+  { product: 'af', channel: 'call', n: 540, promoters: 216, passives: 183, detractors: 141, csat: 68 },
+  { product: 'af', channel: 'digital', n: 180, promoters: 90, passives: 54, detractors: 36, csat: 74 },
+  { product: 'cl', channel: 'digital', n: 60, promoters: 39, passives: 15, detractors: 6, csat: 86 },
+  { product: 'to', channel: 'app', n: 95, promoters: 57, passives: 28, detractors: 10, csat: 83 },
+  { product: 'ev', channel: 'event', n: 70, promoters: 38, passives: 22, detractors: 10, csat: 77 },
+]
+
+/** Share of the sales answers per sales environment (Dubai, Abu Dhabi, PSI-AI). Deterministic, no rng draws. */
+const SALES_SPLIT: [EnvId, number][] = [
+  ['dub', 0.5],
+  ['auh', 0.38],
+  ['ai', 0.12],
+]
+
+/**
+ * 26 Nov (owner): PSI Assets is mostly rentals; a signed lease, a renewal and a move-in are completed transactions and count in
+ * the NPS like a sale (data/npsMilestones.ts). Leases sit in the PSI Real Estate line; renewals and move-ins in After-Sales,
+ * which PSI Real Estate includes.
+ */
+const ASSETS_VOC: VocDetailRow[] = [
+  { envId: 'ast', milestone: 'lease', product: 're', channel: 'call', n: 150, promoters: 72, passives: 45, detractors: 33, csat: 74 },
+  { envId: 'ast', milestone: 'lease', product: 're', channel: 'app', n: 90, promoters: 49, passives: 26, detractors: 15, csat: 79 },
+  { envId: 'ast', milestone: 'renewal', product: 'af', channel: 'call', n: 110, promoters: 41, passives: 36, detractors: 33, csat: 66 },
+  { envId: 'ast', milestone: 'handover', product: 'af', channel: 'digital', n: 70, promoters: 34, passives: 22, detractors: 14, csat: 75 },
+]
+
+function buildVocDetail(): VocDetailRow[] {
+  const out: VocDetailRow[] = []
+  for (const row of VOC_BASE) {
+    if (row.product !== 're' && row.product !== 'af') {
+      // PSI Club, Tour Estate and PSI Events have no CRM environment
+      out.push({ ...row, milestone: 'sale' })
+      continue
+    }
+    const milestone = row.product === 're' ? 'sale' : 'handover'
+    let left = { n: row.n, p: row.promoters, d: row.detractors }
+    SALES_SPLIT.forEach(([envId, share], i) => {
+      const last = i === SALES_SPLIT.length - 1
+      const n = last ? left.n : Math.round(row.n * share)
+      const p = last ? left.p : Math.round(row.promoters * share)
+      const d = last ? left.d : Math.round(row.detractors * share)
+      left = { n: left.n - n, p: left.p - p, d: left.d - d }
+      out.push({ ...row, envId, milestone, n, promoters: p, detractors: d, passives: n - p - d })
+    })
+  }
+  return [...out, ...ASSETS_VOC]
+}
+
+/** Detailed rows sum to the per-channel rows: one row per product and channel, CSAT weighted by answers. */
+function sumVocRows(rows: readonly VocDetailRow[]): VocRow[] {
+  const by = new Map<string, VocRow>()
+  for (const r of rows) {
+    const key = `${r.product}|${r.channel}`
+    const cur = by.get(key)
+    if (!cur) {
+      by.set(key, { product: r.product, channel: r.channel, n: r.n, promoters: r.promoters, passives: r.passives, detractors: r.detractors, csat: r.csat })
+      continue
+    }
+    const n = cur.n + r.n
+    by.set(key, {
+      ...cur,
+      n,
+      promoters: cur.promoters + r.promoters,
+      passives: cur.passives + r.passives,
+      detractors: cur.detractors + r.detractors,
+      csat: n ? Math.round((cur.csat * cur.n + r.csat * r.n) / n) : cur.csat,
+    })
+  }
+  return [...by.values()]
 }
 
 function buildVocComments(): VocComment[] {
@@ -2536,7 +2600,8 @@ export const MOCK_MS_CHECKLISTS = buildMsChecklists()
 export const MOCK_MS_SCENARIOS = buildMsScenarios()
 export const MOCK_MS_SHOPPERS = buildMsShoppers()
 export const MOCK_MS_ASSIGNMENTS = buildMsAssignments()
-export const MOCK_VOC_ROWS = buildVocRows()
+export const MOCK_VOC_DETAIL = buildVocDetail()
+export const MOCK_VOC_ROWS = sumVocRows(MOCK_VOC_DETAIL)
 export const MOCK_VOC_COMMENTS = buildVocComments()
 export const MOCK_RULES_CONFIG = buildRulesConfig()
 export const MOCK_AI_ACCESS_MATRIX = buildAiAccessMatrix()

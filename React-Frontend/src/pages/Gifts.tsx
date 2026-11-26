@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
+import { ExportButton } from '@/components/common/ExportButton'
 import { Link, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
-import { Check, Download, Gift as GiftIcon, Mail, PackagePlus, Plus, Search, X } from 'lucide-react'
+import { Check, Gift as GiftIcon, Mail, PackagePlus, Plus, Search, X } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { Good } from '@/components/common/Trend'
 import { useRole } from '@/auth/RoleContext'
@@ -606,10 +607,9 @@ function HistoryTab() {
           </SelectContent>
         </Select>
         <span className="flex-1" />
-        <Button variant="outline" size="sm" onClick={exportCsv} disabled={!list.length}>
-          <Download aria-hidden />
+        <ExportButton variant="outline" size="sm" onExport={exportCsv} disabled={!list.length} what={{ en: 'the gifts list', ar: 'قائمة الهدايا' }}>
           {t('Export CSV', 'تصدير CSV')}
-        </Button>
+        </ExportButton>
       </div>
       {list.length === 0 ? (
         <EmptyState title={t('No gifts match.', 'لا هدايا مطابقة.')} />

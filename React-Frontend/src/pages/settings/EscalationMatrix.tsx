@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
+import { BookOpen } from 'lucide-react'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { useI18n } from '@/i18n'
 import { useRole } from '@/auth/RoleContext'
 import { canEditEscalationMatrix } from '@/auth/permissions'
@@ -10,7 +12,7 @@ import { PRODUCTS } from '@/data/products'
 import { formatClock, formatFactor } from '@/utils/matrixFormat'
 import { InlineNote } from '@/components/common/InlineNote'
 import { LoadingState } from '@/components/common/LoadingState'
-import { SectionCard } from '@/components/common/SectionCard'
+import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -20,7 +22,6 @@ import type { MatrixCellRow, MatrixCells, MatrixField, MatrixRuleRow, ProductId 
 import { Segmented } from '@/components/ui/segmented'
 import { IN_CARD, SubPageHeader, ViewOnlyNotice } from './SubPageHeader'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { INFORMED_RULE } from '@/data/v38Reference'
 import { ProductRoutingTab } from './ProductRoutingTab'
 
 const PRODUCT_IDS = PRODUCTS.map((p) => p.id)
@@ -82,19 +83,21 @@ export default function EscalationMatrix() {
           <ProductRoutingTab canEdit={canEdit} />
         </TabsContent>
         <TabsContent value="matrix" className="flex flex-col gap-4">
-          <RulesCard />
-
-          <Segmented
-            variant="pressed"
-            label={t('Product', 'المنتج')}
-            value={product}
-            onValueChange={(id) => {
-              const next = new URLSearchParams(params)
-              next.set('product', id)
-              setParams(next, { replace: true })
-            }}
-            options={PRODUCTS.map((p) => ({ value: p.id, label: L(p.name) }))}
-          />
+          {/* 26 Nov (owner): the rules, the set note and the principles open in a pop-up from this button */}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <Segmented
+              variant="pressed"
+              label={t('Product', 'المنتج')}
+              value={product}
+              onValueChange={(id) => {
+                const next = new URLSearchParams(params)
+                next.set('product', id)
+                setParams(next, { replace: true })
+              }}
+              options={PRODUCTS.map((p) => ({ value: p.id, label: L(p.name) }))}
+            />
+            <RulesDialog />
+          </div>
 
           <Card>
             <div className={IN_CARD}>
@@ -130,45 +133,75 @@ export default function EscalationMatrix() {
               )}
             </div>
           </Card>
-          <div className="flex flex-col gap-1.5 px-1">
-            <p className="t-body-s" data-testid="matrix-set-note">
-              {L(MATRIX_COPY.setNote)}
-            </p>
-            <p className="t-body-s" data-testid="matrix-vip-row-note">
-              {L(MATRIX_COPY.vipRowNote)}
-            </p>
-            <p className="t-body-s">{L(MATRIX_COPY.principles)}</p>
-            {/* 23 Nov: "Who is informed" was a tab of Teams and structure; one line here now */}
-            <p className="t-body-s">{L(INFORMED_RULE)}</p>
-          </div>
         </TabsContent>
       </Tabs>
     </section>
   )
 }
 
-/** "Three rules behind the cells" and the clock legend: a card above the product tabs, the prototype's text verbatim. */
-function RulesCard() {
-  const { L } = useI18n()
+/** "Three rules behind the cells", the clock legend, the set note and the principles: one pop-up (26 Nov, owner). */
+function RulesDialog() {
+  const { t, L } = useI18n()
   const { rules, legend } = MATRIX_COPY
+  const principles = [
+    t('The receiver is the person who can fix it, never top management.', 'المستلم هو من يستطيع الإصلاح، وليس الإدارة العليا أبداً.'),
+    t('Heads and C-level are informed only.', 'الرؤساء والإدارة العليا يُبلَّغون فقط.'),
+    t('An employee-related case goes to the direct manager and nowhere else.', 'الحالة المتعلقة بموظف تذهب للمدير المباشر فقط.'),
+    t('Legal matters go to Legal first.', 'المسائل القانونية تذهب للقانونية أولاً.'),
+    t('Anything involving a customer’s contact goes through the CX team.', 'كل ما يتعلق بالتواصل مع العميل يمر عبر فريق CX.'),
+  ]
   return (
-    <SectionCard title={L(rules.title)} contentClassName="flex flex-col gap-4">
-      <ol className="flex flex-col gap-3" data-testid="matrix-rules">
-        {rules.items.map((item, i) => (
-          <li key={item.lead.en} className="flex gap-3 text-sm">
-            <span aria-hidden className="material-light mt-px grid size-6 shrink-0 place-items-center rounded-full text-xs font-medium tabular">
-              {i + 1}
-            </span>
-            <p className="max-w-[88ch] text-muted-foreground">
-              <strong className="font-medium text-foreground">{L(item.lead)}</strong> {L(item.body)}
-            </p>
-          </li>
-        ))}
-      </ol>
-      <InlineNote tone="neutral" data-testid="matrix-legend">
-        {L(legend)}
-      </InlineNote>
-    </SectionCard>
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm">
+          <BookOpen aria-hidden />
+          {L(rules.title)}
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
+        <DialogHeader>
+          <DialogTitle>{L(rules.title)}</DialogTitle>
+          <DialogDescription data-testid="matrix-set-note">{L(MATRIX_COPY.setNote)}</DialogDescription>
+        </DialogHeader>
+        <p className="text-sm text-foreground" data-testid="matrix-vip-row-note">
+          {L(MATRIX_COPY.vipRowNote)}
+        </p>
+        <ol className="flex flex-col gap-3" data-testid="matrix-rules">
+          {rules.items.map((item, i) => (
+            <li key={item.lead.en} className="flex gap-3 text-sm">
+              <span aria-hidden className="material-light mt-px grid size-6 shrink-0 place-items-center rounded-full text-xs font-medium tabular">
+                {i + 1}
+              </span>
+              <p className="text-muted-foreground">
+                <strong className="font-medium text-foreground">{L(item.lead)}</strong> {L(item.body)}
+              </p>
+            </li>
+          ))}
+        </ol>
+        <section className="flex flex-col gap-2">
+          <h3 className="t-small-strong">{t('Principles', 'المبادئ')}</h3>
+          <ul className="flex list-disc flex-col gap-1 ps-5 text-sm text-muted-foreground">
+            {principles.map((x) => (
+              <li key={x}>{x}</li>
+            ))}
+          </ul>
+        </section>
+        <section className="flex flex-col gap-2 text-sm text-muted-foreground">
+          <p>
+            <strong className="font-medium text-foreground">{t('Informed means a notice, never a task.', 'الإبلاغ يعني إشعاراً، وليس مهمة أبداً.')}</strong>
+          </p>
+          <p>
+            {t(
+              'Top management does not receive one email per case. They receive a digest, and an immediate alert only for a high-priority case past its SLA or for a repeating pattern.',
+              'الإدارة العليا لا تستلم بريداً لكل حالة. تستلم خلاصة، وتنبيهاً فورياً فقط لحالة عالية الأولوية تجاوزت مهلتها أو لنمط متكرر.',
+            )}
+          </p>
+        </section>
+        <InlineNote tone="neutral" data-testid="matrix-legend">
+          {L(legend)}
+        </InlineNote>
+      </DialogContent>
+    </Dialog>
   )
 }
 
@@ -295,4 +328,3 @@ function MatrixCell({ product, row, field, canEdit }: { product: ProductId; row:
     </div>
   )
 }
-

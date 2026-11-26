@@ -28,6 +28,9 @@ export const INDICATOR_COPY = {
   meta: (n: number): Bi => b(`${n} answers, 90 days`, `${n} إجابة، 90 يوماً`),
   open: (product: Bi): Bi => b(`Open ${product.en}`, `افتح ${product.ar}`),
   allNumbers: b('All numbers', 'كل الأرقام'),
-  /** The indicators are per product and not narrowed by the environment switch (no per-environment sample size). */
-  envHint: b('Indicators are per product; the environment switch does not narrow them.', 'المؤشرات لكل منتج؛ مفتاح البيئة لا يضيّقها.'),
+  /** 26 Nov: the indicators follow the environment switch; PSI Assets' leases count as completed transactions. */
+  envHint: b(
+    'Indicators follow the environment switch; leases in PSI Assets count as completed transactions.',
+    'المؤشرات تتبع مفتاح البيئة؛ عقود الإيجار في PSI للأصول تُحسب معاملات مكتملة.',
+  ),
 }

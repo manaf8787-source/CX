@@ -24,6 +24,8 @@ const TONE_DOT: Record<IndicatorTone, string> = {
 
 interface TileProps {
   kind: IndicatorKind
+  /** 26 Nov: the tile opens every answer behind it (null when the role cannot open the product). */
+  href: string | null
   /** The glossary term the "?" opens. */
   term: string
   label: string
@@ -31,20 +33,34 @@ interface TileProps {
   raw: number | null
 }
 
-function Tile({ kind, term, label, value, raw }: TileProps) {
+function Tile({ kind, href, term, label, value, raw }: TileProps) {
   const { t, L } = useI18n()
   const tone = indicatorTone(kind, raw)
   return (
-    <div data-indicator={kind} data-tone={tone} className="well flex min-w-0 flex-col gap-1.5">
-      <span className="t-small-strong flex items-center gap-1.5 text-muted-foreground">
+    <div
+      data-indicator={kind}
+      data-tone={tone}
+      className={cn(
+        'well relative flex min-w-0 flex-col gap-1.5',
+        href && 'transition-shadow focus-within:ring-2 focus-within:ring-ring/40 hover:shadow-(--shadow-card-sm)',
+      )}
+    >
+      {href && (
+        <Link
+          to={href}
+          className="absolute inset-0 z-0 rounded-[inherit] outline-hidden"
+          aria-label={t(`${label}: see every answer`, `${label}: عرض كل الإجابات`)}
+        />
+      )}
+      <span className="t-small-strong pointer-events-none relative flex items-center gap-1.5 text-muted-foreground [&_button]:pointer-events-auto [&_button]:relative [&_button]:z-10">
         {tone !== 'none' && <span aria-hidden className={cn('dot', TONE_DOT[tone])} />}
         {label}
         <TermHelp term={term} />
       </span>
-      <span className="t-kpi">
+      <span className="t-kpi pointer-events-none relative">
         <bdi dir="ltr">{raw == null ? <span aria-label={t('too early', 'مبكر')}>–</span> : value}</bdi>
       </span>
-      <span className="text-xs text-muted-foreground">{L(INDICATOR_SENTENCE[kind])}</span>
+      <span className="pointer-events-none relative text-xs text-muted-foreground">{L(INDICATOR_SENTENCE[kind])}</span>
     </div>
   )
 }
@@ -84,6 +100,7 @@ export function IndicatorCard({ set, product }: { set: IndicatorSet; product: Pr
         <div data-density="dense" className="grid grid-cols-1 gap-2.5 min-[420px]:grid-cols-3">
           <Tile
             kind="nps"
+            href={canOpenProduct ? `${productPath}/answers?i=nps` : null}
             term="NPS"
             label="NPS"
             raw={nps}
@@ -96,8 +113,22 @@ export function IndicatorCard({ set, product }: { set: IndicatorSet; product: Pr
               )
             }
           />
-          <Tile kind="csat" term="CSAT" label="CSAT" raw={set.csat} value={set.csat == null ? null : <AnimatedValue value={`${set.csat}%`} />} />
-          <Tile kind="ces" term="CES" label="CES" raw={set.ces} value={set.ces == null ? null : <AnimatedValue value={`${set.ces}%`} />} />
+          <Tile
+            kind="csat"
+            href={canOpenProduct ? `${productPath}/answers?i=csat` : null}
+            term="CSAT"
+            label="CSAT"
+            raw={set.csat}
+            value={set.csat == null ? null : <AnimatedValue value={`${set.csat}%`} />}
+          />
+          <Tile
+            kind="ces"
+            href={canOpenProduct ? `${productPath}/answers?i=ces` : null}
+            term="CES"
+            label="CES"
+            raw={set.ces}
+            value={set.ces == null ? null : <AnimatedValue value={`${set.ces}%`} />}
+          />
         </div>
       </CardContent>
       {(canOpenProduct || canOpenOverview) && (

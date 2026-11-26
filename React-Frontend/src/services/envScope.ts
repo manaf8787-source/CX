@@ -5,8 +5,9 @@ import { ENV_IDS } from '../data/environments'
 /**
  * The "Environment" switch of the "Data as of" bar (v40 F14). Decided 18 Nov: it narrows everything that carries an
  * environment: people, signals, patterns, shopper cases, fixes, the close-the-loop list, investigations, hand-offs, public
- * mentions and the Home counts. It does not narrow what has no environment in the sample: survey rows and the indicators
- * built on them, the agents, the non-CRM feeds (Home says so). A role fixed to one environment (environment management)
+ * mentions and the Home counts. 26 Nov: the survey answers and the NPS, CSAT and CES indicators carry an environment too and
+ * follow the switch; PSI Assets' leases count as completed transactions (data/npsMilestones.ts). It does not narrow what has no
+ * environment: the agents, the non-CRM feeds, and the products without a CRM (PSI Club, Tour Estate, PSI Events). A role fixed to one environment (environment management)
  * always reads that environment.
  *
  * The scope is part of the query key of every env-aware hook, so switching refetches and caches per scope.

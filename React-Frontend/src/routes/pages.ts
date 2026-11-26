@@ -12,6 +12,7 @@ export const pageLoaders = {
   personas: () => import('../pages/Personas'),
   surveys: () => import('../pages/settings/SurveysHub'),
   productPage: () => import('../pages/ProductPage'),
+  surveyAnswers: () => import('../pages/SurveyAnswers'),
   actionsLayout: () => import('../pages/actions/ActionsLayout'),
   corrective: () => import('../pages/actions/Corrective'),
   withOtherTeams: () => import('../pages/actions/WithOtherTeams'),
@@ -83,4 +84,3 @@ export function prefetchPath(path: string) {
     pageLoaders[key]().catch(() => started.delete(key))
   }
 }
-

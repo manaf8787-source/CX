@@ -891,10 +891,10 @@ function FilterBar({ picked, setPicked }: { picked: VendorId[]; setPicked: (v: V
       <label className="flex flex-col gap-1 text-xs text-muted-foreground">
         {t('Environment', 'البيئة')}
         {fixed ? (
-          <span className="flex h-9 items-center rounded-md bg-well px-3 text-sm text-foreground shadow-field">{L(envName(fixed))}</span>
+          <span className="flex h-9 min-w-56 items-center rounded-md bg-well px-3 text-sm text-foreground shadow-field">{L(envName(fixed))}</span>
         ) : (
           <Select value={env} onValueChange={(v) => setEnv(v as EnvScope)}>
-            <SelectTrigger size="sm" className="min-w-48" aria-label={t('Environment', 'البيئة')}>
+            <SelectTrigger size="sm" className="min-w-56" aria-label={t('Environment', 'البيئة')}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -912,10 +912,13 @@ function FilterBar({ picked, setPicked }: { picked: VendorId[]; setPicked: (v: V
         {t('Sub-contractor', 'المقاول')}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="h-9 min-w-56 justify-between">
+            <button
+              type="button"
+              className="flex h-9 min-w-56 items-center justify-between gap-2 rounded-md bg-well px-3 text-sm text-foreground shadow-field outline-hidden transition-[background-color,box-shadow] duration-200 hover:bg-well-hover focus-visible:bg-card data-[state=open]:bg-card"
+            >
               <span className="truncate">{label}</span>
-              <ChevronDown aria-hidden className="size-4 opacity-60" />
-            </Button>
+              <ChevronDown aria-hidden className="size-4 text-muted-foreground" />
+            </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-72">
             <DropdownMenuLabel className="font-normal text-muted-foreground">

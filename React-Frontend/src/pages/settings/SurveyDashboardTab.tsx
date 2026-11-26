@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Download } from 'lucide-react'
+import { ExportButton } from '@/components/common/ExportButton'
 import { Bar, BarChart, CartesianGrid, Tooltip, XAxis, YAxis } from 'recharts'
 import { useI18n } from '@/i18n'
 import { useCampaigns, type SurveyCampaign } from '@/data/surveyCampaigns'
@@ -8,7 +8,6 @@ import type { EditableQuestion } from '@/data/surveyEditor'
 import { campaignResult, type CampaignResult, type QuestionResult } from '@/data/campaignResults'
 import { PRODUCTS } from '@/data/products'
 import { downloadCsv } from '@/utils/csv'
-import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { SectionCard } from '@/components/common/SectionCard'
@@ -236,10 +235,9 @@ function One({ c, r, others, fmt }: { c: SurveyCampaign; r: CampaignResult; othe
         title={c.name}
         description={c.audience}
         actions={
-          <Button variant="outline" size="sm" onClick={exportCsv}>
-            <Download aria-hidden />
+          <ExportButton variant="outline" size="sm" onExport={exportCsv} what={{ en: `survey campaign ${c.name}`, ar: `حملة الاستبيان ${c.name}` }}>
             {t('Export CSV', 'تصدير CSV')}
-          </Button>
+          </ExportButton>
         }
       >
         <div className="flex flex-wrap items-center gap-2 text-sm">

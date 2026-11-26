@@ -17,7 +17,7 @@ import {
   useRulesConfig,
   useSignals,
   useSignalsAll,
-  useVocRows,
+  useVocDetail,
   useAiCampaigns,
   usePatterns,
   useShopperCases,
@@ -44,7 +44,7 @@ import { MATRIX_KEY_BY_FIX_KIND, VIP_FACTOR } from '../data/escalationDefaults'
 import { classifyRunaway } from '../utils/runaway'
 import { recoveryRate } from '../utils/closeTheLoop'
 import { buildInbox, workTodayStats } from '../utils/inbox'
-import { liveIndicators } from '../utils/indicators'
+import { liveIndicators, rowsForScope } from '../utils/indicators'
 import { callRulesFrom, recordNoAnswer, CALL_COPY } from '../utils/callSchedule'
 import { chainFrom, resolveTraceRef, sgId, traceIndexFor, traceRoute } from '../utils/trace'
 import { statusAudit } from '../utils/audit'
@@ -286,12 +286,14 @@ export function useIndicators(): {
 } {
   // The product list is edited in place (launch toggle), so `dataUpdatedAt` is the change signal, not the array identity.
   const { data: products, isLoading: l1, dataUpdatedAt } = useProducts()
-  const { data: rows, isLoading: l2 } = useVocRows()
+  const { data: rows, isLoading: l2 } = useVocDetail()
   const { data: trend, isLoading: l3 } = useNpsTrend()
+  // 26 Nov: the indicators follow the environment switch (and an environment manager's fixed environment), like every register
+  const { env } = useEnvScope()
   // oxlint-disable-next-line react-hooks/exhaustive-deps
   const data = useMemo(
-    () => (products && rows && trend ? liveIndicators(products, rows, trend, CES_SAMPLE) : undefined),
-    [products, rows, trend, dataUpdatedAt],
+    () => (products && rows && trend ? liveIndicators(products, rowsForScope(rows, env), trend, CES_SAMPLE) : undefined),
+    [products, rows, trend, env, dataUpdatedAt],
   )
   return { data, isLoading: l1 || l2 || l3 }
 }
@@ -598,7 +600,12 @@ export function useSetFixStatus() {
   const qc = useQueryClient()
   const { role } = useRole()
   return useMutation({
-    mutationFn: async (input: { id: string; status: CorrectiveActionStatus; byRole?: RoleId | 'system'; completion?: { note: string; doneOn: string; evidence?: string; by?: string } }) => {
+    mutationFn: async (input: {
+      id: string
+      status: CorrectiveActionStatus
+      byRole?: RoleId | 'system'
+      completion?: { note: string; doneOn: string; evidence?: string; by?: string }
+    }) => {
       await latency(LATENCY_MS)
       const fix = mock.MOCK_CORRECTIVE_ACTIONS.find((f) => f.id === input.id)
       if (!fix) throw new Error('Corrective action not found')
@@ -612,7 +619,11 @@ export function useSetFixStatus() {
       if (input.status === 'verification' && input.completion) {
         const byRole = input.byRole ?? role.id
         fix.completion = { ...input.completion, byRole, at: new Date().toISOString() }
-        fix.auditLog.push({ at: new Date().toISOString(), byRole, what: { en: `What was done: ${input.completion.note}`, ar: `ما الذي نُفذ: ${input.completion.note}` } })
+        fix.auditLog.push({
+          at: new Date().toISOString(),
+          byRole,
+          what: { en: `What was done: ${input.completion.note}`, ar: `ما الذي نُفذ: ${input.completion.note}` },
+        })
       }
       return fix
     },

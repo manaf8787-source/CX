@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { ArrowRight, Megaphone } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { useRole } from '@/auth/RoleContext'
 import { canAccessPath } from '@/auth/access'
@@ -48,12 +48,7 @@ export function PublicMentionsBrief() {
 
   return (
     <SectionCard
-      title={
-        <span className="inline-flex items-center gap-2">
-          <Megaphone aria-hidden className="size-4" />
-          {t('Public mentions', 'الإشارات العامة')}
-        </span>
-      }
+      title={t('Public mentions', 'الإشارات العامة')}
       description={t(
         `Comments on Facebook, Instagram, LinkedIn, Google and the app stores. ${mentions.length} in total.`,
         `تعليقات فيسبوك وإنستغرام ولينكد إن وGoogle ومتاجر التطبيقات. ${mentions.length} بالمجمل.`,

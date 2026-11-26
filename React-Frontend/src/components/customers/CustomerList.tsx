@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react'
+import { ExportButton } from '@/components/common/ExportButton'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import type { ColumnDef } from '@tanstack/react-table'
 import { toast } from 'sonner'
-import { ChevronRight, Crown, Download, Search, ThumbsDown, ThumbsUp } from 'lucide-react'
+import { ChevronRight, Crown, Search, ThumbsDown, ThumbsUp } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { useRole } from '@/auth/RoleContext'
 import { canViewCustomerNames, canViewMobiles } from '@/auth/permissions'
@@ -78,12 +79,19 @@ export function CustomerList() {
       }
       if (!needle) return true
       // Search only what this role may see: the Internal Audit and Marketing Lead can search the reference, never a name or a number.
-      const fields = [p.id, p.identity.crmContactId, names ? p.name : undefined, mobiles ? p.identity.mobile : undefined, names ? p.identity.emiratesId : undefined]
+      const fields = [
+        p.id,
+        p.identity.crmContactId,
+        names ? p.name : undefined,
+        mobiles ? p.identity.mobile : undefined,
+        names ? p.identity.emiratesId : undefined,
+      ]
       return fields.some((f) => f?.toLowerCase().includes(needle))
     })
   }, [persons, q, envFilter, typeFilter, sourceFilter, feedbackFilter, dateOn, from, to, facts, names, mobiles])
 
-  const fmtDate = (iso: string) => new Intl.DateTimeFormat(lang === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(iso))
+  const fmtDate = (iso: string) =>
+    new Intl.DateTimeFormat(lang === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(iso))
 
   const columns: ColumnDef<Person>[] = [
     {
@@ -138,7 +146,13 @@ export function CustomerList() {
       header: ({ column }) => <SortableHeader column={column}>{L(COPY.columns.lastContact)}</SortableHeader>,
       cell: ({ getValue }) => {
         const iso = getValue<string>()
-        return iso ? <bdi dir="ltr" className="tabular">{fmtDate(iso)}</bdi> : <span className="text-muted-foreground">–</span>
+        return iso ? (
+          <bdi dir="ltr" className="tabular">
+            {fmtDate(iso)}
+          </bdi>
+        ) : (
+          <span className="text-muted-foreground">–</span>
+        )
       },
     },
     {
@@ -195,7 +209,11 @@ export function CustomerList() {
       enableSorting: false,
       meta: { align: 'end' },
       cell: ({ row }) => (
-        <Link to={`/customers/${row.original.id}`} onClick={(e) => e.stopPropagation()} className="inline-flex items-center gap-0.5 rounded-xs text-sm font-medium text-foreground outline-hidden hover:underline">
+        <Link
+          to={`/customers/${row.original.id}`}
+          onClick={(e) => e.stopPropagation()}
+          className="inline-flex items-center gap-0.5 rounded-xs text-sm font-medium text-foreground outline-hidden hover:underline"
+        >
           {L(COPY.open)}
           <ChevronRight aria-hidden className="size-3.5 rtl:rotate-180" />
         </Link>
@@ -207,15 +225,23 @@ export function CustomerList() {
     const fbCol = L(COPY.columns.feedback)
     downloadCsv(
       'psi-people.csv',
-      peopleCsvRows(visible, role.id, lang, (id) => facts.lastContact.get(id), (id) => {
-        const f = facts.lastFeedback.get(id)
-        const c = facts.drifting.get(id)
-        return {
-          [fbCol]: f ? `${f.tone === 'positive' ? L(COPY.filters.feedbackPositive) : L(COPY.filters.feedbackNegative)} ${f.score}/10 (${f.at.slice(0, 10)})` : '',
-          [L(COPY.columns.openItems)]: facts.problems.get(id) ?? 0,
-          [L(COPY.columns.risk)]: c ? L(RUNAWAY_TYPE_LABEL[c.type]) : '',
-        }
-      }),
+      peopleCsvRows(
+        visible,
+        role.id,
+        lang,
+        (id) => facts.lastContact.get(id),
+        (id) => {
+          const f = facts.lastFeedback.get(id)
+          const c = facts.drifting.get(id)
+          return {
+            [fbCol]: f
+              ? `${f.tone === 'positive' ? L(COPY.filters.feedbackPositive) : L(COPY.filters.feedbackNegative)} ${f.score}/10 (${f.at.slice(0, 10)})`
+              : '',
+            [L(COPY.columns.openItems)]: facts.problems.get(id) ?? 0,
+            [L(COPY.columns.risk)]: c ? L(RUNAWAY_TYPE_LABEL[c.type]) : '',
+          }
+        },
+      ),
     )
     toast(L(COPY.exportToast))
   }
@@ -232,10 +258,9 @@ export function CustomerList() {
           <span className="tabular t-body-s" aria-live="polite">
             {L(COPY.count(visible.length))}
           </span>
-          <Button variant="outline" size="sm" onClick={exportList} disabled={!visible.length}>
-            <Download aria-hidden />
+          <ExportButton variant="outline" size="sm" onExport={exportList} disabled={!visible.length} what={{ en: 'the people list', ar: 'قائمة الأشخاص' }}>
             {L(COPY.export)}
-          </Button>
+          </ExportButton>
         </span>
       }
     >
@@ -251,14 +276,26 @@ export function CustomerList() {
           <>
             <div data-tour="customers-search" className="relative w-full sm:w-72">
               <Search aria-hidden className="pointer-events-none absolute start-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-              <Input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={searchLabel} aria-label={t('Search this list', 'ابحث في هذه القائمة')} className="h-9 ps-9" />
+              <Input
+                type="search"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder={searchLabel}
+                aria-label={t('Search this list', 'ابحث في هذه القائمة')}
+                className="h-9 ps-9"
+              />
             </div>
             {fixed ? (
               <StatusBadge tone="info">
                 {t('Scoped to your environment:', 'محصور ببيئتك:')} {L(ENVIRONMENTS.find((e) => e.id === fixed)!.name)}
               </StatusBadge>
             ) : (
-              <FilterSelect label={L(COPY.columns.environment)} value={envFilter} onChange={(v) => setEnvFilter(v as Filter<EnvId>)} allLabel={L(COPY.filters.environment)}>
+              <FilterSelect
+                label={L(COPY.columns.environment)}
+                value={envFilter}
+                onChange={(v) => setEnvFilter(v as Filter<EnvId>)}
+                allLabel={L(COPY.filters.environment)}
+              >
                 {envChoices.map((e) => (
                   <SelectItem key={e.id} value={e.id}>
                     {L(e.name)}
@@ -266,21 +303,36 @@ export function CustomerList() {
                 ))}
               </FilterSelect>
             )}
-            <FilterSelect label={L(COPY.columns.type)} value={typeFilter} onChange={(v) => setTypeFilter(v as Filter<PersonSegment>)} allLabel={L(COPY.filters.type)}>
+            <FilterSelect
+              label={L(COPY.columns.type)}
+              value={typeFilter}
+              onChange={(v) => setTypeFilter(v as Filter<PersonSegment>)}
+              allLabel={L(COPY.filters.type)}
+            >
               {SEGMENTS.map((s) => (
                 <SelectItem key={s} value={s}>
                   {L(SEGMENT_LABEL[s])}
                 </SelectItem>
               ))}
             </FilterSelect>
-            <FilterSelect label={L(COPY.columns.source)} value={sourceFilter} onChange={(v) => setSourceFilter(v as Filter<LeadSource>)} allLabel={L(COPY.filters.source)}>
+            <FilterSelect
+              label={L(COPY.columns.source)}
+              value={sourceFilter}
+              onChange={(v) => setSourceFilter(v as Filter<LeadSource>)}
+              allLabel={L(COPY.filters.source)}
+            >
               {SOURCES.map((s) => (
                 <SelectItem key={s} value={s}>
                   {L(SOURCE_LABEL[s])}
                 </SelectItem>
               ))}
             </FilterSelect>
-            <FilterSelect label={L(COPY.columns.feedback)} value={feedbackFilter} onChange={(v) => setFeedbackFilter(v as FeedbackFilter)} allLabel={L(COPY.filters.feedback)}>
+            <FilterSelect
+              label={L(COPY.columns.feedback)}
+              value={feedbackFilter}
+              onChange={(v) => setFeedbackFilter(v as FeedbackFilter)}
+              allLabel={L(COPY.filters.feedback)}
+            >
               <SelectItem value="positive">{L(COPY.filters.feedbackPositive)}</SelectItem>
               <SelectItem value="negative">{L(COPY.filters.feedbackNegative)}</SelectItem>
               <SelectItem value="none">{L(COPY.filters.feedbackNone)}</SelectItem>
@@ -295,9 +347,25 @@ export function CustomerList() {
                   <SelectItem value="feedback">{L(COPY.filters.dateFeedback)}</SelectItem>
                 </SelectContent>
               </Select>
-              <Input type="date" value={from} max={to || undefined} onChange={(e) => setFrom(e.target.value)} aria-label={L(COPY.filters.from)} className="h-9 w-40" dir="ltr" />
+              <Input
+                type="date"
+                value={from}
+                max={to || undefined}
+                onChange={(e) => setFrom(e.target.value)}
+                aria-label={L(COPY.filters.from)}
+                className="h-9 w-40"
+                dir="ltr"
+              />
               <span className="text-muted-foreground">–</span>
-              <Input type="date" value={to} min={from || undefined} onChange={(e) => setTo(e.target.value)} aria-label={L(COPY.filters.to)} className="h-9 w-40" dir="ltr" />
+              <Input
+                type="date"
+                value={to}
+                min={from || undefined}
+                onChange={(e) => setTo(e.target.value)}
+                aria-label={L(COPY.filters.to)}
+                className="h-9 w-40"
+                dir="ltr"
+              />
             </span>
             {(feedbackFilter !== 'all' || from || to) && (
               <Button
@@ -316,18 +384,38 @@ export function CustomerList() {
         }
       />
       <p className="mt-3 text-xs text-muted-foreground" aria-live="polite">
-        {L(COPY.exportNote(visible.length, !!(q || envFilter !== 'all' || typeFilter !== 'all' || sourceFilter !== 'all' || feedbackFilter !== 'all' || from || to)))}
+        {L(
+          COPY.exportNote(
+            visible.length,
+            !!(q || envFilter !== 'all' || typeFilter !== 'all' || sourceFilter !== 'all' || feedbackFilter !== 'all' || from || to),
+          ),
+        )}
       </p>
       {!names && (
         <InlineNote className="mt-4">
-          {t('Names and mobiles are not shown to this role: people appear by reference (for example P-005), in the list and in the file.', 'الأسماء وأرقام الجوال لا تظهر لهذا الدور: يظهر الأشخاص بمرجع (مثل P-005)، في القائمة وفي الملف.')}
+          {t(
+            'Names and mobiles are not shown to this role: people appear by reference (for example P-005), in the list and in the file.',
+            'الأسماء وأرقام الجوال لا تظهر لهذا الدور: يظهر الأشخاص بمرجع (مثل P-005)، في القائمة وفي الملف.',
+          )}
         </InlineNote>
       )}
     </SectionCard>
   )
 }
 
-function FilterSelect({ label, value, onChange, allLabel, children }: { label: string; value: string; onChange: (v: string) => void; allLabel: string; children: React.ReactNode }) {
+function FilterSelect({
+  label,
+  value,
+  onChange,
+  allLabel,
+  children,
+}: {
+  label: string
+  value: string
+  onChange: (v: string) => void
+  allLabel: string
+  children: React.ReactNode
+}) {
   return (
     <Select value={value} onValueChange={onChange}>
       <SelectTrigger aria-label={label} className="h-9 min-w-40">

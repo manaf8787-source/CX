@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
+import { ExportButton } from '@/components/common/ExportButton'
 import { toast } from 'sonner'
-import { Download, Trash2 } from 'lucide-react'
+import { Trash2 } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { useRole } from '@/auth/RoleContext'
 import { canManageUsers } from '@/auth/access'
@@ -34,6 +35,9 @@ const KIND_GROUP: Record<AuditKind, Exclude<KindFilter, 'all'>> = {
   user_reactivated: 'admin',
   invite_withdrawn: 'admin',
   users_reset: 'admin',
+  export_granted: 'admin',
+  export_revoked: 'admin',
+  data_exported: 'actions',
   action: 'actions',
 }
 
@@ -159,10 +163,9 @@ export default function AuditLog() {
           'كل تسجيل دخول وكل صفحة فُتحت وكل تغيير إداري، لكل شخص، مع التاريخ واليوم والساعة. الأحدث أولاً. لا شيء هنا قابل للتعديل.',
         )}
         actions={
-          <Button variant="outline" onClick={exportCsv} disabled={filtered.length === 0}>
-            <Download aria-hidden />
+          <ExportButton variant="outline" onExport={exportCsv} disabled={filtered.length === 0} what={{ en: 'the audit log', ar: 'سجل التدقيق' }}>
             {t('Download CSV', 'تنزيل CSV')}
-          </Button>
+          </ExportButton>
         }
       />
 

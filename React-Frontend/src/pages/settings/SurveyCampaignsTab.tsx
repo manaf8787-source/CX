@@ -54,7 +54,8 @@ export function SurveyCampaignsTab({ canCreate }: { canCreate: boolean }) {
   const campaigns = useCampaigns()
   const [view, setView] = useState<View>('active')
   const [query, setQuery] = useState('')
-  const [creating, setCreating] = useState(false)
+  // 26 Nov (owner): Home's "Create survey" opens this tab with the form already open (?new=1)
+  const [creating, setCreating] = useState(() => new URLSearchParams(window.location.search).get('new') === '1')
   const [openId, setOpenId] = useState<string | null>(null)
 
   const shown = useMemo(
@@ -464,4 +465,3 @@ function CampaignForm({
     </div>
   )
 }
-

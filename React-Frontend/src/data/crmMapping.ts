@@ -111,6 +111,8 @@ export const CRM_MAPPING_ROWS: MappingRow[] = [
   row('stg', 'Contract signed', 'deal'),
   row('stg', 'Closed won', 'deal'),
   row('stg', 'Closed lost', 'lost'),
+  // 26 Nov (owner): PSI Assets is mostly rentals; a signed lease is a completed transaction and opens the NPS like a sale
+  row('stg', 'Lease contract signed (PSI Assets)', 'deal'),
 
   row('act', 'Calls', 'call'),
   row('act', 'Incoming Call – Communication', 'call'),
@@ -120,7 +122,9 @@ export const CRM_MAPPING_ROWS: MappingRow[] = [
   row('act', 'Meetings and viewings', 'view'),
   row('act', 'Offers and negotiation', 'offer'),
   row('act', 'Closing', 'deal'),
+  row('act', 'Leasing · Tenancy contract signed (PSI Assets)', 'deal'),
   row('act', 'After Sales · Handover Workflow', 'handover'),
+  row('act', 'Move-in / key handover (PSI Assets)', 'handover'),
   row('act', 'Client Complaint Category', 'complaint'),
   row('act', 'Lease Renewal', 'renewal'),
   row('act', 'Renewal Notice', 'renewal'),

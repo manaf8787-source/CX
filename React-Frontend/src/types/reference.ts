@@ -1,4 +1,4 @@
-import type { Bi, ProductId } from './common'
+import type { Bi, EnvId, ProductId } from './common'
 import type { Access, RoleId } from './roles'
 
 // --- Standards register (Settings and reference §C) -----------------------
@@ -100,6 +100,19 @@ export interface VocRow {
   passives: number
   detractors: number
   csat: number
+}
+
+/** The completed transaction an NPS answer follows (data/npsMilestones.ts). 26 Nov: a signed lease is one, like a sale. */
+export type NpsMilestone = 'sale' | 'lease' | 'renewal' | 'handover'
+
+/**
+ * One survey-answer row at the grain the indicators need: product, channel, CRM environment and completed transaction.
+ * `envId` is unset for a product that has no CRM environment (PSI Club, Tour Estate, PSI Events): those rows show in every scope.
+ * `VocRow` is this summed over environment and milestone (the per-channel views).
+ */
+export interface VocDetailRow extends VocRow {
+  envId?: EnvId
+  milestone: NpsMilestone
 }
 
 export interface VocComment {

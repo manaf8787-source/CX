@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { CalendarClock, CheckCircle2, Clock, Download, FolderOpen, Send } from 'lucide-react'
+import { ExportButton } from '@/components/common/ExportButton'
+import { CalendarClock, CheckCircle2, Clock, FolderOpen, Send } from 'lucide-react'
 import { toast } from 'sonner'
 import { useI18n } from '@/i18n'
 import { useNow } from '@/hooks/useNow'
@@ -71,10 +72,9 @@ export default function MonthlyPack() {
           description={t('One page for the management meeting.', 'صفحة واحدة لاجتماع الإدارة.')}
           actions={
             <>
-              <Button variant="outline" size="sm" onClick={exportCsv}>
-                <Download aria-hidden />
+              <ExportButton variant="outline" size="sm" onExport={exportCsv} what={{ en: 'the monthly pack', ar: 'الحزمة الشهرية' }}>
                 {t('Download CSV', 'تنزيل CSV')}
-              </Button>
+              </ExportButton>
               {role.id === 'cxmgr' && (
                 <Button
                   size="sm"
@@ -103,7 +103,13 @@ export default function MonthlyPack() {
 
       <div className="grid grid-cols-2 gap-(--grid-gap) xl:grid-cols-4">
         <KpiTile label={t('Open actions', 'الإجراءات المفتوحة')} value={open.length} icon={<FolderOpen />} loading={actionsLoading} />
-        <KpiTile label={t('Late verification', 'تحقق متأخر')} value={late.length} icon={<Clock />} accent={late.length ? 'var(--destructive)' : undefined} loading={actionsLoading} />
+        <KpiTile
+          label={t('Late verification', 'تحقق متأخر')}
+          value={late.length}
+          icon={<Clock />}
+          accent={late.length ? 'var(--destructive)' : undefined}
+          loading={actionsLoading}
+        />
         <KpiTile label={t('Awaiting 60-day check', 'بانتظار فحص 60 يوماً')} value={awaitingCheck.length} icon={<CalendarClock />} loading={actionsLoading} />
         <KpiTile label={t('Closed total', 'إجمالي المغلقة')} value={closedTotal} icon={<CheckCircle2 />} loading={actionsLoading} />
       </div>
@@ -122,7 +128,8 @@ export default function MonthlyPack() {
       </SectionCard>
 
       <SectionCard
-        term="60-day check" title={t('Did past corrective actions work?', 'هل نجحت الإجراءات التصحيحية السابقة؟')}
+        term="60-day check"
+        title={t('Did past corrective actions work?', 'هل نجحت الإجراءات التصحيحية السابقة؟')}
         description={t(
           'A before/after comparison is a signal, not proof. Real analysis needs two to three months of closed cases.',
           'المقارنة بين قبل وبعد مؤشر وليست دليلاً قاطعاً. التحليل الحقيقي يحتاج شهرين إلى ثلاثة من الحالات المغلقة.',

@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
+import { ExportButton } from '@/components/common/ExportButton'
 import { Link } from 'react-router-dom'
 import { Bar, BarChart, CartesianGrid, Tooltip, XAxis, YAxis } from 'recharts'
-import { AlertTriangle, CheckCircle2, Clock, Download, Inbox, MessageCircle, Reply, ShieldAlert, TrendingUp } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Clock, Inbox, MessageCircle, Reply, ShieldAlert, TrendingUp } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { Bad, Good, Rate } from '@/components/common/Trend'
 import { useNow } from '@/hooks/useNow'
@@ -16,7 +17,6 @@ import { usePublicMentions } from '@/services/referenceQueries'
 import { useRules } from '@/services/queriesV40'
 import { SourceBadge } from '@/components/customers/SourceBadge'
 import { downloadCsv } from '@/utils/csv'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Segmented } from '@/components/ui/segmented'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -28,7 +28,6 @@ import { SectionCard } from '@/components/common/SectionCard'
 import { StatusBadge } from '@/components/common/StatusBadge'
 import { ChartTooltip, ChartWell, ChartLegend } from '@/components/common/charts'
 import { chartAxis, chartBar, chartBarMuted, chartColor, chartCursorBar, chartGrid } from '@/components/common/chartTheme'
-import { ViewOnlyNotice } from '@/pages/settings/SubPageHeader'
 
 /**
  * The performance report, one component for two pages: the CX manager's team report (his three CX team members, for appraisal) and
@@ -37,12 +36,11 @@ import { ViewOnlyNotice } from '@/pages/settings/SubPageHeader'
  */
 interface Props {
   scope: 'team' | 'all'
-  canExport: boolean
 }
 
 const fmtPct = (n: number | null) => (n === null ? '—' : `${n}%`)
 
-export function PerformanceReport({ scope, canExport }: Props) {
+export function PerformanceReport({ scope }: Props) {
   const { t, L, lang } = useI18n()
   const now = useNow()
   const { log } = useAuditActor()
@@ -312,25 +310,16 @@ export function PerformanceReport({ scope, canExport }: Props) {
         title={title}
         description={description}
         actions={
-          canExport && (
-            <>
-              <Button variant="outline" onClick={exportCases}>
-                <Download aria-hidden />
-                {t('Export every case', 'تصدير كل الحالات')}
-              </Button>
-              <Button onClick={exportSummary}>
-                <Download aria-hidden />
-                {t('Export summary', 'تصدير الملخص')}
-              </Button>
-            </>
-          )
+          <>
+            <ExportButton variant="outline" onExport={exportCases} what={{ en: 'every performance case', ar: 'كل حالات الأداء' }}>
+              {t('Export every case', 'تصدير كل الحالات')}
+            </ExportButton>
+            <ExportButton onExport={exportSummary} what={{ en: 'the performance summary', ar: 'ملخص الأداء' }}>
+              {t('Export summary', 'تصدير الملخص')}
+            </ExportButton>
+          </>
         }
       />
-      {!canExport && (
-        <ViewOnlyNotice>
-          {t('You can read this dashboard. Exporting is for the Super admin and the CX manager.', 'يمكنك قراءة هذه اللوحة. التصدير للمدير العام ومدير CX.')}
-        </ViewOnlyNotice>
-      )}
 
       {lateFixes.length > 0 && (
         <SectionCard

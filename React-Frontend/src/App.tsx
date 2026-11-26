@@ -24,6 +24,7 @@ const CloseTheLoop = lazy(pageLoaders.closeTheLoop)
 const Personas = lazy(pageLoaders.personas)
 const SurveysHub = lazy(pageLoaders.surveys)
 const ProductPage = lazy(pageLoaders.productPage)
+const SurveyAnswers = lazy(pageLoaders.surveyAnswers)
 
 const ActionsLayout = lazy(pageLoaders.actionsLayout)
 const Corrective = lazy(pageLoaders.corrective)
@@ -126,6 +127,8 @@ export default function App() {
                       <Route path="/surveys" element={<Navigate to="/settings/surveys" replace />} />
                       <Route path="/intelligent-cx-team" element={<Navigate to="/settings/ai-team?tab=how" replace />} />
                       <Route path="/products/:productId" element={<ProductPage />} />
+                      {/* 26 Nov: every survey answer behind a Home tile; opened from the tile, no menu entry */}
+                      <Route path="/products/:productId/answers" element={<SurveyAnswers />} />
                       {/* v43: the super admin's user directory (the CX manager reads it). */}
                       <Route path="/admin/users" element={<Users />} />
                       <Route path="/admin/audit" element={<AuditLog />} />

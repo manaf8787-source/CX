@@ -18,6 +18,9 @@ export type AuditKind =
   | 'user_reactivated'
   | 'invite_withdrawn'
   | 'users_reset'
+  | 'export_granted'
+  | 'export_revoked'
+  | 'data_exported'
   | 'action'
 
 export interface AuditEntry {
@@ -46,6 +49,9 @@ export const AUDIT_KIND_LABEL: Record<AuditKind, Bi> = {
   user_reactivated: { en: 'Reactivated a user', ar: 'أعاد تفعيل مستخدم' },
   invite_withdrawn: { en: 'Withdrew an invitation', ar: 'سحب دعوة' },
   users_reset: { en: 'Reset the sample users', ar: 'أعاد المستخدمين النموذجيين' },
+  export_granted: { en: 'Gave export permission', ar: 'منح صلاحية التصدير' },
+  export_revoked: { en: 'Removed export permission', ar: 'سحب صلاحية التصدير' },
+  data_exported: { en: 'Exported data', ar: 'صدّر بيانات' },
   action: { en: 'Took an action', ar: 'نفّذ إجراءً' },
 }
 
@@ -93,7 +99,15 @@ export interface Actor {
 export function audit(actor: Actor, kind: AuditKind, detail: Bi, path: string = typeof window !== 'undefined' ? window.location.pathname : '') {
   // the same person, event and page within two seconds is one event (React's development double effect, a re-render, a double click)
   const last = entries[0]
-  if (last && last.userId === actor.userId && last.kind === kind && last.path === path && last.detail.en === detail.en && Date.now() - new Date(last.at).getTime() < 2000) return
+  if (
+    last &&
+    last.userId === actor.userId &&
+    last.kind === kind &&
+    last.path === path &&
+    last.detail.en === detail.en &&
+    Date.now() - new Date(last.at).getTime() < 2000
+  )
+    return
   const entry: AuditEntry = {
     id: `a-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
     at: new Date().toISOString(),

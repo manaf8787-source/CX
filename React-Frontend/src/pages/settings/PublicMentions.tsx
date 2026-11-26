@@ -358,7 +358,7 @@ function MentionsTab() {
         </SectionCard>
       )}
       <Sheet open={!!openMention} onOpenChange={(v) => !v && setOpen(null)}>
-        <SheetContent className="overflow-y-auto sm:max-w-[38rem]">
+        <SheetContent className="overflow-y-auto sm:max-w-[40rem]">
           {openMention && (
             <>
               <SheetHeader>
@@ -368,7 +368,7 @@ function MentionsTab() {
                   {openMention.environment && <> · {L(envNameFromShort(openMention.environment))}</>}
                 </SheetDescription>
               </SheetHeader>
-              <div className="px-5 pb-5">
+              <div className="px-5 pt-1 pb-6">
                 <MentionDetail key={openMention.id} m={openMention} canReply={canReply} onDone={() => setOpen(null)} />
               </div>
             </>
@@ -432,70 +432,68 @@ function MentionDetail({ m, canReply, onDone }: { m: PublicMention; canReply: bo
   const byMe = me ? { en: me.name, ar: me.name } : role.name
 
   return (
-    <div className="flex flex-col gap-5">
-      <ClassificationBox m={m} />
-      <div className="flex flex-col gap-3">
-        <div className="well flex flex-col gap-1.5">
-          <span className="t-small text-muted-foreground">{t('Where it was posted', 'أين نُشرت')}</span>
+    <div className="flex flex-col gap-6">
+      {/* 26 Nov (owner): the panel redesigned: the comment first, then what it is about, who has it, and the reply; one style of section */}
+      <section className="well flex flex-col gap-3 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <span className="flex flex-wrap items-center gap-2">
             <SourceBadge channel={m.platform} />
-            <span className="font-medium text-foreground">{post.page}</span>
+            <span className="text-sm font-medium text-foreground">{post.page}</span>
           </span>
-          {post.post ? (
-            <span className="text-sm">
-              {t('Comment on the post: ', 'تعليق على المنشور: ')}
-              <span className="text-foreground">“{L(post.post)}”</span>
-            </span>
-          ) : (
-            <span className="text-sm">
-              {m.platform === 'google'
-                ? t('A review on the branch’s Google listing.', 'مراجعة على صفحة الفرع في Google.')
-                : t('A review of the app in the store.', 'مراجعة للتطبيق في المتجر.')}
-            </span>
-          )}
-          <a
-            href={post.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-foreground underline underline-offset-4"
-          >
-            {t('Open the original post', 'افتح المنشور الأصلي')}
-            <ExternalLink aria-hidden className="size-3.5" />
-          </a>
+          <StatusBadge tone={TONE_BADGE[tone]}>{L(TONE_LABEL[tone])}</StatusBadge>
+        </div>
+        {post.post ? (
           <span className="text-xs text-muted-foreground">
-            {t(
-              'Sample link in the prototype; it opens the real post once the social feed is connected.',
-              'رابط تجريبي في النموذج؛ يفتح المنشور الحقيقي عند ربط مصدر المنصات.',
-            )}
+            {t('Comment on the post: ', 'تعليق على المنشور: ')}“{L(post.post)}”
           </span>
-        </div>
-        <div className="flex flex-col gap-2">
-          <span className="t-small text-muted-foreground">{t('Comments on this post', 'التعليقات على هذا المنشور')}</span>
-          <ul className="flex flex-col gap-2">
-            {post.thread.map((c, i) => (
-              <li key={i} className={cn('rounded-xl border px-3 py-2 text-sm', i === 0 && 'border-foreground/30', c.isPsi && 'ms-6 bg-muted/50')}>
-                <span className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-                  <span className={cn(c.isPsi && 'font-medium text-foreground')}>
-                    {i === 0 ? t('This mention', 'هذه الإشارة') : c.isPsi ? t('PSI reply', 'رد PSI') : c.who}
-                  </span>
-                  {c.hoursAfter > 0 && <span className="tabular">{t(`${c.hoursAfter} h later`, `بعد ${c.hoursAfter} ساعة`)}</span>}
+        ) : (
+          <span className="text-xs text-muted-foreground">
+            {m.platform === 'google'
+              ? t('A review on the branch’s Google listing.', 'مراجعة على صفحة الفرع في Google.')
+              : t('A review of the app in the store.', 'مراجعة للتطبيق في المتجر.')}
+          </span>
+        )}
+        <ul className="flex flex-col gap-2">
+          {post.thread.map((c, i) => (
+            <li
+              key={i}
+              className={cn(
+                'flex flex-col gap-1 rounded-xl px-3.5 py-2.5',
+                i === 0 ? 'bg-card text-base shadow-hairline' : c.isPsi ? 'ms-8 bg-card/60 text-sm' : 'bg-card/60 text-sm',
+              )}
+            >
+              <span className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                <span className={cn(c.isPsi && 'font-medium text-foreground')}>
+                  {i === 0 ? t('The comment', 'التعليق') : c.isPsi ? t('PSI reply', 'رد PSI') : c.who}
                 </span>
-                <span className="text-foreground">{c.text}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
+                {c.hoursAfter > 0 && <span className="tabular">{t(`${c.hoursAfter} h later`, `بعد ${c.hoursAfter} ساعة`)}</span>}
+              </span>
+              <span className="text-foreground">{c.text}</span>
+            </li>
+          ))}
+        </ul>
+        <a
+          href={post.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-foreground underline underline-offset-4"
+        >
+          {t('Open the original post', 'افتح المنشور الأصلي')}
+          <ExternalLink aria-hidden className="size-3.5" />
+        </a>
+      </section>
+
+      <ClassificationBox m={m} />
 
       <div className="flex flex-col gap-3">
         {role.id === 'cxmgr' && !m.replied && (
-          <label className="flex flex-wrap items-center gap-2 text-sm">
-            {t('Assigned to', 'مُسندة إلى')}
+          <label className="flex flex-col gap-1.5">
+            <span className="t-small-strong">{t('Assigned to', 'مُسندة إلى')}</span>
             <Select
               value={m.assignee ?? ''}
               onValueChange={(id) => assign.mutate({ id: m.id, userId: id }, { onSuccess: () => toast(t('Reassigned.', 'أُعيد الإسناد.')) })}
             >
-              <SelectTrigger className="h-9 min-w-44" aria-label={t('Assigned to', 'مُسندة إلى')}>
+              <SelectTrigger size="sm" className="w-full" aria-label={t('Assigned to', 'مُسندة إلى')}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -576,10 +574,10 @@ function MentionDetail({ m, canReply, onDone }: { m: PublicMention; canReply: bo
           )
         ) : canReply ? (
           <>
-            <span className="t-small text-muted-foreground">{t('Your reply', 'ردك')}</span>
+            <span className="t-small-strong">{t('Your reply', 'ردك')}</span>
             <div className="grid gap-2 sm:grid-cols-2">
               <Select onValueChange={(id) => setText(fillText(L(lib.scripts.find((s) => s.id === id)!.text), values))}>
-                <SelectTrigger aria-label={t('Use a script', 'استخدم رداً جاهزاً')}>
+                <SelectTrigger size="sm" className="w-full" aria-label={t('Use a script', 'استخدم رداً جاهزاً')}>
                   <SelectValue placeholder={t('Use a reply script', 'استخدم رداً جاهزاً')} />
                 </SelectTrigger>
                 <SelectContent>
@@ -591,7 +589,7 @@ function MentionDetail({ m, canReply, onDone }: { m: PublicMention; canReply: bo
                 </SelectContent>
               </Select>
               <Select onValueChange={(id) => setText((x) => `${x ? `${x}\n\n` : ''}${fillText(L(lib.questions.find((q) => q.id === id)!.answer), values)}`)}>
-                <SelectTrigger aria-label={t('Add a common answer', 'أضف إجابة شائعة')}>
+                <SelectTrigger size="sm" className="w-full" aria-label={t('Add a common answer', 'أضف إجابة شائعة')}>
                   <SelectValue placeholder={t('Add a common answer', 'أضف إجابة شائعة')} />
                 </SelectTrigger>
                 <SelectContent>
@@ -616,13 +614,7 @@ function MentionDetail({ m, canReply, onDone }: { m: PublicMention; canReply: bo
                 `لا تكتب اسماً أو رقماً أو سعراً في رد عام. "انشر" يضع الرد على ${platformName} تحت هذا التعليق باسم صفحة PSI؛ ويمكنك تعديله بعدها. في النموذج لا يُنشر شيء فعلاً.`,
               )}
             </p>
-            <div className="flex flex-wrap gap-2">
-              <Button size="sm" variant="outline" asChild>
-                <a href={post.url} target="_blank" rel="noopener noreferrer">
-                  <ExternalLink aria-hidden />
-                  {t('Open the post', 'افتح المنشور')}
-                </a>
-              </Button>
+            <div className="flex flex-wrap justify-end gap-2">
               <Button
                 size="sm"
                 disabled={!text.trim() || markReplied.isPending}

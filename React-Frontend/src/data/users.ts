@@ -28,6 +28,11 @@ export interface PortalUser {
   inviteToken?: string
   /** Who sent the invitation (a user id). */
   invitedBy?: string
+  /**
+   * 26 Nov (owner): "Export data" is a privilege of its own, given per person by the Super admin or an Admin, never by role.
+   * The export buttons show on every page for everyone; only a person with this switch on can use them. Off by default.
+   */
+  canExport?: boolean
 }
 
 const STORAGE_KEY = 'psicx.users'
@@ -37,7 +42,16 @@ const SEED_DATE = '2026-11-19T07:00:00.000Z'
 const ADDED_SEED_IDS = ['u-cxteam2', 'u-cxteam3', 'u-admin2', 'u-viewer', 'u-env2', 'u-env3', 'u-env4', 'u-salessupport', 'u-hrdir', 'u-hrspec']
 
 export const SEED_USERS: PortalUser[] = [
-  { id: 'u-admin', email: 'admin@psi.sample', name: 'Super admin', roleId: 'admin', status: 'active', invitedAt: SEED_DATE, activatedAt: SEED_DATE },
+  {
+    id: 'u-admin',
+    email: 'admin@psi.sample',
+    name: 'Super admin',
+    roleId: 'admin',
+    status: 'active',
+    invitedAt: SEED_DATE,
+    activatedAt: SEED_DATE,
+    canExport: true,
+  },
   {
     id: 'u-admin2',
     email: 'admin2@psi.sample',
@@ -65,6 +79,7 @@ export const SEED_USERS: PortalUser[] = [
     name: 'CX manager',
     roleId: 'cxmgr',
     status: 'active',
+    canExport: true,
     invitedAt: SEED_DATE,
     activatedAt: SEED_DATE,
     invitedBy: 'u-admin',
@@ -239,7 +254,10 @@ function read(): PortalUser[] {
           'u-env2': ['Abu Dhabi environment manager', 'Firas'],
           'u-env3': ['PSI Assets environment manager', 'Niveen'],
         }
-        const renamed = parsed.map((u) => (NAMES[u.id] && u.name === NAMES[u.id][0] ? { ...u, name: NAMES[u.id][1] } : u))
+        const renamed = parsed
+          .map((u) => (NAMES[u.id] && u.name === NAMES[u.id][0] ? { ...u, name: NAMES[u.id][1] } : u))
+          // a directory stored before the export privilege (26 Nov) takes the sample default for it once
+          .map((u) => ('canExport' in u ? u : { ...u, canExport: SEED_USERS.find((x) => x.id === u.id)?.canExport ?? false }))
         return [...renamed, ...extra]
       }
     }
@@ -338,6 +356,11 @@ export function setUserRole(id: string, roleId: RoleId, customRoleId?: string, e
   )
 }
 
+/** Gives or takes away the "Export data" privilege of one person (Super admin or Admin; recorded in the audit log by the page). */
+export function setUserExport(id: string, on: boolean) {
+  write(users.map((u) => (u.id === id ? { ...u, canExport: on } : u)))
+}
+
 export function setUserStatus(id: string, status: 'active' | 'disabled') {
   write(users.map((u) => (u.id === id ? { ...u, status } : u)))
 }
@@ -374,4 +397,3 @@ export function inviteLink(user: PortalUser): string {
 export function useUsers(): PortalUser[] {
   return useSyncExternalStore(subscribe, listUsers, listUsers)
 }
-

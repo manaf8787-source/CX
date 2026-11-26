@@ -1,4 +1,5 @@
 import { latency, mock } from './mockStore'
+import { buildSurveyResponses, type SurveyResponse } from './surveyResponses'
 import { fixTitle } from '@/data/fixProblem'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { INTERVIEW_OUTCOME_LABEL, REASON_CODE_LABEL, recoveryStatus } from '../utils/closeTheLoop'
@@ -224,6 +225,18 @@ async function fetchMsAssignments() {
 async function fetchVocRows() {
   await latency(LATENCY_MS)
   return mock.MOCK_VOC_ROWS
+}
+
+async function fetchVocDetail() {
+  await latency(LATENCY_MS)
+  return mock.MOCK_VOC_DETAIL
+}
+
+let responsesCache: SurveyResponse[] | null = null
+async function fetchSurveyResponses() {
+  await latency(LATENCY_MS)
+  responsesCache ??= buildSurveyResponses(mock.MOCK_VOC_DETAIL)
+  return responsesCache
 }
 
 async function fetchVocComments() {
@@ -738,6 +751,10 @@ export const useMsScenarios = () => useQuery({ queryKey: ['ms-scenarios'], query
 export const useMsShoppers = () => useQuery({ queryKey: ['ms-shoppers'], queryFn: fetchMsShoppers })
 export const useMsAssignments = () => useQuery({ queryKey: ['ms-assignments'], queryFn: fetchMsAssignments })
 export const useVocRows = () => useQuery({ queryKey: ['voc-rows'], queryFn: fetchVocRows })
+/** Survey answers by environment and completed transaction (sale, lease, renewal, handover): the indicators read these. */
+/** Every survey answer, one row each (the table behind the NPS, CSAT and CES tiles). */
+export const useSurveyResponses = () => useQuery({ queryKey: ['survey-responses'], queryFn: fetchSurveyResponses, staleTime: Infinity })
+export const useVocDetail = () => useQuery({ queryKey: ['voc-detail'], queryFn: fetchVocDetail })
 export const useVocComments = () => useQuery({ queryKey: ['voc-comments'], queryFn: fetchVocComments })
 export const useRulesConfig = () => useQuery({ queryKey: ['rules-config'], queryFn: fetchRulesConfig })
 export const useAiAccessMatrix = () => useQuery({ queryKey: ['ai-access-matrix'], queryFn: fetchAiAccessMatrix })

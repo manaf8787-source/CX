@@ -12,7 +12,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { ErrorState } from '@/components/common/ErrorState'
 import { LoadingState } from '@/components/common/LoadingState'
-import { ProposedBadge } from '@/components/common/ProposedBadge'
 import { SectionCard } from '@/components/common/SectionCard'
 import { StatusBadge } from '@/components/common/StatusBadge'
 import { IN_CARD, SubPageHeader, ViewOnlyNotice } from './SubPageHeader'
@@ -46,7 +45,12 @@ export default function CrmMapping() {
       <SubPageHeader title={L(COPY.title)} description={L(COPY.intro)} />
 
       {!canEdit && (
-        <ViewOnlyNotice>{t('View only. The CX manager and the Internal Audit and Marketing Lead change the mapping.', 'للعرض فقط. مدير CX ومدير التدقيق الداخلي والتسويق يغيّران الربط.')}</ViewOnlyNotice>
+        <ViewOnlyNotice>
+          {t(
+            'View only. The CX manager and the Internal Audit and Marketing Lead change the mapping.',
+            'للعرض فقط. مدير CX ومدير التدقيق الداخلي والتسويق يغيّران الربط.',
+          )}
+        </ViewOnlyNotice>
       )}
 
       {isError ? (
@@ -72,10 +76,19 @@ export default function CrmMapping() {
                 contentClassName={IN_CARD}
                 description={
                   kind === 'src'
-                    ? t(`${counts.sources.crm} CRM media values shown, ${counts.sources.portal} portal sources.`, `${counts.sources.crm} قيمة وسيط من CRM معروضة، و${counts.sources.portal} مصادر في البورتال.`)
+                    ? t(
+                        `${counts.sources.crm} CRM media values shown, ${counts.sources.portal} portal sources.`,
+                        `${counts.sources.crm} قيمة وسيط من CRM معروضة، و${counts.sources.portal} مصادر في البورتال.`,
+                      )
                     : kind === 'stg'
-                      ? t(`${counts.stages.crm} CRM lead stages shown, ${counts.stages.portal} portal funnel stages.`, `${counts.stages.crm} مرحلة ليد من CRM معروضة، و${counts.stages.portal} مراحل قمع في البورتال.`)
-                      : t(`${counts.events.crm} CRM activity categories shown, ${counts.events.portal} portal events.`, `${counts.events.crm} فئة نشاط من CRM معروضة، و${counts.events.portal} أحداث في البورتال.`)
+                      ? t(
+                          `${counts.stages.crm} CRM lead stages shown, ${counts.stages.portal} portal funnel stages.`,
+                          `${counts.stages.crm} مرحلة ليد من CRM معروضة، و${counts.stages.portal} مراحل قمع في البورتال.`,
+                        )
+                      : t(
+                          `${counts.events.crm} CRM activity categories shown, ${counts.events.portal} portal events.`,
+                          `${counts.events.crm} فئة نشاط من CRM معروضة، و${counts.events.portal} أحداث في البورتال.`,
+                        )
                 }
               >
                 <Table>
@@ -109,7 +122,13 @@ export default function CrmMapping() {
                                 <Select
                                   value={r.portalValue}
                                   onValueChange={(portalValue) =>
-                                    save.mutate({ kind, crmValue: r.crmValue, portalValue }, { onSuccess: () => toast(L(COPY.toast)), onError: (e) => toast.error(e instanceof Error ? e.message : t('Could not save the mapping.', 'تعذّر حفظ الربط.')) })
+                                    save.mutate(
+                                      { kind, crmValue: r.crmValue, portalValue },
+                                      {
+                                        onSuccess: () => toast(L(COPY.toast)),
+                                        onError: (e) => toast.error(e instanceof Error ? e.message : t('Could not save the mapping.', 'تعذّر حفظ الربط.')),
+                                      },
+                                    )
                                   }
                                 >
                                   <SelectTrigger className="h-9 w-full min-w-44" aria-label={`${r.crmValue} → ${L(COPY.columns[kind].portal)}`}>
@@ -131,12 +150,16 @@ export default function CrmMapping() {
                             <TableCell className="min-w-44">
                               <span className="flex flex-wrap items-center gap-1.5">
                                 {r.confirmed ? (
-                                  <StatusBadge tone="success" icon={<Check aria-hidden />}>
+                                  // 26 Nov (owner): "Confirmed" in the success colour with a green check; no "Proposed" tag on the others
+                                  <StatusBadge
+                                    tone="success"
+                                    className="bg-(--status-success-bg) text-(--status-success-text) shadow-none"
+                                    icon={<Check aria-hidden className="text-(--status-success-solid)" />}
+                                  >
                                     {t('Confirmed', 'مؤكَّد')}
                                   </StatusBadge>
                                 ) : (
                                   <>
-                                    <ProposedBadge title={t('Not confirmed by the CRM owner yet.', 'لم يؤكده مالك CRM بعد.')} />
                                     {canEdit && (
                                       <Button
                                         variant="outline"
@@ -144,7 +167,14 @@ export default function CrmMapping() {
                                         disabled={confirm.isPending}
                                         aria-label={t(`Confirm the mapping of ${r.crmValue}`, `تأكيد ربط ${r.crmValue}`)}
                                         onClick={() =>
-                                          confirm.mutate({ kind, crmValue: r.crmValue }, { onSuccess: () => toast(t('Mapping confirmed (prototype).', 'تم تأكيد الربط (نموذج أولي).')), onError: (e) => toast.error(e instanceof Error ? e.message : t('Could not confirm the mapping.', 'تعذّر تأكيد الربط.')) })
+                                          confirm.mutate(
+                                            { kind, crmValue: r.crmValue },
+                                            {
+                                              onSuccess: () => toast(t('Mapping confirmed (prototype).', 'تم تأكيد الربط (نموذج أولي).')),
+                                              onError: (e) =>
+                                                toast.error(e instanceof Error ? e.message : t('Could not confirm the mapping.', 'تعذّر تأكيد الربط.')),
+                                            },
+                                          )
                                         }
                                       >
                                         {t('Confirm', 'تأكيد')}

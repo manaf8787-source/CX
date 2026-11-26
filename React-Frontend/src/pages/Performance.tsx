@@ -20,7 +20,7 @@ export default function Performance() {
         <TabsTrigger value="availability">{t('Availability (leave)', 'التوفّر (الإجازات)')}</TabsTrigger>
       </TabsList>
       <TabsContent value="performance">
-        <PerformanceReport scope="team" canExport />
+        <PerformanceReport scope="team" />
       </TabsContent>
       <TabsContent value="availability">
         <EmbeddedPage>

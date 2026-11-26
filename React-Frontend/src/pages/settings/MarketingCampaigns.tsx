@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { ExportButton } from '@/components/common/ExportButton'
 import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Bar, BarChart, CartesianGrid, Tooltip, XAxis, YAxis } from 'recharts'
@@ -356,9 +357,9 @@ function One({ c, env, record }: { c: MarketingCampaign; env: EnvId | 'all'; rec
         title={c.name}
         description={`${c.code} · ${L(TYPE_LABEL[c.type])} · ${day(c.startDate, lang)} – ${day(c.endDate, lang)}`}
         actions={
-          <Button size="sm" variant="outline" onClick={exportCsv}>
+          <ExportButton size="sm" variant="outline" onExport={exportCsv} what={{ en: `marketing campaign ${c.code}`, ar: `الحملة التسويقية ${c.code}` }}>
             {t('Export CSV', 'تصدير CSV')}
-          </Button>
+          </ExportButton>
         }
       >
         <dl className="grid grid-cols-1 gap-x-6 gap-y-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
@@ -995,9 +996,9 @@ function HistoryTab({ onOpen }: { onOpen: (id: string) => void }) {
             </SelectContent>
           </Select>
         </label>
-        <Button size="sm" variant="outline" className="ms-auto" onClick={exportCsv}>
+        <ExportButton size="sm" variant="outline" className="ms-auto" onExport={exportCsv} what={{ en: 'the campaign audit', ar: 'تدقيق الحملات' }}>
           {t('Export CSV', 'تصدير CSV')}
-        </Button>
+        </ExportButton>
       </div>
       <ul className="flex flex-col gap-2">
         {rows.length === 0 && <li className="text-sm text-muted-foreground">{t('No audit yet for this choice.', 'لا تدقيق بعد لهذا الاختيار.')}</li>}

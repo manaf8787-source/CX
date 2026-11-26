@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
+import { ExportButton } from '@/components/common/ExportButton'
 import { Bar, BarChart, CartesianGrid, Tooltip, XAxis, YAxis } from 'recharts'
-import { CheckCircle2, Clock, Download, Headset, Percent, ShieldAlert, Star, TrendingUp, UserX, Users } from 'lucide-react'
+import { CheckCircle2, Clock, Headset, Percent, ShieldAlert, Star, TrendingUp, UserX, Users } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { useNow } from '@/hooks/useNow'
 import { useAuditActor } from '@/auth/useAuditActor'
@@ -10,7 +11,6 @@ import { PRODUCTS } from '@/data/products'
 import { presetRange, ymd, type RangePreset } from '@/data/performance'
 import { downloadCsv } from '@/utils/csv'
 import type { EnvId, ProductId } from '@/types'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Segmented } from '@/components/ui/segmented'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -32,13 +32,12 @@ import { chartAxis, chartBar, chartBarMuted, chartColor, chartCursorBar, chartGr
  */
 interface Props {
   kind: AgentKind
-  canExport: boolean
   envId?: EnvId
 }
 
 const fmtPct = (n: number | null) => (n === null ? '—' : `${n}%`)
 
-export function AgentReport({ kind, canExport, envId }: Props) {
+export function AgentReport({ kind, envId }: Props) {
   const { t, L, lang } = useI18n()
   const now = useNow()
   const { log } = useAuditActor()
@@ -238,33 +237,21 @@ export function AgentReport({ kind, canExport, envId }: Props) {
   return (
     <div className="flex flex-col gap-4" data-density="comfortable" data-testid={`agent-report-${kind}`}>
       <PageHeader
-        title={
-          canExport ? (
-            title
-          ) : (
-            <>
-              {title}
-              {/* 25 Nov (owner): a small tag beside the title instead of a banner */}
-              <StatusBadge tone="neutral" className="ms-2 font-normal">
-                {t('You can read this report. Exporting is not part of your role.', 'يمكنك قراءة هذا التقرير. التصدير ليس ضمن دورك.')}
-              </StatusBadge>
-            </>
-          )
-        }
+        title={title}
         description={description}
         actions={
-          canExport && (
-            <>
-              <Button variant="outline" onClick={exportRecords}>
-                <Download aria-hidden />
-                {sales ? t('Export every lead', 'تصدير كل العملاء') : t('Export every conversation', 'تصدير كل المحادثات')}
-              </Button>
-              <Button onClick={exportSummary}>
-                <Download aria-hidden />
-                {t('Export summary', 'تصدير الملخص')}
-              </Button>
-            </>
-          )
+          <>
+            <ExportButton
+              variant="outline"
+              onExport={exportRecords}
+              what={sales ? { en: 'every sales lead', ar: 'كل عملاء المبيعات' } : { en: 'every support conversation', ar: 'كل محادثات الدعم' }}
+            >
+              {sales ? t('Export every lead', 'تصدير كل العملاء') : t('Export every conversation', 'تصدير كل المحادثات')}
+            </ExportButton>
+            <ExportButton onExport={exportSummary} what={{ en: `the ${kind} agents summary`, ar: 'ملخص الوكلاء' }}>
+              {t('Export summary', 'تصدير الملخص')}
+            </ExportButton>
+          </>
         }
       />
 

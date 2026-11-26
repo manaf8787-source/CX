@@ -60,8 +60,8 @@ export function AsOfBar() {
     )
 
   const switchHint = t(
-    'Narrows people, signals, patterns, shopper cases, fixes, the call list, investigations and public mentions. Indicators per product are not narrowed.',
-    'يضيّق الأشخاص والإشارات والأنماط وحالات المتسوق والحلول وقائمة الاتصال والتحقيقات والإشارات العامة. مؤشرات كل منتج لا تُضيَّق.',
+    'Narrows people, signals, patterns, shopper cases, fixes, the call list, investigations, public mentions and the NPS, CSAT and CES indicators.',
+    'يضيّق الأشخاص والإشارات والأنماط وحالات المتسوق والحلول وقائمة الاتصال والتحقيقات والإشارات العامة ومؤشرات NPS وCSAT وCES.',
   )
   const fixedHint = t('Your role is limited to this environment.', 'دورك محصور في هذه البيئة.')
 

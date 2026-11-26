@@ -19,7 +19,7 @@ import type { AgentActivityEntry, AgentProfile, CorrectiveActionKind } from '@/t
 import { AGENT_VERDICT_TONE } from '@/lib/status'
 import { cn } from '@/lib/utils'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { PageHeader } from '@/components/common/PageHeader'
 import { SectionCard } from '@/components/common/SectionCard'
@@ -144,7 +144,8 @@ export default function IntelligentCxTeam() {
   return (
     <div data-density="comfortable" className="flex flex-col gap-8">
       <PageHeader
-        term="Intelligent CX team" title={t('Intelligent CX team', 'فريق تجربة العملاء الذكي')}
+        term="Intelligent CX team"
+        title={t('Intelligent CX team', 'فريق تجربة العملاء الذكي')}
         description={t(
           'Ten single-task agents and one supervisor that do the work of the CX team inside the portal — nothing else.',
           'عشرة وكلاء بمهمة واحدة ومشرف واحد يؤدون عمل فريق تجربة العملاء داخل البوابة — لا شيء غير ذلك.',
@@ -168,9 +169,23 @@ export default function IntelligentCxTeam() {
               {row.map((step, k) => {
                 const agent = typeof step === 'number' ? AGENT_REGISTRY.find((a) => a.id === step) : undefined
                 const special: Record<string, { title: string; body: string; dot?: string }> = {
-                  approve: { title: t('Approve', 'اعتماد'), body: t('Direct manager · 5 working days · always a person', 'المدير المباشر · 5 أيام عمل · شخص دائماً') },
-                  case: { title: t('Case', 'حالة'), body: t('Only a critical shopper finding or a legal and privacy event', 'فقط نتيجة تسوق حرجة أو حدث قانوني وخصوصية'), dot: 'dot-warning' },
-                  receivers: { title: t('Receivers', 'المستلمون'), body: t('Managers, L&D, Marketing, IT, HR, Legal; a status comes back', 'المدراء، التعلم والتطوير، التسويق، تقنية المعلومات، الموارد البشرية، القانونية؛ تعود الحالة'), dot: 'dot-success' },
+                  approve: {
+                    title: t('Approve', 'اعتماد'),
+                    body: t('Direct manager · 5 working days · always a person', 'المدير المباشر · 5 أيام عمل · شخص دائماً'),
+                  },
+                  case: {
+                    title: t('Case', 'حالة'),
+                    body: t('Only a critical shopper finding or a legal and privacy event', 'فقط نتيجة تسوق حرجة أو حدث قانوني وخصوصية'),
+                    dot: 'dot-warning',
+                  },
+                  receivers: {
+                    title: t('Receivers', 'المستلمون'),
+                    body: t(
+                      'Managers, L&D, Marketing, IT, HR, Legal; a status comes back',
+                      'المدراء، التعلم والتطوير، التسويق، تقنية المعلومات، الموارد البشرية، القانونية؛ تعود الحالة',
+                    ),
+                    dot: 'dot-success',
+                  },
                 }
                 const box: { title: string; body: string; dot?: string } = agent
                   ? { title: t(`Agent ${agent.id}`, `الوكيل ${agent.id}`), body: L(agent.name) }
@@ -178,14 +193,23 @@ export default function IntelligentCxTeam() {
                 // The approval is the one step that is always a person: the lit chip (the card colour on the dark surface, so it is right in both themes).
                 const lit = step === 'approve'
                 return (
-                  <li key={String(step)} className={cn('relative flex min-h-20 min-w-0 flex-col gap-1 rounded-well px-3.5 py-3', lit ? 'bg-card text-primary' : 'bg-(--on-dark-tint)')}>
+                  <li
+                    key={String(step)}
+                    className={cn(
+                      'relative flex min-h-20 min-w-0 flex-col gap-1 rounded-well px-3.5 py-3',
+                      lit ? 'bg-card text-primary' : 'bg-(--on-dark-tint)',
+                    )}
+                  >
                     <span className={cn('flex items-center gap-1.5 text-xs font-medium', lit ? 'text-primary' : 'text-muted-foreground')}>
                       {box.dot && <span aria-hidden className={cn('dot', box.dot)} />}
                       {box.title}
                     </span>
                     <span className={cn('text-sm leading-snug', lit ? 'text-primary' : 'text-foreground')}>{box.body}</span>
                     {k < row.length - 1 && (
-                      <ChevronRight aria-hidden className="absolute end-[-13px] top-1/2 z-10 hidden size-3.5 -translate-y-1/2 text-muted-foreground xl:block rtl:rotate-180" />
+                      <ChevronRight
+                        aria-hidden
+                        className="absolute end-[-13px] top-1/2 z-10 hidden size-3.5 -translate-y-1/2 text-muted-foreground xl:block rtl:rotate-180"
+                      />
                     )}
                   </li>
                 )
@@ -452,7 +476,7 @@ function AgentCard({
   const pct = jd ? jd.approvalPct : rate && rate.total > 0 ? Math.round((rate.approved / rate.total) * 100) : null
 
   return (
-    <Collapsible open={expanded} onOpenChange={onToggle} className="well flex min-w-0 flex-col gap-4">
+    <div data-slot="collapsible" className="well flex min-w-0 flex-col gap-4">
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-start gap-3">
           <span aria-hidden className="material-light t-small-strong tabular inline-grid size-8 shrink-0 place-items-center rounded-full">
@@ -488,41 +512,51 @@ function AgentCard({
         </p>
       )}
 
-      <CollapsibleTrigger className="material-light t-small-strong mt-auto inline-flex h-8 w-fit cursor-pointer items-center gap-2 rounded-full ps-3.5 pe-3 pt-px outline-hidden transition-opacity hover:opacity-80">
+      {/* 26 Nov (owner): the job description opens in a pop-up */}
+      <button
+        type="button"
+        aria-haspopup="dialog"
+        onClick={() => onToggle(true)}
+        className="material-light t-small-strong mt-auto inline-flex h-8 w-fit cursor-pointer items-center gap-2 rounded-full ps-3.5 pe-3 pt-px outline-hidden transition-opacity hover:opacity-80"
+      >
         {t('Job description', 'الوصف الوظيفي')}
-        <ChevronDown aria-hidden className={cn('size-3.5 transition-transform duration-400 ease-spring motion-reduce:transition-none', expanded && 'rotate-180')} />
-      </CollapsibleTrigger>
-      <CollapsibleContent>
-        <dl className="flex flex-col gap-3 text-sm">
-          <KeyValue label={t('Trigger', 'المحفّز')} value={L(agent.trigger)} />
-          <KeyValue label={t('Runs on', 'يعمل وفق')} value={L(agent.runsOn)} />
-          {jd && (
-            <>
-              <KeyValue label={t('Inputs', 'المدخلات')} value={L(jd.inputs)} />
-              <KeyValue label={t('Rules in code (read from Settings, never invented)', 'القواعد بالكود (تُقرأ من الإعدادات ولا تُخترع)')} value={L(jd.rules)} />
-              <KeyValue label={t('Model step', 'خطوة النموذج')} value={L(jd.model)} />
-              <KeyValue label={t('Output', 'المخرج')} value={L(jd.output)} />
-              <KeyValue label={t('Supervisor checks', 'فحوصات المشرف')} value={L(jd.supervisorChecks)} />
-              {jd.approvalPct !== null && (
-                <KeyValue label={t('Approved first time (sample)', 'يُعتمد من أول مرة (عينة)')} value={`${jd.approvalPct}%`} />
-              )}
-              {!!jd.wrongThisWeek && (
-                <KeyValue
-                  label={t('Lowered by the weekly sample', 'خُفّضت بسبب العينة الأسبوعية')}
-                  value={t(
-                    `${jd.wrongThisWeek} wrong this week, each now a supervisor test (${jd.supervisorTests ?? jd.wrongThisWeek}); the rate was ${jd.baseApprovalPct}% before`,
-                    `${jd.wrongThisWeek} خطأ هذا الأسبوع، كل واحد صار اختباراً للسوبرفايزر (${jd.supervisorTests ?? jd.wrongThisWeek})؛ كانت النسبة ${jd.baseApprovalPct}% قبل ذلك`,
-                  )}
-                />
-              )}
-            </>
-          )}
-          <KeyValue label={t('Escalates to', 'يصعّد إلى')} value={L(agent.escalatesTo)} />
-          {jd && <KeyValue label={t('Shows on the portal as', 'يظهر على البوابة في')} value={L(jd.showsOn)} />}
-          <KeyValue label={t('Must not', 'يُمنع من')} value={L(agent.mustNot)} danger />
-        </dl>
-      </CollapsibleContent>
-    </Collapsible>
+        <ChevronDown aria-hidden className="size-3.5 -rotate-90 rtl:rotate-90" />
+      </button>
+      <Dialog open={expanded} onOpenChange={onToggle}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{L(agent.name)}</DialogTitle>
+            <DialogDescription>{L(agent.task)}</DialogDescription>
+          </DialogHeader>
+          <dl className="flex flex-col gap-3 text-sm">
+            <KeyValue label={t('Trigger', 'المحفّز')} value={L(agent.trigger)} />
+            <KeyValue label={t('Runs on', 'يعمل وفق')} value={L(agent.runsOn)} />
+            {jd && (
+              <>
+                <KeyValue label={t('Inputs', 'المدخلات')} value={L(jd.inputs)} />
+                <KeyValue label={t('Rules in code (read from Settings, never invented)', 'القواعد بالكود (تُقرأ من الإعدادات ولا تُخترع)')} value={L(jd.rules)} />
+                <KeyValue label={t('Model step', 'خطوة النموذج')} value={L(jd.model)} />
+                <KeyValue label={t('Output', 'المخرج')} value={L(jd.output)} />
+                <KeyValue label={t('Supervisor checks', 'فحوصات المشرف')} value={L(jd.supervisorChecks)} />
+                {jd.approvalPct !== null && <KeyValue label={t('Approved first time (sample)', 'يُعتمد من أول مرة (عينة)')} value={`${jd.approvalPct}%`} />}
+                {!!jd.wrongThisWeek && (
+                  <KeyValue
+                    label={t('Lowered by the weekly sample', 'خُفّضت بسبب العينة الأسبوعية')}
+                    value={t(
+                      `${jd.wrongThisWeek} wrong this week, each now a supervisor test (${jd.supervisorTests ?? jd.wrongThisWeek}); the rate was ${jd.baseApprovalPct}% before`,
+                      `${jd.wrongThisWeek} خطأ هذا الأسبوع، كل واحد صار اختباراً للسوبرفايزر (${jd.supervisorTests ?? jd.wrongThisWeek})؛ كانت النسبة ${jd.baseApprovalPct}% قبل ذلك`,
+                    )}
+                  />
+                )}
+              </>
+            )}
+            <KeyValue label={t('Escalates to', 'يصعّد إلى')} value={L(agent.escalatesTo)} />
+            {jd && <KeyValue label={t('Shows on the portal as', 'يظهر على البوابة في')} value={L(jd.showsOn)} />}
+            <KeyValue label={t('Must not', 'يُمنع من')} value={L(agent.mustNot)} danger />
+          </dl>
+        </DialogContent>
+      </Dialog>
+    </div>
   )
 }
 
