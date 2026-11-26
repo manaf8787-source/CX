@@ -9,7 +9,7 @@ public static class PsiJson
     public static void Configure(JsonSerializerOptions o)
     {
         o.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
-        o.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
+        o.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseLower));
     }
 
     public static JsonSerializerOptions Create()

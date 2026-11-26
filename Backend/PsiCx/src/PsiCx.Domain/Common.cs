@@ -1,7 +1,7 @@
 namespace PsiCx.Domain;
 
 // Mirrors React-Frontend/src/types/common.ts. The JSON wire format uses the
-// frontend ids (camelCase of the member name: EnvId.Dub -> "dub").
+// frontend ids (snake_case of the member name: EnvId.Dub -> "dub", CallStatus.NeedsHuman -> "needs_human").
 // Keep enum member names lower-case-equivalent of the frontend ids so the
 // camelCase policy reproduces them exactly (e.g. Cxmgr -> "cxmgr").
 

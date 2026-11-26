@@ -29,12 +29,13 @@ const ALL: RoleId[] = ['cxmgr', 'cxteam', 'envmgmt', 'teamlead', 'aslead', 'ld',
 const allowed = (fn: (r: RoleId) => boolean) => ALL.filter(fn).sort()
 
 describe('role list', () => {
-  it('defines the 12 v38 roles, each with a bilingual title and a home page', () => {
-    expect(ROLE_DEFS.map((r) => r.id).sort()).toEqual([...ALL].sort())
+  it('defines the 12 v38 roles plus the Super admin, the Admin and the custom role, each with a bilingual title and a home page', () => {
+    expect(ROLE_DEFS.map((r) => r.id).sort()).toEqual([...ALL, 'admin', 'useradmin', 'custom'].sort())
     for (const r of ROLE_DEFS) {
       expect(r.name.ar).toMatch(/[؀-ۿ]/)
       expect(r.home.startsWith('/')).toBe(true)
-      expect(canOpenPage(r.id, r.home), `${r.id} must be able to open its own home ${r.home}`).toBe(true)
+      // a custom role's pages come from the role the Super admin built, so its home is checked with that role (data/customRoles.ts)
+      if (r.id !== 'custom') expect(canOpenPage(r.id, r.home), `${r.id} must be able to open its own home ${r.home}`).toBe(true)
     }
   })
 })
@@ -43,9 +44,10 @@ describe('NFR-2 visibility rules', () => {
   it('conversation text: CX team and CX manager only', () => {
     expect(allowed(canViewConversationText)).toEqual(['cxmgr', 'cxteam'])
   })
-  it('agent names: CX plus the agent’s own line management only', () => {
-    expect(allowed(canViewAgentNames)).toEqual(['aslead', 'cxmgr', 'cxteam', 'envmgmt', 'teamlead'])
-    for (const r of ['hrspec', 'hrmgr', 'ld', 'marketing', 'auditmkt', 'exec', 'shopper'] as RoleId[]) expect(canViewAgentNames(r)).toBe(false)
+  it('agent names (22 Nov): every signed-in role except the external mystery shopper and the admin roles', () => {
+    expect(allowed(canViewAgentNames)).toEqual(['aslead', 'auditmkt', 'cxmgr', 'cxteam', 'envmgmt', 'exec', 'hrmgr', 'hrspec', 'ld', 'marketing', 'teamlead'])
+    expect(canViewAgentNames('shopper')).toBe(false)
+    expect(canViewAgentNames('admin')).toBe(false)
   })
   it('heads and C-level are informed only, and never act on a case or action', () => {
     expect(allowed(isInformedOnly)).toEqual(['auditmkt', 'exec', 'hrmgr'])
@@ -62,9 +64,9 @@ describe('NFR-2 visibility rules', () => {
     expect(canActOnShopperCase('hrmgr')).toBe(false)
     expect(canActOnShopperCase('shopper')).toBe(false)
   })
-  it('only the CX manager approves personas; audit notes for audit lead and CX manager', () => {
-    expect(allowed(canApprovePersona)).toEqual(['cxmgr'])
-    expect(allowed(canViewPersonaAudit)).toEqual(['auditmkt', 'cxmgr'])
+  it('only the Internal Audit and Marketing Lead names and approves personas, and reads the audit note (22 Nov)', () => {
+    expect(allowed(canApprovePersona)).toEqual(['auditmkt'])
+    expect(allowed(canViewPersonaAudit)).toEqual(['auditmkt'])
   })
 })
 
@@ -83,12 +85,13 @@ describe('resolveAgentDisplay', () => {
 })
 
 describe('page access per role (Modules KB §2)', () => {
-  it('CX manager and CX team see everything', () => {
-    for (const p of ['/home', '/actions/signals', '/settings/rules', '/intelligent-cx-team']) {
-      expect(canOpenPage('cxmgr', p)).toBe(true)
-      expect(canOpenPage('cxteam', p)).toBe(true)
-    }
+  it('CX manager sees everything that is not another role\'s; the CX team the same minus the manager\'s settings', () => {
+    for (const p of ['/home', '/actions/signals', '/settings/rules', '/intelligent-cx-team', '/performance']) expect(canOpenPage('cxmgr', p), p).toBe(true)
+    for (const p of ['/home', '/actions/signals', '/intelligent-cx-team']) expect(canOpenPage('cxteam', p), p).toBe(true)
+    // 23 Nov: rules, CRM mapping, the matrix, the weekly sample and the manager's report are not the CX team's
+    for (const p of ['/settings/rules', '/settings/crm-mapping', '/settings/escalation-matrix', '/settings/weekly-sample', '/performance', '/agents']) expect(canOpenPage('cxteam', p), p).toBe(false)
   })
+
   it('the mystery shopper sees only their own tasks (plus the glossary)', () => {
     expect(canOpenPage('shopper', '/settings/mystery-shopper')).toBe(true)
     expect(canOpenPage('shopper', '/settings/glossary')).toBe(true)
@@ -121,37 +124,37 @@ const open = (path: string) => ALL.filter((r) => canOpenPage(r, path)).sort()
 const sorted = (...roles: RoleId[]) => [...roles].sort()
 
 describe('v40 page access per role (F35)', () => {
-  it('My inbox: every role that has Customers or Who is leaving, not L&D, HR or the shopper', () => {
-    expect(open('/inbox')).toEqual(sorted('cxmgr', 'cxteam', 'envmgmt', 'teamlead', 'aslead', 'marketing', 'auditmkt', 'exec'))
+  it('My inbox: every role that has Customers or Who is leaving, and L&D (its open items); not HR or the shopper', () => {
+    expect(open('/inbox')).toEqual(sorted('cxmgr', 'cxteam', 'envmgmt', 'teamlead', 'aslead', 'ld', 'marketing', 'auditmkt', 'exec'))
   })
 
   it('CX indicators (/overview): CX, Executive, Internal Audit and Marketing Lead; not Marketing', () => {
     expect(open('/overview')).toEqual(sorted('cxmgr', 'cxteam', 'exec', 'auditmkt'))
   })
 
-  it('the data and configuration pages: CX, Internal Audit and Marketing Lead, Executive', () => {
-    for (const path of REGISTERS.filter((p) => p !== '/settings/public-mentions')) expect(open(path), path).toEqual(sorted('cxmgr', 'cxteam', 'auditmkt', 'exec'))
+  it('the data and configuration pages: who opens each (23 Nov: feeds are the Super admin\'s and the Admin\'s, the CX manager keeps mapping, matrix and the sample)', () => {
+    expect(open('/settings/feeds')).toEqual(sorted('auditmkt', 'exec'))
+    for (const path of ['/settings/crm-mapping', '/settings/escalation-matrix', '/settings/weekly-sample']) expect(open(path), path).toEqual(sorted('cxmgr', 'auditmkt', 'exec'))
+    expect(open('/settings/survey-questions')).toEqual(sorted('cxmgr', 'cxteam'))
   })
 
-  it('Public mentions: the same, and Marketing', () => {
-    expect(open('/settings/public-mentions')).toEqual(sorted('cxmgr', 'cxteam', 'auditmkt', 'exec', 'marketing'))
+  it('Public mentions: CX, the Internal Audit and Marketing Lead, Executive, Marketing, and the line roles', () => {
+    expect(open('/settings/public-mentions')).toEqual(sorted('cxmgr', 'cxteam', 'auditmkt', 'exec', 'marketing', 'envmgmt', 'teamlead', 'aslead'))
   })
 
-  it('Watch the AI team work (v42 F31): CX manager, CX team, environment management, Marketing, Internal Audit and Marketing Lead, Executive', () => {
-    expect(open('/settings/watch-ai-team')).toEqual(sorted('cxmgr', 'cxteam', 'envmgmt', 'marketing', 'auditmkt', 'exec'))
-    // every role that can open the AI team page can open the replay (the prototype adds it for exactly those roles)
-    for (const r of open('/intelligent-cx-team')) expect(canOpenPage(r, '/settings/watch-ai-team'), r).toBe(true)
-    for (const r of ['teamlead', 'aslead', 'ld', 'hrspec', 'hrmgr', 'shopper'] as RoleId[]) expect(canOpenPage(r, '/settings/watch-ai-team'), r).toBe(false)
+  it('The AI team page (now one page with a Watch tab): CX manager, CX team, environment management, Marketing, Internal Audit and Marketing Lead, Executive', () => {
+    expect(open('/settings/ai-team')).toEqual(sorted('cxmgr', 'cxteam', 'envmgmt', 'marketing', 'auditmkt', 'exec'))
+    for (const r of ['teamlead', 'aslead', 'ld', 'hrspec', 'hrmgr', 'shopper'] as RoleId[]) expect(canOpenPage(r, '/settings/ai-team'), r).toBe(false)
   })
 
-  it('Campaign audit (v42.1 F33): CX manager, CX team, Internal Audit and Marketing Lead, Marketing manager, Executive; nobody else', () => {
-    expect(open('/settings/campaign-audit')).toEqual(sorted('cxmgr', 'cxteam', 'auditmkt', 'marketing', 'exec'))
-    for (const r of ['envmgmt', 'teamlead', 'aslead', 'ld', 'hrspec', 'hrmgr', 'shopper'] as RoleId[]) expect(canOpenPage(r, '/settings/campaign-audit'), r).toBe(false)
+  it('Campaign audit (v42.1 F33, 22 Nov): the Internal Audit and Marketing Lead, the Marketing manager and Executive; CX do not open it', () => {
+    expect(open('/settings/campaign-audit')).toEqual(sorted('auditmkt', 'marketing', 'exec'))
+    for (const r of ['cxmgr', 'cxteam', 'envmgmt', 'teamlead', 'aslead', 'ld', 'hrspec', 'hrmgr', 'shopper'] as RoleId[]) expect(canOpenPage(r, '/settings/campaign-audit'), r).toBe(false)
   })
 
-  it('Campaign audit: the Internal Audit and Marketing Lead and the CX manager edit; the CX team, Marketing and Executive read', () => {
-    expect(allowed(canEditCampaignAudit)).toEqual(sorted('cxmgr', 'auditmkt'))
-    for (const r of open('/settings/campaign-audit').filter((x) => x !== 'cxmgr' && x !== 'auditmkt')) expect(canEditCampaignAudit(r), r).toBe(false)
+  it('Campaign audit: only the Internal Audit and Marketing Lead edits; the Marketing manager and Executive read', () => {
+    expect(allowed(canEditCampaignAudit)).toEqual(sorted('auditmkt'))
+    for (const r of open('/settings/campaign-audit').filter((x) => x !== 'auditmkt')) expect(canEditCampaignAudit(r as RoleId), r).toBe(false)
   })
 
   it('who starts a cleared campaign (Proposed): Marketing and the CX manager a persona campaign, the CX manager and the CX team an AI campaign, never the audit role', () => {
@@ -194,10 +197,11 @@ describe('v40 page access per role (F35)', () => {
   })
 
   it('every v40 route is gated: a role never sees a page it was not given', () => {
-    for (const role of ['hrmgr', 'shopper', 'ld', 'hrspec'] as RoleId[]) {
+    for (const role of ['hrmgr', 'shopper', 'hrspec'] as RoleId[]) {
       for (const path of ['/inbox', '/overview', ...REGISTERS, '/settings/surveys']) expect(canOpenPage(role, path), `${role} ${path}`).toBe(false)
     }
-    for (const path of ['/inbox', '/overview', ...REGISTERS, '/settings/surveys']) {
+    for (const path of ['/settings/feeds', '/settings/campaign-audit']) expect(canOpenPage('ld', path), `ld ${path}`).toBe(false)
+    for (const path of ['/inbox', '/overview', '/settings/surveys', '/settings/survey-questions']) {
       expect(canOpenPage('cxmgr', path)).toBe(true)
       expect(canOpenPage('cxteam', path)).toBe(true)
     }
@@ -206,7 +210,7 @@ describe('v40 page access per role (F35)', () => {
   it('every role can open its own home (v40: Marketing lands on Home, the Internal Audit and Marketing Lead on the Overview)', () => {
     expect(roleDef('marketing')?.home).toBe('/home')
     expect(roleDef('auditmkt')?.home).toBe('/overview')
-    for (const r of ROLE_DEFS) expect(canOpenPage(r.id, r.home), r.id).toBe(true)
+    for (const r of ROLE_DEFS.filter((x) => x.id !== 'custom')) expect(canOpenPage(r.id, r.home), r.id).toBe(true)
   })
 })
 
@@ -225,26 +229,25 @@ describe('v40 edit rights (F35, F31, F30, F27)', () => {
     expect(allowed(canViewMobiles)).toEqual(allowed(canViewCustomerNames))
     for (const r of ['auditmkt', 'ld', 'hrspec', 'hrmgr', 'shopper'] as RoleId[]) expect(canViewMobiles(r), r).toBe(false)
   })
-  it('mark a mention replied: CX roles and Marketing; record a call attempt: CX roles', () => {
-    expect(allowed(canMarkMentionReplied)).toEqual(sorted('cxmgr', 'cxteam', 'marketing'))
-    expect(allowed(canRecordCallAttempt)).toEqual(sorted('cxmgr', 'cxteam'))
+  it('mark a mention replied: the CX manager and the CX team (23 Nov, a human replies); record a call attempt: the CX team only (22 Nov)', () => {
+    expect(allowed(canMarkMentionReplied)).toEqual(sorted('cxmgr', 'cxteam'))
+    expect(allowed(canRecordCallAttempt)).toEqual(['cxteam'])
   })
 })
 
 describe('v40 menu and sign-in roles (F08, F28)', () => {
-  it('six main roles on sign-in, six folded, together the twelve', () => {
+  it('six main roles on sign-in; the twelve v38 roles plus the three admin and custom roles are folded under "Other roles"', () => {
     expect([...MAIN_ROLE_IDS]).toEqual(['cxmgr', 'cxteam', 'envmgmt', 'marketing', 'ld', 'auditmkt'])
-    expect(sorted(...FOLDED_ROLE_IDS)).toEqual(sorted('teamlead', 'aslead', 'hrspec', 'hrmgr', 'exec', 'shopper'))
+    expect(sorted(...FOLDED_ROLE_IDS)).toEqual(sorted('teamlead', 'aslead', 'hrspec', 'hrmgr', 'exec', 'shopper', 'admin', 'useradmin', 'custom'))
     expect(mainRoleDefs().map((r) => r.id)).toEqual([...MAIN_ROLE_IDS])
-    expect(new Set([...MAIN_ROLE_IDS, ...FOLDED_ROLE_IDS]).size).toBe(12)
+    expect(new Set([...MAIN_ROLE_IDS, ...FOLDED_ROLE_IDS]).size).toBe(15)
   })
 
-  it('the main menu is six items in step order, then the folded Settings entry; Runaway, Personas and Surveys left it', () => {
+  it('the workspace menu starts with the six steps in order; Runaway, Personas and Surveys left it', () => {
     const [workspace, reference] = PRIMARY_NAV
-    expect(workspace.items.map((i) => i.path)).toEqual(['/home', '/customers', '/inbox', '/actions', '/close-the-loop', '/overview'])
-    expect(workspace.items.map((i) => i.label.en)).toEqual(['Home', '1 · Customers', 'My inbox', '2–4 · Signals and fixes', '5 · Close the loop', '6 · CX indicators'])
-    expect(workspace.items.map((i) => i.label.ar)).toEqual(['الرئيسية', '1 · العملاء', 'صندوقي', '2–4 · الإشارات والحلول', '5 · إغلاق الحلقة', '6 · مؤشرات تجربة العملاء'])
-    expect(reference.items.map((i) => i.path)).toEqual(['/settings'])
+    expect(workspace.items.slice(0, 6).map((i) => i.path)).toEqual(['/home', '/customers', '/inbox', '/actions', '/close-the-loop', '/overview'])
+    expect(workspace.items.slice(0, 6).map((i) => i.label.en)).toEqual(['Home', '1 · Customers', 'My inbox', 'Problems and fixes', '5 · Close the loop', '6 · CX indicators'])
+    expect(reference.items[0].path).toBe('/settings')
     const all = PRIMARY_NAV.flatMap((g) => g.items.map((i) => i.path))
     for (const gone of ['/runaway', '/personas', '/surveys', '/intelligent-cx-team']) expect(all).not.toContain(gone)
   })
@@ -254,67 +257,58 @@ describe('v40 menu and sign-in roles (F08, F28)', () => {
     expect(CUSTOMERS_TABS.map((t) => t.label.en)).toEqual(['Find a person', 'Who is leaving', 'Personas and campaigns'])
   })
 
-  it('the Settings and reference list is flat, in the v40 order, with no duplicates, and every page is open to the CX manager', () => {
+  it('the Settings and reference list is flat, with no duplicates, starting with the AI team page, and the CX manager opens every page that is not another role\'s', () => {
     const paths = SETTINGS_NAV.map((i) => i.path)
     expect(new Set(paths).size).toBe(paths.length)
-    // v42 (F31): "Watch the AI team work" is listed right after the AI team page
-    // v42.1 (F33): the campaign audit is listed right after the weekly sample
-    expect(paths.slice(0, 5)).toEqual(['/intelligent-cx-team', '/settings/watch-ai-team', '/settings/weekly-sample', '/settings/campaign-audit', '/settings/public-mentions'])
+    expect(paths.slice(0, 4)).toEqual(['/settings/ai-team', '/settings/weekly-sample', '/settings/campaign-audit', '/settings/public-mentions'])
     expect(paths).toContain('/settings/surveys')
     expect(paths).toContain('/settings/feeds')
     expect(paths).not.toContain('/settings/overview')
-    for (const p of paths) expect(canOpenPage('cxmgr', p), p).toBe(true)
-    expect(SETTINGS_NAV.find((i) => i.path === '/intelligent-cx-team')?.label.en).toBe('How the portal works (the AI team)')
-    expect(SETTINGS_NAV.find((i) => i.path === '/settings/surveys-reference')?.label.en).toBe('Surveys (legacy reference)')
+    // the pages that belong to other roles (the audit lead's campaigns, L&D, HR, the Super admin's feeds)
+    const notCx = ['/settings/campaign-audit', '/settings/ld', '/settings/hr-team', '/settings/feeds']
+    for (const p of paths.filter((x) => !notCx.includes(x))) expect(canOpenPage('cxmgr', p), p).toBe(true)
+    for (const p of notCx) expect(canOpenPage('cxmgr', p), p).toBe(false)
   })
 
-  it('the first allowed page under Settings is found for a role with only a v40 page', () => {
-    // SETTINGS_LANDING is what `/settings` redirects with: the menu without the demo page (v42), so landing did not change
-    expect(firstAllowedUnder('marketing', '/settings', SETTINGS_LANDING)).toBe('/settings/public-mentions')
-    expect(firstAllowedUnder('auditmkt', '/settings', SETTINGS_LANDING)).toBe('/settings/weekly-sample')
-    expect(firstAllowedUnder('cxmgr', '/settings', SETTINGS_LANDING)).toBe('/settings/weekly-sample')
-    expect(firstAllowedUnder('envmgmt', '/settings', SETTINGS_LANDING)).toBe('/settings/surveys')
-    expect(firstAllowedUnder('teamlead', '/settings', SETTINGS_LANDING)).toBe('/settings/glossary') // only the glossary, which is open to all
-  })
-
-  it('"Watch the AI team work" (v42 F31) is a demo page: in the menu, never a landing page', () => {
-    expect(SETTINGS_NAV.find((i) => i.path === '/settings/watch-ai-team')).toEqual({
-      path: '/settings/watch-ai-team',
-      label: { en: 'Watch the AI team work', ar: 'شاهد فريق الذكاء يعمل' },
-      skipLanding: true,
-    })
-    expect(SETTINGS_LANDING).not.toContain('/settings/watch-ai-team')
-    expect(SETTINGS_LANDING).toHaveLength(SETTINGS_NAV.length - 2)
-  })
-
-  it('the Campaign audit (v42.1 F33) is listed after the weekly sample and is not a landing page, so no role lands anywhere new', () => {
-    expect(SETTINGS_NAV.find((i) => i.path === '/settings/campaign-audit')).toEqual({
-      path: '/settings/campaign-audit',
-      label: { en: 'Campaign audit', ar: 'تدقيق الحملات' },
-      skipLanding: true,
-    })
-    expect(SETTINGS_LANDING).not.toContain('/settings/campaign-audit')
-    // listed first for Marketing it would have become its landing page; the landing of every role is what it was before the page existed
+  it('the first allowed page under Settings follows the menu order, so a role lands on the first page it may open', () => {
     const landing: Partial<Record<RoleId, string | undefined>> = {
-      cxmgr: '/settings/weekly-sample',
-      cxteam: '/settings/weekly-sample',
-      auditmkt: '/settings/weekly-sample',
-      exec: '/settings/weekly-sample',
-      marketing: '/settings/public-mentions',
-      envmgmt: '/settings/surveys',
-      aslead: '/settings/surveys',
+      cxmgr: '/settings/ai-team',
+      cxteam: '/settings/ai-team',
+      auditmkt: '/settings/ai-team',
+      exec: '/settings/ai-team',
+      marketing: '/settings/ai-team',
+      envmgmt: '/settings/ai-team',
+      aslead: '/settings/public-mentions',
+      teamlead: '/settings/public-mentions',
     }
     for (const [role, to] of Object.entries(landing)) expect(firstAllowedUnder(role as RoleId, '/settings', SETTINGS_LANDING), role).toBe(to)
   })
 
-  it('old URLs redirect: /surveys and /settings/overview (children and the rest of the path are kept)', () => {
-    expect(LEGACY_REDIRECTS).toEqual({ '/surveys': '/settings/surveys', '/settings/overview': '/overview' })
+  it('the Marketing campaigns page (v42.1 F33) is listed after the weekly sample and is not a landing page', () => {
+    expect(SETTINGS_NAV.find((i) => i.path === '/settings/campaign-audit')).toEqual({
+      path: '/settings/campaign-audit',
+      label: { en: 'Marketing campaigns', ar: 'الحملات التسويقية' },
+      skipLanding: true,
+    })
+    expect(SETTINGS_LANDING).not.toContain('/settings/campaign-audit')
+    expect(SETTINGS_LANDING).toHaveLength(SETTINGS_NAV.length - 2) // the campaigns page and team availability
+  })
+
+  it('old URLs redirect, children and the rest of the path are kept; the AI team and survey pages became tabs', () => {
+    expect(LEGACY_REDIRECTS).toEqual({
+      '/surveys': '/settings/surveys',
+      '/settings/overview': '/overview',
+      '/intelligent-cx-team': '/settings/ai-team?tab=how',
+      '/settings/watch-ai-team': '/settings/ai-team?tab=watch',
+      '/settings/survey-questions': '/settings/surveys?tab=questions',
+      '/settings/surveys-reference': '/settings/surveys?tab=campaigns',
+      '/settings/teams-structure': '/settings/escalation-matrix?view=routing',
+    })
     expect(legacyRedirect('/surveys')).toBe('/settings/surveys')
     expect(legacyRedirect('/settings/overview')).toBe('/overview')
     expect(legacyRedirect('/settings/overview/')).toBe('/overview/')
     expect(legacyRedirect('/surveys/x')).toBe('/settings/surveys/x')
     expect(legacyRedirect('/settings/surveys')).toBeUndefined()
-    expect(legacyRedirect('/settings/surveys-reference')).toBeUndefined()
     expect(legacyRedirect('/overview')).toBeUndefined()
   })
 })

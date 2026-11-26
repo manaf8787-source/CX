@@ -38,3 +38,18 @@ public class WireFormatTests
         Assert.False(EnvScope.Of(EnvId.Auh).Includes(EnvId.Dub));
     }
 }
+
+public class SnakeCaseWireTests
+{
+    private static readonly System.Text.Json.JsonSerializerOptions Json = PsiJson.Create();
+
+    [Theory]
+    [InlineData(CallStatus.ToDo, "\"to_do\"")]
+    [InlineData(CallStatus.NeedsHuman, "\"needs_human\"")]
+    [InlineData(CallChannel.AiCampaign, "\"ai_campaign\"")]
+    [InlineData(SignalKind.PublicMention, "\"public_mention\"")]
+    [InlineData(SignalKind.LegalPrivacySafety, "\"legal_privacy_safety\"")]
+    [InlineData(PatternThresholdKind.EnvironmentConcentration, "\"environment_concentration\"")]
+    public void Multi_word_enums_use_snake_case_like_the_frontend(object value, string expected)
+        => Assert.Equal(expected, System.Text.Json.JsonSerializer.Serialize(value, value.GetType(), Json));
+}
