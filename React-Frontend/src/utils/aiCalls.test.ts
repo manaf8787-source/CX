@@ -23,3 +23,14 @@ describe('summarizeAiCalls', () => {
     expect(new Set(BRIGHTCALL_OUTCOMES.map((o) => o.code)).size).toBe(BRIGHTCALL_OUTCOMES.length)
   })
 })
+
+describe('summarizeAiCalls date range', () => {
+  it('counts only the days between from and to', () => {
+    const day = AI_CALL_DAILY[0].date
+    const one = summarizeAiCalls(AI_CALL_DAILY, AI_CALL_EXTRA, AI_CAMPAIGNS, BRIGHTCALL_OUTCOMES, { env: 'all', campaign: 'all', from: day, to: day })
+    const expected = AI_CALL_DAILY.filter(
+      (r) => r.date === day && !['DNCR UAE Blocked', 'Test Call', 'Not Existing Contact on CRM', 'No DNCR Status on CRM'].includes(r.outcome),
+    ).reduce((s, r) => s + r.calls, 0)
+    expect(one.calls).toBe(expected)
+  })
+})

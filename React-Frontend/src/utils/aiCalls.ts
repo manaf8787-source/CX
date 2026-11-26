@@ -7,6 +7,10 @@ export interface AiCallFilter {
   campaign: string
   /** First day included, YYYY-MM-DD. */
   from: string
+  /** Only these campaigns (by kind, e.g. the customer campaigns); unset for all. */
+  only?: ReadonlySet<string>
+  /** Last day included, YYYY-MM-DD; unset for up to today. */
+  to?: string
 }
 
 export interface AiCallSummary {
@@ -48,7 +52,11 @@ export function summarizeAiCalls(
 ): AiCallSummary {
   const map = new Map(mapping.map((m) => [m.code, m]))
   const keep = (r: { date: string; envId: string; campaign: string }) =>
-    r.date >= f.from && (f.env === 'all' || r.envId === f.env) && (f.campaign === 'all' || r.campaign === f.campaign)
+    r.date >= f.from &&
+    (!f.to || r.date <= f.to) &&
+    (f.env === 'all' || r.envId === f.env) &&
+    (f.campaign === 'all' || r.campaign === f.campaign) &&
+    (!f.only || f.only.has(r.campaign))
   const s: AiCallSummary = {
     targeted: 0,
     attempted: 0,
@@ -66,7 +74,7 @@ export function summarizeAiCalls(
   }
   const perCampaign = new Map<string, AiCallSummary['campaigns'][number]>()
   for (const c of campaigns) {
-    if ((f.env !== 'all' && c.envId !== f.env) || (f.campaign !== 'all' && c.campaign !== f.campaign)) continue
+    if ((f.env !== 'all' && c.envId !== f.env) || (f.campaign !== 'all' && c.campaign !== f.campaign) || (f.only && !f.only.has(c.campaign))) continue
     s.targeted += c.targeted
     s.attempted += c.attempted
     perCampaign.set(c.campaign, {

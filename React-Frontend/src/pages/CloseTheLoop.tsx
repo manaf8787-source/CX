@@ -1,4 +1,5 @@
 import { REASON_CODE_LABEL } from '@/utils/closeTheLoop'
+import { AiCallingBlock } from '@/components/campaigns/AiCallingBlock'
 import { useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import type { ColumnDef } from '@tanstack/react-table'
@@ -800,6 +801,10 @@ export default function CloseTheLoop({ only }: { only?: string } = {}) {
               </ul>
             )}
           </SectionCard>
+          {/* 26 Nov (owner): the BrightCall numbers of the interview campaigns linked in AI call center */}
+          {campaigns?.map((c) => (
+            <AiCallingBlock key={`bc-${c.id}`} linkedTo={c.id} />
+          ))}
 
           {canAccessPath(role.id, '/settings/rules') && (
             <p className="text-sm text-muted-foreground">

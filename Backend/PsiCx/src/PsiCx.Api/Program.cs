@@ -38,6 +38,10 @@ builder.Services.AddSingleton<ICallSurveyStore, InMemoryCallSurveyStore>();
 builder.Services.AddSingleton<ICallContactDirectory, InMemoryCallContactDirectory>(); // the CRM + DNCR reader replaces this
 builder.Services.AddSingleton<ICallSurveySender, NoCallSurveySender>(); // WhatsApp and SMS senders replace this
 builder.Services.AddSingleton<CallSurveyService>();
+builder.Services.AddSingleton<ISettingValidator, BrightcallMappingValidator>();
+builder.Services.AddSingleton<IBrightcallMappingSource, SettingsBrightcallMappingSource>();
+builder.Services.AddSingleton<IAiCallStore, InMemoryAiCallStore>();
+builder.Services.AddSingleton<AiCallService>();
 builder.Services.AddHostedService<CallSurveyDispatcher>();
 builder.Services.AddSingleton<FixService>();
 builder.Services.AddSingleton<IGiftStore, InMemoryGiftStore>();

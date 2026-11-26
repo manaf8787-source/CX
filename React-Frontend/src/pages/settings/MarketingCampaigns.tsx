@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { AiCallingBlock } from '@/components/campaigns/AiCallingBlock'
 import { ExportButton } from '@/components/common/ExportButton'
 import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -416,6 +417,8 @@ function One({ c, env, record }: { c: MarketingCampaign; env: EnvId | 'all'; rec
         </InlineNote>
       )}
       <EnvBreakdown c={c} />
+      {/* 26 Nov (owner): the AI calling channel of this campaign, from the linked BrightCall campaigns */}
+      <AiCallingBlock linkedTo={c.code} budget={c.budget} leads={tr.leads} />
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <SectionCard title={t('What the marketing platform sent', 'ماذا أرسلت منصة التسويق')}>
           <RankedBars
@@ -583,6 +586,7 @@ function AuditTab({ picked, onPick }: { picked: string; onPick: (id: string) => 
           })}
         </ul>
       </SectionCard>
+      <AiCallingBlock linkedTo={c.code} budget={c.budget} leads={tr.leads} />
       <SectionCard title={t('Verdict', 'الحكم')} description={t(`${passed} of ${active.length} criteria met.`, `${passed} من ${active.length} معايير متحققة.`)}>
         <div className="flex flex-col gap-3">
           <Textarea

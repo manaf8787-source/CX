@@ -1,7 +1,11 @@
 namespace PsiCx.Domain;
 
 /// <summary>How a call-center call ended (call-survey spec, 26 Nov). Only the first three are completed and can send a survey.</summary>
-public enum CallResult { Appointment, FollowUp, Successful, NotInterested, DroppedAfterGreeting, NoAnswer, Busy, Voicemail, WrongNumber }
+public enum CallResult { Appointment, FollowUp, Successful, NotInterested, DroppedAfterGreeting, NoAnswer, Busy, Voicemail, WrongNumber,
+    /// <summary>Asked to call back later: no conversation yet. Not completed.</summary>
+    CallBack,
+    /// <summary>Answered, but not qualified, broker, gatekeeper, language barrier... Not completed.</summary>
+    Other }
 
 public enum CallDirection { Inbound, Outbound }
 
@@ -27,6 +31,8 @@ public static class CallResults
         CallResult.NoAnswer => new Bi("No answer", "لا رد"),
         CallResult.Busy => new Bi("Busy", "مشغول"),
         CallResult.Voicemail => new Bi("Voicemail", "بريد صوتي"),
+        CallResult.CallBack => new Bi("Asked to call back later", "طلب معاودة الاتصال لاحقاً"),
+        CallResult.Other => new Bi("Other answered result", "نتيجة أخرى بعد الرد"),
         _ => new Bi("Wrong number", "رقم خاطئ"),
     };
 }

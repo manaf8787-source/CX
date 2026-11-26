@@ -5,6 +5,13 @@ import { useI18n } from '@/i18n'
 import { useRole } from '@/auth/RoleContext'
 import { useAuditActor } from '@/auth/useAuditActor'
 import { useEnvScope } from '@/services/envScope'
+import { useAiCampaigns } from '@/services/queries'
+import { canViewCustomerNames } from '@/auth/permissions'
+import { useCampaignList } from '@/data/marketingCampaigns'
+import { useViewportMode } from '@/components/layout/useViewportMode'
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet'
+import { Button } from '@/components/ui/button'
 import { ENVIRONMENTS, environmentById } from '@/data/environments'
 import {
   AI_CALLS_DAYS,
@@ -12,6 +19,7 @@ import {
   AI_CALL_DAILY,
   AI_CALL_EXTRA,
   AI_CAMPAIGNS,
+  BRIGHTCALL_OUTCOMES,
   DROP_LABEL,
   EXCLUDED_LABEL,
   GROUP_LABEL,
@@ -24,19 +32,27 @@ import {
 } from '@/data/brightcall'
 import { CALL_RESULTS, callResultInfo, useCallSurveyRule } from '@/data/callSurveyRule'
 import { summarizeAiCalls } from '@/utils/aiCalls'
+import { CUSTOMER_KINDS, KIND_LABEL, linkOf, setCampaignLink, useCampaignLinks, type CampaignKindAi } from '@/data/campaignLinks'
+import { CHANNEL_LABEL, CONTACT_TOUCHES, MESSAGE_STATUS, type TouchChannel } from '@/data/contactTouches'
+import { repeatRows, repeatsByCampaign, repeatSummary, type RepeatRow } from '@/utils/contactRepeats'
 import type { Bi, EnvId } from '@/types'
 import { PageHeader } from '@/components/common/PageHeader'
 import { SectionCard } from '@/components/common/SectionCard'
 import { KpiTile } from '@/components/common/KpiTile'
 import { StatusBadge } from '@/components/common/StatusBadge'
 import { Segmented } from '@/components/ui/segmented'
+import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
 const ALL = 'all'
 const NOW = Date.parse('2026-11-26T06:40:00Z')
-type Period = '7' | '30' | '90'
+type Period = '7' | '30' | '90' | 'custom'
+const TODAY = new Date(NOW).toISOString().slice(0, 10)
+/** The earliest day the sample holds (the backend keeps 2 years of daily totals). */
+const FIRST_DAY = new Date(NOW - (AI_CALLS_DAYS - 1) * 86_400_000).toISOString().slice(0, 10)
+const daysAgo = (n: number) => new Date(NOW - (n - 1) * 86_400_000).toISOString().slice(0, 10)
 const GROUP_COLOR: Record<CallGroup, string> = {
   answered: 'var(--chart-1)',
   dropped: 'var(--status-error-solid, #d93025)',
@@ -48,32 +64,203 @@ const GROUP_COLOR: Record<CallGroup, string> = {
 const nf = (lang: string) => new Intl.NumberFormat(lang === 'ar' ? 'ar-AE' : 'en-GB')
 const pct = (n: number, d: number) => (d ? `${((100 * n) / d).toFixed(1)}%` : '–')
 
+/** The filters the Overview and Repeat contacts tabs share. */
+interface AiFilters {
+  from: string
+  to: string
+  rangeOk: boolean
+  env: string
+  campaign: string
+  /** The campaigns of the chosen kinds. */
+  only: ReadonlySet<string>
+}
+type KindFilter = 'customer' | CampaignKindAi | 'all'
+
 /**
- * The AI call center (BrightCall), 26 Nov (owner): the overall numbers only, from daily totals per environment, campaign and outcome.
- * No call list, recordings or transcripts: those stay in BrightCall, which keeps this page fast. Two tabs: Overview, and Outcome mapping
- * (each BrightCall outcome and the portal call result it counts as, which the survey after a call reads). CX manager and CX team only.
+ * The AI call center (BrightCall), 26 Nov (owner): the overall numbers from daily totals per environment, campaign and outcome; who was
+ * contacted again and again (Repeat contacts); which portal campaign each BrightCall campaign belongs to (Campaign links); and the
+ * outcome mapping. No recordings or transcripts: those stay in BrightCall. CX manager and CX team only.
  */
 export default function AiCallCenter() {
-  const { t } = useI18n()
+  const { t, L, lang } = useI18n()
+  const { env, allowed, fixed } = useEnvScope()
+  const links = useCampaignLinks()
   const [params, setParams] = useSearchParams()
-  const tab = params.get('tab') === 'mapping' ? 'mapping' : 'overview'
+  const TABS = ['overview', 'repeats', 'links', 'mapping'] as const
+  const tab = (TABS as readonly string[]).includes(params.get('tab') ?? '') ? (params.get('tab') as (typeof TABS)[number]) : 'overview'
+  const [period, setPeriod] = useState<Period>('30')
+  const [envF, setEnvF] = useState<string>(ALL)
+  const [campaign, setCampaign] = useState<string>(ALL)
+  const [kind, setKind] = useState<KindFilter>('customer')
+  // 26 Nov (owner): a custom from-to range besides the quick periods
+  const [customFrom, setCustomFrom] = useState(daysAgo(30))
+  const [customTo, setCustomTo] = useState(TODAY)
+  const custom = period === 'custom'
+  const rangeOk = !custom || (customFrom !== '' && customTo !== '' && customFrom <= customTo)
+  const from = custom ? customFrom : daysAgo(Number(period))
+  const to = custom ? customTo : TODAY
+  const scopeEnv = env !== 'all' ? env : envF
+  const only = useMemo(
+    () =>
+      new Set(
+        AI_CAMPAIGNS.map((c) => c.campaign).filter((c) => {
+          const k = linkOf(links, c).kind
+          return kind === 'all' || (kind === 'customer' ? CUSTOMER_KINDS.includes(k) : k === kind)
+        }),
+      ),
+    [links, kind],
+  )
+  const f: AiFilters = { from: rangeOk ? from : TODAY, to: rangeOk ? to : TODAY, rangeOk, env: scopeEnv, campaign, only }
+  const days = Math.round((Date.parse(to) - Date.parse(from)) / 86_400_000) + 1
+  const dateFmt = new Intl.DateTimeFormat(lang === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+  const campaigns = AI_CAMPAIGNS.filter((c) => (scopeEnv === ALL || c.envId === scopeEnv) && only.has(c.campaign))
+  const envName = (id: string) => L(environmentById(id as EnvId).name)
+  const filtered = tab === 'overview' || tab === 'repeats'
+
   return (
     <div data-density="comfortable" className="flex flex-col gap-6">
       <PageHeader
         sample
         title={t('AI call center', 'مركز الاتصال بالذكاء الاصطناعي')}
         description={t(
-          'BrightCall campaigns in overall numbers: who we targeted, how many we reached, what happened and what it cost. Daily totals only; call records stay in BrightCall.',
-          'حملات BrightCall بالأرقام الإجمالية: من استهدفنا، وكم وصلنا، وماذا حدث، وكم كلّف. مجاميع يومية فقط؛ سجلات المكالمات تبقى في BrightCall.',
+          'BrightCall campaigns in overall numbers: who we targeted, how many we reached, what happened and what it cost, and who we contacted again and again. Recordings and transcripts stay in BrightCall.',
+          'حملات BrightCall بالأرقام الإجمالية: من استهدفنا، وكم وصلنا، وماذا حدث، وكم كلّف، ومن تواصلنا معه مراراً. التسجيلات والنصوص تبقى في BrightCall.',
         )}
       />
-      <Tabs value={tab} onValueChange={(v) => setParams(v === 'mapping' ? { tab: v } : {}, { replace: true })} className="gap-6">
-        <TabsList aria-label={t('AI call center', 'مركز الاتصال بالذكاء الاصطناعي')}>
-          <TabsTrigger value="overview">{t('Overview', 'نظرة عامة')}</TabsTrigger>
-          <TabsTrigger value="mapping">{t('Outcome mapping', 'ربط النتائج')}</TabsTrigger>
-        </TabsList>
+      <Tabs value={tab} onValueChange={(v) => setParams(v === 'overview' ? {} : { tab: v }, { replace: true })} className="gap-6">
+        <div className="-m-1 overflow-x-auto p-1">
+          <TabsList className="min-w-max" aria-label={t('AI call center', 'مركز الاتصال بالذكاء الاصطناعي')}>
+            <TabsTrigger value="overview">{t('Overview', 'نظرة عامة')}</TabsTrigger>
+            <TabsTrigger value="repeats">{t('Repeat contacts', 'التواصل المتكرر')}</TabsTrigger>
+            <TabsTrigger value="links">{t('Campaign links', 'ربط الحملات')}</TabsTrigger>
+            <TabsTrigger value="mapping">{t('Outcome mapping', 'ربط النتائج')}</TabsTrigger>
+          </TabsList>
+        </div>
+
+        {filtered && (
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <Segmented<Period>
+                  label={t('Period', 'الفترة')}
+                  variant="pressed"
+                  value={period}
+                  onValueChange={setPeriod}
+                  options={[
+                    { value: '7', label: t('7 days', '7 أيام') },
+                    { value: '30', label: t('30 days', '30 يوماً') },
+                    { value: '90', label: t('90 days', '90 يوماً') },
+                    { value: 'custom', label: t('Custom', 'مخصص') },
+                  ]}
+                />
+                {custom && (
+                  <span className="flex flex-wrap items-center gap-2">
+                    <label className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                      {t('From', 'من')}
+                      <Input
+                        type="date"
+                        value={customFrom}
+                        min={FIRST_DAY}
+                        max={customTo || TODAY}
+                        onChange={(e) => setCustomFrom(e.target.value)}
+                        className="h-9 w-40"
+                      />
+                    </label>
+                    <label className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                      {t('To', 'إلى')}
+                      <Input
+                        type="date"
+                        value={customTo}
+                        min={customFrom || FIRST_DAY}
+                        max={TODAY}
+                        onChange={(e) => setCustomTo(e.target.value)}
+                        className="h-9 w-40"
+                      />
+                    </label>
+                  </span>
+                )}
+                {fixed ? (
+                  <StatusBadge tone="info">
+                    {t('Your environment:', 'بيئتك:')} {envName(fixed)}
+                  </StatusBadge>
+                ) : (
+                  env === 'all' && (
+                    <Select
+                      value={envF}
+                      onValueChange={(v) => {
+                        setEnvF(v)
+                        setCampaign(ALL)
+                      }}
+                    >
+                      <SelectTrigger aria-label={t('Environment', 'البيئة')} className="h-9 min-w-40">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={ALL}>{t('All environments', 'كل البيئات')}</SelectItem>
+                        {ENVIRONMENTS.filter((e) => allowed.includes(e.id) && AI_CAMPAIGNS.some((c) => c.envId === e.id)).map((e) => (
+                          <SelectItem key={e.id} value={e.id}>
+                            {L(e.name)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )
+                )}
+                <Select
+                  value={kind}
+                  onValueChange={(v) => {
+                    setKind(v as KindFilter)
+                    setCampaign(ALL)
+                  }}
+                >
+                  <SelectTrigger aria-label={t('Campaign type', 'نوع الحملة')} className="h-9 min-w-44">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="customer">{t('Customer campaigns', 'حملات العملاء')}</SelectItem>
+                    {(Object.keys(KIND_LABEL) as CampaignKindAi[]).map((k) => (
+                      <SelectItem key={k} value={k}>
+                        {L(KIND_LABEL[k])}
+                      </SelectItem>
+                    ))}
+                    <SelectItem value="all">{t('Every type', 'كل الأنواع')}</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={campaign} onValueChange={setCampaign}>
+                  <SelectTrigger aria-label={t('Campaign', 'الحملة')} className="h-9 min-w-48">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={ALL}>{t('All campaigns', 'كل الحملات')}</SelectItem>
+                    {campaigns.map((c) => (
+                      <SelectItem key={c.campaign} value={c.campaign}>
+                        {c.campaign}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {useFreshness()}
+            </div>
+            <p className={rangeOk ? 'text-sm text-muted-foreground' : 'text-sm text-(--status-error-text)'} aria-live="polite">
+              {rangeOk
+                ? t(
+                    `Showing ${dateFmt.format(new Date(from))} to ${dateFmt.format(new Date(to))} · ${days} days`,
+                    `يعرض من ${dateFmt.format(new Date(from))} إلى ${dateFmt.format(new Date(to))} · ${days} يوماً`,
+                  )
+                : t('Choose a start date on or before the end date.', 'اختر تاريخ بداية قبل تاريخ النهاية أو مساوياً له.')}
+            </p>
+          </div>
+        )}
+
         <TabsContent value="overview">
-          <Overview />
+          <Overview f={f} />
+        </TabsContent>
+        <TabsContent value="repeats">
+          <RepeatContacts f={f} />
+        </TabsContent>
+        <TabsContent value="links">
+          <CampaignLinksTab />
         </TabsContent>
         <TabsContent value="mapping">
           <Mapping />
@@ -97,22 +284,20 @@ function useFreshness() {
   )
 }
 
-function Overview() {
+function Overview({ f }: { f: AiFilters }) {
   const { t, L, lang } = useI18n()
-  const { env, allowed, fixed } = useEnvScope()
   const mapping = useBrightcallMapping()
   const survey = useCallSurveyRule()
-  const [period, setPeriod] = useState<Period>('30')
-  const [envF, setEnvF] = useState<string>(ALL)
-  const [campaign, setCampaign] = useState<string>(ALL)
+  const links = useCampaignLinks()
   const N = nf(lang)
-  const scopeEnv = env !== 'all' ? env : envF
-  const from = new Date(NOW - (Number(period) - 1) * 86_400_000).toISOString().slice(0, 10)
   const s = useMemo(
-    () => summarizeAiCalls(AI_CALL_DAILY, AI_CALL_EXTRA, AI_CAMPAIGNS, mapping, { env: scopeEnv, campaign, from }),
-    [mapping, scopeEnv, campaign, from],
+    () => summarizeAiCalls(AI_CALL_DAILY, AI_CALL_EXTRA, AI_CAMPAIGNS, mapping, { env: f.env, campaign: f.campaign, from: f.from, to: f.to, only: f.only }),
+    [mapping, f.env, f.campaign, f.from, f.to, f.only],
   )
-  const campaigns = AI_CAMPAIGNS.filter((c) => scopeEnv === ALL || c.envId === scopeEnv)
+  const repeats = useMemo(
+    () => repeatsByCampaign(repeatRows(CONTACT_TOUCHES, { from: f.from, to: f.to, env: f.env, campaign: f.campaign, campaigns: f.only })),
+    [f.from, f.to, f.env, f.campaign, f.only],
+  )
   const answered = s.byGroup.answered
   const dropped = s.byGroup.dropped
   const surveyable = survey.sendOn.reduce((n, r) => n + (s.byResult.get(r)?.contacts ?? 0), 0)
@@ -127,63 +312,6 @@ function Overview() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <Segmented<Period>
-            label={t('Period', 'الفترة')}
-            variant="pressed"
-            value={period}
-            onValueChange={setPeriod}
-            options={[
-              { value: '7', label: t('7 days', '7 أيام') },
-              { value: '30', label: t('30 days', '30 يوماً') },
-              { value: '90', label: t('90 days', '90 يوماً') },
-            ]}
-          />
-          {fixed ? (
-            <StatusBadge tone="info">
-              {t('Your environment:', 'بيئتك:')} {envName(fixed)}
-            </StatusBadge>
-          ) : (
-            env === 'all' && (
-              <Select
-                value={envF}
-                onValueChange={(v) => {
-                  setEnvF(v)
-                  setCampaign(ALL)
-                }}
-              >
-                <SelectTrigger aria-label={t('Environment', 'البيئة')} className="h-9 min-w-40">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={ALL}>{t('All environments', 'كل البيئات')}</SelectItem>
-                  {ENVIRONMENTS.filter((e) => allowed.includes(e.id) && AI_CAMPAIGNS.some((c) => c.envId === e.id)).map((e) => (
-                    <SelectItem key={e.id} value={e.id}>
-                      {L(e.name)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )
-          )}
-          <Select value={campaign} onValueChange={setCampaign}>
-            <SelectTrigger aria-label={t('Campaign', 'الحملة')} className="h-9 min-w-48">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={ALL}>{t('All campaigns', 'كل الحملات')}</SelectItem>
-              {campaigns.map((c) => (
-                <SelectItem key={c.campaign} value={c.campaign}>
-                  {c.campaign}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        {useFreshness()}
-      </div>
-
       <div className="grid gap-4 sm:grid-cols-2 desktop:grid-cols-4">
         <KpiTile
           label={t('Targeted customers', 'العملاء المستهدفون')}
@@ -344,6 +472,7 @@ function Overview() {
               <TableHead className="text-end">{t('Drop at greeting', 'إغلاق عند التحية')}</TableHead>
               <TableHead className="text-end">{t('Leads', 'محتملون')}</TableHead>
               <TableHead className="text-end">{t('Cost per lead', 'تكلفة العميل المحتمل')}</TableHead>
+              <TableHead className="text-end">{t('Contacted 2+ times', 'تواصلنا معهم مرتين أو أكثر')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -351,7 +480,16 @@ function Overview() {
               const drop = c.answered + c.dropped20 ? (100 * c.dropped20) / (c.answered + c.dropped20) : 0
               return (
                 <TableRow key={c.campaign}>
-                  <TableCell className="font-medium whitespace-nowrap">{c.campaign}</TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    <span className="flex flex-col">
+                      <span className="font-medium text-foreground">{c.campaign}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {L(KIND_LABEL[linkOf(links, c.campaign).kind])}
+                        {' · '}
+                        {linkOf(links, c.campaign).linkedTo ?? t('not linked', 'غير مربوطة')}
+                      </span>
+                    </span>
+                  </TableCell>
                   <TableCell className="whitespace-nowrap">{envName(c.envId)}</TableCell>
                   <TableCell className="text-end tabular">{N.format(c.targeted)}</TableCell>
                   <TableCell className="text-end tabular">{pct(c.attempted, c.targeted)}</TableCell>
@@ -362,6 +500,11 @@ function Overview() {
                   </TableCell>
                   <TableCell className="text-end tabular">{N.format(c.leads)}</TableCell>
                   <TableCell className="text-end tabular">{c.leads ? N.format(Math.round(c.cost / c.leads)) : '–'}</TableCell>
+                  <TableCell className="text-end">
+                    <Link to={`?tab=repeats&c=${encodeURIComponent(c.campaign)}`} className="tabular underline-offset-2 hover:underline">
+                      {N.format(repeats.get(c.campaign) ?? 0)}
+                    </Link>
+                  </TableCell>
                 </TableRow>
               )
             })}
@@ -497,6 +640,396 @@ function Mapping() {
                     {m.complaint && <StatusBadge tone="danger">{t('Complaint signal', 'إشارة شكوى')}</StatusBadge>}
                   </TableCell>
                   <TableCell className="text-end tabular">{N.format(s.byOutcome.get(m.code)?.calls ?? 0)}</TableCell>
+                </TableRow>
+              )
+            })}
+          </TableBody>
+        </Table>
+      </SectionCard>
+    </div>
+  )
+}
+
+const CHANNEL_COLOR: Record<TouchChannel, string> = {
+  ai_call: 'var(--chart-1)',
+  whatsapp: 'var(--status-success-solid, #188038)',
+  sms: 'var(--chart-3)',
+  email: 'var(--chart-4)',
+}
+const REPEAT_PAGE = 20
+
+/**
+ * Repeat contacts (26 Nov, owner): customers contacted again and again, inside one campaign and across campaigns, by AI calls and by
+ * the campaign's messages. A click opens the person's attempts: campaign, time, method, status and call duration. No contact limit is
+ * enforced; this only shows it. It also feeds the personas later (how each person answers each channel).
+ */
+function RepeatContacts({ f }: { f: AiFilters }) {
+  const { t, L, lang } = useI18n()
+  const { role } = useRole()
+  const [params, setParams] = useSearchParams()
+  const names = canViewCustomerNames(role.id)
+  const N = nf(lang)
+  const focus = params.get('c') ?? ''
+  const [min, setMin] = useState<'2' | '3' | '5' | '10'>('2')
+  const [shown, setShown] = useState(REPEAT_PAGE)
+  const [open, setOpen] = useState<RepeatRow | null>(null)
+  const rows = useMemo(
+    () => repeatRows(CONTACT_TOUCHES, { from: f.from, to: f.to, env: f.env, campaign: focus || f.campaign, campaigns: f.only }),
+    [f.from, f.to, f.env, f.campaign, f.only, focus],
+  )
+  const sum = repeatSummary(rows)
+  const list = rows.filter((r) => r.total >= Number(min))
+  const who = (r: RepeatRow) => (names ? r.contact.name : r.contact.crmId)
+
+  return (
+    <div className="flex flex-col gap-6">
+      {focus && (
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <StatusBadge tone="info">
+            {t('Campaign:', 'الحملة:')} {focus}
+          </StatusBadge>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              const next = new URLSearchParams(params)
+              next.delete('c')
+              setParams(next, { replace: true })
+            }}
+          >
+            {t('Show every campaign', 'عرض كل الحملات')}
+          </Button>
+        </div>
+      )}
+      <div className="grid gap-4 sm:grid-cols-2 desktop:grid-cols-4">
+        <KpiTile
+          label={t('Customers contacted', 'عملاء تم التواصل معهم')}
+          value={N.format(sum.customers)}
+          sub={t(`${N.format(sum.attempts)} attempts`, `${N.format(sum.attempts)} محاولة`)}
+        />
+        <KpiTile
+          label={t('2+ times in one campaign', 'مرتين أو أكثر في حملة واحدة')}
+          value={N.format(sum.repeatedInOne)}
+          sub={t(`${pct(sum.repeatedInOne, sum.customers)} of the customers`, `${pct(sum.repeatedInOne, sum.customers)} من العملاء`)}
+        />
+        <KpiTile
+          label={t('Reached by 2+ campaigns', 'وصلتهم حملتان أو أكثر')}
+          value={N.format(sum.multiCampaign)}
+          sub={t(`${N.format(sum.threePlus)} by 3 or more`, `${N.format(sum.threePlus)} من 3 حملات أو أكثر`)}
+        />
+        <KpiTile
+          label={t('Most attempts on one customer', 'أكثر محاولات لعميل واحد')}
+          value={N.format(sum.mostTouches)}
+          sub={t('in the selected period', 'في الفترة المختارة')}
+        />
+      </div>
+
+      <SectionCard
+        title={t('Customers contacted again and again', 'عملاء تواصلنا معهم مراراً')}
+        description={t('Most attempts first. Click a customer to see every attempt.', 'الأكثر محاولات أولاً. اضغط على العميل لرؤية كل المحاولات.')}
+        actions={
+          <Segmented<'2' | '3' | '5' | '10'>
+            label={t('At least', 'على الأقل')}
+            variant="pressed"
+            value={min}
+            onValueChange={(v) => {
+              setMin(v)
+              setShown(REPEAT_PAGE)
+            }}
+            options={[
+              { value: '2', label: t('2+ times', '2+ مرات') },
+              { value: '3', label: t('3+', '3+') },
+              { value: '5', label: t('5+', '5+') },
+              { value: '10', label: t('10+', '10+') },
+            ]}
+          />
+        }
+      >
+        {list.length === 0 ? (
+          <p className="text-sm text-muted-foreground">{t('Nobody was contacted that often in this view.', 'لم يُتواصل مع أحد بهذا القدر في هذا العرض.')}</p>
+        ) : (
+          <>
+            <ul className="flex flex-col">
+              {list.slice(0, shown).map((r) => (
+                <li key={r.contact.crmId} className="border-b border-line last:border-0">
+                  <button
+                    type="button"
+                    onClick={() => setOpen(r)}
+                    className="flex w-full flex-col gap-2 rounded-lg px-2 py-3 text-start outline-hidden hover:bg-well focus-visible:ring-2 focus-visible:ring-ring/40 sm:flex-row sm:items-center sm:gap-4"
+                  >
+                    <span className="flex min-w-0 flex-1 flex-col">
+                      <span className="font-medium text-foreground">{who(r)}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {L(environmentById(r.contact.envId).name)} · {r.contact.persona}
+                      </span>
+                    </span>
+                    <span className="text-sm sm:w-72">
+                      {t(
+                        `Contacted ${r.total} times in ${r.perCampaign.length} ${r.perCampaign.length === 1 ? 'campaign' : 'campaigns'}`,
+                        `تواصلنا معه ${N.format(r.total)} مرة في ${N.format(r.perCampaign.length)} ${r.perCampaign.length === 1 ? 'حملة' : 'حملات'}`,
+                      )}
+                      <span className="block text-xs text-muted-foreground">
+                        {t(`Most in one: ${r.perCampaign[0][0]} (${r.maxInOne})`, `الأكثر في حملة واحدة: ${r.perCampaign[0][0]} (${N.format(r.maxInOne)})`)}
+                      </span>
+                    </span>
+                    <span className="flex w-full flex-col gap-1 sm:w-56">
+                      <span aria-hidden className="flex h-2 overflow-hidden rounded-full bg-well">
+                        {(Object.keys(CHANNEL_LABEL) as TouchChannel[]).map((ch) =>
+                          r.byChannel[ch] ? <span key={ch} style={{ width: `${(100 * r.byChannel[ch]) / r.total}%`, background: CHANNEL_COLOR[ch] }} /> : null,
+                        )}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {(Object.keys(CHANNEL_LABEL) as TouchChannel[])
+                          .filter((ch) => r.byChannel[ch])
+                          .map((ch) => `${L(CHANNEL_LABEL[ch])} ${N.format(r.byChannel[ch])}`)
+                          .join(' · ')}
+                      </span>
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+            {list.length > shown && (
+              <Button variant="outline" className="mt-3 self-start" onClick={() => setShown((n) => n + REPEAT_PAGE)}>
+                {t(`Show more (${list.length - shown} left)`, `عرض المزيد (${N.format(list.length - shown)} متبقٍ)`)}
+              </Button>
+            )}
+          </>
+        )}
+      </SectionCard>
+
+      {open && <ContactAttempts row={open} name={who(open)} onClose={() => setOpen(null)} />}
+    </div>
+  )
+}
+
+/** The attempts of one customer: per channel, per campaign, and each attempt with its time, method, status and duration. */
+function ContactAttempts({ row, name, onClose }: { row: RepeatRow; name: string; onClose: () => void }) {
+  const { t, L, lang } = useI18n()
+  const phone = useViewportMode() === 'phone'
+  const N = nf(lang)
+  const dt = new Intl.DateTimeFormat(lang === 'ar' ? 'ar-AE' : 'en-GB', {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone: 'Asia/Dubai',
+  })
+  const mapping = useBrightcallMapping()
+  const callTone = (code: string): 'success' | 'warning' | 'danger' | 'neutral' => {
+    const m = mapping.find((x) => x.code === code)
+    if (m?.complaint) return 'danger'
+    if (m?.lead) return 'success'
+    if (m?.group === 'dropped') return 'warning'
+    return 'neutral'
+  }
+  const statusLabel = (ch: TouchChannel, s: string) => (ch === 'ai_call' ? s : L(MESSAGE_STATUS[s] ?? { en: s, ar: s }))
+  const mins = (sec?: number) => (sec ? `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}` : '–')
+  const body = (
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-1">
+        <h2 className="t-h4">{name}</h2>
+        <p className="text-sm text-muted-foreground">
+          {t(
+            `Contacted ${row.total} times in ${row.perCampaign.length} campaigns · ${row.contact.persona}`,
+            `تواصلنا معه ${N.format(row.total)} مرة في ${N.format(row.perCampaign.length)} حملات · ${row.contact.persona}`,
+          )}
+        </p>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="flex flex-col gap-2">
+          <h3 className="label-style">{t('By method', 'حسب الطريقة')}</h3>
+          <Bars
+            total={row.total}
+            rows={(Object.keys(CHANNEL_LABEL) as TouchChannel[])
+              .filter((ch) => row.byChannel[ch])
+              .map((ch) => [L(CHANNEL_LABEL[ch]), row.byChannel[ch], CHANNEL_COLOR[ch]])}
+          />
+        </div>
+        <div className="flex flex-col gap-2">
+          <h3 className="label-style">{t('By campaign', 'حسب الحملة')}</h3>
+          <Bars total={row.total} rows={row.perCampaign.map(([c, n]) => [c, n])} />
+        </div>
+      </div>
+      <div className="flex flex-col gap-2">
+        <h3 className="label-style">{t('Every attempt', 'كل المحاولات')}</h3>
+        <Table density="comfortable">
+          <TableHeader>
+            <TableRow className="row-divider-none">
+              <TableHead>{t('Date and time', 'التاريخ والوقت')}</TableHead>
+              <TableHead>{t('Campaign', 'الحملة')}</TableHead>
+              <TableHead>{t('Method', 'الطريقة')}</TableHead>
+              <TableHead>{t('Status', 'الحالة')}</TableHead>
+              <TableHead className="text-end">{t('Duration', 'المدة')}</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {[...row.touches].reverse().map((x, i) => (
+              <TableRow key={`${x.at}-${i}`}>
+                <TableCell className="whitespace-nowrap tabular">{dt.format(new Date(x.at))}</TableCell>
+                <TableCell className="whitespace-nowrap">{x.campaign}</TableCell>
+                <TableCell className="whitespace-nowrap">
+                  <span className="inline-flex items-center gap-1.5">
+                    <span aria-hidden className="size-2 rounded-full" style={{ background: CHANNEL_COLOR[x.channel] }} />
+                    {L(CHANNEL_LABEL[x.channel])}
+                  </span>
+                </TableCell>
+                <TableCell>
+                  <StatusBadge
+                    tone={x.channel === 'ai_call' ? callTone(x.status) : x.status === 'failed' ? 'warning' : x.status === 'replied' ? 'success' : 'neutral'}
+                  >
+                    <bdi dir={x.channel === 'ai_call' ? 'ltr' : undefined}>{statusLabel(x.channel, x.status)}</bdi>
+                  </StatusBadge>
+                </TableCell>
+                <TableCell className="text-end tabular">{x.channel === 'ai_call' ? mins(x.durationSec) : '–'}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+        <p className="t-caption">
+          {t(
+            'Recordings and transcripts stay in BrightCall. Message text stays in the marketing platform.',
+            'التسجيلات والنصوص تبقى في BrightCall. نص الرسائل يبقى في منصة التسويق.',
+          )}
+        </p>
+      </div>
+    </div>
+  )
+  const title = t('Contact attempts', 'محاولات التواصل')
+  return phone ? (
+    <Sheet open onOpenChange={(o) => !o && onClose()}>
+      <SheetContent side="bottom" className="max-h-[92dvh] overflow-y-auto rounded-b-none px-4 pt-6 pb-8">
+        <SheetTitle className="sr-only">{title}</SheetTitle>
+        <SheetDescription className="sr-only">{name}</SheetDescription>
+        {body}
+      </SheetContent>
+    </Sheet>
+  ) : (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-3xl">
+        <DialogTitle className="sr-only">{title}</DialogTitle>
+        <DialogDescription className="sr-only">{name}</DialogDescription>
+        {body}
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+/** Campaign links (26 Nov, owner): what each BrightCall campaign is and which portal campaign it belongs to. CX manager edits. */
+function CampaignLinksTab() {
+  const { t, L, lang } = useI18n()
+  const { role } = useRole()
+  const { log } = useAuditActor()
+  const links = useCampaignLinks()
+  const marketing = useCampaignList()
+  const { data: aiCampaigns } = useAiCampaigns()
+  const canEdit = role.id === 'cxmgr'
+  const N = nf(lang)
+  const totals = useMemo(
+    () => summarizeAiCalls(AI_CALL_DAILY, AI_CALL_EXTRA, AI_CAMPAIGNS, BRIGHTCALL_OUTCOMES, { env: ALL, campaign: ALL, from: FIRST_DAY }),
+    [],
+  )
+  const calls = new Map(totals.campaigns.map((c) => [c.campaign, c.calls]))
+  const NONE = '__none'
+  const targets = (kind: CampaignKindAi): { id: string; label: string }[] =>
+    kind === 'marketing'
+      ? marketing.map((m) => ({ id: m.code, label: `${m.code} · ${m.name}` }))
+      : kind === 'cx_interview'
+        ? (aiCampaigns ?? []).map((a) => ({ id: a.id, label: L(a.name) }))
+        : []
+  const unlinked = AI_CAMPAIGNS.filter((c) => {
+    const l = linkOf(links, c.campaign)
+    return CUSTOMER_KINDS.includes(l.kind) && !l.linkedTo
+  })
+
+  return (
+    <div className="flex flex-col gap-6">
+      {unlinked.length > 0 && (
+        <div className="flex items-start gap-2 rounded-xl bg-(--status-warning-bg) p-3 text-sm">
+          <AlertTriangle aria-hidden className="mt-0.5 size-4 shrink-0" />
+          {t(
+            `${unlinked.length} customer campaigns are not linked yet, so their calls and cost are missing from Marketing campaigns. Ask that every new BrightCall campaign carries the campaign code (MKT-…) so it links by itself.`,
+            `${N.format(unlinked.length)} حملات عملاء غير مربوطة بعد، فمكالماتها وتكلفتها غائبة عن الحملات التسويقية. اطلب أن تحمل كل حملة جديدة في BrightCall رمز الحملة (MKT-…) لتُربط تلقائياً.`,
+          )}
+        </div>
+      )}
+      <SectionCard
+        title={t('BrightCall campaign to portal campaign', 'حملة BrightCall إلى حملة البوابة')}
+        description={
+          canEdit
+            ? t(
+                'A Marketing campaign links by its code; a CX interview campaign links to its Close the loop campaign. HR and test campaigns stay out of the customer numbers. Each change is logged.',
+                'الحملة التسويقية تُربط برمزها؛ وحملة مقابلات تجربة العملاء تُربط بحملتها في إغلاق الحلقة. حملات الموارد البشرية والاختبار تبقى خارج أرقام العملاء. كل تغيير يُسجَّل.',
+              )
+            : t('View only. The CX manager changes the links.', 'للعرض فقط. يغيّر مدير تجربة العملاء الربط.')
+        }
+      >
+        <Table density="comfortable">
+          <TableHeader>
+            <TableRow className="row-divider-none">
+              <TableHead>{t('BrightCall campaign', 'حملة BrightCall')}</TableHead>
+              <TableHead>{t('Type', 'النوع')}</TableHead>
+              <TableHead>{t('Linked to', 'مربوطة بـ')}</TableHead>
+              <TableHead className="text-end">{t('Calls, 90 days', 'مكالمات، 90 يوماً')}</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {AI_CAMPAIGNS.map((c) => {
+              const l = linkOf(links, c.campaign)
+              const opts = targets(l.kind)
+              const save = (next: { kind: CampaignKindAi; linkedTo: string | null }) => {
+                setCampaignLink(c.campaign, next)
+                log('action', {
+                  en: `BrightCall campaign "${c.campaign}": ${KIND_LABEL[next.kind].en}, linked to ${next.linkedTo ?? 'nothing'}`,
+                  ar: `حملة BrightCall «${c.campaign}»: ${KIND_LABEL[next.kind].ar}، مربوطة بـ ${next.linkedTo ?? 'لا شيء'}`,
+                })
+              }
+              return (
+                <TableRow key={c.campaign}>
+                  <TableCell className="font-medium whitespace-nowrap">{c.campaign}</TableCell>
+                  <TableCell>
+                    {canEdit ? (
+                      <Select value={l.kind} onValueChange={(v) => save({ kind: v as CampaignKindAi, linkedTo: null })}>
+                        <SelectTrigger aria-label={t('Type', 'النوع')} className="h-8 min-w-40">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {(Object.keys(KIND_LABEL) as CampaignKindAi[]).map((k) => (
+                            <SelectItem key={k} value={k}>
+                              {L(KIND_LABEL[k])}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      L(KIND_LABEL[l.kind])
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {opts.length === 0 ? (
+                      <span className="text-muted-foreground">{t('Not a customer campaign', 'ليست حملة عملاء')}</span>
+                    ) : canEdit ? (
+                      <Select value={l.linkedTo ?? NONE} onValueChange={(v) => save({ kind: l.kind, linkedTo: v === NONE ? null : v })}>
+                        <SelectTrigger aria-label={t('Linked to', 'مربوطة بـ')} className="h-8 min-w-72">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={NONE}>{t('Not linked yet', 'غير مربوطة بعد')}</SelectItem>
+                          {opts.map((o) => (
+                            <SelectItem key={o.id} value={o.id}>
+                              {o.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : l.linkedTo ? (
+                      (opts.find((o) => o.id === l.linkedTo)?.label ?? l.linkedTo)
+                    ) : (
+                      <StatusBadge tone="warning">{t('Not linked yet', 'غير مربوطة بعد')}</StatusBadge>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-end tabular">{N.format(calls.get(c.campaign) ?? 0)}</TableCell>
                 </TableRow>
               )
             })}

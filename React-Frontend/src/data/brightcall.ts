@@ -173,20 +173,22 @@ export interface AiCampaignTotals {
   startedOn: string
 }
 
-const CAMPAIGNS: { name: string; env: EnvId; size: number }[] = [
-  { name: 'Saadiyat Lagoons', env: 'auh', size: 1.4 },
+export const BRIGHTCALL_CAMPAIGNS: { name: string; env: EnvId; size: number }[] = [
+  { name: 'Saadiyat Grove launch', env: 'auh', size: 1.4 },
   { name: 'Ohana Project', env: 'auh', size: 1.2 },
-  { name: 'Yas Island Listing', env: 'auh', size: 0.8 },
+  { name: 'Yas Island open house', env: 'auh', size: 0.8 },
   { name: 'Reem Island New Projects', env: 'auh', size: 0.9 },
   { name: 'Hudayriyat General', env: 'auh', size: 0.7 },
   { name: 'Hilton Residences JLT', env: 'dub', size: 1.1 },
-  { name: 'Damac Lagoons Listing', env: 'dub', size: 0.9 },
-  { name: 'Binghatti Projects', env: 'dub', size: 0.6 },
-  { name: 'Sustainable City', env: 'dub', size: 0.5 },
-  { name: 'Tenant renewals', env: 'ast', size: 0.4 },
+  { name: 'Dubai Hills resale follow-up', env: 'dub', size: 0.9 },
+  { name: 'Damac Lagoons Listing', env: 'dub', size: 0.6 },
+  { name: 'Rental renewals reminder', env: 'ast', size: 0.4 },
   { name: 'Leasing listings', env: 'ast', size: 0.5 },
-  { name: 'Loyalty Program', env: 'auh', size: 0.3 },
+  { name: 'Detractor interviews', env: 'auh', size: 0.05 },
+  { name: 'Recruitment campaign', env: 'auh', size: 0.15 },
+  { name: 'Dashboard Webhook Test', env: 'auh', size: 0.01 },
 ]
+const CAMPAIGNS = BRIGHTCALL_CAMPAIGNS
 
 // share of calls per outcome, from the overview screen's proportions (rounded); cost per call in AED
 const MIX: [string, number, number][] = [

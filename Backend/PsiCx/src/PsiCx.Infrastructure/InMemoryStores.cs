@@ -200,3 +200,113 @@ public sealed class InMemoryGiftStore : IGiftStore
         }
     }
 }
+
+public sealed class InMemoryCallSurveyStore : ICallSurveyStore
+{
+    private readonly List<CallSurveyItem> _items = [];
+    private readonly object _gate = new();
+    private int _last;
+
+    public Task<CallSurveyItem?> AddAsync(string callId, Func<string, CallSurveyItem> build, CancellationToken ct = default)
+    {
+        lock (_gate)
+        {
+            if (_items.Any(i => i.CallId == callId.Trim())) return Task.FromResult<CallSurveyItem?>(null);
+            var item = build($"cs-{++_last}");
+            _items.Add(item);
+            return Task.FromResult<CallSurveyItem?>(item);
+        }
+    }
+
+    public Task<CallSurveyItem?> GetByCallAsync(string callId, CancellationToken ct = default)
+    { lock (_gate) return Task.FromResult(_items.FirstOrDefault(i => i.CallId == callId.Trim())); }
+
+    public Task<IReadOnlyList<CallSurveyItem>> ListAsync(CancellationToken ct = default)
+    { lock (_gate) return Task.FromResult<IReadOnlyList<CallSurveyItem>>(_items.ToList()); }
+
+    public Task<bool> TryReplaceAsync(CallSurveyItem next, CallSurveyStatus expected, CancellationToken ct = default)
+    {
+        lock (_gate)
+        {
+            var i = _items.FindIndex(x => x.Id == next.Id);
+            if (i < 0 || _items[i].Status != expected) return Task.FromResult(false);
+            _items[i] = next;
+            return Task.FromResult(true);
+        }
+    }
+}
+
+/// <summary>Development and tests: contacts added by hand. The real directory reads the CRM (four environments) and the DNCR.</summary>
+public sealed class InMemoryCallContactDirectory : ICallContactDirectory
+{
+    private readonly List<CallContact> _items = [];
+    private readonly object _gate = new();
+
+    public void Set(CallContact c)
+    {
+        lock (_gate) { _items.RemoveAll(x => x.PersonId == c.PersonId); _items.Add(c); }
+    }
+
+    public Task<CallContact?> FindByPhoneAsync(string phone, CancellationToken ct = default)
+    { lock (_gate) return Task.FromResult(_items.FirstOrDefault(x => x.Phone == phone)); }
+
+    public Task<CallContact?> GetAsync(string personId, CancellationToken ct = default)
+    { lock (_gate) return Task.FromResult(_items.FirstOrDefault(x => x.PersonId == personId)); }
+}
+
+public sealed class InMemoryAiCallStore : IAiCallStore
+{
+    private readonly List<AiCallDailyRow> _rows = [];
+    private readonly List<AiCallDailyExtra> _extras = [];
+    private readonly List<AiCampaignTotals> _campaigns = [];
+    private readonly List<AiCallEvent> _events = [];
+    private DateTimeOffset? _refreshed;
+    private int _last;
+    private readonly object _gate = new();
+
+    public Task ReplaceDailyAsync(DateOnly from, DateOnly to, IReadOnlyList<AiCallDailyRow> rows, IReadOnlyList<AiCallDailyExtra> extras, DateTimeOffset refreshedAt, CancellationToken ct = default)
+    {
+        lock (_gate)
+        {
+            _rows.RemoveAll(r => r.Date >= from && r.Date <= to);
+            _extras.RemoveAll(x => x.Date >= from && x.Date <= to);
+            _rows.AddRange(rows);
+            _extras.AddRange(extras);
+            _refreshed = refreshedAt;
+        }
+        return Task.CompletedTask;
+    }
+
+    public Task UpsertCampaignsAsync(IReadOnlyList<AiCampaignTotals> campaigns, DateTimeOffset refreshedAt, CancellationToken ct = default)
+    {
+        lock (_gate)
+        {
+            foreach (var c in campaigns)
+            {
+                _campaigns.RemoveAll(x => x.Campaign == c.Campaign && x.EnvId == c.EnvId);
+                _campaigns.Add(c);
+            }
+            _refreshed = refreshedAt;
+        }
+        return Task.CompletedTask;
+    }
+
+    public Task<IReadOnlyList<AiCallDailyRow>> RowsAsync(CancellationToken ct = default) { lock (_gate) return Task.FromResult<IReadOnlyList<AiCallDailyRow>>(_rows.ToList()); }
+    public Task<IReadOnlyList<AiCallDailyExtra>> ExtrasAsync(CancellationToken ct = default) { lock (_gate) return Task.FromResult<IReadOnlyList<AiCallDailyExtra>>(_extras.ToList()); }
+    public Task<IReadOnlyList<AiCampaignTotals>> CampaignsAsync(CancellationToken ct = default) { lock (_gate) return Task.FromResult<IReadOnlyList<AiCampaignTotals>>(_campaigns.ToList()); }
+    public Task<DateTimeOffset?> LastRefreshAsync(CancellationToken ct = default) { lock (_gate) return Task.FromResult(_refreshed); }
+
+    public Task<AiCallEvent?> AddEventAsync(string callId, Func<string, AiCallEvent> build, CancellationToken ct = default)
+    {
+        lock (_gate)
+        {
+            if (_events.Any(e => e.CallId == callId.Trim())) return Task.FromResult<AiCallEvent?>(null);
+            var ev = build($"ae-{++_last}");
+            _events.Add(ev);
+            return Task.FromResult<AiCallEvent?>(ev);
+        }
+    }
+
+    public Task<AiCallEvent?> GetEventAsync(string callId, CancellationToken ct = default) { lock (_gate) return Task.FromResult(_events.FirstOrDefault(e => e.CallId == callId.Trim())); }
+    public Task<IReadOnlyList<AiCallEvent>> EventsAsync(CancellationToken ct = default) { lock (_gate) return Task.FromResult<IReadOnlyList<AiCallEvent>>(_events.ToList()); }
+}
