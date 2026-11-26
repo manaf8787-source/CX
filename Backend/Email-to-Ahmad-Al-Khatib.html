@@ -1,0 +1,54 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Email to Ahmad Al-Khatib</title>
+<style>
+body{font-family:Calibri,Arial,sans-serif;font-size:14px;color:#111;max-width:860px;margin:24px auto;padding:0 16px;line-height:1.45}
+table{border-collapse:collapse;width:100%;margin:12px 0}
+th,td{border:1px solid #cfd3d8;padding:7px 9px;text-align:left;vertical-align:top}
+th{background:#f1f3f5}
+.subj{color:#555;margin-bottom:18px}
+</style></head><body>
+
+<p class="subj"><b>Subject:</b> CX Portal backend: what we need to start</p>
+
+<p>Hi Ahmad,</p>
+
+<p>The CX Portal frontend is approved and we are ready to start the backend in .NET. The backend reads data from PSI systems and never writes into them.</p>
+
+<p>Could you share the items below with the backend team? The attached document has the full details for each one.</p>
+
+<p><b>Platform</b></p>
+<table>
+<tr><th>#</th><th>Item</th><th>What we need</th></tr>
+<tr><td>1</td><td>Hosting</td><td>Dev, test and production environments in the UAE for a .NET Web API and background jobs</td></tr>
+<tr><td>2</td><td>Database</td><td>A database server (same engine as the CRM), one database per environment</td></tr>
+<tr><td>3</td><td>.NET standards</td><td>.NET version and the conventions the backend team follows</td></tr>
+<tr><td>4</td><td>Source control and deploy</td><td>A repository and a build-and-deploy pipeline</td></tr>
+<tr><td>5</td><td>Domain</td><td>Web addresses for the portal, its API and the public survey page, with certificates</td></tr>
+<tr><td>6</td><td>Company sign-in</td><td>Register the portal with the company directory so staff use their PSI account (names, titles, managers)</td></tr>
+<tr><td>7</td><td>Email and SMS</td><td>A sender mailbox for notifications, and an SMS provider with a registered sender name</td></tr>
+<tr><td>8</td><td>Secrets</td><td>The secure way to share passwords and API keys with developers</td></tr>
+<tr><td>9</td><td>File storage and backup</td><td>Private storage for uploaded files and exports; backup and restore for the database and files</td></tr>
+<tr><td>10</td><td>Legal</td><td>Approval of the personal data kept, retention period and consent rules</td></tr>
+<tr><td>11</td><td>AI agents</td><td>The approved AI provider and models (Arabic and English) for the portal's 10 AI agents and supervisor, data residency, API keys and a monthly budget</td></tr>
+</table>
+
+<p><b>Systems to connect</b> (in this order)</p>
+<table>
+<tr><th>#</th><th>System</th><th>What we need</th></tr>
+<tr><td>1</td><td>Meta (Facebook, Instagram, WhatsApp Business)</td><td>Business Manager access for the portal; WhatsApp provider and its API; message webhooks; survey templates</td></tr>
+<tr><td>2</td><td>Other social channels (LinkedIn, Google reviews, TikTok, YouTube, X, Snapchat)</td><td>List of PSI accounts per channel; the social listening tool Marketing uses, if any (one connection can cover all channels); otherwise admin access for the portal on each channel</td></tr>
+<tr><td>3</td><td>CRM (Dubai, Abu Dhabi, PSI Assets, PSI-AI)</td><td>API documentation or read-only access; maintenance requests with their stages, follow-up staff, vendors and sub-contractors, AMC visits and customer sign-off; contact details used for personas; complaints; event notifications (stage change, deal or lease signed, handover, maintenance closed); a test environment; an anonymised sample of about 200 contacts</td></tr>
+<tr><td>4</td><td>Odoo (HR)</td><td>A read-only API user for recruitment, HR requests, employees and managers, leave and public holidays; a test copy</td></tr>
+<tr><td>5</td><td>AI call center, IVR and AI quality</td><td>Call and IVR logs, transcripts and quality scores (API or daily export); an API to start AI interview calls; click-to-call for the CX team; support agents' chat records; a sample</td></tr>
+<tr><td>6</td><td>PSI website and app</td><td>Enquiries, in-app chat, abandoned steps, app ratings, in-app survey pop-up (needed later)</td></tr>
+<tr><td>7</td><td>Marketing campaign platform</td><td>Campaign details for the campaign audit (needed later)</td></tr>
+<tr><td>8</td><td>Tour Estate, PSI Club, PSI Wallet, PSI Events</td><td>Product data when each product launches (needed later)</td></tr>
+</table>
+
+<p>For each system we also need one technical contact. Attached: the full requirements, the CRM field mapping, the Odoo data list, the AI agents specification and the rules document.</p>
+
+<p>The first three build phases run on sample data, so the platform items are what we need first. The system access is needed before we connect live data.</p>
+
+<p>Thank you,<br>Manaf</p>
+
+</body></html>
