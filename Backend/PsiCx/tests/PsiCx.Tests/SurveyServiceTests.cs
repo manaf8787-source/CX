@@ -102,8 +102,8 @@ public class SurveyServiceTests
         return (new SurveyService(new InMemorySurveyResponseStore(), clock), clock);
     }
 
-    private static RecordResponse R(DateTimeOffset at, int score = 9, Measure m = Measure.Nps, ProductId p = ProductId.Re, EnvId e = EnvId.Dub, string person = "p-1", ChannelId c = ChannelId.Whatsapp, int? scale = null, string? re = null)
-        => new(person, p, e, m, score, scale, c, at, re);
+    private static RecordResponse R(DateTimeOffset at, int score = 9, Measure m = Measure.Nps, ProductId p = ProductId.Re, EnvId e = EnvId.Dub, string person = "p-1", ChannelId c = ChannelId.Whatsapp, int? scale = null, string? re = null, ReachedVia via = ReachedVia.None, string? note = null)
+        => new(person, p, e, m, score, scale, c, at, re, via, note);
 
     [Fact]
     public async Task Only_CX_records_and_the_input_is_checked()
@@ -132,21 +132,23 @@ public class SurveyServiceTests
         await s.RecordAsync(Cx, R(t, 2, p: ProductId.Af, person: "z1"));
         await s.RecordAsync(Cx, R(t, 5, Measure.Csat, person: "w1"));
         var all = (await s.IndicatorsAsync(Cx, ProductId.Re, null, null, null)).Value!;
-        Assert.Equal(4, all.Nps!.Responses);
-        Assert.Equal(50, all.Nps.Score);
+        // 25 Nov (owner): PSI Real Estate's line includes the After-Sales answers (z1, a detractor): 3 promoters, 2 detractors out of 5
+        Assert.Equal(5, all.Nps!.Responses);
+        Assert.Equal(20, all.Nps.Score);
         Assert.Equal(100, all.Csat.Pct);
         Assert.Null(all.Ces.Pct);
         var dub = (await s.IndicatorsAsync(Cx, ProductId.Re, EnvId.Dub, null, null)).Value!;
-        Assert.Equal(3, dub.Nps!.Responses);
+        Assert.Equal(4, dub.Nps!.Responses);
         // Environment management does not open the CX indicators page at all.
         Assert.Equal(Failure.Forbidden, (await s.IndicatorsAsync(EnvDubai, ProductId.Re, EnvId.Auh, null, null)).Error);
+        // After-Sales keeps its own line with only its answers
         Assert.Equal(1, (await s.IndicatorsAsync(Cx, ProductId.Af, null, null, null)).Value!.Nps!.Responses);
         Assert.Null((await s.IndicatorsAsync(Cx, ProductId.Ev, null, null, null)).Value!.Nps);
         Assert.Equal(Failure.Forbidden, (await s.IndicatorsAsync(new Actor("u-s", "s@psi.sample", Shopper), ProductId.Re, null, null, null)).Error);
     }
 
     [Fact]
-    public async Task A_re_survey_gives_the_recovery_delta_and_is_not_counted_as_an_indicator_answer()
+    public async Task A_re_survey_gives_the_recovery_delta_and_replaces_the_first_rating_in_the_indicators()
     {
         var (s, c) = Make();
         var first = (await s.RecordAsync(Cx, R(c.Now.AddDays(-20), 3))).Value!;
@@ -157,9 +159,60 @@ public class SurveyServiceTests
         Assert.Equal(5, re.RecoveryDelta);
         Assert.Equal(Failure.Invalid, (await s.RecordAsync(Cx, R(c.Now.AddDays(-5), 9, re: re.Id))).Error);
         var ind = (await s.IndicatorsAsync(Cx, ProductId.Re, null, null, null)).Value!;
+        // The first rating (3, a detractor) is gone; the re-survey (8, a passive) counts in its place. One answer, not two.
         Assert.Equal(1, ind.Nps!.Responses);
+        Assert.Equal(1, ind.Nps.Passives);
+        Assert.Equal(0, ind.Nps.Detractors);
         Assert.Equal(5.0, ind.AverageRecoveryDelta);
         Assert.Equal(1, ind.ReSurveys);
+    }
+
+    [Fact]
+    public async Task The_latest_re_survey_wins_and_CSAT_follows_too()
+    {
+        var (s, c) = Make();
+        var f = (await s.RecordAsync(Cx, R(c.Now.AddDays(-30), 3))).Value!;
+        await s.RecordAsync(Cx, R(c.Now.AddDays(-20), 8, re: f.Id));
+        await s.RecordAsync(Cx, R(c.Now.AddDays(-10), 10, re: f.Id));
+        var fc = (await s.RecordAsync(Cx, R(c.Now.AddDays(-30), 1, Measure.Csat, person: "p-2"))).Value!;
+        await s.RecordAsync(Cx, R(c.Now.AddDays(-10), 5, Measure.Csat, person: "p-2", re: fc.Id));
+        var ind = (await s.IndicatorsAsync(Cx, ProductId.Re, null, null, null)).Value!;
+        Assert.Equal(1, ind.Nps!.Promoters);
+        Assert.Equal(100, ind.Nps.Score);
+        Assert.Equal(100, ind.Csat.Pct);
+    }
+
+    [Fact]
+    public async Task The_recovery_report_shows_before_and_after_with_the_call_notes_for_CX_only()
+    {
+        var (s, c) = Make();
+        // Five detractors on NPS; three are re-surveyed: one by call (recovered), one by gift (better, still detractor), one by call and gift (same).
+        var ids = new List<string>();
+        for (var i = 1; i <= 5; i++) ids.Add((await s.RecordAsync(Cx, R(c.Now.AddDays(-30), 2, person: $"d{i}"))).Value!.Id);
+        await s.RecordAsync(Cx, R(c.Now.AddDays(-10), 9, person: "d1", re: ids[0], via: ReachedVia.Call, note: " Wanted the handover date. "));
+        await s.RecordAsync(Cx, R(c.Now.AddDays(-9), 5, person: "d2", re: ids[1], via: ReachedVia.Gift));
+        await s.RecordAsync(Cx, R(c.Now.AddDays(-8), 2, person: "d3", re: ids[2], via: ReachedVia.CallAndGift));
+        await s.RecordAsync(Cx, R(c.Now.AddDays(-30), 10, person: "pro"));
+        var r = (await s.RecoveryAsync(Cx, ProductId.Re, null, null, null)).Value!;
+        Assert.Equal(5, r.DetractorsBefore);
+        Assert.Equal(3, r.ReSurveyed);
+        Assert.Equal(4, r.DetractorsAfter);
+        Assert.Equal(1, r.Recovered);
+        Assert.Equal(2, r.NotYetReSurveyed);
+        Assert.Equal(1, r.Movement.NoLongerDetractor);
+        Assert.Equal(1, r.Movement.BetterStillDetractor);
+        Assert.Equal(1, r.Movement.Same);
+        Assert.Equal(3.3, r.AverageDelta);
+        Assert.Equal("Wanted the handover date.", r.People.Single(p => p.PersonId == "d1").Note);
+        // Overall: six NPS answers before (5 detractors, 1 promoter = -67), after d1 moves to promoter (4 detractors, 2 promoters = -33).
+        Assert.Equal(-67, r.Indicators.NpsBefore.Score);
+        Assert.Equal(-33, r.Indicators.NpsAfter.Score);
+        // How reached is a filter and the headline follows it.
+        var calls = (await s.RecoveryAsync(Cx, null, null, ReachedVia.Call, null)).Value!;
+        Assert.Equal(1, calls.ReSurveyed);
+        Assert.Equal(0, calls.DetractorsAfter);
+        Assert.Equal(Failure.Forbidden, (await s.RecoveryAsync(Exec1, null, null, null, null)).Error);
+        Assert.Equal(Failure.Unauthenticated, (await s.RecoveryAsync(null, null, null, null, null)).Error);
     }
 
     [Fact]
@@ -171,6 +224,108 @@ public class SurveyServiceTests
         await s.RecordAsync(Cx, R(c.Now.AddDays(-2), 5, Measure.Ces, scale: 5, person: "c"));
         Assert.Equal(50, (await s.IndicatorsAsync(Cx, ProductId.Re, null, null, null)).Value!.Ces.Pct);
         Assert.Equal(0, (await s.IndicatorsAsync(Cx, ProductId.Re, null, c.Now.AddDays(-10), null)).Value!.Ces.Pct);
+    }
+}
+
+public class DetractorAnalysisTests
+{
+    private static readonly Actor Cx = new("u-cx", "cx@psi.sample", Cxmgr);
+    private static readonly Actor Boss = new("u-e", "e@psi.sample", Exec);
+
+    private static (SurveyService S, FakeClock C) Make()
+    {
+        var clock = new FakeClock(new DateTimeOffset(2026, 11, 26, 8, 0, 0, TimeSpan.Zero));
+        return (new SurveyService(new InMemorySurveyResponseStore(), clock), clock);
+    }
+
+    private static RecordResponse D(DateTimeOffset at, string person, int score = 3, ProductId p = ProductId.Re, EnvId e = EnvId.Dub, string? comment = null, bool digital = false, string? touch = null, string? re = null, string? note = null, DetractorReason? reason = null, bool callPending = true)
+        => new(person, p, e, Measure.Nps, score, null, ChannelId.Whatsapp, at, re, note is null ? ReachedVia.None : ReachedVia.Call, note, comment, touch is null ? null : new Bi(touch, touch), digital, null, null, null, reason, callPending);
+
+    [Fact]
+    public async Task The_classifier_reads_the_comment_then_the_touchpoint_then_the_call_notes()
+    {
+        Assert.Equal(DetractorReason.SlowReply, DetractorReasons.Classify("Nobody called back after the viewing.", null, false, false, true));
+        Assert.Equal(DetractorReason.Price, DetractorReasons.Classify("The price changed after I agreed.", null, false, false, true));
+        Assert.Equal(DetractorReason.Paperwork, DetractorReasons.Classify("Deposit refund is still pending.", null, false, false, true));
+        Assert.Equal(DetractorReason.Knowledge, DetractorReasons.Classify("The agent could not answer basic questions about service charges.", null, false, false, true));
+        Assert.Equal(DetractorReason.AppErrors, DetractorReasons.Classify(null, null, true, false, true));
+        Assert.Equal(DetractorReason.Maintenance, DetractorReasons.Classify(null, null, false, true, true));
+        Assert.Equal(DetractorReason.Communication, DetractorReasons.Classify(null, "He said the agent was rude", false, false, false));
+        Assert.Equal(DetractorReason.Pending, DetractorReasons.Classify(null, null, false, false, true));
+        Assert.Equal(DetractorReason.Other, DetractorReasons.Classify(null, null, false, false, false));
+        Assert.Equal(DetractorTheme.People, DetractorReasons.ThemeOf(DetractorReason.Other));
+        Assert.Equal(DetractorTheme.Process, DetractorReasons.ThemeOf(DetractorReason.Maintenance));
+        Assert.Equal(DetractorTheme.Pending, DetractorReasons.ThemeOf(DetractorReason.Pending));
+        await Task.CompletedTask;
+    }
+
+    [Fact]
+    public async Task Every_detractor_gets_a_reason_and_the_analysis_counts_by_theme_reason_and_environment()
+    {
+        var (s, c) = Make();
+        var t = c.Now.AddDays(-5);
+        await s.RecordAsync(Cx, D(t, "a", comment: "Maintenance took two weeks.", touch: "Maintenance visit"));
+        await s.RecordAsync(Cx, D(t, "b", comment: "Nobody called back after the viewing.", e: EnvId.Auh));
+        await s.RecordAsync(Cx, D(t, "c", digital: true, touch: "App · Uploading documents"));
+        await s.RecordAsync(Cx, D(t, "d"));                                  // nothing to read yet: pending
+        await s.RecordAsync(Cx, D(t, "e", score: 9));                        // a promoter is not a detractor
+        await s.RecordAsync(Cx, D(t, "f", p: ProductId.Af, comment: "The agent was rude on the phone."));
+        var re = (await s.DetractorsAsync(Cx, ProductId.Re, Measure.Nps, null, null, null, null)).Value!;
+        Assert.Equal(5, re.Total);                                           // PSI Real Estate includes After-Sales
+        Assert.Equal(1, re.ToCall);
+        Assert.Equal(1, re.ByTheme.Single(x => x.Key == DetractorTheme.Digital).Count);
+        Assert.Equal(1, re.ByTheme.Single(x => x.Key == DetractorTheme.Pending).Count);
+        Assert.Equal(2, re.ByTheme.Single(x => x.Key == DetractorTheme.People).Count);
+        Assert.Equal(2, re.ByEnvironment.Sum(x => x.Count) - 3);             // Dubai 4, Abu Dhabi 1
+        Assert.Equal(1, re.ByTouchpoint.Single(x => x.Key == "Maintenance visit").Count);
+        Assert.NotNull(re.TopReason);
+        Assert.NotEqual(DetractorReason.Pending, re.TopReason);
+        Assert.Equal(1, (await s.DetractorsAsync(Cx, ProductId.Af, Measure.Nps, null, null, null, null)).Value!.Total);
+        Assert.Equal(1, (await s.DetractorsAsync(Cx, null, Measure.Nps, EnvId.Auh, null, null, null)).Value!.Total);
+    }
+
+    [Fact]
+    public async Task A_reason_filter_narrows_the_rows_but_not_the_breakdowns_and_the_window_limits_by_days()
+    {
+        var (s, c) = Make();
+        await s.RecordAsync(Cx, D(c.Now.AddDays(-5), "a", comment: "The price changed after I agreed."));
+        await s.RecordAsync(Cx, D(c.Now.AddDays(-5), "b", comment: "Nobody called back after the viewing."));
+        await s.RecordAsync(Cx, D(c.Now.AddDays(-200), "old", comment: "Nobody called back after the viewing."));
+        var all = (await s.DetractorsAsync(Cx, null, Measure.Nps, null, null, DetractorReason.Price, null)).Value!;
+        Assert.Single(all.Rows);
+        Assert.Equal(3, all.Total);
+        Assert.Equal(2, all.ByReason.Count);
+        var ninety = (await s.DetractorsAsync(Cx, null, Measure.Nps, null, 90, null, null)).Value!;
+        Assert.Equal(2, ninety.Total);
+        Assert.Equal(Failure.Invalid, (await s.DetractorsAsync(Cx, null, Measure.Nps, null, 0, null, null)).Error);
+        Assert.Equal(Failure.Forbidden, (await s.DetractorsAsync(Boss, null, Measure.Nps, null, null, null, null)).Error);
+        Assert.Equal(Failure.Unauthenticated, (await s.DetractorsAsync(null, null, Measure.Nps, null, null, null, null)).Error);
+    }
+
+    [Fact]
+    public async Task The_call_notes_of_the_re_survey_classify_a_detractor_that_was_pending_and_CX_can_set_the_reason()
+    {
+        var (s, c) = Make();
+        var first = (await s.RecordAsync(Cx, D(c.Now.AddDays(-20), "a"))).Value!;
+        Assert.Equal(DetractorReason.Pending, first.Reason);
+        await s.RecordAsync(Cx, D(c.Now.AddDays(-9), "a", score: 8, re: first.Id, note: "Wrong unit area on the contract."));
+        var after = (await s.DetractorsAsync(Cx, null, Measure.Nps, null, null, null, null)).Value!;
+        Assert.Equal(DetractorReason.Knowledge, after.Rows.Single().Answer.Reason);
+        Assert.Equal(Failure.Forbidden, (await s.SetReasonAsync(Boss, first.Id, DetractorReason.Price)).Error);
+        Assert.Equal(DetractorReason.Price, (await s.SetReasonAsync(Cx, first.Id, DetractorReason.Price)).Value!.Reason);
+        Assert.Equal(Failure.NotFound, (await s.SetReasonAsync(Cx, "sr-99", DetractorReason.Price)).Error);
+        var promoter = (await s.RecordAsync(Cx, D(c.Now.AddDays(-3), "p", score: 10))).Value!;
+        Assert.Equal(Failure.Invalid, (await s.SetReasonAsync(Cx, promoter.Id, DetractorReason.Price)).Error);
+    }
+
+    [Fact]
+    public async Task The_recovery_report_follows_the_product_line_so_Real_Estate_includes_After_Sales()
+    {
+        var (s, c) = Make();
+        var af = (await s.RecordAsync(Cx, D(c.Now.AddDays(-20), "x", p: ProductId.Af))).Value!;
+        await s.RecordAsync(Cx, D(c.Now.AddDays(-9), "x", score: 9, p: ProductId.Af, re: af.Id, note: "Fixed"));
+        Assert.Equal(1, (await s.RecoveryAsync(Cx, ProductId.Re, null, null, null)).Value!.Recovered);
+        Assert.Equal(1, (await s.RecoveryAsync(Cx, ProductId.Af, null, null, null)).Value!.Recovered);
     }
 }
 

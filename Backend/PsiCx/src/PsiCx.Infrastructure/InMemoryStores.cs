@@ -158,6 +158,17 @@ public sealed class InMemorySurveyResponseStore : ISurveyResponseStore
 
     public Task<IReadOnlyList<SurveyResponse>> ListAsync(CancellationToken ct = default)
     { lock (_gate) return Task.FromResult<IReadOnlyList<SurveyResponse>>(_items.ToList()); }
+
+    public Task<bool> TryReplaceAsync(SurveyResponse next, CancellationToken ct = default)
+    {
+        lock (_gate)
+        {
+            var i = _items.FindIndex(s => s.Id == next.Id);
+            if (i < 0) return Task.FromResult(false);
+            _items[i] = next;
+            return Task.FromResult(true);
+        }
+    }
 }
 
 public sealed class InMemoryGiftStore : IGiftStore

@@ -69,6 +69,12 @@ public enum NpsMilestoneKind { Sale, Lease, Renewal, Handover }
 /// </summary>
 public static class SurveyRules
 {
+    /// <summary>
+    /// A product's own indicator line. 25 Nov (owner): PSI Real Estate's figures include the After-Sales answers (the same customers, the
+    /// same service after the deal completes); After-Sales keeps its own line with only its answers.
+    /// </summary>
+    public static IReadOnlyList<ProductId> IndicatorScope(ProductId product) => product == ProductId.Re ? [ProductId.Re, ProductId.Af] : [product];
+
     private static readonly ChannelId[] PublicChannels = [ChannelId.Facebook, ChannelId.Instagram, ChannelId.Linkedin, ChannelId.Google, ChannelId.Googleplay, ChannelId.Appstore, ChannelId.Webcomment];
 
     public static bool IsPublicChannel(ChannelId c) => PublicChannels.Contains(c);

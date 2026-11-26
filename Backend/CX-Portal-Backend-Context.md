@@ -46,7 +46,7 @@ Last updated: 26 November 2026. Owner: Manaf Obeidat (Delivery & CX Manager, PSI
 1. **Meta:** Facebook, Instagram, WhatsApp Business (provider, webhooks, templates).
 2. **Other social channels:** LinkedIn, Google Business Profile, TikTok, YouTube, X, Snapchat; or one social listening tool if Marketing has one.
 3. **CRM** x4 environments: contacts, leads, activities, deals and leases, units, agents and pools, maintenance (requests, follow-up staff, vendors, AMC visits, sign-off), complaints, WhatsApp log; events by webhook.
-4. **Odoo (HR):** recruitment, HR requests, employees and managers, leave, public holidays.
+4. **Odoo (HR):** recruitment, HR requests, all employees (with department, division and a customer-facing tag), managers, leave, public holidays, performance appraisals (quantitative goals and qualitative assessment) and competencies (for employee personas later).
 5. **AI call center, IVR, AI quality:** call and IVR logs, transcripts, quality scores, AI interview campaigns, click-to-call for the CX team, support agents' chats.
 6. **UAE DNCR (TDRA):** every number checked before surveys, calls and outbound campaigns.
 7. **Marketing audit:** campaign platform (Dhrumil), CRM campaign tags, ad accounts (Meta, Google, TikTok, LinkedIn, Snapchat), budgets, costs, agency invoices.

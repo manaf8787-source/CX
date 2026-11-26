@@ -99,16 +99,20 @@ The full field-by-field mapping is in the separate document "CRM Field Mapping f
 
 ### 3.4 Odoo (HR)
 
-**Why:** the HR performance page shows recruitment progress, HR requests and their timing.
+**Why:** the HR performance page shows recruitment progress, HR requests and their timing. Later, employee appraisals and competencies help build employee personas and explain detractor reasons.
 
 | Need | Detail |
 |---|---|
 | API user | A read-only Odoo user for the portal (Odoo's own API), limited to the models below. |
 | Recruitment | `hr.applicant`: applicant, job, stage, stage dates, created and closed dates, refuse reason. |
 | HR requests | `hr.letter.request`, `hr.leave`, `hr.resignation`, `hr.attendance.adjustment`: type, requester, submitted, approved or closed dates, status. |
-| Employees | `hr.employee`: name, job title, department, manager, work email, environment. Used to route fixes to the right direct manager and to build the HR and CX team pools. |
+| Employees | `hr.employee`: **every employee of the company** (Chairman's request), not only sales agents: name, job title, department, **division**, manager, work email, environment, hire date, active or left. Used to route fixes to the right direct manager and to build the HR and CX team pools. |
+| Customer-facing tag | Whether each employee deals with customers directly (sales and leasing agents, call center, after-sales, maintenance follow-up) or not (back office, management). If Odoo has no such field, send the department and division list so PSI marks which ones face customers; the portal keeps the tag in its settings and highlights customer-facing staff. Everyone is kept; only the customer-facing ones feed personas and agent reports. |
+| Performance appraisals | `hr.appraisal` (or the module PSI uses): employee, period, reviewer, overall rating, status and dates. **Quantitative part:** the goals or KPIs and their scores (`hr.appraisal.goal`). **Qualitative part:** the manager's written assessment and the employee's own. The rating scale and how the overall score is calculated. |
+| Competencies | The competencies rated in the appraisal (for example communication skills, product knowledge, customer handling) with their level or score per employee (`hr.employee.skill` or the appraisal's competency lines), and the competency list per job. Used later to build employee personas and to link detractor reasons (lack of knowledge, communication skills) to training needs. |
+| Access to appraisals | Appraisal and competency data are read by the CX manager only (and HR), never shown to the employee's peers; confirm with HR and Legal what may be used. |
 | Leave and holidays | Leave of CX team members (team availability) and the UAE public holiday calendar, so the working-day clocks skip them. |
-| Gaps | No history of status changes on requests; visa and onboarding steps not found. Confirm where they are or whether they can be tracked. |
+| Gaps | No history of status changes on requests; visa and onboarding steps not found. Confirm where they are or whether they can be tracked. Confirm whether appraisals and competencies are kept in Odoo or in another tool (Excel, another HR system). |
 | Hosting and version | Odoo version; hosted by PSI or by a partner (and the partner contact). |
 | Test copy | A test copy of Odoo for developers. |
 
@@ -128,6 +132,31 @@ Details are in the document "CX Portal: Data needed from Odoo (HR)" already shar
 | CX team calls | The CX team calls unhappy customers. Can they call from the portal through the call center system (click-to-call), with the call logged and recorded? If not, how are their calls logged today? |
 | Support agents' chats | For the Excellence team report: WhatsApp and in-app chat conversations handled by support agents, with first reply and resolve times. Confirm which system holds them. |
 | Sample | A few days of anonymised call logs and quality scores. |
+
+### 3.6 UAE Do Not Call Registry (DNCR)
+
+**Why:** before any outbound contact the portal starts (survey calls, AI interview campaigns, CX team calls, WhatsApp or SMS surveys), every number must be checked against the UAE Do Not Call Registry, so PSI never contacts a registered number without consent.
+
+| Need | Detail |
+|---|---|
+| PSI's DNCR access | Does PSI already have access to the TDRA Do Not Call Registry (for telemarketing)? Who holds it (Compliance, Marketing or the call center)? |
+| Check method | API, file download, or a check inside another system (CRM or the AI caller). How often is the list refreshed? |
+| CRM flag | The CRM has a DNCR flag per contact. Is it synced with the registry, and how often? |
+| Rules | Which contacts are allowed despite DNCR (for example existing customers with an active contract and consent), as Legal and Compliance define them. |
+| Access | Credentials for the portal, shared through P9. |
+
+### 3.7 Marketing audit
+
+**Why:** the Internal Audit and Marketing Lead (Mr. Karam) audits every campaign after it runs: right people, right way, right projects, right developers, right channels, and the financial part. Results are kept as history.
+
+| Need | Detail |
+|---|---|
+| Campaign platform | Campaign name, type, target, segment, channel, recipients, responsible person, start and end dates, criteria the campaign was run on (with Dhrumil). |
+| CRM campaign tags | Every lead from a campaign tagged with that campaign in the CRM (Chairman's rule), with the lead's outcome: contacted, no answer, not contacted, converted. |
+| Ad accounts | Read access to PSI's ad accounts (Meta Ads, Google Ads, TikTok Ads, LinkedIn Ads, Snapchat Ads, and any other in use): spend, dates, audience targeting, placements, leads and results per campaign. |
+| Financial part | Campaign budgets and actual costs, including agency fees and invoices, from Marketing and Finance. Which system holds them? |
+| Agencies | Agencies running campaigns on PSI's behalf, and how their reports can be read. |
+| Audit history | Audit results are stored in the portal and kept so any campaign can be re-checked a year later. |
 
 ## 4. AI agents
 
@@ -166,7 +195,6 @@ Agents 3, 6, 9 and 10 start as plain rules (no AI model needed); the AI model is
 | System | Need |
 |---|---|
 | PSI website and PSI Real Estate app | Enquiries with source, in-app chat, abandoned digital steps (booking, upload, payment) for signed-in users, app store ratings, and a way for the portal to show an in-app survey pop-up. Contact: the app and web product owner. |
-| Marketing campaign platform | Campaign name, type, target, segment, channel, recipients, responsible person, start and end dates (with Dhrumil). Results come from the CRM campaign tag. |
 | Tour Estate, PSI Club, PSI Wallet, PSI Events | When each product launches: completed tours and guide ratings (Tour Estate), referrals and member events (PSI Club), wallet events (PSI Wallet), booth QR ratings (PSI Events). Contact: each product owner. |
 
 ## 6. Rules the backend follows
@@ -210,6 +238,8 @@ Phases 1 to 3 run on sample data, so they start as soon as section 2 is ready. S
 | DevOps / infrastructure | |
 | Meta and WhatsApp | |
 | Other social channels (Marketing) | |
+| DNCR (Compliance or Marketing) | |
+| Marketing audit: ad accounts and campaign costs | |
 | CRM | |
 | Odoo | |
 | AI call center and quality | |
