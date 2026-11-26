@@ -21,8 +21,9 @@ public static class SettingKeys
     public const string AgentSettings = "agent_settings";
     public const string ReplyLibrary = "reply_library";
     public const string SurveySets = "survey_sets";
+    public const string CallSurveyRule = "call_survey_rule";
 
-    public static readonly IReadOnlyList<string> All = [Rules, CrmMapping, EscalationMatrix, AgentSettings, ReplyLibrary, SurveySets];
+    public static readonly IReadOnlyList<string> All = [Rules, CrmMapping, EscalationMatrix, AgentSettings, ReplyLibrary, SurveySets, CallSurveyRule];
 
     public static bool IsKnown(string key) => All.Contains(key);
 
@@ -33,7 +34,7 @@ public static class SettingKeys
         EscalationMatrix => Permissions.CanEditEscalationMatrix(role),
         AgentSettings => Permissions.CanEditAgentSettings(role),
         ReplyLibrary => Permissions.CanEditReplyLibrary(role),
-        Rules or SurveySets => role == RoleId.Cxmgr,
+        Rules or SurveySets or CallSurveyRule => role == RoleId.Cxmgr,
         _ => false,
     };
 }

@@ -14,7 +14,9 @@ public enum ChannelId
 {
     Website, App, Whatsapp, Call, Ivr, Branch, Email, Survey, Shopper,
     Club, Wallet, Events, Tours, Facebook, Instagram, Linkedin, Google,
-    Googleplay, Appstore, Webcomment
+    Googleplay, Appstore, Webcomment,
+    /// <summary>Text message: the fallback of the call survey. [Proposed]</summary>
+    Sms
 }
 
 public enum Severity { Critical, Medium, Low }

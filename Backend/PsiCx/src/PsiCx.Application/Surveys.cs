@@ -99,7 +99,8 @@ public sealed record RecordResponse(
     /// <summary>The Classification agent's (or CX's) reason; when empty it is worked out from the comment, the touchpoint and the call notes.</summary>
     DetractorReason? Reason = null,
     /// <summary>The close-the-loop call is still to be made, so a detractor with no other clue is "pending", not "other".</summary>
-    bool CallPending = true);
+    bool CallPending = true,
+    string? CallId = null, CallResult? CallResult = null, CallDirection? CallDirection = null, CallHandler? CallHandler = null, string? Script = null, int? QaScore = null);
 
 public sealed record ProductIndicators(
     ProductId Product, EnvId? Env,
@@ -159,7 +160,8 @@ public sealed class SurveyService(ISurveyResponseStore store, IClock clock)
             : null;
         var saved = await store.AddAsync(id => new SurveyResponse(id, r.PersonId, r.Product, r.EnvId, r.Measure, r.Score, scale, r.Source, r.At, r.ReSurveyOf, delta,
             first1 ? ReachedVia.None : r.Via, first1 ? null : r.Note?.Trim(),
-            r.Comment?.Trim(), r.Touchpoint, r.Digital, r.HandledBy, r.Unit, r.Moment, reason), ct);
+            r.Comment?.Trim(), r.Touchpoint, r.Digital, r.HandledBy, r.Unit, r.Moment, reason,
+            r.CallId, r.CallResult, r.CallDirection, r.CallHandler, r.Script, r.QaScore), ct);
         // the call notes of the re-survey tell why, when the answer itself did not
         if (!first1 && !string.IsNullOrWhiteSpace(r.Note))
         {

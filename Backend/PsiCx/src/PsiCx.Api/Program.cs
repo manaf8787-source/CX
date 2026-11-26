@@ -32,6 +32,13 @@ builder.Services.AddSingleton<IPatternDirectory>(sp => sp.GetRequiredService<Sig
 builder.Services.AddSingleton<ISettingValidator, SurveySetsValidator>();
 builder.Services.AddSingleton<ISurveyResponseStore, InMemorySurveyResponseStore>();
 builder.Services.AddSingleton<SurveyService>();
+builder.Services.AddSingleton<ISettingValidator, CallSurveyRuleValidator>();
+builder.Services.AddSingleton<ICallSurveyRuleSource, SettingsCallSurveyRuleSource>();
+builder.Services.AddSingleton<ICallSurveyStore, InMemoryCallSurveyStore>();
+builder.Services.AddSingleton<ICallContactDirectory, InMemoryCallContactDirectory>(); // the CRM + DNCR reader replaces this
+builder.Services.AddSingleton<ICallSurveySender, NoCallSurveySender>(); // WhatsApp and SMS senders replace this
+builder.Services.AddSingleton<CallSurveyService>();
+builder.Services.AddHostedService<CallSurveyDispatcher>();
 builder.Services.AddSingleton<FixService>();
 builder.Services.AddSingleton<IGiftStore, InMemoryGiftStore>();
 builder.Services.AddSingleton<IGiftMailer, NoGiftMailer>();

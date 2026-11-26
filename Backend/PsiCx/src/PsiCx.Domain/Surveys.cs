@@ -39,7 +39,14 @@ public sealed record SurveyResponse(
     /// <summary>The moment that triggered the survey (a viewing, a handover).</summary>
     Bi? Moment = null,
     /// <summary>For a detractor: why, classified from the comment, the call notes or the touchpoint (Detractor analysis, 26 Nov).</summary>
-    DetractorReason? Reason = null);
+    DetractorReason? Reason = null,
+    /// <summary>Call survey only (26 Nov): the call this answer follows, how it ended, direction, who held it, the script, and the QA score when the call is in the QA sample.</summary>
+    string? CallId = null,
+    CallResult? CallResult = null,
+    CallDirection? CallDirection = null,
+    CallHandler? CallHandler = null,
+    string? Script = null,
+    int? QaScore = null);
 
 /// <summary>The overall reason a customer is a detractor, and the reasons under it (Detractor analysis, 26 Nov).</summary>
 public enum DetractorTheme { People, Digital, Process, Commercial, Pending }
