@@ -31,6 +31,8 @@ export const RULE_IDS = {
   callTries: 'rule_call_tries',
   /** Decided 18 Nov: no-answers before an AI campaign hands over to a person (2). */
   aiNoAnswers: 'rule_ai_no_answers',
+  /** 26 Nov (owner): a customer who got a gift in the last this many months is flagged to CX (an alert, never a block). */
+  giftAlertMonths: 'rule_gift_alert_months',
 } as const
 
 /** The configuration read as plain values: what hooks and utilities pass around. */
@@ -53,6 +55,8 @@ export interface RulesBag {
   callTries: number
   /** No-answers before an AI campaign hands over. */
   aiNoAnswers: number
+  /** Months back in which an earlier gift to the same customer raises the alert. */
+  giftAlertMonths: number
 }
 
 export const DEFAULT_RULES_BAG: RulesBag = {
@@ -70,6 +74,7 @@ export const DEFAULT_RULES_BAG: RulesBag = {
   callTo: 18,
   callTries: 3,
   aiNoAnswers: 2,
+  giftAlertMonths: 6,
 }
 
 /** Reads the rules configuration into a `RulesBag`; missing items fall back to the documented defaults. */
@@ -99,6 +104,7 @@ export function rulesFromConfig(items: readonly RuleConfigItem[]): RulesBag {
     callTo: num(RULE_IDS.callTo, d.callTo),
     callTries: num(RULE_IDS.callTries, d.callTries),
     aiNoAnswers: num(RULE_IDS.aiNoAnswers, d.aiNoAnswers),
+    giftAlertMonths: num(RULE_IDS.giftAlertMonths, d.giftAlertMonths),
   }
 }
 
@@ -124,6 +130,7 @@ export function rulesSignature(bag: RulesBag): string {
     bag.callTo,
     bag.callTries,
     bag.aiNoAnswers,
+    bag.giftAlertMonths,
   ].join('.')
 }
 

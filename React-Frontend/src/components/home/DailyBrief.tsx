@@ -2,7 +2,10 @@ import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useI18n } from '@/i18n'
 import { useRole } from '@/auth/RoleContext'
-import { useProducts } from '@/services/queries'
+import { useProducts, useSurveyResponses } from '@/services/queries'
+import { useEnvScope } from '@/services/envScope'
+import { reasonInfo, type DetractorReason } from '@/services/surveyResponses'
+import { detractorsInScope, productScope } from '@/utils/detractors'
 import { useBriefInputs, useIndicators } from '@/services/queriesV40'
 import { BRIEF_LINES_BY_ROLE, briefTitle, buildBriefTiles, type BriefTile } from '@/utils/brief'
 import { Card } from '@/components/ui/card'
@@ -27,13 +30,25 @@ export function DailyBrief({ className }: { className?: string; surface?: 'dark'
   const inputs = useBriefInputs()
   const indicators = useIndicators()
   const { data: products } = useProducts()
+  const { data: answers } = useSurveyResponses()
+  const { env } = useEnvScope()
+
+  // 26 Nov (owner): the NPS detractors in the role's scope, with their top reason (Detractor analysis)
+  const detractors = useMemo(() => {
+    if (!answers) return undefined
+    const rows = detractorsInScope(answers, 'nps', productScope(role.product), env)
+    const m = new Map<DetractorReason, number>()
+    for (const r of rows) if (r.reason && r.reason !== 'pending') m.set(r.reason, (m.get(r.reason) ?? 0) + 1)
+    const top = [...m.entries()].sort((a, z) => z[1] - a[1])[0]
+    return { total: rows.length, toCall: rows.filter((r) => r.followUp === 'to_call').length, topReason: top ? reasonInfo(top[0]).label : undefined }
+  }, [answers, role.product, env])
 
   const tiles = useMemo(
     () =>
       inputs.data && indicators.data && products
-        ? buildBriefTiles({ role: role.id, product: role.product, inputs: inputs.data, indicators: indicators.data, products })
+        ? buildBriefTiles({ role: role.id, product: role.product, inputs: inputs.data, indicators: indicators.data, products, detractors })
         : undefined,
-    [role.id, role.product, inputs.data, indicators.data, products],
+    [role.id, role.product, inputs.data, indicators.data, products, detractors],
   )
 
   if (BRIEF_LINES_BY_ROLE[role.id].length === 0) return null

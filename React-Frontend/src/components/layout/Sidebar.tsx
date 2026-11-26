@@ -17,6 +17,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   PhoneCall,
+  Frown,
   ScrollText,
   Settings2,
   UserCog,
@@ -65,6 +66,8 @@ const ICONS: Record<string, LucideIcon> = {
   '/actions': ListChecks,
   '/close-the-loop': PhoneCall,
   '/overview': Gauge,
+  // 26 Nov (owner): Detractor analysis
+  '/detractors': Frown,
   '/gifts': Gift,
   '/settings': Settings2,
   '/admin/users': UserCog,
@@ -117,6 +120,15 @@ function matches(pathname: string, path: string) {
   return pathname === path || pathname.startsWith(`${path}/`)
 }
 
+/** Every path in the menu. 26 Nov: a page whose path sits under another menu entry (`/close-the-loop/results` under `/close-the-loop`) lights
+ *  only itself; the parent entry is not lit as well (two lit rows hid the child's label, white on white). */
+const MENU_PATHS = PRIMARY_NAV.flatMap((g) => g.items.map((i) => i.path))
+
+function isActivePath(pathname: string, path: string) {
+  if (!matches(pathname, path)) return false
+  return !MENU_PATHS.some((p) => p !== path && p.startsWith(`${path}/`) && matches(pathname, p))
+}
+
 /** KB §2: each role sees only its own pages; KB §16: not-launched products stay out of the menu. The data is unchanged (data/nav.ts). */
 function useSidebarGroups(): SidebarNavGroup[] {
   const { L } = useI18n()
@@ -158,7 +170,7 @@ export function SidebarNavItem({
   /** Place in the opening sequence (the words fade in top to bottom). */
   index?: number
 }) {
-  const active = matches(pathname, node.path)
+  const active = isActivePath(pathname, node.path)
   const Icon = node.icon ?? Home
   const nested = node.children && node.children.length > 0
   return (
@@ -166,6 +178,7 @@ export function SidebarNavItem({
       <SidebarMenuButton asChild isActive={active} tooltip={tooltip ? node.label : undefined} className={cn(ITEM, tall && 'h-11 text-base')}>
         <NavLink
           to={node.path}
+          end={MENU_PATHS.some((p) => p !== node.path && p.startsWith(`${node.path}/`))}
           data-tour={`nav${node.path.replaceAll('/', '-')}`}
           onClick={onNavigate}
           onPointerEnter={() => prefetchPath(node.path)}

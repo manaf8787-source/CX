@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { Check, Gift as GiftIcon, Mail, Send, X } from 'lucide-react'
 import { useI18n } from '@/i18n'
+import { RecentGiftAlert } from './RecentGiftAlert'
 import { useRole } from '@/auth/RoleContext'
 import { useAuth } from '@/auth/session'
 import { useAuditActor } from '@/auth/useAuditActor'
@@ -72,6 +73,9 @@ export function GiftFlow({
   const [note, setNote] = useState('')
   const items = s.items.filter((i) => !i.archived)
 
+  // 26 Nov: an alert, never a block, when this customer already got a gift in the last six months (the request itself is left out)
+  const recentAlert = <RecentGiftAlert gifts={s.gifts} items={s.items} personId={person?.id} fullName={person?.name ?? fullName} excludeId={existing?.id} />
+
   if (!canAct) return null
 
   const ask = () => {
@@ -110,6 +114,7 @@ export function GiftFlow({
   if (!existing || existing.status === 'rejected' || existing.status === 'cancelled') {
     return (
       <div className={cn('flex flex-col gap-3 rounded-xl border p-3', className)}>
+      {recentAlert}
         <span className="flex flex-wrap items-center justify-between gap-2">
           {head}
           {!asking && (
@@ -181,6 +186,7 @@ export function GiftFlow({
   const item = s.items.find((i) => i.id === existing.itemId)
   return (
     <div className={cn('flex flex-col gap-3 rounded-xl border p-3', className)}>
+      {recentAlert}
       <span className="flex flex-wrap items-center justify-between gap-2">
         {head}
         <StatusBadge tone={existing.status === 'pending' ? 'warning' : existing.status === 'approved' ? 'info' : 'success'}>

@@ -126,4 +126,72 @@ public class GiftServiceTests
         await s.SendAsync(Mgr, t.Id, Details(DateOnly.FromDateTime(UaeTime.ToWall(c.Now))));
         Assert.False(await s.HasRecoveryGiftAsync("p-9"));
     }
+
+    [Fact]
+    public async Task A_recent_gift_raises_an_alert_with_when_and_why_but_never_blocks_another()
+    {
+        var (s, c, _, item) = await Make(stock: 10);
+        var today = DateOnly.FromDateTime(UaeTime.ToWall(c.Now));
+        var first = (await s.RequestAsync(Mgr, Ask(item, person: "p-1"))).Value!;
+        await s.SendAsync(Mgr, first.Id, Details(today));
+        // a second request for the same customer is allowed, and its history shows the first
+        var second = (await s.RequestAsync(Team, Ask(item, person: "p-1", why: "Second incident"))).Value!;
+        Assert.Equal(GiftStatus.Pending, second.Status);
+        var h = (await s.HistoryOfRequestAsync(Mgr, second.Id)).Value!;
+        Assert.Single(h.Recent);
+        Assert.Equal(first.Id, h.Recent[0].Id);
+        Assert.Equal(GiftReason.Recovery, h.Recent[0].Reason);
+        Assert.Equal("Flower bouquet", h.Recent[0].ItemName.En);
+        Assert.Equal(6, h.WindowMonths);
+        Assert.Equal(GiftStatus.Approved, (await s.DecideAsync(Mgr, second.Id, true, null)).Value!.Status);
+        // by name when there is no person id; a different customer sees nothing
+        Assert.Empty((await s.HistoryAsync(Mgr, "p-2", null)).Value!.All);
+        var byName = await s.RequestAsync(Mgr, Ask(item, person: null));
+        Assert.Single((await s.HistoryAsync(Mgr, null, "  mariam ")).Value!.All);
+        Assert.Equal(Failure.Invalid, (await s.HistoryAsync(Mgr, null, " ")).Error);
+        Assert.Equal(Failure.Forbidden, (await s.HistoryAsync(Boss, "p-1", null)).Error);
+        Assert.Equal(Failure.Forbidden, (await s.HistoryOfRequestAsync(Team2, second.Id)).Error);
+        Assert.True(byName.IsOk);
+    }
+
+    [Fact]
+    public async Task A_gift_older_than_six_months_is_in_the_history_but_not_in_the_alert()
+    {
+        var (s, c, _, item) = await Make(stock: 10);
+        var old = (await s.RequestAsync(Mgr, Ask(item, person: "p-3"))).Value!;
+        var day = DateOnly.FromDateTime(UaeTime.ToWall(c.Now));
+        await s.SendAsync(Mgr, old.Id, Details(day));
+        await s.MarkDeliveredAsync(Mgr, old.Id);
+        c.Now = c.Now.AddMonths(7);
+        var h = (await s.HistoryAsync(Mgr, "p-3", null)).Value!;
+        Assert.Single(h.All);
+        Assert.Empty(h.Recent);
+        // a request that was only asked or rejected is not a gift given
+        var asked = (await s.RequestAsync(Team, Ask(item, person: "p-4"))).Value!;
+        await s.DecideAsync(Mgr, asked.Id, false, "No");
+        Assert.Empty((await s.HistoryAsync(Mgr, "p-4", null)).Value!.All);
+    }
+
+    private sealed class FixedRules(int months) : IRulesSource
+    {
+        public Task<PsiCx.Rules.RulesBag> RulesAsync(CancellationToken ct = default) => Task.FromResult(PsiCx.Rules.RulesBag.Default with { GiftAlertMonths = months });
+    }
+
+    [Fact]
+    public async Task The_alert_window_is_a_rule_so_a_shorter_one_drops_an_older_gift_from_the_alert()
+    {
+        var clock = new FakeClock(new DateTimeOffset(2026, 11, 26, 8, 0, 0, TimeSpan.Zero));
+        var store = new InMemoryGiftStore();
+        var s6 = new GiftService(store, new NoGiftMailer(), clock);
+        var s2 = new GiftService(store, new NoGiftMailer(), clock, new FixedRules(2));
+        var item = (await s6.AddItemAsync(Mgr, Flowers, GiftKind.Physical, Flowers, null, 1, 5)).Value!;
+        var g = (await s6.RequestAsync(Mgr, Ask(item.Id, person: "p-5"))).Value!;
+        await s6.SendAsync(Mgr, g.Id, Details(DateOnly.FromDateTime(UaeTime.ToWall(clock.Now))));
+        clock.Advance(TimeSpan.FromDays(90));
+        Assert.Single((await s6.HistoryAsync(Mgr, "p-5", null)).Value!.Recent);
+        var short2 = (await s2.HistoryAsync(Mgr, "p-5", null)).Value!;
+        Assert.Empty(short2.Recent);
+        Assert.Single(short2.All);
+        Assert.Equal(2, short2.WindowMonths);
+    }
 }

@@ -34,6 +34,19 @@ public sealed record RulesBag
     public int CallTo { get; init; } = 18;
     public int CallTries { get; init; } = 3;
     public int AiNoAnswers { get; init; } = 2;
+    /// <summary>The same person is asked NPS at most once in this many days (rule_survey_nps_cap).</summary>
+    public int NpsCapDays { get; init; } = 90;
+    /// <summary>The same person is asked CSAT and CES at most once in this many days (rule_survey_csat_cap).</summary>
+    public int CsatCapDays { get; init; } = 30;
+    /// <summary>After this many days of silence on an enquiry, ask "What stopped you?" (rule_silence_why).</summary>
+    public int SilenceWhyDays { get; init; } = 14;
+    /// <summary>An agent call counts as a meaningful moment above this many seconds (two minutes).</summary>
+    public int MeaningfulCallSeconds { get; init; } = 120;
+    /// <summary>The re-survey goes out between these many days after the resolution.</summary>
+    public int ReSurveyMinDays { get; init; } = 7;
+    public int ReSurveyMaxDays { get; init; } = 14;
+    /// <summary>A relationship NPS (owners, investors) is asked once in this many days.</summary>
+    public int RelationshipNpsDays { get; init; } = 365;
 
     public WorkCalendar Calendar => new(WorkingDays, Holidays, WorkStart, WorkEnd);
 

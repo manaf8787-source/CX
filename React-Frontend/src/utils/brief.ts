@@ -36,6 +36,7 @@ export const BRIEF_COPY = {
 
 export type BriefLineKind =
   | 'nps'
+  | 'detractors'
   | 'signals'
   | 'fixes'
   | 'shopper'
@@ -55,8 +56,8 @@ export type BriefLineKind =
  * The mystery shopper has no brief (it sees its own tasks only).
  */
 export const BRIEF_LINES_BY_ROLE: Record<RoleId, readonly BriefLineKind[]> = {
-  cxmgr: ['nps', 'signals', 'fixes', 'shopper', 'loop', 'drifting', 'public'],
-  cxteam: ['nps', 'signals', 'fixes', 'shopper', 'loop', 'drifting', 'public'],
+  cxmgr: ['nps', 'detractors', 'signals', 'fixes', 'shopper', 'loop', 'drifting', 'public'],
+  cxteam: ['nps', 'detractors', 'signals', 'fixes', 'shopper', 'loop', 'drifting', 'public'],
   exec: ['nps', 'signals', 'fixes', 'shopper', 'drifting', 'public'],
   envmgmt: ['nps', 'signals', 'fixes', 'shopper'],
   teamlead: ['nps', 'signals', 'fixes', 'shopper'],
@@ -82,6 +83,7 @@ export const BRIEF_LINES_BY_ROLE: Record<RoleId, readonly BriefLineKind[]> = {
  */
 export const BRIEF_TARGET: Record<BriefLineKind, string> = {
   nps: '/overview',
+  detractors: '/detractors',
   signals: '/actions/signals',
   fixes: '/actions/corrective',
   shopper: '/actions/shopper-cases',
@@ -323,10 +325,12 @@ export interface BriefInput {
   /** One set per live product, from `useIndicators` (the same source as the Home tiles). */
   indicators: readonly IndicatorSet[]
   products: readonly Product[]
+  /** NPS detractors in the role's scope (90 days), with the top reason; from the survey answers (Detractor analysis). */
+  detractors?: { total: number; toCall: number; topReason?: Bi }
 }
 
 /** The brief of a role: its lines in order, each with a link only when the role can open the page. */
-export function buildBrief({ role, product, inputs, indicators, products }: BriefInput): BriefLine[] {
+export function buildBrief({ role, product, inputs, indicators, products, detractors }: BriefInput): BriefLine[] {
   const lines: BriefLine[] = []
   const add = (id: string, kind: BriefLineKind, text: Bi) => {
     // the HR director reads conduct cases on the HR page
@@ -353,6 +357,17 @@ export function buildBrief({ role, product, inputs, indicators, products }: Brie
         break
       case 'loop':
         add('loop', kind, loopLine(inputs))
+        break
+      case 'detractors':
+        if (detractors)
+          add(
+            'detractors',
+            kind,
+            b(
+              `${detractors.total} NPS detractors in 90 days${detractors.topReason ? `, mostly: ${detractors.topReason.en.toLowerCase()}` : ''}.`,
+              `${detractors.total} منتقداً في \u2068NPS\u2069 خلال 90 يوماً${detractors.topReason ? `، أغلبها: ${detractors.topReason.ar}` : ''}.`,
+            ),
+          )
         break
       case 'drifting':
         add('drifting', kind, driftingLine(inputs))
@@ -472,7 +487,7 @@ function hrNumbers() {
  * The brief as tiles (26 Nov, owner, for every role): the same kinds per role as `BRIEF_LINES_BY_ROLE`, each turned into one number.
  * What needs someone now is red, what to watch is amber, the rest grey; NPS colours only its change on last month.
  */
-export function buildBriefTiles({ role, product, inputs, indicators, products }: BriefInput): BriefTile[] {
+export function buildBriefTiles({ role, product, inputs, indicators, products, detractors }: BriefInput): BriefTile[] {
   const tiles: BriefTile[] = []
   const hr = hrNumbers()
   const add = (tile: Omit<BriefTile, 'to'>) => {
@@ -505,6 +520,20 @@ export function buildBriefTiles({ role, product, inputs, indicators, products }:
             tone: 'neutral',
           })
         }
+        break
+      case 'detractors':
+        // 26 Nov (owner): the detractors number opens Detractor analysis
+        if (detractors)
+          add({
+            id: 'detractors',
+            kind,
+            label: b('NPS detractors, 90 days', 'منتقدو \u2068NPS\u2069، 90 يوماً'),
+            value: String(detractors.total),
+            sub: detractors.topReason
+              ? b(`Mostly: ${detractors.topReason.en.toLowerCase()}`, `أغلبها: ${detractors.topReason.ar}`)
+              : b(`${detractors.toCall} still to call`, `${detractors.toCall} لم يُتصل بهم بعد`),
+            tone: detractors.toCall > 0 ? 'warn' : 'neutral',
+          })
         break
       case 'signals': {
         const p = inputs.signals.patternsWaitingForFix

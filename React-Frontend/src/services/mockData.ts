@@ -2404,6 +2404,16 @@ function buildRulesConfig(): RuleConfigItem[] {
       source: 'Decisions 18 Nov, 5',
     },
     {
+      id: 'rule_gift_alert_months',
+      area: bi('Gifts', 'الهدايا'),
+      label: bi('Alert CX when the customer already got a gift in the last', 'تنبيه CX عندما يكون العميل قد أخذ هدية خلال آخر'),
+      value: 6,
+      unit: bi('months', 'شهر'),
+      source: 'Owner 26 Nov',
+      proposed: true,
+      note: bi('An alert only; it never blocks a gift.', 'تنبيه فقط؛ لا يمنع الهدية أبداً.'),
+    },
+    {
       id: 'rule_silence_why',
       area: bi('Surveys and triggers', 'الاستبيانات والمحفزات'),
       label: bi('"What stopped you?" after silence of', '"ما الذي أوقفك؟" بعد صمت لمدة'),

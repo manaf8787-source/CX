@@ -12,6 +12,7 @@ import { useUsers } from '@/data/users'
 import { usePersonsAll } from '@/services/queries'
 import { usePeopleFacts } from '@/components/customers/usePeopleFacts'
 import { GiftFlow, customerJustification } from '@/components/gifts/GiftFlow'
+import { RecentGiftAlert } from '@/components/gifts/RecentGiftAlert'
 import { envNameFromShort } from '@/data/environments'
 import {
   CONTACT_LABEL,
@@ -328,6 +329,7 @@ function SendTab({ onSent }: { onSent: () => void }) {
           )
         ) : (
           <>
+            <RecentGiftAlert gifts={s.gifts} items={s.items} personId={person?.id} fullName={form.fullName} />
             <SectionCard
               title={t('2 · How the Administration team reaches them', '2 · كيف يصل إليه فريق الإدارة')}
               contentClassName="grid gap-3 sm:grid-cols-2"
@@ -543,9 +545,15 @@ function HistoryTab() {
   const [status, setStatus] = useState<'all' | GiftStatus>('all')
   const [year, setYear] = useState('all')
   const [open, setOpen] = useState<string | null>(null)
+  // 26 Nov: the alert's "See the full history" opens this tab on one customer (?person= or ?name=)
+  const [hp, setHp] = useSearchParams()
+  const onlyPerson = hp.get('person')
+  const onlyName = hp.get('name')
+  const who = onlyPerson ?? onlyName
   const years = [...new Set(s.gifts.filter((x) => x.deliverOn).map((x) => x.deliverOn.slice(0, 4)))].sort().reverse()
   const list = s.gifts
     .filter((x) => x.status === 'sent' || x.status === 'delivered' || x.status === 'cancelled')
+    .filter((x) => (onlyPerson ? x.personId === onlyPerson : onlyName ? !x.personId && x.fullName.trim().toLowerCase() === onlyName.trim().toLowerCase() : true))
     .filter((x) => (status === 'all' || x.status === status) && (year === 'all' || x.deliverOn.startsWith(year)))
     .sort((a, b) => b.deliverOn.localeCompare(a.deliverOn))
   const itemOf = (id: string) => s.items.find((i) => i.id === id)
@@ -580,6 +588,26 @@ function HistoryTab() {
         <KpiTile label={t('Waiting for delivery', 'بانتظار التسليم')} value={list.filter((x) => x.status === 'sent').length} />
         <KpiTile label={t('Value delivered', 'قيمة ما سُلّم')} value={<bdi dir="ltr">{`AED ${value.toLocaleString('en-US')}`}</bdi>} />
       </div>
+      {who && (
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <span>
+            {t('Showing the gifts of one customer:', 'تعرض هدايا عميل واحد:')}{' '}
+            <span className="font-medium">{(list[0]?.fullName ?? onlyName ?? onlyPerson) as string}</span>
+          </span>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              const next = new URLSearchParams(hp)
+              next.delete('person')
+              next.delete('name')
+              setHp(next)
+            }}
+          >
+            {t('Show everyone', 'اعرض الجميع')}
+          </Button>
+        </div>
+      )}
       <div className="flex flex-wrap items-center gap-3">
         <Segmented
           variant="pressed"

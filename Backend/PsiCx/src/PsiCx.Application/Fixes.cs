@@ -29,12 +29,13 @@ public interface IFixClockInputs
     Task<double?> ResolveHoursAsync(ProductId product, FixKind kind, string? patternId, CancellationToken ct = default);
 }
 
-/// <summary>Default inputs: rules from the "rules" setting are not read yet (defaults), matrix hours from the "escalation_matrix" setting when it has them. [Proposed]</summary>
-public sealed class SettingsFixClockInputs(ISettingsStore settings, IVipPatterns vip) : IFixClockInputs
+/// <summary>Inputs read from settings: the rules from "rules", matrix hours from the "escalation_matrix" setting when it has them. [Proposed]</summary>
+public sealed class SettingsFixClockInputs(ISettingsStore settings, IVipPatterns vip) : IFixClockInputs, IRulesSource
 {
     public const double VipFactor = 0.5;
 
-    public Task<RulesBag> RulesAsync(CancellationToken ct = default) => Task.FromResult(RulesBag.Default);
+    /// <summary>The rules come from the "rules" setting (the CX manager edits them); a missing setting or item keeps the documented default.</summary>
+    public async Task<RulesBag> RulesAsync(CancellationToken ct = default) => RulesSetting.From((await settings.CurrentAsync(SettingKeys.Rules, ct))?.Value);
 
     public static string MatrixKey(FixKind k) => k switch
     {
@@ -78,19 +79,37 @@ public sealed class NoVipPatterns : IVipPatterns { public Task<bool> HasVipAsync
 
 public sealed record ProposeFix(FixKind Kind, string Owner, ProductId Product, Bi Title, string? PatternId = null, EnvId? EnvId = null);
 
-public sealed class FixService(IFixStore fixes, IInvestigationStore investigations, IFixClockInputs inputs, AuditService audit, IClock clock)
+public sealed class FixService(IFixStore fixes, IInvestigationStore investigations, IFixClockInputs inputs, AuditService audit, IClock clock, IPatternDirectory? patterns = null)
 {
     private const string Page = "/actions";
 
     // ---- reads ----------------------------------------------------------------------------------------------
 
-    public async Task<ServiceResult<IReadOnlyList<CorrectiveAction>>> ListAsync(Actor? actor, CancellationToken ct = default)
+    public async Task<ServiceResult<IReadOnlyList<CorrectiveAction>>> ListAsync(Actor? actor, EnvId? env = null, CancellationToken ct = default)
     {
         if (actor is null) return ServiceResult<IReadOnlyList<CorrectiveAction>>.Fail(Failure.Unauthenticated, "Sign in first.");
         if (!PageAccess.CanAccessPath(actor.Role, Page)) return ServiceResult<IReadOnlyList<CorrectiveAction>>.Fail(Failure.Forbidden, "Corrective actions are not open to this role.");
+        var scope = EnvAccess.Effective(actor, env);
+        if (!scope.IsOk) return ServiceResult<IReadOnlyList<CorrectiveAction>>.Fail(scope.Error!.Value, scope.Message!);
         var all = new List<CorrectiveAction>();
-        foreach (var f in (await fixes.ListAsync(ct)).OrderBy(f => f.ProposedAt)) all.Add(await WithCounterAsync(f, ct));
+        foreach (var f in (await fixes.ListAsync(ct)).OrderBy(f => f.ProposedAt))
+        {
+            if (!await InScopeAsync(f, scope.Value, ct)) continue;
+            all.Add(await WithCounterAsync(f, ct));
+        }
         return ServiceResult<IReadOnlyList<CorrectiveAction>>.Ok(all);
+    }
+
+    /// <summary>A fix with a pattern takes the environments of the pattern's signals; one without takes its own; neither = every environment.</summary>
+    private async Task<bool> InScopeAsync(CorrectiveAction f, EnvScope scope, CancellationToken ct)
+    {
+        if (scope.Env is null) return true;
+        if (f.PatternId is not null && patterns is not null)
+        {
+            var p = await patterns.FindPatternAsync(f.PatternId, ct);
+            if (p is not null) return (await patterns.SignalsOfAsync(p, ct)).Any(sg => scope.Includes(sg.EnvId));
+        }
+        return f.EnvId is null || scope.Includes(f.EnvId.Value);
     }
 
     public async Task<ServiceResult<CorrectiveAction>> GetAsync(Actor? actor, string id, CancellationToken ct = default)
@@ -129,6 +148,7 @@ public sealed class FixService(IFixStore fixes, IInvestigationStore investigatio
         if (Permissions.IsTopManagementTitle(owner)) return Invalid("A fix goes to the concerned people, never to top management.");
         if (string.IsNullOrWhiteSpace(req.Title.En) || string.IsNullOrWhiteSpace(req.Title.Ar)) return Invalid("The title is needed in English and Arabic.");
 
+        if (req.PatternId is not null && patterns is not null && await patterns.FindPatternAsync(req.PatternId, ct) is null) return Invalid("That pattern is not detected now.");
         var now = clock.UtcNow;
         var due = await DueAsync(req.Product, req.Kind, req.PatternId, now, ct);
         var verifyDays = (await inputs.RulesAsync(ct)).VerifyDays;
@@ -312,8 +332,12 @@ public sealed class FixService(IFixStore fixes, IInvestigationStore investigatio
 
     public static bool IsOpenVerdict(FixStatus s) => s is FixStatus.Partial or FixStatus.Failed;
 
-    /// <summary>The trace id shown to people: ca-12 reads CA-12.</summary>
-    public static string Trace(string id) => id.ToUpperInvariant();
+    /// <summary>The trace id shown to people, as the frontend numbers them: ca-1 reads CA-201 (200 + n).</summary>
+    public static string Trace(string id)
+    {
+        var tail = new string(id.Reverse().TakeWhile(char.IsDigit).Reverse().ToArray());
+        return int.TryParse(tail, out var n) ? $"CA-{200 + n}" : id.ToUpperInvariant();
+    }
 
     private async Task<(DateTimeOffset At, FixDueSource Source)> DueAsync(ProductId product, FixKind kind, string? patternId, DateTimeOffset from, CancellationToken ct)
     {

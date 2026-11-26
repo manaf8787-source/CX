@@ -61,7 +61,59 @@ export interface SurveyResponse {
   unit: string
   /** For a detractor: the close-the-loop call. */
   followUp?: 'called' | 'to_call' | 'recovered'
+  /** For a detractor: why, classified from the comment, the call notes or the touchpoint (Detractor analysis). */
+  reason?: DetractorReason
 }
+
+/** 26 Nov (owner): the overall reason a customer is a detractor, and the reasons under it. */
+export type DetractorTheme = 'people' | 'digital' | 'process' | 'commercial' | 'pending'
+export type DetractorReason =
+  'knowledge' | 'communication' | 'slow_reply' | 'promise' | 'app_errors' | 'paperwork' | 'maintenance' | 'price' | 'nothing_suitable' | 'other' | 'pending'
+
+export const DETRACTOR_THEMES: { id: DetractorTheme; label: Bi; hint: Bi }[] = [
+  {
+    id: 'people',
+    label: { en: 'People and service', ar: 'الموظفون والخدمة' },
+    hint: { en: 'How our staff dealt with the customer', ar: 'كيف تعامل موظفونا مع العميل' },
+  },
+  {
+    id: 'digital',
+    label: { en: 'App and technical issues', ar: 'التطبيق والمشاكل التقنية' },
+    hint: { en: 'Errors in the app or the website', ar: 'أخطاء في التطبيق أو الموقع' },
+  },
+  {
+    id: 'process',
+    label: { en: 'Process and maintenance', ar: 'الإجراءات والصيانة' },
+    hint: { en: 'Paperwork, hand-offs, refunds and maintenance', ar: 'الأوراق والتسليم بين الفرق والاسترداد والصيانة' },
+  },
+  {
+    id: 'commercial',
+    label: { en: 'Price and offer', ar: 'السعر والعرض' },
+    hint: { en: 'Price, payment plan or no suitable unit', ar: 'السعر أو خطة الدفع أو عدم وجود وحدة مناسبة' },
+  },
+  {
+    id: 'pending',
+    label: { en: 'Not classified yet', ar: 'لم يُصنَّف بعد' },
+    hint: { en: 'No comment yet; the call will tell us', ar: 'لا تعليق بعد؛ المكالمة ستوضح السبب' },
+  },
+]
+
+export const DETRACTOR_REASONS: { id: DetractorReason; theme: DetractorTheme; label: Bi }[] = [
+  { id: 'knowledge', theme: 'people', label: { en: 'Lack of knowledge or wrong information', ar: 'نقص المعرفة أو معلومات خاطئة' } },
+  { id: 'communication', theme: 'people', label: { en: 'Communication skills and attitude', ar: 'مهارات التواصل والسلوك' } },
+  { id: 'slow_reply', theme: 'people', label: { en: 'Slow or no reply', ar: 'رد بطيء أو لا رد' } },
+  { id: 'promise', theme: 'people', label: { en: 'Promise not kept or no follow-up', ar: 'وعد لم يُنفَّذ أو لا متابعة' } },
+  { id: 'app_errors', theme: 'digital', label: { en: 'App or website errors', ar: 'أخطاء التطبيق أو الموقع' } },
+  { id: 'paperwork', theme: 'process', label: { en: 'Paperwork, hand-offs or refunds', ar: 'الأوراق أو التسليم أو الاسترداد' } },
+  { id: 'maintenance', theme: 'process', label: { en: 'Maintenance quality or time', ar: 'جودة الصيانة أو وقتها' } },
+  { id: 'price', theme: 'commercial', label: { en: 'Price or payment plan', ar: 'السعر أو خطة الدفع' } },
+  { id: 'nothing_suitable', theme: 'commercial', label: { en: 'Nothing suitable', ar: 'لا شيء مناسب' } },
+  { id: 'other', theme: 'people', label: { en: 'Other', ar: 'أخرى' } },
+  { id: 'pending', theme: 'pending', label: { en: 'Not classified yet', ar: 'لم يُصنَّف بعد' } },
+]
+
+export const reasonInfo = (id: DetractorReason) => DETRACTOR_REASONS.find((r) => r.id === id)!
+export const themeInfo = (id: DetractorTheme) => DETRACTOR_THEMES.find((r) => r.id === id)!
 
 const b = (en: string, ar: string): Bi => ({ en, ar })
 
@@ -238,6 +290,9 @@ const COMMENTS: Record<ResponseGroup, Bi[]> = {
     b('Maintenance took two weeks.', 'الصيانة استغرقت أسبوعين.'),
     b('The price changed after I agreed.', 'تغيّر السعر بعد موافقتي.'),
     b('Deposit refund is still pending.', 'استرداد التأمين ما زال معلّقاً.'),
+    b('The agent could not answer basic questions about service charges.', 'لم يستطع الوكيل الإجابة عن أسئلة أساسية حول رسوم الخدمة.'),
+    b('The agent was rude on the phone.', 'كان الوكيل غير لبق على الهاتف.'),
+    b('I was given the wrong handover date.', 'أُعطيت موعد تسليم خاطئاً.'),
   ],
 }
 
@@ -406,7 +461,52 @@ export function buildSurveyResponses(rows: readonly VocDetailRow[]): SurveyRespo
       })
     }
   }
+  classifyDetractors(out)
   return out.sort((a, z) => z.answeredAt.localeCompare(a.answeredAt))
+}
+
+/** What the Classification agent reads from a detractor's own words (sample: the fixed comments above). */
+const COMMENT_REASON: Record<string, DetractorReason> = {
+  'Nobody called back after the viewing.': 'slow_reply',
+  'Maintenance took two weeks.': 'maintenance',
+  'The price changed after I agreed.': 'price',
+  'Deposit refund is still pending.': 'paperwork',
+  'The agent could not answer basic questions about service charges.': 'knowledge',
+  'The agent was rude on the phone.': 'communication',
+  'I was given the wrong handover date.': 'knowledge',
+  'The upload kept failing.': 'app_errors',
+}
+const NO_COMMENT_MIX: [DetractorReason, number][] = [
+  ['knowledge', 22],
+  ['communication', 20],
+  ['slow_reply', 15],
+  ['promise', 13],
+  ['paperwork', 10],
+  ['price', 8],
+  ['nothing_suitable', 5],
+  ['other', 7],
+]
+
+/**
+ * 26 Nov (owner): every detractor gets a reason. From their comment when they wrote one; a digital step is an app error; a
+ * maintenance visit is maintenance; otherwise from the close-the-loop call notes, and "not classified yet" while the call is
+ * still to be made. Its own random stream, so the answers themselves do not change.
+ */
+function classifyDetractors(rows: SurveyResponse[]) {
+  const rng = seededRandom(1_126)
+  const total = NO_COMMENT_MIX.reduce((s, [, w]) => s + w, 0)
+  for (const r of rows) {
+    if (r.group !== 'detractor') continue
+    const fromComment = r.comment ? COMMENT_REASON[r.comment.en] : undefined
+    if (fromComment) r.reason = fromComment
+    else if (r.digital) r.reason = 'app_errors'
+    else if (r.touchpoint.en === ROLE.maintenance.en) r.reason = 'maintenance'
+    else if (r.followUp === 'to_call' && rng() < 0.45) r.reason = 'pending'
+    else {
+      let x = rng() * total
+      r.reason = NO_COMMENT_MIX.find(([, w]) => (x -= w) < 0)?.[0] ?? 'other'
+    }
+  }
 }
 
 export const GROUP_LABEL: Record<ResponseInstrument, Record<ResponseGroup, Bi>> = {

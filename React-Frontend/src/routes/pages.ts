@@ -11,6 +11,8 @@ export const pageLoaders = {
   closeTheLoop: () => import('../pages/CloseTheLoop'),
   // 26 Nov (owner): the re-survey results (detractors before and after, with the call notes)
   recoveryResults: () => import('../pages/RecoveryResults'),
+  // 26 Nov (owner): every detractor and why, and the contacted ones (overall; each product page has it as a tab)
+  detractorAnalysis: () => import('../pages/DetractorAnalysis'),
   personas: () => import('../pages/Personas'),
   surveys: () => import('../pages/settings/SurveysHub'),
   productPage: () => import('../pages/ProductPage'),
@@ -62,6 +64,7 @@ const PATH_LOADERS: [prefix: string, keys: LoaderKey[]][] = [
   ['/runaway', ['runaway']],
   ['/actions', ['actionsLayout', 'corrective']],
   ['/close-the-loop/results', ['recoveryResults']],
+  ['/detractors', ['detractorAnalysis']],
   ['/close-the-loop', ['closeTheLoop']],
   ['/inbox', ['inbox']],
   ['/overview', ['overview']],

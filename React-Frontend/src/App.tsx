@@ -22,6 +22,7 @@ const Customers = lazy(pageLoaders.customers)
 const Runaway = lazy(pageLoaders.runaway)
 const CloseTheLoop = lazy(pageLoaders.closeTheLoop)
 const RecoveryResults = lazy(pageLoaders.recoveryResults)
+const DetractorAnalysis = lazy(pageLoaders.detractorAnalysis)
 const Personas = lazy(pageLoaders.personas)
 const SurveysHub = lazy(pageLoaders.surveys)
 const ProductPage = lazy(pageLoaders.productPage)
@@ -121,6 +122,7 @@ export default function App() {
 
                       <Route path="/close-the-loop" element={<CloseTheLoop />} />
                       <Route path="/close-the-loop/results" element={<RecoveryResults />} />
+                      <Route path="/detractors" element={<DetractorAnalysis />} />
                       <Route path="/personas" element={<Personas />} />
                       <Route path="/inbox" element={<Inbox />} />
                       <Route path="/inbox/open/*" element={<InboxItem />} />

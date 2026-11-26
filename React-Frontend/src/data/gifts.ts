@@ -494,6 +494,42 @@ export function given(s: GiftState, itemId: string): number {
   return s.gifts.filter((x) => x.itemId === itemId && COUNTS_IN_STOCK.includes(x.status)).reduce((n, x) => n + x.qty, 0)
 }
 
+/** 26 Nov (owner): a customer who got a gift recently is told to CX (when, why, a link to the history); it never blocks another. Six months is the default; the window is a rule (Settings, Rules). */
+export const GIFT_ALERT_MONTHS = 6
+
+/** The date a gift counts from: delivered, else the delivery day it was sent for, else when it was asked. */
+export function givenAt(g: Gift): string {
+  return g.deliveredAt ?? (g.deliverOn ? `${g.deliverOn}T08:00:00Z` : g.requestedAt)
+}
+
+const sameName = (a: string, b: string) => a.trim().replace(/\s+/g, ' ').toLowerCase() === b.trim().replace(/\s+/g, ' ').toLowerCase() && a.trim() !== ''
+
+/** Gifts to this customer (by person id, or by full name when the gift has no person id), emailed or delivered, newest first. */
+export function giftsTo(gifts: readonly Gift[], who: { personId?: string; fullName?: string }, excludeId?: string): Gift[] {
+  return gifts
+    .filter((g) => g.id !== excludeId && (g.status === 'sent' || g.status === 'delivered'))
+    .filter((g) => (who.personId ? g.personId === who.personId : false) || (!g.personId && !!who.fullName && sameName(g.fullName, who.fullName)))
+    .sort((a, b) => givenAt(b).localeCompare(givenAt(a)))
+}
+
+/** The ones inside the alert window. */
+export function recentGiftsTo(
+  gifts: readonly Gift[],
+  who: { personId?: string; fullName?: string },
+  now: Date = new Date(),
+  excludeId?: string,
+  months: number = GIFT_ALERT_MONTHS,
+): Gift[] {
+  const since = new Date(now)
+  since.setMonth(since.getMonth() - months)
+  return giftsTo(gifts, who, excludeId).filter((g) => new Date(givenAt(g)).getTime() >= since.getTime())
+}
+
+/** What to say about why a gift was given: the justification, else the case, else the note. */
+export function giftWhy(g: Gift, lang: 'en' | 'ar'): string | undefined {
+  return g.justification?.trim() || g.caseTitle?.[lang] || g.note?.trim() || undefined
+}
+
 const newId = (p: string) => `${p}-${Date.now().toString(36)}`
 
 /** Records the request and takes the quantity out of the stock. Refuses when the stock is short. */

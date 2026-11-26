@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Navigate } from 'react-router-dom'
 import { Bar, BarChart, CartesianGrid, Legend, Tooltip, XAxis, YAxis } from 'recharts'
-import { ArrowRight, PhoneCall } from 'lucide-react'
+import { PhoneCall } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { useRole } from '@/auth/RoleContext'
 import { useDetractorCallItems, usePersonsAll, useProducts } from '@/services/queries'
@@ -12,7 +12,7 @@ import { fmtSigned } from '@/utils/indicators'
 import { REACHED_VIA, recoverySummary, type ReachedVia } from '@/utils/resurvey'
 import { personLabel } from '@/utils/peopleExport'
 import type { Bi, FeedbackInstrument, ProductId } from '@/types'
-import { PageHeader } from '@/components/common/PageHeader'
+import { useEnvScope } from '@/services/envScope'
 import { SectionCard } from '@/components/common/SectionCard'
 import { KpiTile } from '@/components/common/KpiTile'
 import { EmptyState } from '@/components/common/EmptyState'
@@ -39,8 +39,17 @@ const VIA_LABEL: Record<ReachedVia, Bi> = {
  * there were before and how many are left, and the indicators elsewhere already count the second rating instead of the first.
  * Read by CX only (the call notes are conversation text).
  */
+/** The old address: the re-survey results are now the Contacted detractors tab of Detractor analysis. */
 export default function RecoveryResults() {
+  return <Navigate to="/detractors?tab=contacted" replace />
+}
+
+/**
+ * 26 Nov (owner): the Contacted detractors tab of Detractor analysis (overall, and on each product page with `productIds`).
+ */
+export function RecoveryPanel({ productIds }: { productIds?: ProductId[] } = {}) {
   const { t, L, lang } = useI18n()
+  const { env } = useEnvScope()
   const { role } = useRole()
   const { data: items, isLoading } = useDetractorCallItems()
   const { data: persons } = usePersonsAll()
@@ -52,46 +61,49 @@ export default function RecoveryResults() {
   const [via, setVia] = useState<string>(ALL)
 
   const summary = useMemo(
-    () => recoverySummary(items ?? [], gifts, { product: product === ALL ? undefined : product, instrument: instrument === ALL ? undefined : instrument, via: via === ALL ? undefined : (via as ReachedVia) }),
-    [items, gifts, product, instrument, via],
+    () =>
+      recoverySummary(items ?? [], gifts, {
+        products: productIds,
+        env,
+        product: product === ALL ? undefined : product,
+        instrument: instrument === ALL ? undefined : instrument,
+        via: via === ALL ? undefined : (via as ReachedVia),
+      }),
+    [items, gifts, product, instrument, via, productIds, env],
   )
   const label = (id: string) => {
     const p = persons?.find((x) => x.id === id)
     return p ? personLabel(p, role.id) : id
   }
-  const fmt = (d?: string) => (d ? new Intl.DateTimeFormat(lang === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(d)) : '–')
+  const fmt = (d?: string) =>
+    d ? new Intl.DateTimeFormat(lang === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(d)) : '–'
 
   const chart = [
     { name: t('Before the re-survey', 'قبل إعادة الاستبيان'), value: summary.before },
     { name: t('After the re-survey', 'بعد إعادة الاستبيان'), value: summary.after },
   ]
-  const live = (products ?? []).filter((p) => p.live && p.id !== 'af')
+  const live = (products ?? []).filter((p) => p.live && p.id !== 'af' && (!productIds || productIds.includes(p.id as ProductId)))
 
   return (
-    <div data-density="comfortable" className="flex flex-col gap-8">
-      <PageHeader
-        sample
-        title={t('Re-survey results', 'نتائج إعادة الاستبيان')}
-        description={t(
+    <div data-density="comfortable" className="flex flex-col gap-6">
+      <p className="max-w-[80ch] text-sm text-muted-foreground">
+        {t(
           'Detractors we spoke to or sent a gift, then surveyed again: what they said, and how the score moved. The second rating replaces the first in every indicator.',
           'العملاء المنتقدون الذين تحدثنا معهم أو أرسلنا لهم هدية ثم أعدنا استبيانهم: ماذا قالوا وكيف تغيّر التقييم. التقييم الثاني يحلّ محل الأول في كل المؤشرات.',
         )}
-        actions={
-          <Link to="/close-the-loop" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
-            {t('Back to close the loop', 'العودة إلى إغلاق الحلقة')}
-            <ArrowRight aria-hidden className="size-4 rtl:rotate-180" />
-          </Link>
-        }
-      />
-
+      </p>
       <div className="flex flex-wrap gap-2">
-        <FilterSelect label={t('Product', 'المنتج')} value={product} onChange={setProduct} allLabel={t('All products', 'كل المنتجات')}>
-          {(products ?? []).filter((p) => p.live).map((p) => (
-            <SelectItem key={p.id} value={p.id}>
-              {L(p.name)}
-            </SelectItem>
-          ))}
-        </FilterSelect>
+        {(!productIds || productIds.length > 1) && (
+          <FilterSelect label={t('Product', 'المنتج')} value={product} onChange={setProduct} allLabel={t('All products', 'كل المنتجات')}>
+            {(products ?? [])
+              .filter((p) => p.live && (!productIds || productIds.includes(p.id as ProductId)))
+              .map((p) => (
+                <SelectItem key={p.id} value={p.id}>
+                  {L(p.name)}
+                </SelectItem>
+              ))}
+          </FilterSelect>
+        )}
         <FilterSelect label={t('Measure', 'المقياس')} value={instrument} onChange={setInstrument} allLabel={t('All measures', 'كل المقاييس')}>
           {(['nps', 'csat', 'ces'] as FeedbackInstrument[]).map((i) => (
             <SelectItem key={i} value={i}>
@@ -113,9 +125,21 @@ export default function RecoveryResults() {
       ) : (
         <>
           <div className="grid gap-4 sm:grid-cols-2 desktop:grid-cols-4">
-            <KpiTile label={t('Detractors before', 'المنتقدون قبل')} value={summary.before} sub={t('first rating 0 to 6 (NPS) or 1 to 2', 'التقييم الأول 0 إلى 6 (NPS) أو 1 إلى 2')} />
-            <KpiTile label={t('Re-surveyed', 'أُعيد استبيانهم')} value={summary.reSurveyed} sub={t(`${summary.notYet} not yet re-surveyed`, `${summary.notYet} لم يُعاد استبيانهم بعد`)} />
-            <KpiTile label={t('Detractors after', 'المنتقدون بعد')} value={summary.after} sub={t(`${summary.recovered} no longer a detractor`, `${summary.recovered} لم يعودوا منتقدين`)} />
+            <KpiTile
+              label={t('Detractors before', 'المنتقدون قبل')}
+              value={summary.before}
+              sub={t('first rating 0 to 6 (NPS) or 1 to 2', 'التقييم الأول 0 إلى 6 (NPS) أو 1 إلى 2')}
+            />
+            <KpiTile
+              label={t('Re-surveyed', 'أُعيد استبيانهم')}
+              value={summary.reSurveyed}
+              sub={t(`${summary.notYet} not yet re-surveyed`, `${summary.notYet} لم يُعاد استبيانهم بعد`)}
+            />
+            <KpiTile
+              label={t('Detractors after', 'المنتقدون بعد')}
+              value={summary.after}
+              sub={t(`${summary.recovered} no longer a detractor`, `${summary.recovered} لم يعودوا منتقدين`)}
+            />
             <KpiTile
               label={t('Average change', 'متوسط التغيّر')}
               value={summary.averageDelta == null ? '–' : fmtSigned(summary.averageDelta)}
@@ -135,7 +159,10 @@ export default function RecoveryResults() {
             }
           >
             {summary.before === 0 ? (
-              <EmptyState title={t('No detractors in this view', 'لا يوجد منتقدون في هذا العرض')} note={t('Change a filter or the environment switch.', 'غيّر أحد المرشّحات أو مفتاح البيئة.')} />
+              <EmptyState
+                title={t('No detractors in this view', 'لا يوجد منتقدون في هذا العرض')}
+                note={t('Change a filter or the environment switch.', 'غيّر أحد المرشّحات أو مفتاح البيئة.')}
+              />
             ) : (
               <div className="grid gap-6 desktop:grid-cols-2">
                 <ChartWell
@@ -148,7 +175,14 @@ export default function RecoveryResults() {
                     <XAxis dataKey="name" {...chartAxis} />
                     <YAxis allowDecimals={false} {...chartAxis} width={32} />
                     <Tooltip cursor={chartCursorBar} content={<ChartTooltip />} />
-                    <Bar dataKey="value" name={t('Detractors', 'منتقدون')} fill="var(--chart-1)" radius={[6, 6, 0, 0]} maxBarSize={72} label={{ position: 'top', fill: 'var(--ink-secondary)', fontSize: 12 }} />
+                    <Bar
+                      dataKey="value"
+                      name={t('Detractors', 'منتقدون')}
+                      fill="var(--chart-1)"
+                      radius={[6, 6, 0, 0]}
+                      maxBarSize={72}
+                      label={{ position: 'top', fill: 'var(--ink-secondary)', fontSize: 12 }}
+                    />
                     <Legend content={() => null} />
                   </BarChart>
                 </ChartWell>
@@ -173,7 +207,10 @@ export default function RecoveryResults() {
 
           <SectionCard
             title={t('Indicators now count the second rating', 'المؤشرات تحتسب الآن التقييم الثاني')}
-            description={t('Live NPS and CSAT per product, with the re-survey in place of the first rating (the same numbers as Home and CX indicators).', 'NPS وCSAT الحاليان لكل منتج مع إعادة الاستبيان بدل التقييم الأول (الأرقام نفسها في الرئيسية ومؤشرات التجربة).')}
+            description={t(
+              'Live NPS and CSAT per product, with the re-survey in place of the first rating (the same numbers as Home and CX indicators).',
+              'NPS وCSAT الحاليان لكل منتج مع إعادة الاستبيان بدل التقييم الأول (الأرقام نفسها في الرئيسية ومؤشرات التجربة).',
+            )}
           >
             <Table density="comfortable">
               <TableHeader>
@@ -208,7 +245,11 @@ export default function RecoveryResults() {
             density="dense"
           >
             {summary.rows.length === 0 ? (
-              <EmptyState icon={<PhoneCall aria-hidden />} title={t('No re-survey answers yet', 'لا توجد إجابات إعادة استبيان بعد')} note={t('They appear here once a re-survey answer is recorded in Close the loop.', 'تظهر هنا عند تسجيل إجابة إعادة الاستبيان في إغلاق الحلقة.')} />
+              <EmptyState
+                icon={<PhoneCall aria-hidden />}
+                title={t('No re-survey answers yet', 'لا توجد إجابات إعادة استبيان بعد')}
+                note={t('They appear here once a re-survey answer is recorded in Close the loop.', 'تظهر هنا عند تسجيل إجابة إعادة الاستبيان في إغلاق الحلقة.')}
+              />
             ) : (
               <Table density="comfortable">
                 <TableHeader>
@@ -244,7 +285,11 @@ export default function RecoveryResults() {
                       <TableCell className="max-w-[34ch] whitespace-normal text-sm">
                         {item.outcome && <span className="text-muted-foreground">{L(INTERVIEW_OUTCOME_LABEL[item.outcome])}</span>}
                         {item.reasonCode && <span className="block text-muted-foreground">{L(REASON_CODE_LABEL[item.reasonCode])}</span>}
-                        {item.notes?.trim() ? <span className="block">{item.notes}</span> : <span className="block text-muted-foreground">{t('No notes recorded', 'لا ملاحظات مسجّلة')}</span>}
+                        {item.notes?.trim() ? (
+                          <span className="block">{item.notes}</span>
+                        ) : (
+                          <span className="block text-muted-foreground">{t('No notes recorded', 'لا ملاحظات مسجّلة')}</span>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -258,7 +303,19 @@ export default function RecoveryResults() {
   )
 }
 
-function FilterSelect({ label, value, onChange, allLabel, children }: { label: string; value: string; onChange: (v: string) => void; allLabel: string; children: React.ReactNode }) {
+function FilterSelect({
+  label,
+  value,
+  onChange,
+  allLabel,
+  children,
+}: {
+  label: string
+  value: string
+  onChange: (v: string) => void
+  allLabel: string
+  children: React.ReactNode
+}) {
   return (
     <Select value={value} onValueChange={onChange}>
       <SelectTrigger aria-label={label} className="h-9 min-w-40">

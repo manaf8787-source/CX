@@ -20,7 +20,7 @@ const satisfied = (score: number) => score >= 4
 type Row = VocRow & { envId?: EnvId }
 
 function pick(rows: Row[], item: DetractorCallItem, has: (r: Row) => boolean): number {
-  const fits = (r: VocDetailRow) => r.product === item.product && has(r)
+  const fits = (r: Row) => r.product === item.product && has(r)
   const exact = rows.findIndex((r) => fits(r) && r.envId === item.envId)
   return exact >= 0 ? exact : rows.findIndex((r) => fits(r) && r.envId === undefined)
 }
@@ -83,6 +83,10 @@ export interface RecoveryRow {
 
 export interface RecoveryFilters {
   product?: string
+  /** A product page's own products (PSI Real Estate includes After-Sales). */
+  products?: readonly string[]
+  /** The environment in scope; unset or 'all' for every environment. */
+  env?: string
   instrument?: string
   via?: ReachedVia
 }
@@ -102,7 +106,14 @@ export interface RecoverySummary {
 }
 
 export function recoverySummary(items: readonly DetractorCallItem[], gifts: readonly Gift[], f: RecoveryFilters = {}): RecoverySummary {
-  const detractors = items.filter((i) => isDetractorRating(i.instrument ?? 'nps', i.firstScore) && (!f.product || i.product === f.product) && (!f.instrument || (i.instrument ?? 'nps') === f.instrument))
+  const detractors = items.filter(
+    (i) =>
+      isDetractorRating(i.instrument ?? 'nps', i.firstScore) &&
+      (!f.product || i.product === f.product) &&
+      (!f.products || f.products.includes(i.product)) &&
+      (!f.env || f.env === 'all' || i.envId === f.env) &&
+      (!f.instrument || (i.instrument ?? 'nps') === f.instrument),
+  )
   const rows: RecoveryRow[] = detractors
     .filter((i) => i.secondScore !== undefined)
     .map((item) => ({
@@ -131,4 +142,3 @@ export function recoverySummary(items: readonly DetractorCallItem[], gifts: read
     rows: rows.sort((a, b) => (b.item.resurveyedAt ?? '').localeCompare(a.item.resurveyedAt ?? '')),
   }
 }
-

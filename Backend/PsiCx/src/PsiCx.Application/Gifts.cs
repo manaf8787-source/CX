@@ -1,4 +1,5 @@
 using PsiCx.Domain;
+using PsiCx.Rules;
 
 namespace PsiCx.Application;
 
@@ -32,13 +33,19 @@ public sealed record NewGiftRequest(
 
 public sealed record SendDetails(string Phone, string? Email, ContactMethod ContactMethod, string Address, DateOnly DeliverOn, string DeliverWindow, string? Note);
 
+/// <summary>One earlier gift to the same customer: when, what, why, and its id (the history page opens on it).</summary>
+public sealed record GiftHistoryLine(string Id, DateTimeOffset At, GiftReason Reason, Bi ItemName, int Qty, GiftStatus Status, string? Why, string? RelatedRef, string RequestedBy);
+
+/// <summary>Every gift to this customer, and the ones inside the alert window (given in the last six months). An alert, never a block.</summary>
+public sealed record GiftHistory(IReadOnlyList<GiftHistoryLine> All, IReadOnlyList<GiftHistoryLine> Recent, int WindowMonths);
+
 public sealed record GiftStock(GiftItem Item, int Available, bool Low);
 
 /// <summary>
 /// Gifts (owner, 23 Nov): CX sends a gift to a customer; the request is emailed to the Administration team, with a stock per item. Only CX
 /// opens it. A team member asks, the CX manager approves or rejects, the member then fills the delivery details and sends.
 /// </summary>
-public sealed class GiftService(IGiftStore store, IGiftMailer mailer, IClock clock)
+public sealed class GiftService(IGiftStore store, IGiftMailer mailer, IClock clock, IRulesSource? rules = null)
 {
     public const string AdminEmail = "administration@psi.sample";
 
@@ -170,6 +177,48 @@ public sealed class GiftService(IGiftStore store, IGiftMailer mailer, IClock clo
         if (g.Status is GiftStatus.Delivered or GiftStatus.Cancelled or GiftStatus.Rejected) return ServiceResult<Gift>.Fail(Failure.Conflict, "This request can no longer be cancelled.");
         return await Replace(g with { Status = GiftStatus.Cancelled, CancelledAt = clock.UtcNow }, g.Status, ct);
     }
+
+    /// <summary>
+    /// Owner, 26 Nov: a customer who got a gift in the alert window (6 months by default, a rule) is not blocked from another; CX is told when, and why, and can open the
+    /// full history. The match is the person id, or the full name when the request has no person id.
+    /// </summary>
+
+    public async Task<ServiceResult<GiftHistory>> HistoryAsync(Actor? actor, string? personId, string? fullName, string? excludeId = null, CancellationToken ct = default)
+    {
+        if (actor is null || !IsCx(actor)) return Deny<GiftHistory>(actor, CxOnly);
+        if (string.IsNullOrWhiteSpace(personId) && string.IsNullOrWhiteSpace(fullName)) return ServiceResult<GiftHistory>.Fail(Failure.Invalid, "Say which customer: a person id or a full name.");
+        return ServiceResult<GiftHistory>.Ok(await BuildHistory(personId, fullName, excludeId, clock.UtcNow, ct));
+    }
+
+    /// <summary>The same history for a request waiting for approval: the other gifts to its customer, so the CX manager decides with the story.</summary>
+    public async Task<ServiceResult<GiftHistory>> HistoryOfRequestAsync(Actor? actor, string giftId, CancellationToken ct = default)
+    {
+        if (actor is null || !IsCx(actor)) return Deny<GiftHistory>(actor, CxOnly);
+        var g = await store.GetAsync(giftId, ct);
+        if (g is null) return ServiceResult<GiftHistory>.Fail(Failure.NotFound, "Gift request not found.");
+        if (actor.Role == RoleId.Cxteam && g.RequestedById != actor.UserId) return ServiceResult<GiftHistory>.Fail(Failure.Forbidden, "Only the person who asked reads this.");
+        return ServiceResult<GiftHistory>.Ok(await BuildHistory(g.PersonId, g.FullName, g.Id, clock.UtcNow, ct));
+    }
+
+    private async Task<GiftHistory> BuildHistory(string? personId, string? fullName, string? excludeId, DateTimeOffset now, CancellationToken ct)
+    {
+        static string Norm(string? n) => string.Join(' ', (n ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries)).ToLowerInvariant();
+        var items = (await store.ItemsAsync(ct)).ToDictionary(i => i.Id);
+        var mine = (await store.GiftsAsync(ct))
+            .Where(g => g.Id != excludeId && g.Status != GiftStatus.Cancelled && g.Status != GiftStatus.Rejected)
+            .Where(g => !string.IsNullOrWhiteSpace(personId) && g.PersonId == personId || string.IsNullOrWhiteSpace(g.PersonId) && Norm(fullName) != "" && Norm(g.FullName) == Norm(fullName))
+            .Select(g => new GiftHistoryLine(g.Id, GivenAt(g), g.Reason, items.TryGetValue(g.ItemId, out var it) ? it.Name : new Bi(g.ItemId, g.ItemId), g.Qty, g.Status,
+                g.Justification ?? g.CaseTitle?.En ?? g.Note, g.RelatedRef, g.RequestedBy))
+            .OrderByDescending(l => l.At).ToList();
+        // the window is a rule the CX manager can change (Settings, Rules)
+        var months = rules is null ? RulesBag.Default.GiftAlertMonths : (await rules.RulesAsync(ct)).GiftAlertMonths;
+        var since = now.AddMonths(-months);
+        return new GiftHistory(mine, mine.Where(l => l.Status is GiftStatus.Sent or GiftStatus.Delivered && l.At >= since).ToList(), months);
+    }
+
+    /// <summary>The date a gift counts from: delivery, else the delivery day it was sent for, else when it was asked.</summary>
+    private static DateTimeOffset GivenAt(Gift g)
+        => g.DeliveredAt ?? (g.DeliverOn is { } d ? UaeTime.ToUtc(d.ToDateTime(TimeOnly.MinValue)) : g.RequestedAt);
 
     /// <summary>Whether a recovery gift reached this person (emailed or delivered): the "gift" in how a detractor was reached.</summary>
     public async Task<bool> HasRecoveryGiftAsync(string personId, CancellationToken ct = default)

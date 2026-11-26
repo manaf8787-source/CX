@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { SurveyAnswersPanel } from '@/pages/SurveyAnswers'
+import { ProductDetractorAnalysis } from '@/pages/DetractorAnalysis'
 import { ArrowRight, Ban, Globe, Smartphone } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { useRole } from '@/auth/RoleContext'
@@ -47,7 +48,9 @@ export default function ProductPage() {
   const { data: rules } = useProductSurveyRules()
   const questionSets = useEditableSets()
   const [params, setParams] = useSearchParams()
-  const tab = params.get('tab') === 'answers' ? 'answers' : 'overview'
+  // 26 Nov (owner): Detractor analysis is for the CX manager and the CX team only
+  const cxOnly = role.id === 'cxmgr' || role.id === 'cxteam'
+  const tab = params.get('tab') === 'answers' ? 'answers' : params.get('tab') === 'detractors' && cxOnly ? 'detractors' : 'overview'
 
   if (isLoading) return <LoadingState rows={6} />
   const product = products?.find((p) => p.id === productId)
@@ -84,11 +87,18 @@ export default function ProductPage() {
       />
 
       {/* 26 Nov (owner): every survey answer of this product is a tab here, so the page is reachable from the menu, not only from Home */}
-      <Tabs value={tab} onValueChange={(v) => setParams(v === 'answers' ? { tab: v } : {}, { replace: true })} className="gap-6">
+      <Tabs value={tab} onValueChange={(v) => setParams(v === 'overview' ? {} : { tab: v }, { replace: true })} className="gap-6">
         <TabsList aria-label={L(product.name)}>
           <TabsTrigger value="overview">{t('Overview', 'نظرة عامة')}</TabsTrigger>
           <TabsTrigger value="answers">{t('Survey answers', 'إجابات الاستبيانات')}</TabsTrigger>
+          {/* 26 Nov (owner): this product's detractors and why, and the contacted ones */}
+          {cxOnly && <TabsTrigger value="detractors">{t('Detractor analysis', 'تحليل المنتقدين')}</TabsTrigger>}
         </TabsList>
+        {cxOnly && (
+          <TabsContent value="detractors">
+            <ProductDetractorAnalysis productId={product.id} />
+          </TabsContent>
+        )}
         <TabsContent value="answers">
           <SurveyAnswersPanel productId={product.id} />
         </TabsContent>
